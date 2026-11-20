@@ -60,7 +60,7 @@ function highlightLine(line: string, tiers: Record<string, Tier>, inBlock: { v: 
     if (m) {
       const w = m[0];
       if (SYNC.has(w)) push('v-sync', w);
-      else if (tiers[w]) push('v-' + tiers[w], w);
+      else if (Object.hasOwn(tiers, w)) push('v-' + tiers[w], w);
       else if (KEYWORDS.has(w)) push('k', w);
       else push(null, w);
       i += w.length;

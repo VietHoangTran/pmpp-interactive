@@ -20,6 +20,8 @@ export interface BackendRun {
   generated: string;
   device: Record<string, string | boolean>;
   results: RunResult[];
+  /** Per lab: 'untouched' while work/ is still identical to starter/, else 'edited'. */
+  work_state?: Record<string, 'untouched' | 'edited'>;
 }
 export type Reports = Record<string, BackendRun>;
 
@@ -47,6 +49,8 @@ export function benchRows(run: BackendRun | undefined, lab: string, variant = 's
 }
 
 export function labStatus(run: BackendRun | undefined, lab: string, variant: string): 'pass' | 'fail' | 'none' {
+  // An untouched starter fails its tests by design; that is "not started", not a failure.
+  if (variant === 'work' && run?.work_state?.[lab] === 'untouched') return 'none';
   const rs = run?.results.filter((x) => x.lab === lab && x.variant === variant && x.tests.length) ?? [];
   if (!rs.length) return 'none';
   return rs.every((x) => x.built && x.test_rc === 0 && x.tests.every((t) => t.pass)) ? 'pass' : 'fail';

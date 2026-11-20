@@ -186,7 +186,8 @@ export function runBlock(cfg: Config, prob: Problem, bx: number, by: number, sch
   const violations: Violation[] = [];
   const stores: BlockTrace['stores'] = [];
   const rand = mulberry(seed);
-  const name = (t: number) => `thread (${t % T}, ${Math.floor(t / T)})`;
+  // The book writes threads as (row, column); spell out tx and ty so there is no doubt.
+  const name = (t: number) => `thread (tx ${t % T}, ty ${Math.floor(t / T)})`;
 
   const flag = (s: Step, kind: ViolationKind, message: string) => {
     const v: Violation = { kind, step: s.index, thread: s.thread, message };

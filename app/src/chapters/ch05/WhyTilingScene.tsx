@@ -9,9 +9,9 @@ const W = 4;
 const T = 2;
 const prob = makeProblem(W);
 const C = 36; // cell size
-const MX = 24, MY = 176; // M origin
-const NX = 196, NY = 8; // N origin
-const PX = 196, PY = 176; // P origin
+const MX = 24, MY = 190; // M origin
+const NX = 196, NY = 22; // N origin
+const PX = 196, PY = 190; // P origin
 const SX = 392; // shared tiles and counters
 
 const clamp = (v: number) => Math.max(0, Math.min(1, v));
@@ -83,7 +83,7 @@ function Tile({ x, y, values, name, hot }: { x: number; y: number; values: (numb
 function Stage(f: Frame) {
   const pVals = prob.ref.map((v, i) => (f.pOut && Math.floor(i / W) < T && i % W < T ? v : null));
   return (
-    <svg viewBox="0 0 720 330" role="img" aria-label="Animation of one block multiplying matrices" style={{ width: '100%', maxWidth: 720, display: 'block' }}>
+    <svg viewBox="0 0 720 348" role="img" aria-label="Animation of one block multiplying matrices" style={{ width: '100%', maxWidth: 720, display: 'block' }}>
       <Grid x={MX} y={MY} values={prob.M} name="M" hot={f.hotM} wash={f.washM} />
       <Grid x={NX} y={NY} values={prob.N} name="N" hot={f.hotN} wash={f.washN} />
       <Grid x={PX} y={PY} values={pVals} name="P = M × N" wash={new Set([0, 1, 4, 5])} />
@@ -111,39 +111,39 @@ function Stage(f: Frame) {
       {/* shared memory */}
       {f.shared ? (
         <g opacity={f.shared}>
-          <Tile x={SX} y={30} values={f.mds ?? [null, null, null, null]} name="Mds (shared)" hot={f.hotShared} />
-          <Tile x={SX + 120} y={30} values={f.nds ?? [null, null, null, null]} name="Nds (shared)" hot={f.hotShared} />
+          <Tile x={SX} y={40} values={f.mds ?? [null, null, null, null]} name="Mds (shared)" hot={f.hotShared} />
+          <Tile x={SX + 120} y={40} values={f.nds ?? [null, null, null, null]} name="Nds (shared)" hot={f.hotShared} />
         </g>
       ) : null}
       {f.barrier ? (
         <g>
-          <rect x={SX} y={116} width={300} height={26} rx="3" fill="var(--ink)" />
-          <text x={SX + 150} y={133} fontSize="12" textAnchor="middle" style={{ fill: 'var(--page)' }}>{f.barrier}</text>
+          <rect x={SX} y={128} width={308} height={26} rx="3" fill="var(--ink)" />
+          <text x={SX + 154} y={145} fontSize="12" textAnchor="middle" style={{ fill: 'var(--page)' }}>{f.barrier}</text>
         </g>
       ) : null}
       {f.sums ? (
         <g>
-          <text x={SX} y={170} fontSize="12" fontWeight="600" style={{ fill: 'var(--reg)' }}>running sums (one register per thread)</text>
+          <text x={SX} y={182} fontSize="12" fontWeight="600" style={{ fill: 'var(--reg)' }}>running sums (one register per thread)</text>
           {f.sums.map((s, i) => (
             <g key={i}>
-              <rect x={SX + i * 74} y={178} width={68} height={30} rx="2" fill="var(--reg-wash)" stroke="var(--reg)" />
-              <text x={SX + i * 74 + 34} y={198} fontSize="12.5" textAnchor="middle">{s == null ? '0' : s}</text>
+              <rect x={SX + i * 74} y={190} width={68} height={30} rx="2" fill="var(--reg-wash)" stroke="var(--reg)" />
+              <text x={SX + i * 74 + 34} y={210} fontSize="12.5" textAnchor="middle">{s == null ? '0' : s}</text>
             </g>
           ))}
         </g>
       ) : null}
       {f.bars != null ? (
         <g>
-          <text x={SX} y={236} fontSize="11.5">fetched once per thread</text>
-          <rect x={SX} y={242} width={300 * f.bars} height={14} fill="var(--global)" />
-          <text x={SX + 300 * f.bars + 6} y={253} fontSize="11.5">{Math.round(32 * f.bars)}</text>
-          <text x={SX} y={280} fontSize="11.5">fetched once per block</text>
-          <rect x={SX} y={286} width={150 * f.bars} height={14} fill="var(--shared)" />
-          <text x={SX + 150 * f.bars + 6} y={297} fontSize="11.5">{Math.round(16 * f.bars)}</text>
+          <text x={SX} y={250} fontSize="11.5">fetched once per thread</text>
+          <rect x={SX} y={256} width={300 * f.bars} height={14} fill="var(--global)" />
+          <text x={SX + 300 * f.bars + 6} y={267} fontSize="11.5">{Math.round(32 * f.bars)}</text>
+          <text x={SX} y={292} fontSize="11.5">fetched once per block</text>
+          <rect x={SX} y={298} width={150 * f.bars} height={14} fill="var(--shared)" />
+          <text x={SX + 150 * f.bars + 6} y={309} fontSize="11.5">{Math.round(16 * f.bars)}</text>
         </g>
       ) : null}
       {f.headline ? (
-        <text x={SX} y={318} fontSize="13" fontWeight="600">{f.headline}</text>
+        <text x={SX} y={338} fontSize="13" fontWeight="600">{f.headline}</text>
       ) : null}
     </svg>
   );
@@ -180,8 +180,8 @@ function phase(ph: number, p: number, last: boolean): Frame {
     mds: vals(prob.M, mTile),
     nds: vals(prob.N, nTile),
     hotShared: p >= 0.52 && p < 0.86,
-    barrier: waiting ? 'barrier: all 4 threads wait until every load has landed'
-      : p >= 0.86 ? (last ? 'last phase done: each thread stores its sum' : 'barrier: nobody overwrites a slot still being read') : null,
+    barrier: waiting ? 'barrier: every thread waits for all the loads'
+      : p >= 0.86 ? (last ? 'last phase done: each thread stores its sum' : 'barrier: no overwriting until all have read') : null,
     sums: p >= 0.6 ? partial(ph + 1) : partial(ph),
     pOut: last && p >= 0.9,
   };

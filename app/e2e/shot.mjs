@@ -5,6 +5,13 @@ const [hash, out] = args;
 const flag = (n) => args.includes('--' + n);
 const val = (n, d) => (args.includes('--' + n) ? Number(args[args.indexOf('--' + n) + 1]) : d);
 const { browser, page, errors } = await open({ width: val('width', 1440), height: val('height', 900), dark: flag('dark') });
+// Looking at a page must not change the reader's progress file.
+await page.setRequestInterception(true);
+page.on('request', (r) =>
+  r.method() === 'PUT' && r.url().includes('/api/progress')
+    ? r.respond({ status: 200, contentType: 'application/json', body: '{"ok":true}' })
+    : r.continue(),
+);
 await goto(page, hash);
 if (val('y', 0)) await page.evaluate((y) => window.scrollTo(0, y), val('y', 0));
 // --sel "<css>": scroll that element to the top of the viewport; --light: force the light theme.

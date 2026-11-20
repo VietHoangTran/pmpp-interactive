@@ -5,8 +5,10 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 // stay in sync because a beat lasts exactly as long as its clip.
 //
 // Scripts, audio and the manifest live in content/<chapter>/narration/ (see
-// tools/narration.mjs). Captions are the scripts themselves. With no audio for a
-// beat the animation still runs, on a duration estimated from the script length.
+// tools/narration.mjs). Captions are the scripts themselves and are an option the
+// viewer switches on (off by default, remembered in this browser). With no audio
+// for a beat the animation still runs, on a duration estimated from the script
+// length, and that beat's caption is shown regardless so nothing is lost.
 export interface Beat {
   /** Clip id: content/<chapter>/narration/<clip>.txt and .mp3 */
   clip: string;
@@ -33,8 +35,29 @@ export function Scene({ chapter, title, beats }: { chapter: string; title: strin
   const [t, setT] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [sound, setSound] = useState(true);
+  const [captions, setCaptions] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('captions') === 'on';
+    } catch {
+      return false;
+    }
+  });
+  const toggleCaptions = (on: boolean) => {
+    setCaptions(on);
+    try {
+      localStorage.setItem('captions', on ? 'on' : 'off');
+    } catch {
+      /* private window: the choice just does not persist */
+    }
+  };
   const audio = useRef<HTMLAudioElement | null>(null);
   const last = useRef<number | null>(null);
+  // Bumped when a clip finishes, so the end of the audio itself moves things on
+  // even when the clock has already reached the end of the beat and stopped changing.
+  const [ended, setEnded] = useState(0);
+  const endedBeat = useRef(-1); // index of the beat whose clip has finished
+  const live = useRef(false); // the audio element is playing the current beat's clip
+  const [broken, setBroken] = useState<Record<string, boolean>>({}); // clips that failed to load
 
   useEffect(() => {
     fetch(base + 'manifest.json')
@@ -53,21 +76,31 @@ export function Scene({ chapter, title, beats }: { chapter: string; title: strin
   const entry = manifest?.clips[beat.clip];
   const script = scripts[beat.clip] ?? '';
   const dur = entry?.duration ?? estimate(script);
-  const hasAudio = !!entry;
+  const hasAudio = !!entry && !broken[beat.clip];
+  // With sound on and a clip available, the audio element is the clock.
+  const audioLed = hasAudio && sound;
 
   // Start or stop this beat's audio when playback state or the beat changes.
   useEffect(() => {
     const a = audio.current;
     if (!a) return;
-    if (playing && hasAudio && sound) {
-      if (!a.src.endsWith(base + entry!.file)) a.src = base + entry!.file;
+    if (playing && audioLed) {
+      if (!a.src.endsWith(base + entry!.file)) {
+        live.current = false; // until the new clip reports that it is playing
+        a.src = base + entry!.file;
+      }
       a.currentTime = Math.min(t, dur);
       a.play().catch(() => undefined);
-    } else a.pause();
+    } else {
+      live.current = false;
+      a.pause();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing, i, hasAudio, sound]);
+  }, [playing, i, audioLed]);
 
-  // The clock. Audio, when present, is the master; otherwise wall time.
+  // The clock. An audio element that has just been given a new clip can still
+  // report the old clip's position for a moment, so its time is trusted only
+  // once it has said "playing" for this clip.
   useEffect(() => {
     if (!playing) {
       last.current = null;
@@ -78,28 +111,29 @@ export function Scene({ chapter, title, beats }: { chapter: string; title: strin
       const a = audio.current;
       const dt = last.current == null ? 0 : (now - last.current) / 1000;
       last.current = now;
-      setT((prev) => {
-        const next = hasAudio && sound && a && !a.paused && a.currentTime > 0 ? a.currentTime : prev + dt;
-        return Math.min(next, dur);
-      });
+      setT((prev) => Math.min(audioLed ? (a && live.current ? a.currentTime : prev) : prev + dt, dur));
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [playing, hasAudio, sound, dur]);
+  }, [playing, audioLed, dur]);
 
-  // Advance at the end of a beat.
+  // Advance at the end of a beat: when this beat's clip ends, or, without audio,
+  // when the clock runs out.
   useEffect(() => {
-    if (!playing || t < dur) return;
-    const a = audio.current;
-    if (hasAudio && sound && a && !a.ended && !a.paused) return; // let the clip finish
+    if (!playing) return;
+    if (audioLed ? endedBeat.current !== i : t < dur) return;
     if (i + 1 < beats.length) {
       setI(i + 1);
       setT(0);
-    } else setPlaying(false);
-  }, [t, dur, playing, i, beats.length, hasAudio, sound]);
+    } else {
+      setT(dur);
+      setPlaying(false);
+    }
+  }, [t, dur, playing, i, beats.length, audioLed, ended]);
 
   const go = (k: number) => {
+    endedBeat.current = -1;
     setI(Math.max(0, Math.min(beats.length - 1, k)));
     setT(0);
   };
@@ -116,7 +150,9 @@ export function Scene({ chapter, title, beats }: { chapter: string; title: strin
       </header>
       <div className="body">
         <div className="stage">{beat.draw(p)}</div>
-        <p className="caption" aria-live="polite">{stripTags(script) || '…'}</p>
+        {captions || !hasAudio ? (
+          <p className="caption" aria-live="polite">{stripTags(script) || '…'}</p>
+        ) : null}
         <div className="row">
           <button className="primary" onClick={() => { if (finished) go(0); setPlaying(!playing); }}>
             {playing ? 'Pause' : finished ? 'Play again' : t > 0 || i > 0 ? 'Resume' : 'Play'}
@@ -131,6 +167,9 @@ export function Scene({ chapter, title, beats }: { chapter: string; title: strin
           <label className="check">
             <input type="checkbox" checked={sound} onChange={(e) => setSound(e.target.checked)} /> sound
           </label>
+          <label className="check">
+            <input type="checkbox" checked={captions} onChange={(e) => toggleCaptions(e.target.checked)} /> captions
+          </label>
         </div>
         <input
           type="range" min="0" max="1000" value={Math.round(p * 1000)} aria-label="Position in this part"
@@ -141,14 +180,26 @@ export function Scene({ chapter, title, beats }: { chapter: string; title: strin
             if (audio.current && hasAudio) audio.current.currentTime = nt;
           }}
         />
-        <audio ref={audio} preload="auto" />
+        <audio
+          ref={audio}
+          preload="auto"
+          onPlaying={() => { live.current = true; }}
+          onEnded={(e) => {
+            // Ignore an "ended" that belongs to a previous part.
+            if (!entry || !e.currentTarget.src.endsWith(base + entry.file)) return;
+            live.current = false;
+            endedBeat.current = i;
+            setEnded((n) => n + 1);
+          }}
+          onError={() => setBroken((m) => ({ ...m, [beat.clip]: true }))}
+        />
       </div>
       <footer>
         {manifest === null
           ? 'No narration manifest found; running silently on estimated timings.'
           : hasAudio
-            ? `Narration generated with ${manifest.model}. Captions are the script.`
-            : 'This part has no audio yet; it runs on an estimated timing. Captions are the script.'}
+            ? `Narration generated with ${manifest.model}. Turn on captions to read the script as it is spoken.`
+            : 'This part has no audio yet, so its script is shown as a caption and it runs on an estimated timing.'}
       </footer>
     </section>
   );

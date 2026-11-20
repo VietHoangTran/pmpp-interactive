@@ -912,6 +912,9 @@ table.data th.num {
   margin: 0.8rem 0;
   max-width: 62ch;
 }
+.scene .stage {
+  margin-bottom: 0.8rem;
+}
 
 /* Pages without a section number: no empty first column. */
 .section-head .num:empty {
@@ -922,4 +925,86 @@ table.data th.num {
 }
 .section-head:has(.num:empty) .lede {
   grid-column: 1;
+}
+
+/* Long identifiers in a narrow margin note may break instead of overflowing. */
+.note code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- narrow screens: nothing makes the page itself scroll sideways ---------- */
+.bench > .body,
+.bench > header,
+.bench > footer {
+  min-width: 0;
+}
+.bench > .body {
+  overflow-x: auto;
+}
+.prose > table.data,
+.prose > .wide {
+  max-width: 100%;
+}
+@media (max-width: 52rem) {
+  .page {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  .prose > table.data {
+    display: block;
+    overflow-x: auto;
+  }
+  .cols,
+  .cols.plot,
+  .cols[style] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .bench > header {
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+  .bench > header .task {
+    text-align: left;
+  }
+  .section-head {
+    grid-template-columns: 1fr;
+  }
+  .section-head .lede {
+    grid-column: 1;
+  }
+  h1 {
+    font-size: 1.9rem;
+    overflow-wrap: anywhere;
+  }
+  .code pre {
+    font-size: 0.72rem;
+  }
+  .q .row,
+  .row {
+    min-width: 0;
+  }
+  input[type='range'] {
+    max-width: 100%;
+  }
+  select {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 52rem) {
+  .page table.data {
+    display: block;
+    overflow-x: auto;
+    max-width: 100%;
+  }
+  p code,
+  li code,
+  td code {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .main {
+    overflow-x: clip;
+  }
 }

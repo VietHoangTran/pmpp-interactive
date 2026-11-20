@@ -1,5 +1,6 @@
-// Browser check for the narrated animation in section 5.3: captions are the
-// scripts, audio really plays, picture follows sound, and it runs muted too.
+// Browser check for the narrated animation in section 5.3: captions are an option
+// (off by default, remembered) and are the scripts; audio really plays, picture
+// follows sound, and it runs muted too.
 // Usage: node e2e/scene.mjs [screenshot-prefix]
 import { open, goto, BASE } from './browser.mjs';
 
@@ -31,7 +32,26 @@ await pause(400);
 
 check('manifest names the agreed model and voice', manifest.model === 'eleven_v4' && manifest.voice === 'tnSpp4vdxKPjI9w0GnoV', JSON.stringify([manifest.model, manifest.voice]));
 check('all six clips are registered with a duration', [1, 2, 3, 4, 5, 6].every((n) => manifest.clips['why-tiling-' + n]?.duration > 5));
-check('caption of part 1 is its script, without audio tags', (await caption()) === (await script(1)), await caption());
+const hasCaption = () => page.$(S + ' .caption').then((e) => !!e);
+const setCaptions = async (on) => {
+  await page.evaluate((sel, on) => {
+    const box = [...document.querySelectorAll(sel + ' label.check')].find((l) => l.textContent.includes('captions')).querySelector('input');
+    if (box.checked !== on) box.click();
+  }, S, on);
+  await pause(120);
+};
+check('captions are off by default', !(await hasCaption()));
+check('there is a captions option', (await page.$eval(S, (e) => e.textContent)).includes('captions'));
+await setCaptions(true);
+check('switching captions on shows part 1\'s script, without audio tags', (await hasCaption()) && (await caption()) === (await script(1)), (await hasCaption()) ? await caption() : 'no caption');
+await page.reload({ waitUntil: 'domcontentloaded' });
+await page.waitForSelector(S);
+await page.$eval(S, (e) => e.scrollIntoView({ block: 'start' }));
+await pause(500);
+check('the captions choice is remembered after a reload', await hasCaption());
+await setCaptions(false);
+check('switching captions off hides them again', !(await hasCaption()));
+await setCaptions(true);
 check('six parts are offered', (await page.$$(S + ' .seg button')).length === 6);
 
 // Play: sound and picture advance together.

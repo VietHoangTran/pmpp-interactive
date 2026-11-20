@@ -22,7 +22,7 @@ export const ch05: Chapter = {
     { id: '5.4', num: '5.4', title: 'A tiled matrix multiplication kernel', pages: '108–112', lede: 'Write the tiled kernel, place its two barriers, and say what each one protects.', component: S54 },
     { id: '5.5', num: '5.5', title: 'Boundary checks', pages: '112–115', lede: 'Make the kernel correct for any size and for rectangular matrices.', component: S55 },
     { id: '5.6', num: '5.6', title: 'Memory use and occupancy', pages: '115–118', lede: 'Budget shared memory against the number of threads a device can keep resident.', component: S56 },
-    { id: 'labs', num: '', title: 'Labs', pages: null, lede: 'Four labs on your own GPUs: measure, tile, generalise, debug.', component: Labs },
+    { id: 'labs', num: '', title: 'Labs', pages: null, lede: 'Five labs on your own GPUs: measure, tile, generalise, debug, and size shared memory at run time.', component: Labs },
     { id: 'wrap', num: '5.7', title: 'Summary and exercises', pages: '118–121', lede: 'What to carry forward, and a mixed check on the whole chapter.', component: Wrap },
   ],
   questions: {

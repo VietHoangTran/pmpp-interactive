@@ -95,3 +95,8 @@ shows it passing. Never write "verified" for anything else.
   offered as "the book's example" and nothing else is hard-coded.
 - Each interactive gets a browser check in `app/e2e/<section>.mjs` that drives it and
   asserts what it shows. `node e2e/run-all.mjs` runs them all against the running app.
+- **Captions are an option on every narrated animation** (the reader's instruction,
+  2026-11-20): a "captions" switch, off by default and remembered in the browser, showing
+  the clip's script. Use the shared `<Scene>` player, which provides it; never build a
+  video or animation with narration that lacks the switch. A beat with no audio shows its
+  script regardless.

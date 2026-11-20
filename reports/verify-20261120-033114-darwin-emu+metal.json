@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-20T02:41:00",
+ "generated": "2026-11-20T03:31:14",
  "system": {
   "os": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
   "machine": "arm64",
@@ -79,7 +79,8 @@
   "ch05/lab1_roofline": "untouched",
   "ch05/lab2_tiled": "untouched",
   "ch05/lab3_gemm": "untouched",
-  "ch05/lab4_racehunt": "untouched"
+  "ch05/lab4_racehunt": "untouched",
+  "ch05/lab5_dynamic": "untouched"
  },
  "results": [
   {
@@ -647,8 +648,8 @@
      "backend": "metal",
      "name": "bandwidth",
      "bytes": 1500000000.0,
-     "seconds": 0.00562583329,
-     "gb_per_s": 266.627168
+     "seconds": 0.00562062499,
+     "gb_per_s": 266.874236
     },
     {
      "kind": "bench",
@@ -657,8 +658,8 @@
      "backend": "metal",
      "name": "compute",
      "flop": 137438953000.0,
-     "seconds": 0.0839804583,
-     "gflops": 1636.55874
+     "seconds": 0.0859730417,
+     "gflops": 1598.62849
     },
     {
      "kind": "bench",
@@ -667,8 +668,8 @@
      "backend": "metal",
      "name": "naive_matmul",
      "width": 4096,
-     "seconds": 0.19991725,
-     "gflops": 687.479212
+     "seconds": 0.255072042,
+     "gflops": 538.824062
     },
     {
      "kind": "bench",
@@ -676,11 +677,11 @@
      "variant": "solution",
      "backend": "metal",
      "name": "roofline",
-     "bandwidth_gb_per_s": 266.627168,
-     "compute_gflops": 1636.55874,
-     "threshold_flop_per_byte": 6.13800445,
-     "naive_model_ceiling_gflops": 66.6567921,
-     "naive_gflops": 687.479212,
+     "bandwidth_gb_per_s": 266.874236,
+     "compute_gflops": 1598.62849,
+     "threshold_flop_per_byte": 5.99019414,
+     "naive_model_ceiling_gflops": 66.718559,
+     "naive_gflops": 538.824062,
      "naive_width": 4096
     }
    ],
@@ -688,7 +689,7 @@
    "log": "",
    "test_text": "  PASS  provided probe: vector addition, n = 1000\n  PASS  provided probe: multiply-add chain, n = 600, 50 iterations\n  PASS  your naive matmul, width 1\n  PASS  your naive matmul, width 5\n  PASS  your naive matmul, width 16\n  PASS  your naive matmul, width 33\n  PASS  your naive matmul, width 100\n  PASS  your naive matmul, width 257\n  PASS  your naive matmul, width 512\nOK: 9/9 test cases passed (solution, metal)",
    "bench_rc": 0,
-   "bench_text": "memory bandwidth probe   1500 MB moved in 5.626 ms  ->  266.6 GB/s\narithmetic probe         137.4 GFLOP in 83.980 ms  ->  1636.6 GFLOP/s\n=> this device's threshold: 6.14 FLOP/B (above: compute-bound, below: memory-bound)\n   These are measurements of two simple kernels, not the vendor's peak figures.\nnaive matmul, width 4096   199.917 ms  ->  687.5 GFLOP/s\n   model ceiling at 0.25 FLOP/B: 66.7 GFLOP/s; you measured 10.3x that"
+   "bench_text": "memory bandwidth probe   1500 MB moved in 5.621 ms  ->  266.9 GB/s\narithmetic probe         137.4 GFLOP in 85.973 ms  ->  1598.6 GFLOP/s\n=> this device's threshold: 5.99 FLOP/B (above: compute-bound, below: memory-bound)\n   These are measurements of two simple kernels, not the vendor's peak figures.\nnaive matmul, width 4096   255.072 ms  ->  538.8 GFLOP/s\n   model ceiling at 0.25 FLOP/B: 66.7 GFLOP/s; you measured 8.1x that"
   },
   {
    "lab": "ch05/lab2_tiled",
@@ -1250,8 +1251,8 @@
      "backend": "metal",
      "name": "naive",
      "width": 4096,
-     "seconds": 0.19964225,
-     "gflops": 688.42619
+     "seconds": 0.257932208,
+     "gflops": 532.849133
     },
     {
      "kind": "bench",
@@ -1261,9 +1262,9 @@
      "name": "tiled",
      "tile": 4,
      "width": 4096,
-     "seconds": 0.362025958,
-     "gflops": 379.638394,
-     "speedup_vs_naive": 0.551458384
+     "seconds": 0.462301625,
+     "gflops": 297.292819,
+     "speedup_vs_naive": 0.557930568
     },
     {
      "kind": "bench",
@@ -1273,9 +1274,9 @@
      "name": "tiled",
      "tile": 8,
      "width": 4096,
-     "seconds": 0.102271875,
-     "gflops": 1343.85874,
-     "speedup_vs_naive": 1.95207382
+     "seconds": 0.147955958,
+     "gflops": 928.918004,
+     "speedup_vs_naive": 1.74330396
     },
     {
      "kind": "bench",
@@ -1285,9 +1286,9 @@
      "name": "tiled",
      "tile": 16,
      "width": 4096,
-     "seconds": 0.115652958,
-     "gflops": 1188.37387,
-     "speedup_vs_naive": 1.72621827
+     "seconds": 0.150751292,
+     "gflops": 911.693372,
+     "speedup_vs_naive": 1.71097843
     },
     {
      "kind": "bench",
@@ -1297,16 +1298,16 @@
      "name": "tiled",
      "tile": 32,
      "width": 4096,
-     "seconds": 0.10311425,
-     "gflops": 1332.88031,
-     "speedup_vs_naive": 1.93612667
+     "seconds": 0.135384833,
+     "gflops": 1015.17245,
+     "speedup_vs_naive": 1.90517802
     }
    ],
    "test_rc": 0,
    "log": "",
    "test_text": "  PASS  tile 16, width 16\n  PASS  tile 16, width 32\n  PASS  tile 16, width 64\n  PASS  tile 16, width 256\n  PASS  tile 16, width 528\n  PASS  tile 8, width 8\n  PASS  tile 8, width 16\n  PASS  tile 8, width 32\n  PASS  tile 8, width 128\n  PASS  tile 8, width 264\nOK: 10/10 test cases passed (solution, metal)",
    "bench_rc": 0,
-   "bench_text": "width 4096 (137.44 GFLOP per multiplication), best of 5 runs\n  naive          199.6422 ms     688.43 GFLOP/s\n  tiled, T=4     362.0260 ms     379.64 GFLOP/s    0.55x naive\n  tiled, T=8     102.2719 ms    1343.86 GFLOP/s    1.95x naive\n  tiled, T=16    115.6530 ms    1188.37 GFLOP/s    1.73x naive\n  tiled, T=32    103.1142 ms    1332.88 GFLOP/s    1.94x naive"
+   "bench_text": "width 4096 (137.44 GFLOP per multiplication), best of 5 runs\n  naive          257.9322 ms     532.85 GFLOP/s\n  tiled, T=4     462.3016 ms     297.29 GFLOP/s    0.56x naive\n  tiled, T=8     147.9560 ms     928.92 GFLOP/s    1.74x naive\n  tiled, T=16    150.7513 ms     911.69 GFLOP/s    1.71x naive\n  tiled, T=32    135.3848 ms    1015.17 GFLOP/s    1.91x naive"
   },
   {
    "lab": "ch05/lab3_gemm",
@@ -1952,9 +1953,9 @@
      "k": 1024,
      "l": 4096,
      "tile": 16,
-     "seconds": 0.000184000004,
-     "gflops": 45.5902599,
-     "rows_per_s": 5434.78249
+     "seconds": 0.000125249964,
+     "gflops": 66.9749333,
+     "rows_per_s": 7984.03422
     },
     {
      "kind": "bench",
@@ -1966,9 +1967,9 @@
      "k": 1024,
      "l": 4096,
      "tile": 16,
-     "seconds": 0.000208708341,
-     "gflops": 160.771878,
-     "rows_per_s": 19165.5014
+     "seconds": 0.000125625054,
+     "gflops": 267.099841,
+     "rows_per_s": 31840.7822
     },
     {
      "kind": "bench",
@@ -1980,9 +1981,9 @@
      "k": 1024,
      "l": 4096,
      "tile": 16,
-     "seconds": 0.000172791653,
-     "gflops": 776.760483,
-     "rows_per_s": 92597.0653
+     "seconds": 0.000129124965,
+     "gflops": 1039.44058,
+     "rows_per_s": 123910.973
     },
     {
      "kind": "bench",
@@ -1994,9 +1995,9 @@
      "k": 1024,
      "l": 4096,
      "tile": 16,
-     "seconds": 0.000534958323,
-     "gflops": 1003.57521,
-     "rows_per_s": 119635.488
+     "seconds": 0.000410499983,
+     "gflops": 1307.84637,
+     "rows_per_s": 155907.437
     },
     {
      "kind": "bench",
@@ -2008,9 +2009,9 @@
      "k": 1024,
      "l": 4096,
      "tile": 16,
-     "seconds": 0.00152654166,
-     "gflops": 1406.76387,
-     "rows_per_s": 167699.321
+     "seconds": 0.00153650006,
+     "gflops": 1397.64632,
+     "rows_per_s": 166612.425
     },
     {
      "kind": "bench",
@@ -2022,16 +2023,16 @@
      "k": 1024,
      "l": 4096,
      "tile": 16,
-     "seconds": 0.00608570827,
-     "gflops": 1411.49299,
-     "rows_per_s": 168263.077
+     "seconds": 0.00600549998,
+     "gflops": 1430.34462,
+     "rows_per_s": 170510.366
     }
    ],
    "test_rc": 0,
    "log": "",
    "test_text": "  PASS  3 x 3 times 3 x 3  (the book's 3x3 example with a wider tile)\n  PASS  1 x 1 times 1 x 1  (single element)\n  PASS  16 x 16 times 16 x 16  (exactly one tile)\n  PASS  32 x 48 times 48 x 16  (rectangular, all multiples of the tile)\n  PASS  17 x 33 times 33 x 9  (nothing is a multiple of the tile)\n  PASS  1 x 40 times 40 x 7  (one row: a single token through a linear layer)\n  PASS  5 x 1 times 1 x 9  (inner dimension 1 (outer product))\n  PASS  33 x 65 times 65 x 50  (several partial tiles in every direction)\n  PASS  4 x 300 times 300 x 1000  (a small batch into a wide layer)\n  PASS  257 x 129 times 129 x 511  (large and awkward)\nOK: 10/10 test cases passed (solution, metal)",
    "bench_rc": 0,
-   "bench_text": "linear layer 1024 -> 4096, tile 16, best of 5 runs\n   batch    time (ms)        GFLOP/s  rows per second\n       1       0.1840          45.59             5435\n       4       0.2087         160.77            19166\n      16       0.1728         776.76            92597\n      64       0.5350        1003.58           119635\n     256       1.5265        1406.76           167699\n    1024       6.0857        1411.49           168263"
+   "bench_text": "linear layer 1024 -> 4096, tile 16, best of 5 runs\n   batch    time (ms)        GFLOP/s  rows per second\n       1       0.1252          66.97             7984\n       4       0.1256         267.10            31841\n      16       0.1291        1039.44           123911\n      64       0.4105        1307.85           155907\n     256       1.5365        1397.65           166612\n    1024       6.0055        1430.34           170510"
   },
   {
    "lab": "ch05/lab4_racehunt",
@@ -2096,8 +2097,8 @@
    ],
    "bench": [],
    "test_rc": -6,
-   "log": "    #4 0x00010290bcf0 in void std::__1::allocator<std::__1::thread>::construct[abi:nqe220106]<std::__1::thread, void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void (**)(float const*, float const*, float*, int), float*&&, float*&&, float*&&, int&&) allocator.h:141\n    #5 0x00010290bcf0 in void std::__1::allocator_traits<std::__1::allocator<std::__1::thread>>::construct[abi:nqe220106]<std::__1::thread, void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'(), 0>(std::__1::allocator<std::__1::thread>&, void (**)(float const*, float const*, float*, int), float*&&, float*&&, float*&&, int&&) allocator_traits.h:296\n    #6 0x00010290bcf0 in void std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::__emplace_back_assume_capacity[abi:nqe220106]<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&) vector.h:483\n    #7 0x0001029074c0 in std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&)::'lambda'()::operator()() const vector.h:1146\n    #8 0x0001029074c0 in void std::__1::__if_likely_else[abi:nqe220106]<std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&)::'lambda'(), std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&)::'lambda0'()>(bool, void (*)(float const*, float const*, float*, int), std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&)::'lambda0'()) vector.h:1127\n    #9 0x0001029074c0 in std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&) vector.h:1143\n    #10 0x0001029074c0 in void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int) cuda_emu.h:162\n    #11 0x000102906f24 in launchTiledMatmul(float*, float*, float*, int) kernel.cu:42\n    #12 0x00010290f284 in std::__1::__function::__value_func<void (void*)>::operator()[abi:nqe220106](void*&&) const function.h:273\n    #13 0x00010290f284 in std::__1::function<void (void*)>::operator()(void*) const function.h:754\n    #14 0x00010290f284 in pmpp::run(std::__1::function<void (void*)> const&) backend_cudalike.cpp:105\n    #15 0x0001028ff2d0 in runIt(pmpp::GemmProblem&) main.cpp:26\n    #16 0x0001028ff2d0 in tests(pmpp::Args const&)::$_0::operator()() const main.cpp:44\n    #17 0x0001028ff2d0 in std::__1::__invoke_result_impl<void, tests(pmpp::Args const&)::$_0&>::type std::__1::__invoke[abi:nqe220106]<tests(pmpp::Args const&)::$_0&>(tests(pmpp::Args const&)::$_0&) invoke.h:90\n    #18 0x0001028ff2d0 in std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> std::__1::__invoke_void_return_wrapper<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>, false>::__call[abi:nqe220106]<tests(pmpp::Args const&)::$_0&>(tests(pmpp::Args const&)::$_0&) invoke.h:342\n    #19 0x0001028ff2d0 in std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> std::__1::__invoke_r[abi:nqe220106]<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>, tests(pmpp::Args const&)::$_0&>(tests(pmpp::Args const&)::$_0&) invoke.h:356\n    #20 0x0001028ff2d0 in std::__1::__function::__func<tests(pmpp::Args const&)::$_0, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()>::operator()() function.h:172\n    #21 0x0001028fe04c in std::__1::__function::__value_func<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()>::operator()[abi:nqe220106]() const function.h:273\n    #22 0x0001028fe04c in std::__1::function<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()>::operator()() const function.h:754\n    #23 0x0001028fe04c in pmpp::Tests::check(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> const&, std::__1::function<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()> const&) harness.hpp:139\n    #24 0x0001028fa3b4 in tests(pmpp::Args const&) main.cpp:37\n    #25 0x0001028f9c2c in std::__1::__function::__value_func<int (pmpp::Args const&)>::operator()[abi:nqe220106](pmpp::Args const&) const function.h:273\n    #26 0x0001028f9c2c in std::__1::function<int (pmpp::Args const&)>::operator()(pmpp::Args const&) const function.h:754\n    #27 0x0001028f9c2c in pmpp::lab_main(int, char**, std::__1::function<int (pmpp::Args const&)> const&, std::__1::function<int (pmpp::Args const&)> const&) harness.hpp:227\n    #28 0x0001028f9794 in main main.cpp:55\n    #29 0x0001976dfe7c in start+0x1a1c (dyld:arm64e+0x31e7c)\n\nSUMMARY: AddressSanitizer: heap-buffer-overflow kernel.cu:26 in tiledMatmulKernel(float const*, float const*, float*, int)\nShadow bytes around the buggy address:\n  0x604000048800: fa fa fd fd fd fd fd fa fa fa fd fd fd fd fd fd\n  0x604000048880: fa fa fd fd fd fd fd fa fa fa fd fd fd fd fd fd\n  0x604000048900: fa fa fd fd fd fd fd fa fa fa fd fd fd fd fd fd\n  0x604000048980: fa fa fd fd fd fd fd fd fa fa fd fd fd fd fd fd\n  0x604000048a00: fa fa 00 00 00 00 00 00 fa fa fd fd fd fd fd fa\n=>0x604000048a80: fa fa 00 00 00 00 04 fa fa fa 00 00 00 00[04]fa\n  0x604000048b00: fa fa 00 00 00 00 04 fa fa fa 00 00 00 00 04 fa\n  0x604000048b80: fa fa 00 00 00 00 04 fa fa fa 00 00 00 00 00 00\n  0x604000048c00: fa fa 00 00 00 00 00 fa fa fa 00 00 00 00 00 00\n  0x604000048c80: fa fa 00 00 00 00 00 fa fa fa 00 00 00 00 00 00\n  0x604000048d00: fa fa 00 00 00 00 00 fa fa fa 00 00 00 00 00 00\nShadow byte legend (one shadow byte represents 8 application bytes):\n  Addressable:           00\n  Partially addressable: 01 02 03 04 05 06 07 \n  Heap left redzone:       fa\n  Freed heap region:       fd\n  Stack left redzone:      f1\n  Stack mid redzone:       f2\n  Stack right redzone:     f3\n  Stack after return:      f5\n  Stack use after scope:   f8\n  Global redzone:          f9\n  Global init order:       f6\n  Poisoned by user:        f7\n  Container overflow:      fc\n  Array cookie:            ac\n  Intra object redzone:    bb\n  ASan internal:           fe\n  Left alloca redzone:     ca\n  Right alloca redzone:    cb\n==14825==ABORTING",
-   "test_text": "  PASS  width 16  (multiple of the tile) [threads in order]\n  PASS  width 16  (multiple of the tile) [threads reversed]\n  PASS  width 16  (multiple of the tile) [threads shuffled]\n  FAIL  width 32  (multiple of the tile) [threads in order]  -> 1019 wrong elements; first at row 0, col 1; max abs error 5.807\n  FAIL  width 32  (multiple of the tile) [threads reversed]  -> 1020 wrong elements; first at row 0, col 0; max abs error 5.433\n  FAIL  width 32  (multiple of the tile) [threads shuffled]  -> 991 wrong elements; first at row 0, col 0; max abs error 5.641\n=================================================================\n==14825==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x604000048af4 at pc 0x000102906864 bp 0x00016efcec10 sp 0x00016efcec08\nREAD of size 4 at 0x604000048af4 thread T2353\n    #0 0x000102906860 in tiledMatmulKernel(float const*, float const*, float*, int) kernel.cu:26\n    #1 0x00010290c93c in std::__1::__invoke_result_impl<void, void (*&)(float const*, float const*, float*, int), float*&, float*&, float*&, int&>::type std::__1::__invoke[abi:nqe220106]<void (*&)(float const*, float const*, float*, int), float*&, float*&, float*&, int&>(void (*&)(float const*, float const*, float*, int), float*&, float*&, float*&, int&) invoke.h:90\n    #2 0x00010290c93c in decltype(auto) std::__1::__apply_tuple_impl[abi:nqe220106]<void (*&)(float const*, float const*, float*, int), std::__1::tuple<float*, float*, float*, int>&, 0ul, 1ul, 2ul, 3ul>(void (*&)(float const*, float const*, float*, int), std::__1::tuple<float*, float*, float*, int>&, std::__1::integer_sequence<unsigned long, 0ul, 1ul, 2ul, 3ul>) tuple:1397\n    #3 0x00010290c93c in decltype(auto) std::__1::apply[abi:nqe220106]<void (*&)(float const*, float const*, float*, int), std::__1::tuple<float*, float*, float*, int>&>(void (*&)(float const*, float const*, float*, int), std::__1::tuple<float*, float*, float*, int>&) tuple:1401\n    #4 0x00010290c93c in void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()::operator()() const cuda_emu.h:169\n    #5 0x00010290c350 in std::__1::__invoke_result_impl<void, void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>::type std::__1::__invoke[abi:nqe220106]<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&) invoke.h:90\n    #6 0x00010290c350 in void std::__1::__thread_execute[abi:nqe220106]<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'(), 0ul>(std::__1::tuple<void (*)(float const*, float const*, float*, int), void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>&, std::__1::__integer_sequence<unsigned long, 0ul>) thread.h:161\n    #7 0x00010290c350 in void* std::__1::__thread_proxy[abi:nqe220106]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>>(void*) thread.h:169\n    #8 0x00010302de64 in asan_thread_start(void*)+0x4c (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x3de64)\n    #9 0x000197ab5cfc in _pthread_start+0x84 (libsystem_pthread.dylib:arm64e+0x6cfc)\n    #10 0x000197ab0ce8 in thread_start+0x4 (libsystem_pthread.dylib:arm64e+0x1ce8)\n\n0x604000048af4 is located 0 bytes after 36-byte region [0x604000048ad0,0x604000048af4)\nallocated by thread T0 here:\n    #0 0x000103031274 in malloc+0x78 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x41274)\n    #1 0x00010290e938 in cudaMalloc(void**, unsigned long) cuda_emu.h:228\n    #2 0x00010290e938 in pmpp::alloc(unsigned long) backend_cudalike.cpp:81\n    #3 0x0001029002bc in pmpp::GemmProblem::GemmProblem(int, int, int, unsigned int, bool) harness.hpp:197\n    #4 0x0001028ff278 in pmpp::GemmProblem::GemmProblem(int, int, int, unsigned int, bool) harness.hpp:196\n    #5 0x0001028ff278 in tests(pmpp::Args const&)::$_0::operator()() const main.cpp:43\n    #6 0x0001028ff278 in std::__1::__invoke_result_impl<void, tests(pmpp::Args const&)::$_0&>::type std::__1::__invoke[abi:nqe220106]<tests(pmpp::Args const&)::$_0&>(tests(pmpp::Args const&)::$_0&) invoke.h:90\n    #7 0x0001028ff278 in std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> std::__1::__invoke_void_return_wrapper<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>, false>::__call[abi:nqe220106]<tests(pmpp::Args const&)::$_0&>(tests(pmpp::Args const&)::$_0&) invoke.h:342\n    #8 0x0001028ff278 in std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> std::__1::__invoke_r[abi:nqe220106]<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>, tests(pmpp::Args const&)::$_0&>(tests(pmpp::Args const&)::$_0&) invoke.h:356\n    #9 0x0001028ff278 in std::__1::__function::__func<tests(pmpp::Args const&)::$_0, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()>::operator()() function.h:172\n    #10 0x0001028fe04c in std::__1::__function::__value_func<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()>::operator()[abi:nqe220106]() const function.h:273\n    #11 0x0001028fe04c in std::__1::function<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()>::operator()() const function.h:754\n    #12 0x0001028fe04c in pmpp::Tests::check(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> const&, std::__1::function<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()> const&) harness.hpp:139\n    #13 0x0001028fa3b4 in tests(pmpp::Args const&) main.cpp:37\n    #14 0x0001028f9c2c in std::__1::__function::__value_func<int (pmpp::Args const&)>::operator()[abi:nqe220106](pmpp::Args const&) const function.h:273\n    #15 0x0001028f9c2c in std::__1::function<int (pmpp::Args const&)>::operator()(pmpp::Args const&) const function.h:754\n    #16 0x0001028f9c2c in pmpp::lab_main(int, char**, std::__1::function<int (pmpp::Args const&)> const&, std::__1::function<int (pmpp::Args const&)> const&) harness.hpp:227\n    #17 0x0001028f9794 in main main.cpp:55\n    #18 0x0001976dfe7c in start+0x1a1c (dyld:arm64e+0x31e7c)\n\nThread T2353 created by T0 here:\n    #0 0x00010302926c in pthread_create+0x60 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x3926c)\n    #1 0x00010290c0f8 in std::__1::__libcpp_thread_create[abi:nqe220106](_opaque_pthread_t**, void* (*)(void*), void*) pthread.h:182\n    #2 0x00010290c0f8 in std::__1::thread::thread[abi:nqe220106]<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'(), 0>(void (*&&)(float const*, float const*, float*, int), float*&&, float*&&, float*&&, int&&) thread.h:221\n    #3 0x00010290bcf0 in std::__1::thread::thread[abi:nqe220106]<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'(), 0>(void (*&&)(float const*, float const*, float*, int), float*&&, float*&&, float*&&, int&&) thread.h:212\n    #4 0x00010290bcf0 in void std::__1::allocator<std::__1::thread>::construct[abi:nqe220106]<std::__1::thread, void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void (**)(float const*, float const*, float*, int), float*&&, float*&&, float*&&, int&&) allocator.h:141\n    #5 0x00010290bcf0 in void std::__1::allocator_traits<std::__1::allocator<std::__1::thread>>::construct[abi:nqe220106]<std::__1::thread, void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'(), 0>(std::__1::allocator<std::__1::thread>&, void (**)(float const*, float const*, float*, int), float*&&, float*&&, float*&&, int&&) allocator_traits.h:296\n    #6 0x00010290bcf0 in void std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::__emplace_back_assume_capacity[abi:nqe220106]<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&) vector.h:483\n    #7 0x0001029074c0 in std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&)::'lambda'()::operator()() const vector.h:1146\n    #8 0x0001029074c0 in void std::__1::__if_likely_else[abi:nqe220106]<std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&)::'lambda'(), std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&)::'lambda0'()>(bool, void (*)(float const*, float const*, float*, int), std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&)::'lambda0'()) vector.h:1127\n    #9 0x0001029074c0 in std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&) vector.h:1143\n    #10 0x0001029074c0 in void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int) cuda_emu.h:162\n    #11 0x000102906f24 in launchTiledMatmul(float*, float*, float*, int) kernel.cu:42\n    #12 0x00010290f284 in std::__1::__function::__value_func<void (void*)>::operator()[abi:nqe220106](void*&&) const function.h:273\n    #13 0x00010290f284 in std::__1::function<void (void*)>::operator()(void*) const function.h:754\n    #14 0x00010290f284 in pmpp::run(std::__1::function<void (void*)> const&) backend_cudalike.cpp:105\n    #15 0x0001028ff2d0 in runIt(pmpp::GemmProblem&) main.cpp:26\n    #16 0x0001028ff2d0 in tests(pmpp::Args const&)::$_0::operator()() const main.cpp:44\n    #17 0x0001028ff2d0 in std::__1::__invoke_result_impl<void, tests(pmpp::Args const&)::$_0&>::type std::__1::__invoke[abi:nqe220106]<tests(pmpp::Args const&)::$_0&>(tests(pmpp::Args const&)::$_0&) invoke.h:90\n    #18 0x0001028ff2d0 in std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> std::__1::__invoke_void_return_wrapper<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>, false>::__call[abi:nqe220106]<tests(pmpp::Args const&)::$_0&>(tests(pmpp::Args const&)::$_0&) invoke.h:342\n    #19 0x0001028ff2d0 in std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> std::__1::__invoke_r[abi:nqe220106]<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>, tests(pmpp::Args const&)::$_0&>(tests(pmpp::Args const&)::$_0&) invoke.h:356\n    #20 0x0001028ff2d0 in std::__1::__function::__func<tests(pmpp::Args const&)::$_0, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()>::operator()() function.h:172\n    #21 0x0001028fe04c in std::__1::__function::__value_func<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()>::operator()[abi:nqe220106]() const function.h:273\n    #22 0x0001028fe04c in std::__1::function<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()>::operator()() const function.h:754\n    #23 0x0001028fe04c in pmpp::Tests::check(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> const&, std::__1::function<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()> const&) harness.hpp:139\n    #24 0x0001028fa3b4 in tests(pmpp::Args const&) main.cpp:37\n    #25 0x0001028f9c2c in std::__1::__function::__value_func<int (pmpp::Args const&)>::operator()[abi:nqe220106](pmpp::Args const&) const function.h:273\n    #26 0x0001028f9c2c in std::__1::function<int (pmpp::Args const&)>::operator()(pmpp::Args const&) const function.h:754\n    #27 0x0001028f9c2c in pmpp::lab_main(int, char**, std::__1::function<int (pmpp::Args const&)> const&, std::__1::function<int (pmpp::Args const&)> const&) harness.hpp:227\n    #28 0x0001028f9794 in main main.cpp:55\n    #29 0x0001976dfe7c in start+0x1a1c (dyld:arm64e+0x31e7c)\n\nSUMMARY: AddressSanitizer: heap-buffer-overflow kernel.cu:26 in tiledMatmulKernel(float const*, float const*, float*, int)\nShadow bytes around the buggy address:\n  0x604000048800: fa fa fd fd fd fd fd fa fa fa fd fd fd fd fd fd\n  0x604000048880: fa fa fd fd fd fd fd fa fa fa fd fd fd fd fd fd\n  0x604000048900: fa fa fd fd fd fd fd fa fa fa fd fd fd fd fd fd\n  0x604000048980: fa fa fd fd fd fd fd fd fa fa fd fd fd fd fd fd\n  0x604000048a00: fa fa 00 00 00 00 00 00 fa fa fd fd fd fd fd fa\n=>0x604000048a80: fa fa 00 00 00 00 04 fa fa fa 00 00 00 00[04]fa\n  0x604000048b00: fa fa 00 00 00 00 04 fa fa fa 00 00 00 00 04 fa\n  0x604000048b80: fa fa 00 00 00 00 04 fa fa fa 00 00 00 00 00 00\n  0x604000048c00: fa fa 00 00 00 00 00 fa fa fa 00 00 00 00 00 00\n  0x604000048c80: fa fa 00 00 00 00 00 fa fa fa 00 00 00 00 00 00\n  0x604000048d00: fa fa 00 00 00 00 00 fa fa fa 00 00 00 00 00 00\nShadow byte legend (one shadow byte represents 8 application bytes):\n  Addressable:           00\n  Partially addressable: 01 02 03 04 05 06 07 \n  Heap left redzone:       fa\n  Freed heap region:       fd\n  Stack left redzone:      f1\n  Stack mid redzone:       f2\n  Stack right redzone:     f3\n  Stack after return:      f5\n  Stack use after scope:   f8\n  Global redzone:          f9\n  Global init order:       f6\n  Poisoned by user:        f7\n  Container overflow:      fc\n  Array cookie:            ac\n  Intra object redzone:    bb\n  ASan internal:           fe\n  Left alloca redzone:     ca\n  Right alloca redzone:    cb\n==14825==ABORTING"
+   "log": "    #4 0x00010067bcf0 in void std::__1::allocator<std::__1::thread>::construct[abi:nqe220106]<std::__1::thread, void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void (**)(float const*, float const*, float*, int), float*&&, float*&&, float*&&, int&&) allocator.h:141\n    #5 0x00010067bcf0 in void std::__1::allocator_traits<std::__1::allocator<std::__1::thread>>::construct[abi:nqe220106]<std::__1::thread, void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'(), 0>(std::__1::allocator<std::__1::thread>&, void (**)(float const*, float const*, float*, int), float*&&, float*&&, float*&&, int&&) allocator_traits.h:296\n    #6 0x00010067bcf0 in void std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::__emplace_back_assume_capacity[abi:nqe220106]<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&) vector.h:483\n    #7 0x0001006774c0 in std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&)::'lambda'()::operator()() const vector.h:1146\n    #8 0x0001006774c0 in void std::__1::__if_likely_else[abi:nqe220106]<std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&)::'lambda'(), std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&)::'lambda0'()>(bool, void (*)(float const*, float const*, float*, int), std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&)::'lambda0'()) vector.h:1127\n    #9 0x0001006774c0 in std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&) vector.h:1143\n    #10 0x0001006774c0 in void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int) cuda_emu.h:162\n    #11 0x000100676f24 in launchTiledMatmul(float*, float*, float*, int) kernel.cu:42\n    #12 0x00010067f284 in std::__1::__function::__value_func<void (void*)>::operator()[abi:nqe220106](void*&&) const function.h:273\n    #13 0x00010067f284 in std::__1::function<void (void*)>::operator()(void*) const function.h:754\n    #14 0x00010067f284 in pmpp::run(std::__1::function<void (void*)> const&) backend_cudalike.cpp:105\n    #15 0x00010066f2d0 in runIt(pmpp::GemmProblem&) main.cpp:26\n    #16 0x00010066f2d0 in tests(pmpp::Args const&)::$_0::operator()() const main.cpp:44\n    #17 0x00010066f2d0 in std::__1::__invoke_result_impl<void, tests(pmpp::Args const&)::$_0&>::type std::__1::__invoke[abi:nqe220106]<tests(pmpp::Args const&)::$_0&>(tests(pmpp::Args const&)::$_0&) invoke.h:90\n    #18 0x00010066f2d0 in std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> std::__1::__invoke_void_return_wrapper<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>, false>::__call[abi:nqe220106]<tests(pmpp::Args const&)::$_0&>(tests(pmpp::Args const&)::$_0&) invoke.h:342\n    #19 0x00010066f2d0 in std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> std::__1::__invoke_r[abi:nqe220106]<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>, tests(pmpp::Args const&)::$_0&>(tests(pmpp::Args const&)::$_0&) invoke.h:356\n    #20 0x00010066f2d0 in std::__1::__function::__func<tests(pmpp::Args const&)::$_0, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()>::operator()() function.h:172\n    #21 0x00010066e04c in std::__1::__function::__value_func<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()>::operator()[abi:nqe220106]() const function.h:273\n    #22 0x00010066e04c in std::__1::function<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()>::operator()() const function.h:754\n    #23 0x00010066e04c in pmpp::Tests::check(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> const&, std::__1::function<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()> const&) harness.hpp:139\n    #24 0x00010066a3b4 in tests(pmpp::Args const&) main.cpp:37\n    #25 0x000100669c2c in std::__1::__function::__value_func<int (pmpp::Args const&)>::operator()[abi:nqe220106](pmpp::Args const&) const function.h:273\n    #26 0x000100669c2c in std::__1::function<int (pmpp::Args const&)>::operator()(pmpp::Args const&) const function.h:754\n    #27 0x000100669c2c in pmpp::lab_main(int, char**, std::__1::function<int (pmpp::Args const&)> const&, std::__1::function<int (pmpp::Args const&)> const&) harness.hpp:227\n    #28 0x000100669794 in main main.cpp:55\n    #29 0x0001976dfe7c in start+0x1a1c (dyld:arm64e+0x31e7c)\n\nSUMMARY: AddressSanitizer: heap-buffer-overflow kernel.cu:26 in tiledMatmulKernel(float const*, float const*, float*, int)\nShadow bytes around the buggy address:\n  0x604000048800: fa fa fd fd fd fd fd fa fa fa fd fd fd fd fd fd\n  0x604000048880: fa fa fd fd fd fd fd fa fa fa fd fd fd fd fd fd\n  0x604000048900: fa fa fd fd fd fd fd fa fa fa fd fd fd fd fd fd\n  0x604000048980: fa fa fd fd fd fd fd fd fa fa fd fd fd fd fd fd\n  0x604000048a00: fa fa 00 00 00 00 00 00 fa fa fd fd fd fd fd fa\n=>0x604000048a80: fa fa 00 00 00 00 04 fa fa fa 00 00 00 00[04]fa\n  0x604000048b00: fa fa 00 00 00 00 04 fa fa fa 00 00 00 00 04 fa\n  0x604000048b80: fa fa 00 00 00 00 04 fa fa fa 00 00 00 00 00 00\n  0x604000048c00: fa fa 00 00 00 00 00 fa fa fa 00 00 00 00 00 00\n  0x604000048c80: fa fa 00 00 00 00 00 fa fa fa 00 00 00 00 00 00\n  0x604000048d00: fa fa 00 00 00 00 00 fa fa fa 00 00 00 00 00 00\nShadow byte legend (one shadow byte represents 8 application bytes):\n  Addressable:           00\n  Partially addressable: 01 02 03 04 05 06 07 \n  Heap left redzone:       fa\n  Freed heap region:       fd\n  Stack left redzone:      f1\n  Stack mid redzone:       f2\n  Stack right redzone:     f3\n  Stack after return:      f5\n  Stack use after scope:   f8\n  Global redzone:          f9\n  Global init order:       f6\n  Poisoned by user:        f7\n  Container overflow:      fc\n  Array cookie:            ac\n  Intra object redzone:    bb\n  ASan internal:           fe\n  Left alloca redzone:     ca\n  Right alloca redzone:    cb\n==30870==ABORTING",
+   "test_text": "  PASS  width 16  (multiple of the tile) [threads in order]\n  PASS  width 16  (multiple of the tile) [threads reversed]\n  PASS  width 16  (multiple of the tile) [threads shuffled]\n  FAIL  width 32  (multiple of the tile) [threads in order]  -> 1019 wrong elements; first at row 0, col 1; max abs error 5.807\n  FAIL  width 32  (multiple of the tile) [threads reversed]  -> 1020 wrong elements; first at row 0, col 0; max abs error 5.433\n  FAIL  width 32  (multiple of the tile) [threads shuffled]  -> 991 wrong elements; first at row 0, col 0; max abs error 5.641\n=================================================================\n==30870==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x604000048af4 at pc 0x000100676864 bp 0x00017125ec10 sp 0x00017125ec08\nREAD of size 4 at 0x604000048af4 thread T2353\n    #0 0x000100676860 in tiledMatmulKernel(float const*, float const*, float*, int) kernel.cu:26\n    #1 0x00010067c93c in std::__1::__invoke_result_impl<void, void (*&)(float const*, float const*, float*, int), float*&, float*&, float*&, int&>::type std::__1::__invoke[abi:nqe220106]<void (*&)(float const*, float const*, float*, int), float*&, float*&, float*&, int&>(void (*&)(float const*, float const*, float*, int), float*&, float*&, float*&, int&) invoke.h:90\n    #2 0x00010067c93c in decltype(auto) std::__1::__apply_tuple_impl[abi:nqe220106]<void (*&)(float const*, float const*, float*, int), std::__1::tuple<float*, float*, float*, int>&, 0ul, 1ul, 2ul, 3ul>(void (*&)(float const*, float const*, float*, int), std::__1::tuple<float*, float*, float*, int>&, std::__1::integer_sequence<unsigned long, 0ul, 1ul, 2ul, 3ul>) tuple:1397\n    #3 0x00010067c93c in decltype(auto) std::__1::apply[abi:nqe220106]<void (*&)(float const*, float const*, float*, int), std::__1::tuple<float*, float*, float*, int>&>(void (*&)(float const*, float const*, float*, int), std::__1::tuple<float*, float*, float*, int>&) tuple:1401\n    #4 0x00010067c93c in void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()::operator()() const cuda_emu.h:169\n    #5 0x00010067c350 in std::__1::__invoke_result_impl<void, void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>::type std::__1::__invoke[abi:nqe220106]<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&) invoke.h:90\n    #6 0x00010067c350 in void std::__1::__thread_execute[abi:nqe220106]<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'(), 0ul>(std::__1::tuple<void (*)(float const*, float const*, float*, int), void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>&, std::__1::__integer_sequence<unsigned long, 0ul>) thread.h:161\n    #7 0x00010067c350 in void* std::__1::__thread_proxy[abi:nqe220106]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>>(void*) thread.h:169\n    #8 0x000100d1de64 in asan_thread_start(void*)+0x4c (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x3de64)\n    #9 0x000197ab5cfc in _pthread_start+0x84 (libsystem_pthread.dylib:arm64e+0x6cfc)\n    #10 0x000197ab0ce8 in thread_start+0x4 (libsystem_pthread.dylib:arm64e+0x1ce8)\n\n0x604000048af4 is located 0 bytes after 36-byte region [0x604000048ad0,0x604000048af4)\nallocated by thread T0 here:\n    #0 0x000100d21274 in malloc+0x78 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x41274)\n    #1 0x00010067e938 in cudaMalloc(void**, unsigned long) cuda_emu.h:228\n    #2 0x00010067e938 in pmpp::alloc(unsigned long) backend_cudalike.cpp:81\n    #3 0x0001006702bc in pmpp::GemmProblem::GemmProblem(int, int, int, unsigned int, bool) harness.hpp:197\n    #4 0x00010066f278 in pmpp::GemmProblem::GemmProblem(int, int, int, unsigned int, bool) harness.hpp:196\n    #5 0x00010066f278 in tests(pmpp::Args const&)::$_0::operator()() const main.cpp:43\n    #6 0x00010066f278 in std::__1::__invoke_result_impl<void, tests(pmpp::Args const&)::$_0&>::type std::__1::__invoke[abi:nqe220106]<tests(pmpp::Args const&)::$_0&>(tests(pmpp::Args const&)::$_0&) invoke.h:90\n    #7 0x00010066f278 in std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> std::__1::__invoke_void_return_wrapper<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>, false>::__call[abi:nqe220106]<tests(pmpp::Args const&)::$_0&>(tests(pmpp::Args const&)::$_0&) invoke.h:342\n    #8 0x00010066f278 in std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> std::__1::__invoke_r[abi:nqe220106]<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>, tests(pmpp::Args const&)::$_0&>(tests(pmpp::Args const&)::$_0&) invoke.h:356\n    #9 0x00010066f278 in std::__1::__function::__func<tests(pmpp::Args const&)::$_0, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()>::operator()() function.h:172\n    #10 0x00010066e04c in std::__1::__function::__value_func<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()>::operator()[abi:nqe220106]() const function.h:273\n    #11 0x00010066e04c in std::__1::function<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()>::operator()() const function.h:754\n    #12 0x00010066e04c in pmpp::Tests::check(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> const&, std::__1::function<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()> const&) harness.hpp:139\n    #13 0x00010066a3b4 in tests(pmpp::Args const&) main.cpp:37\n    #14 0x000100669c2c in std::__1::__function::__value_func<int (pmpp::Args const&)>::operator()[abi:nqe220106](pmpp::Args const&) const function.h:273\n    #15 0x000100669c2c in std::__1::function<int (pmpp::Args const&)>::operator()(pmpp::Args const&) const function.h:754\n    #16 0x000100669c2c in pmpp::lab_main(int, char**, std::__1::function<int (pmpp::Args const&)> const&, std::__1::function<int (pmpp::Args const&)> const&) harness.hpp:227\n    #17 0x000100669794 in main main.cpp:55\n    #18 0x0001976dfe7c in start+0x1a1c (dyld:arm64e+0x31e7c)\n\nThread T2353 created by T0 here:\n    #0 0x000100d1926c in pthread_create+0x60 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x3926c)\n    #1 0x00010067c0f8 in std::__1::__libcpp_thread_create[abi:nqe220106](_opaque_pthread_t**, void* (*)(void*), void*) pthread.h:182\n    #2 0x00010067c0f8 in std::__1::thread::thread[abi:nqe220106]<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'(), 0>(void (*&&)(float const*, float const*, float*, int), float*&&, float*&&, float*&&, int&&) thread.h:221\n    #3 0x00010067bcf0 in std::__1::thread::thread[abi:nqe220106]<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'(), 0>(void (*&&)(float const*, float const*, float*, int), float*&&, float*&&, float*&&, int&&) thread.h:212\n    #4 0x00010067bcf0 in void std::__1::allocator<std::__1::thread>::construct[abi:nqe220106]<std::__1::thread, void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void (**)(float const*, float const*, float*, int), float*&&, float*&&, float*&&, int&&) allocator.h:141\n    #5 0x00010067bcf0 in void std::__1::allocator_traits<std::__1::allocator<std::__1::thread>>::construct[abi:nqe220106]<std::__1::thread, void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'(), 0>(std::__1::allocator<std::__1::thread>&, void (**)(float const*, float const*, float*, int), float*&&, float*&&, float*&&, int&&) allocator_traits.h:296\n    #6 0x00010067bcf0 in void std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::__emplace_back_assume_capacity[abi:nqe220106]<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&) vector.h:483\n    #7 0x0001006774c0 in std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&)::'lambda'()::operator()() const vector.h:1146\n    #8 0x0001006774c0 in void std::__1::__if_likely_else[abi:nqe220106]<std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&)::'lambda'(), std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&)::'lambda0'()>(bool, void (*)(float const*, float const*, float*, int), std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&)::'lambda0'()) vector.h:1127\n    #9 0x0001006774c0 in std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&) vector.h:1143\n    #10 0x0001006774c0 in void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int) cuda_emu.h:162\n    #11 0x000100676f24 in launchTiledMatmul(float*, float*, float*, int) kernel.cu:42\n    #12 0x00010067f284 in std::__1::__function::__value_func<void (void*)>::operator()[abi:nqe220106](void*&&) const function.h:273\n    #13 0x00010067f284 in std::__1::function<void (void*)>::operator()(void*) const function.h:754\n    #14 0x00010067f284 in pmpp::run(std::__1::function<void (void*)> const&) backend_cudalike.cpp:105\n    #15 0x00010066f2d0 in runIt(pmpp::GemmProblem&) main.cpp:26\n    #16 0x00010066f2d0 in tests(pmpp::Args const&)::$_0::operator()() const main.cpp:44\n    #17 0x00010066f2d0 in std::__1::__invoke_result_impl<void, tests(pmpp::Args const&)::$_0&>::type std::__1::__invoke[abi:nqe220106]<tests(pmpp::Args const&)::$_0&>(tests(pmpp::Args const&)::$_0&) invoke.h:90\n    #18 0x00010066f2d0 in std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> std::__1::__invoke_void_return_wrapper<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>, false>::__call[abi:nqe220106]<tests(pmpp::Args const&)::$_0&>(tests(pmpp::Args const&)::$_0&) invoke.h:342\n    #19 0x00010066f2d0 in std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> std::__1::__invoke_r[abi:nqe220106]<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>, tests(pmpp::Args const&)::$_0&>(tests(pmpp::Args const&)::$_0&) invoke.h:356\n    #20 0x00010066f2d0 in std::__1::__function::__func<tests(pmpp::Args const&)::$_0, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()>::operator()() function.h:172\n    #21 0x00010066e04c in std::__1::__function::__value_func<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()>::operator()[abi:nqe220106]() const function.h:273\n    #22 0x00010066e04c in std::__1::function<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()>::operator()() const function.h:754\n    #23 0x00010066e04c in pmpp::Tests::check(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> const&, std::__1::function<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()> const&) harness.hpp:139\n    #24 0x00010066a3b4 in tests(pmpp::Args const&) main.cpp:37\n    #25 0x000100669c2c in std::__1::__function::__value_func<int (pmpp::Args const&)>::operator()[abi:nqe220106](pmpp::Args const&) const function.h:273\n    #26 0x000100669c2c in std::__1::function<int (pmpp::Args const&)>::operator()(pmpp::Args const&) const function.h:754\n    #27 0x000100669c2c in pmpp::lab_main(int, char**, std::__1::function<int (pmpp::Args const&)> const&, std::__1::function<int (pmpp::Args const&)> const&) harness.hpp:227\n    #28 0x000100669794 in main main.cpp:55\n    #29 0x0001976dfe7c in start+0x1a1c (dyld:arm64e+0x31e7c)\n\nSUMMARY: AddressSanitizer: heap-buffer-overflow kernel.cu:26 in tiledMatmulKernel(float const*, float const*, float*, int)\nShadow bytes around the buggy address:\n  0x604000048800: fa fa fd fd fd fd fd fa fa fa fd fd fd fd fd fd\n  0x604000048880: fa fa fd fd fd fd fd fa fa fa fd fd fd fd fd fd\n  0x604000048900: fa fa fd fd fd fd fd fa fa fa fd fd fd fd fd fd\n  0x604000048980: fa fa fd fd fd fd fd fd fa fa fd fd fd fd fd fd\n  0x604000048a00: fa fa 00 00 00 00 00 00 fa fa fd fd fd fd fd fa\n=>0x604000048a80: fa fa 00 00 00 00 04 fa fa fa 00 00 00 00[04]fa\n  0x604000048b00: fa fa 00 00 00 00 04 fa fa fa 00 00 00 00 04 fa\n  0x604000048b80: fa fa 00 00 00 00 04 fa fa fa 00 00 00 00 00 00\n  0x604000048c00: fa fa 00 00 00 00 00 fa fa fa 00 00 00 00 00 00\n  0x604000048c80: fa fa 00 00 00 00 00 fa fa fa 00 00 00 00 00 00\n  0x604000048d00: fa fa 00 00 00 00 00 fa fa fa 00 00 00 00 00 00\nShadow byte legend (one shadow byte represents 8 application bytes):\n  Addressable:           00\n  Partially addressable: 01 02 03 04 05 06 07 \n  Heap left redzone:       fa\n  Freed heap region:       fd\n  Stack left redzone:      f1\n  Stack mid redzone:       f2\n  Stack right redzone:     f3\n  Stack after return:      f5\n  Stack use after scope:   f8\n  Global redzone:          f9\n  Global init order:       f6\n  Poisoned by user:        f7\n  Container overflow:      fc\n  Array cookie:            ac\n  Intra object redzone:    bb\n  ASan internal:           fe\n  Left alloca redzone:     ca\n  Right alloca redzone:    cb\n==30870==ABORTING"
   },
   {
    "lab": "ch05/lab4_racehunt",
@@ -2157,7 +2158,7 @@
      "backend": "metal",
      "case": "width 50  (not a multiple of the tile)",
      "pass": false,
-     "detail": "2242 wrong elements; first at row 0, col 2; max abs error 19.65"
+     "detail": "2098 wrong elements; first at row 0, col 2; max abs error 5.396"
     },
     {
      "kind": "test",
@@ -2166,7 +2167,7 @@
      "backend": "metal",
      "case": "width 200  (not a multiple of the tile)",
      "pass": false,
-     "detail": "19490 wrong elements; first at row 0, col 8; max abs error 6.842"
+     "detail": "19407 wrong elements; first at row 0, col 8; max abs error 6.842"
     },
     {
      "kind": "test",
@@ -2175,13 +2176,13 @@
      "backend": "metal",
      "case": "width 333  (not a multiple of the tile)",
      "pass": false,
-     "detail": "30737 wrong elements; first at row 0, col 13; max abs error 7.837"
+     "detail": "30019 wrong elements; first at row 0, col 13; max abs error 7.837"
     }
    ],
    "bench": [],
    "test_rc": 1,
-   "log": "  PASS  width 16  (multiple of the tile)\n  PASS  width 32  (multiple of the tile)\n  PASS  width 3  (not a multiple of the tile)\n  FAIL  width 24  (not a multiple of the tile)  -> 192 wrong elements; first at row 0, col 8; max abs error 4.037\n  FAIL  width 40  (not a multiple of the tile)  -> 639 wrong elements; first at row 0, col 8; max abs error 4.859\n  FAIL  width 50  (not a multiple of the tile)  -> 2242 wrong elements; first at row 0, col 2; max abs error 19.65\n  FAIL  width 200  (not a multiple of the tile)  -> 19490 wrong elements; first at row 0, col 8; max abs error 6.842\n  FAIL  width 333  (not a multiple of the tile)  -> 30737 wrong elements; first at row 0, col 13; max abs error 7.837\nFAILED: 3/8 test cases passed (work, metal)",
-   "test_text": "  PASS  width 16  (multiple of the tile)\n  PASS  width 32  (multiple of the tile)\n  PASS  width 3  (not a multiple of the tile)\n  FAIL  width 24  (not a multiple of the tile)  -> 192 wrong elements; first at row 0, col 8; max abs error 4.037\n  FAIL  width 40  (not a multiple of the tile)  -> 639 wrong elements; first at row 0, col 8; max abs error 4.859\n  FAIL  width 50  (not a multiple of the tile)  -> 2242 wrong elements; first at row 0, col 2; max abs error 19.65\n  FAIL  width 200  (not a multiple of the tile)  -> 19490 wrong elements; first at row 0, col 8; max abs error 6.842\n  FAIL  width 333  (not a multiple of the tile)  -> 30737 wrong elements; first at row 0, col 13; max abs error 7.837\nFAILED: 3/8 test cases passed (work, metal)"
+   "log": "  PASS  width 16  (multiple of the tile)\n  PASS  width 32  (multiple of the tile)\n  PASS  width 3  (not a multiple of the tile)\n  FAIL  width 24  (not a multiple of the tile)  -> 192 wrong elements; first at row 0, col 8; max abs error 4.037\n  FAIL  width 40  (not a multiple of the tile)  -> 639 wrong elements; first at row 0, col 8; max abs error 4.859\n  FAIL  width 50  (not a multiple of the tile)  -> 2098 wrong elements; first at row 0, col 2; max abs error 5.396\n  FAIL  width 200  (not a multiple of the tile)  -> 19407 wrong elements; first at row 0, col 8; max abs error 6.842\n  FAIL  width 333  (not a multiple of the tile)  -> 30019 wrong elements; first at row 0, col 13; max abs error 7.837\nFAILED: 3/8 test cases passed (work, metal)",
+   "test_text": "  PASS  width 16  (multiple of the tile)\n  PASS  width 32  (multiple of the tile)\n  PASS  width 3  (not a multiple of the tile)\n  FAIL  width 24  (not a multiple of the tile)  -> 192 wrong elements; first at row 0, col 8; max abs error 4.037\n  FAIL  width 40  (not a multiple of the tile)  -> 639 wrong elements; first at row 0, col 8; max abs error 4.859\n  FAIL  width 50  (not a multiple of the tile)  -> 2098 wrong elements; first at row 0, col 2; max abs error 5.396\n  FAIL  width 200  (not a multiple of the tile)  -> 19407 wrong elements; first at row 0, col 8; max abs error 6.842\n  FAIL  width 333  (not a multiple of the tile)  -> 30019 wrong elements; first at row 0, col 13; max abs error 7.837\nFAILED: 3/8 test cases passed (work, metal)"
   },
   {
    "lab": "ch05/lab4_racehunt",
@@ -2422,6 +2423,1341 @@
    "test_text": "  PASS  width 16  (multiple of the tile)\n  PASS  width 32  (multiple of the tile)\n  PASS  width 3  (not a multiple of the tile)\n  PASS  width 24  (not a multiple of the tile)\n  PASS  width 40  (not a multiple of the tile)\n  PASS  width 50  (not a multiple of the tile)\n  PASS  width 200  (not a multiple of the tile)\n  PASS  width 333  (not a multiple of the tile)\nOK: 8/8 test cases passed (solution, metal)",
    "bench_rc": 0,
    "bench_text": "this lab has no benchmark."
+  },
+  {
+   "lab": "ch05/lab5_dynamic",
+   "variant": "work",
+   "backend": "emu",
+   "tile": 16,
+   "target": "ch05_lab5_dynamic.work.emu",
+   "exe": "/Users/qnguyen3/Desktop/code/interactive_books/ProgrammingMassivelyParallelProcessors/labs/build/bin/ch05_lab5_dynamic.work.emu",
+   "built": true,
+   "tests": [
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 4, width 4 [threads in order]",
+     "pass": false,
+     "detail": "16 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 4, width 4 [threads reversed]",
+     "pass": false,
+     "detail": "16 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 4, width 4 [threads shuffled]",
+     "pass": false,
+     "detail": "16 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 4, width 8 [threads in order]",
+     "pass": false,
+     "detail": "64 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 4, width 8 [threads reversed]",
+     "pass": false,
+     "detail": "64 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 4, width 8 [threads shuffled]",
+     "pass": false,
+     "detail": "64 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 4, width 3 [threads in order]",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 4, width 3 [threads reversed]",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 4, width 3 [threads shuffled]",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 4, width 13 [threads in order]",
+     "pass": false,
+     "detail": "169 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 4, width 13 [threads reversed]",
+     "pass": false,
+     "detail": "169 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 4, width 13 [threads shuffled]",
+     "pass": false,
+     "detail": "169 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 8, width 8 [threads in order]",
+     "pass": false,
+     "detail": "64 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 8, width 8 [threads reversed]",
+     "pass": false,
+     "detail": "64 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 8, width 8 [threads shuffled]",
+     "pass": false,
+     "detail": "64 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 8, width 16 [threads in order]",
+     "pass": false,
+     "detail": "256 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 8, width 16 [threads reversed]",
+     "pass": false,
+     "detail": "256 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 8, width 16 [threads shuffled]",
+     "pass": false,
+     "detail": "256 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 8, width 3 [threads in order]",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 8, width 3 [threads reversed]",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 8, width 3 [threads shuffled]",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 8, width 21 [threads in order]",
+     "pass": false,
+     "detail": "441 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 8, width 21 [threads reversed]",
+     "pass": false,
+     "detail": "441 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 8, width 21 [threads shuffled]",
+     "pass": false,
+     "detail": "441 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 16 [threads in order]",
+     "pass": false,
+     "detail": "256 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 16 [threads reversed]",
+     "pass": false,
+     "detail": "256 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 16 [threads shuffled]",
+     "pass": false,
+     "detail": "256 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 32 [threads in order]",
+     "pass": false,
+     "detail": "1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 32 [threads reversed]",
+     "pass": false,
+     "detail": "1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 32 [threads shuffled]",
+     "pass": false,
+     "detail": "1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 3 [threads in order]",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 3 [threads reversed]",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 3 [threads shuffled]",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 37 [threads in order]",
+     "pass": false,
+     "detail": "1369 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 37 [threads reversed]",
+     "pass": false,
+     "detail": "1369 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 37 [threads shuffled]",
+     "pass": false,
+     "detail": "1369 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 32, width 32 [threads in order]",
+     "pass": false,
+     "detail": "1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 32, width 32 [threads reversed]",
+     "pass": false,
+     "detail": "1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 32, width 32 [threads shuffled]",
+     "pass": false,
+     "detail": "1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 32, width 64 [threads in order]",
+     "pass": false,
+     "detail": "4096 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 32, width 64 [threads reversed]",
+     "pass": false,
+     "detail": "4096 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 32, width 64 [threads shuffled]",
+     "pass": false,
+     "detail": "4096 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 32, width 3 [threads in order]",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 32, width 3 [threads reversed]",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 32, width 3 [threads shuffled]",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 32, width 69 [threads in order]",
+     "pass": false,
+     "detail": "4761 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 32, width 69 [threads reversed]",
+     "pass": false,
+     "detail": "4761 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 32, width 69 [threads shuffled]",
+     "pass": false,
+     "detail": "4761 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    }
+   ],
+   "bench": [],
+   "test_rc": 1,
+   "log": "device limits: 1024 threads per block, 49152 bytes of shared memory per block -> largest tile 32\n  FAIL  tile 4, width 4 [threads in order]  -> 16 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 4 [threads reversed]  -> 16 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 4 [threads shuffled]  -> 16 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 8 [threads in order]  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 8 [threads reversed]  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 8 [threads shuffled]  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 3 [threads in order]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 3 [threads reversed]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 3 [threads shuffled]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 13 [threads in order]  -> 169 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 13 [threads reversed]  -> 169 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 13 [threads shuffled]  -> 169 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 8 [threads in order]  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 8 [threads reversed]  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 8 [threads shuffled]  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 16 [threads in order]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 16 [threads reversed]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 16 [threads shuffled]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 3 [threads in order]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 3 [threads reversed]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 3 [threads shuffled]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 21 [threads in order]  -> 441 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 21 [threads reversed]  -> 441 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 21 [threads shuffled]  -> 441 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 16 [threads in order]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 16 [threads reversed]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 16 [threads shuffled]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 32 [threads in order]  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 32 [threads reversed]  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 32 [threads shuffled]  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 3 [threads in order]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 3 [threads reversed]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 3 [threads shuffled]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 37 [threads in order]  -> 1369 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 37 [threads reversed]  -> 1369 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 37 [threads shuffled]  -> 1369 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 32 [threads in order]  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 32 [threads reversed]  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 32 [threads shuffled]  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 64 [threads in order]  -> 4096 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 64 [threads reversed]  -> 4096 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 64 [threads shuffled]  -> 4096 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 3 [threads in order]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 3 [threads reversed]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 3 [threads shuffled]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 69 [threads in order]  -> 4761 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 69 [threads reversed]  -> 4761 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 69 [threads shuffled]  -> 4761 wrong elements; first at row 0, col 0; max abs error 1.235e+04\nFAILED: 0/48 test cases passed (work, emu)",
+   "test_text": "device limits: 1024 threads per block, 49152 bytes of shared memory per block -> largest tile 32\n  FAIL  tile 4, width 4 [threads in order]  -> 16 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 4 [threads reversed]  -> 16 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 4 [threads shuffled]  -> 16 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 8 [threads in order]  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 8 [threads reversed]  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 8 [threads shuffled]  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 3 [threads in order]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 3 [threads reversed]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 3 [threads shuffled]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 13 [threads in order]  -> 169 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 13 [threads reversed]  -> 169 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 13 [threads shuffled]  -> 169 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 8 [threads in order]  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 8 [threads reversed]  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 8 [threads shuffled]  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 16 [threads in order]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 16 [threads reversed]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 16 [threads shuffled]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 3 [threads in order]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 3 [threads reversed]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 3 [threads shuffled]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 21 [threads in order]  -> 441 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 21 [threads reversed]  -> 441 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 21 [threads shuffled]  -> 441 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 16 [threads in order]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 16 [threads reversed]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 16 [threads shuffled]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 32 [threads in order]  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 32 [threads reversed]  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 32 [threads shuffled]  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 3 [threads in order]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 3 [threads reversed]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 3 [threads shuffled]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 37 [threads in order]  -> 1369 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 37 [threads reversed]  -> 1369 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 37 [threads shuffled]  -> 1369 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 32 [threads in order]  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 32 [threads reversed]  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 32 [threads shuffled]  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 64 [threads in order]  -> 4096 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 64 [threads reversed]  -> 4096 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 64 [threads shuffled]  -> 4096 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 3 [threads in order]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 3 [threads reversed]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 3 [threads shuffled]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 69 [threads in order]  -> 4761 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 69 [threads reversed]  -> 4761 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 69 [threads shuffled]  -> 4761 wrong elements; first at row 0, col 0; max abs error 1.235e+04\nFAILED: 0/48 test cases passed (work, emu)"
+  },
+  {
+   "lab": "ch05/lab5_dynamic",
+   "variant": "work",
+   "backend": "metal",
+   "tile": 16,
+   "target": "ch05_lab5_dynamic.work.metal",
+   "exe": "/Users/qnguyen3/Desktop/code/interactive_books/ProgrammingMassivelyParallelProcessors/labs/build/bin/ch05_lab5_dynamic.work.metal",
+   "built": true,
+   "tests": [
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 4, width 4",
+     "pass": false,
+     "detail": "16 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 4, width 8",
+     "pass": false,
+     "detail": "64 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 4, width 3",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 4, width 13",
+     "pass": false,
+     "detail": "169 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 4, width 200",
+     "pass": false,
+     "detail": "40000 wrong elements; first at row 0, col 0; max abs error 1.236e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 4, width 333",
+     "pass": false,
+     "detail": "110889 wrong elements; first at row 0, col 0; max abs error 1.237e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 8, width 8",
+     "pass": false,
+     "detail": "64 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 8, width 16",
+     "pass": false,
+     "detail": "256 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 8, width 3",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 8, width 21",
+     "pass": false,
+     "detail": "441 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 8, width 200",
+     "pass": false,
+     "detail": "40000 wrong elements; first at row 0, col 0; max abs error 1.236e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 8, width 333",
+     "pass": false,
+     "detail": "110889 wrong elements; first at row 0, col 0; max abs error 1.237e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 16, width 16",
+     "pass": false,
+     "detail": "256 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 16, width 32",
+     "pass": false,
+     "detail": "1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 16, width 3",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 16, width 37",
+     "pass": false,
+     "detail": "1369 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 16, width 200",
+     "pass": false,
+     "detail": "40000 wrong elements; first at row 0, col 0; max abs error 1.237e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 16, width 333",
+     "pass": false,
+     "detail": "110889 wrong elements; first at row 0, col 0; max abs error 1.237e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 32, width 32",
+     "pass": false,
+     "detail": "1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 32, width 64",
+     "pass": false,
+     "detail": "4096 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 32, width 3",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 32, width 69",
+     "pass": false,
+     "detail": "4761 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 32, width 200",
+     "pass": false,
+     "detail": "40000 wrong elements; first at row 0, col 0; max abs error 1.236e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 32, width 333",
+     "pass": false,
+     "detail": "110889 wrong elements; first at row 0, col 0; max abs error 1.237e+04"
+    }
+   ],
+   "bench": [],
+   "test_rc": 1,
+   "log": "device limits: 1024 threads per block, 32768 bytes of shared memory per block -> largest tile 32\n  FAIL  tile 4, width 4  -> 16 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 8  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 3  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 13  -> 169 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 200  -> 40000 wrong elements; first at row 0, col 0; max abs error 1.236e+04\n  FAIL  tile 4, width 333  -> 110889 wrong elements; first at row 0, col 0; max abs error 1.237e+04\n  FAIL  tile 8, width 8  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 16  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 3  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 21  -> 441 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 200  -> 40000 wrong elements; first at row 0, col 0; max abs error 1.236e+04\n  FAIL  tile 8, width 333  -> 110889 wrong elements; first at row 0, col 0; max abs error 1.237e+04\n  FAIL  tile 16, width 16  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 32  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 3  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 37  -> 1369 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 200  -> 40000 wrong elements; first at row 0, col 0; max abs error 1.237e+04\n  FAIL  tile 16, width 333  -> 110889 wrong elements; first at row 0, col 0; max abs error 1.237e+04\n  FAIL  tile 32, width 32  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 64  -> 4096 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 3  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 69  -> 4761 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 200  -> 40000 wrong elements; first at row 0, col 0; max abs error 1.236e+04\n  FAIL  tile 32, width 333  -> 110889 wrong elements; first at row 0, col 0; max abs error 1.237e+04\nFAILED: 0/24 test cases passed (work, metal)",
+   "test_text": "device limits: 1024 threads per block, 32768 bytes of shared memory per block -> largest tile 32\n  FAIL  tile 4, width 4  -> 16 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 8  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 3  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 13  -> 169 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 200  -> 40000 wrong elements; first at row 0, col 0; max abs error 1.236e+04\n  FAIL  tile 4, width 333  -> 110889 wrong elements; first at row 0, col 0; max abs error 1.237e+04\n  FAIL  tile 8, width 8  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 16  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 3  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 21  -> 441 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 200  -> 40000 wrong elements; first at row 0, col 0; max abs error 1.236e+04\n  FAIL  tile 8, width 333  -> 110889 wrong elements; first at row 0, col 0; max abs error 1.237e+04\n  FAIL  tile 16, width 16  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 32  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 3  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 37  -> 1369 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 200  -> 40000 wrong elements; first at row 0, col 0; max abs error 1.237e+04\n  FAIL  tile 16, width 333  -> 110889 wrong elements; first at row 0, col 0; max abs error 1.237e+04\n  FAIL  tile 32, width 32  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 64  -> 4096 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 3  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 69  -> 4761 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 200  -> 40000 wrong elements; first at row 0, col 0; max abs error 1.236e+04\n  FAIL  tile 32, width 333  -> 110889 wrong elements; first at row 0, col 0; max abs error 1.237e+04\nFAILED: 0/24 test cases passed (work, metal)"
+  },
+  {
+   "lab": "ch05/lab5_dynamic",
+   "variant": "solution",
+   "backend": "emu",
+   "tile": 16,
+   "target": "ch05_lab5_dynamic.solution.emu",
+   "exe": "/Users/qnguyen3/Desktop/code/interactive_books/ProgrammingMassivelyParallelProcessors/labs/build/bin/ch05_lab5_dynamic.solution.emu",
+   "built": true,
+   "tests": [
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 4, width 4 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 4, width 4 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 4, width 4 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 4, width 8 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 4, width 8 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 4, width 8 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 4, width 3 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 4, width 3 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 4, width 3 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 4, width 13 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 4, width 13 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 4, width 13 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 8 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 8 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 8 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 16 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 16 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 16 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 3 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 3 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 3 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 21 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 21 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 21 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 16 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 16 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 16 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 32 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 32 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 32 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 3 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 3 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 3 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 37 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 37 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 37 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 32 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 32 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 32 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 64 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 64 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 64 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 3 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 3 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 3 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 69 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 69 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 69 [threads shuffled]",
+     "pass": true
+    }
+   ],
+   "bench": [],
+   "test_rc": 0,
+   "log": "",
+   "test_text": "device limits: 1024 threads per block, 49152 bytes of shared memory per block -> largest tile 32\n  PASS  tile 4, width 4 [threads in order]\n  PASS  tile 4, width 4 [threads reversed]\n  PASS  tile 4, width 4 [threads shuffled]\n  PASS  tile 4, width 8 [threads in order]\n  PASS  tile 4, width 8 [threads reversed]\n  PASS  tile 4, width 8 [threads shuffled]\n  PASS  tile 4, width 3 [threads in order]\n  PASS  tile 4, width 3 [threads reversed]\n  PASS  tile 4, width 3 [threads shuffled]\n  PASS  tile 4, width 13 [threads in order]\n  PASS  tile 4, width 13 [threads reversed]\n  PASS  tile 4, width 13 [threads shuffled]\n  PASS  tile 8, width 8 [threads in order]\n  PASS  tile 8, width 8 [threads reversed]\n  PASS  tile 8, width 8 [threads shuffled]\n  PASS  tile 8, width 16 [threads in order]\n  PASS  tile 8, width 16 [threads reversed]\n  PASS  tile 8, width 16 [threads shuffled]\n  PASS  tile 8, width 3 [threads in order]\n  PASS  tile 8, width 3 [threads reversed]\n  PASS  tile 8, width 3 [threads shuffled]\n  PASS  tile 8, width 21 [threads in order]\n  PASS  tile 8, width 21 [threads reversed]\n  PASS  tile 8, width 21 [threads shuffled]\n  PASS  tile 16, width 16 [threads in order]\n  PASS  tile 16, width 16 [threads reversed]\n  PASS  tile 16, width 16 [threads shuffled]\n  PASS  tile 16, width 32 [threads in order]\n  PASS  tile 16, width 32 [threads reversed]\n  PASS  tile 16, width 32 [threads shuffled]\n  PASS  tile 16, width 3 [threads in order]\n  PASS  tile 16, width 3 [threads reversed]\n  PASS  tile 16, width 3 [threads shuffled]\n  PASS  tile 16, width 37 [threads in order]\n  PASS  tile 16, width 37 [threads reversed]\n  PASS  tile 16, width 37 [threads shuffled]\n  PASS  tile 32, width 32 [threads in order]\n  PASS  tile 32, width 32 [threads reversed]\n  PASS  tile 32, width 32 [threads shuffled]\n  PASS  tile 32, width 64 [threads in order]\n  PASS  tile 32, width 64 [threads reversed]\n  PASS  tile 32, width 64 [threads shuffled]\n  PASS  tile 32, width 3 [threads in order]\n  PASS  tile 32, width 3 [threads reversed]\n  PASS  tile 32, width 3 [threads shuffled]\n  PASS  tile 32, width 69 [threads in order]\n  PASS  tile 32, width 69 [threads reversed]\n  PASS  tile 32, width 69 [threads shuffled]\nOK: 48/48 test cases passed (solution, emu)"
+  },
+  {
+   "lab": "ch05/lab5_dynamic",
+   "variant": "solution",
+   "backend": "metal",
+   "tile": 16,
+   "target": "ch05_lab5_dynamic.solution.metal",
+   "exe": "/Users/qnguyen3/Desktop/code/interactive_books/ProgrammingMassivelyParallelProcessors/labs/build/bin/ch05_lab5_dynamic.solution.metal",
+   "built": true,
+   "tests": [
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 4, width 4",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 4, width 8",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 4, width 3",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 4, width 13",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 4, width 200",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 4, width 333",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 8, width 8",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 8, width 16",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 8, width 3",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 8, width 21",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 8, width 200",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 8, width 333",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 16, width 16",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 16, width 32",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 16, width 3",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 16, width 37",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 16, width 200",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 16, width 333",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 32, width 32",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 32, width 64",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 32, width 3",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 32, width 69",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 32, width 200",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 32, width 333",
+     "pass": true
+    }
+   ],
+   "bench": [
+    {
+     "kind": "bench",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "name": "tiled_dynamic",
+     "tile": 4,
+     "width": 2048,
+     "seconds": 0.082877125,
+     "gflops": 207.293257,
+     "shared_bytes_per_block": 128
+    },
+    {
+     "kind": "bench",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "name": "tiled_dynamic",
+     "tile": 8,
+     "width": 2048,
+     "seconds": 0.0390917499,
+     "gflops": 439.475573,
+     "shared_bytes_per_block": 512
+    },
+    {
+     "kind": "bench",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "name": "tiled_dynamic",
+     "tile": 16,
+     "width": 2048,
+     "seconds": 0.0328904584,
+     "gflops": 522.335961,
+     "shared_bytes_per_block": 2048
+    },
+    {
+     "kind": "bench",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "name": "tiled_dynamic",
+     "tile": 32,
+     "width": 2048,
+     "seconds": 0.0319066249,
+     "gflops": 538.442071,
+     "shared_bytes_per_block": 8192
+    }
+   ],
+   "test_rc": 0,
+   "log": "",
+   "test_text": "device limits: 1024 threads per block, 32768 bytes of shared memory per block -> largest tile 32\n  PASS  tile 4, width 4\n  PASS  tile 4, width 8\n  PASS  tile 4, width 3\n  PASS  tile 4, width 13\n  PASS  tile 4, width 200\n  PASS  tile 4, width 333\n  PASS  tile 8, width 8\n  PASS  tile 8, width 16\n  PASS  tile 8, width 3\n  PASS  tile 8, width 21\n  PASS  tile 8, width 200\n  PASS  tile 8, width 333\n  PASS  tile 16, width 16\n  PASS  tile 16, width 32\n  PASS  tile 16, width 3\n  PASS  tile 16, width 37\n  PASS  tile 16, width 200\n  PASS  tile 16, width 333\n  PASS  tile 32, width 32\n  PASS  tile 32, width 64\n  PASS  tile 32, width 3\n  PASS  tile 32, width 69\n  PASS  tile 32, width 200\n  PASS  tile 32, width 333\nOK: 24/24 test cases passed (solution, metal)",
+   "bench_rc": 0,
+   "bench_text": "width 2048, one binary, tile width chosen at run time, best of 5 runs\n  T=4      82.8771 ms     207.29 GFLOP/s  (128 bytes of shared memory per block)\n  T=8      39.0917 ms     439.48 GFLOP/s  (512 bytes of shared memory per block)\n  T=16     32.8905 ms     522.34 GFLOP/s  (2048 bytes of shared memory per block)\n  T=32     31.9066 ms     538.44 GFLOP/s  (8192 bytes of shared memory per block)"
   }
  ],
  "cuda_frontend_check": {
@@ -2489,7 +3825,32 @@
     "log": ""
    },
    {
+    "file": "labs/ch05/lab5_dynamic/solution/kernel.cu",
+    "ok": true,
+    "log": ""
+   },
+   {
+    "file": "labs/ch05/lab5_dynamic/starter/kernel.cu",
+    "ok": true,
+    "log": ""
+   },
+   {
+    "file": "labs/ch05/lab5_dynamic/work/kernel.cu",
+    "ok": true,
+    "log": ""
+   },
+   {
     "file": "labs/ch05/shared/naive_matmul.cu",
+    "ok": true,
+    "log": ""
+   },
+   {
+    "file": "labs/ch05/snippets/transpose_tiles_defect.cu",
+    "ok": true,
+    "log": ""
+   },
+   {
+    "file": "labs/ch05/snippets/where_does_it_live.cu",
     "ok": true,
     "log": ""
    }

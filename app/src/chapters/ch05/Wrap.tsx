@@ -220,6 +220,7 @@ export function Wrap() {
         <li>p. 97 gives the example device's threshold as "25.1 FLOP/B or 20.0 FLOP/B". Everywhere else it is 20.0, which is what the two peaks divide to.</li>
         <li>Fig. 5.8 numbers the phases 0 and 1; the text beside it calls them 1 and 2. The code counts from 0, and so does this course.</li>
         <li>Fig. 5.14 (dynamically sized shared memory) has several errors as printed; <a href={href('ch05', '5.6')}>section 5.6</a> goes through them and lab 5.5 has a corrected, tested version.</li>
+        <li>p. 113 says thread (1,0) of block (1,1) must load M[2][1] although it owns no output. By the book's own (row, column) naming that thread would load M[3][0]; the thread that loads M[2][1] is (0,1). The point it illustrates stands.</li>
         <li>p. 116 describes <code>sharedMemPerBlock</code> as the shared memory of an SM. The CUDA documentation defines it per block.</li>
         <li>Exercise 12 states shared-memory use "per SM" for a kernel; per block is almost certainly meant.</li>
       </ul>

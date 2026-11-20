@@ -208,6 +208,29 @@ def passed(r):
     return r["built"] and r["test_rc"] == 0 and r["tests"] and all(x["pass"] for x in r["tests"])
 
 
+def save_runs(results, states, devs=None):
+    """Merge results into reports/runs/<backend>.json, which the app reads.
+    A result replaces the earlier one for the same lab, variant and tile width."""
+    os.makedirs(os.path.join(REPORTS, "runs"), exist_ok=True)
+    now = datetime.datetime.now().isoformat(timespec="seconds")
+    for b in sorted({r["backend"] for r in results}):
+        path = os.path.join(REPORTS, "runs", "%s.json" % b)
+        try:
+            data = json.load(open(path))
+        except (OSError, ValueError):
+            data = {"device": {}, "results": [], "work_state": {}}
+        new = [r for r in results if r["backend"] == b]
+        key = lambda r: (r["lab"], r["variant"], r["tile"])
+        fresh = {key(r) for r in new}
+        data["results"] = [r for r in data.get("results", []) if key(r) not in fresh] + new
+        data["results"].sort(key=lambda r: (r["lab"], r["variant"], r["tile"]))
+        data["generated"] = now
+        data.setdefault("work_state", {}).update(states)
+        if devs and b in devs:
+            data["device"] = devs[b]
+        json.dump(data, open(path, "w"), indent=1)
+
+
 def counts(r):
     if not r["built"]:
         return "build failed"
@@ -249,6 +272,7 @@ def cmd_run(a):
             why = next((x["why"] for x in cfg["backends"] if x["name"] == b), "unknown backend")
             print("\n== %s: skipped (%s)" % (b, why))
     rc_all = 0
+    ran = []
     for t in cfg["targets"]:
         if t["lab"] != lab or t["variant"] != variant or t["backend"] not in want:
             continue
@@ -267,6 +291,11 @@ def cmd_run(a):
             print(r["bench_text"])
         if r["test_rc"] not in (None, 0):
             rc_all = 1
+        ran.append(r)
+    if ran:   # so the app shows what you just ran
+        have = {b: os.path.exists(os.path.join(REPORTS, "runs", "%s.json" % b)) for b in {r["backend"] for r in ran}}
+        devs = device_info(cfg) if not all(have.values()) else None
+        save_runs(ran, {lab: work_state(lab)}, devs)
     return rc_all
 
 
@@ -318,17 +347,14 @@ def cmd_verify(a):
         "backends": cfg["backends"], "devices": devs, "usable_backends": usable,
         "work_state": states, "results": results, "cuda_frontend_check": check,
     }
-    os.makedirs(os.path.join(REPORTS, "runs"), exist_ok=True)
+    os.makedirs(REPORTS, exist_ok=True)
     stamp = started.strftime("%Y%m%d-%H%M%S")
     tag = "%s-%s" % (platform.system().lower(), "+".join(usable) or "none")
     base = os.path.join(REPORTS, "verify-%s-%s" % (stamp, tag))
     json.dump(report, open(base + ".json", "w"), indent=1)
     open(base + ".md", "w").write(render(report))
     # Latest measurements per backend, for the app to display.
-    for b in usable:
-        json.dump({"generated": report["generated"], "device": devs[b],
-                   "results": [r for r in results if r["backend"] == b]},
-                  open(os.path.join(REPORTS, "runs", "%s.json" % b), "w"), indent=1)
+    save_runs(results, states, devs)
     bad = [r for r in results if r["variant"] == "solution" and not passed(r)]
     print("\nreport: %s" % os.path.relpath(base + ".md", REPO))
     print("reference solutions: %d ran, %d failed" % (sum(1 for r in results if r["variant"] == "solution"), len(bad)))
