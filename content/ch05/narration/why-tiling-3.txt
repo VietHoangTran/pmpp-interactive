@@ -1,0 +1,1 @@
+So fetch each element once, and put it where the whole block can reach it: shared memory. Shared memory is small, so the block cannot hold its rows and columns whole. It takes them one tile at a time.

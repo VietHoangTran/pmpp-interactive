@@ -1,0 +1,1 @@
+Phase 0. Each thread loads exactly one element of M, and one element of N, into the shared tiles. Then every thread waits at a barrier, until all of the loads have landed. [short pause] Now they compute. Each thread reads what it needs from shared memory, and adds 2 products to its running sum.

@@ -79,3 +79,19 @@ shows it passing. Never write "verified" for anything else.
 
 - The PDF and `.book/` (extracted text) are git-ignored and must stay local.
 - Commit `reports/verify-*` you want to keep; `reports/runs/` is per-machine and ignored.
+
+## Writing a lesson section (chapter 5 is the template)
+
+- One file per section, `app/src/chapters/chNN/S<id>.tsx`, exporting the component and a
+  `questions...` record; `index.tsx` lists the sections and merges the questions.
+- The component returns a fragment whose children are laid out by the `.prose` grid:
+  paragraphs and headings in the text column, `<Bench>` and `<Code>` full width, margin
+  notes (`<Source>`, `<Today>`, `<Simplification>`, `<Beyond>`, `<Aside>`) in the margin.
+- **A margin note goes immediately after the paragraph it belongs to**, never after a
+  bench or code block (it would open a blank gap). Keep notes short.
+- Colour only for memory tiers (`--reg`, `--shared`, `--global`, `--const`) and failure
+  (`--fail`) / success (`--ok`). Use the CSS variables; never hard-code colours.
+- Interactives read device numbers from `useReports()`; the book's example device is
+  offered as "the book's example" and nothing else is hard-coded.
+- Each interactive gets a browser check in `app/e2e/<section>.mjs` that drives it and
+  asserts what it shows. `node e2e/run-all.mjs` runs them all against the running app.

@@ -1,0 +1,1 @@
+Four threads, one block. Each of them computes one element of the product, so each walks along a row of M, and down a column of N. Every one of those steps is a fetch from global memory. Watch which elements they touch.

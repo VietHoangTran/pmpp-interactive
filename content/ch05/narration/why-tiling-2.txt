@@ -1,0 +1,1 @@
+Now count. 32 fetches, but only 16 different elements. Every element was fetched twice, by two different threads. [short pause] With a block that is 32 threads wide, every element would be fetched 32 times. The threads are all asking for the same data.

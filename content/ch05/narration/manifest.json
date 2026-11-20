@@ -1,0 +1,48 @@
+{
+ "model": "eleven_v4",
+ "voice": "tnSpp4vdxKPjI9w0GnoV",
+ "clips": {
+  "why-tiling-1": {
+   "file": "why-tiling-1.mp3",
+   "sha256": "b82376f74f87671ff6df673c1f8e230e8facf94c110d449c948255b1f3215d8f",
+   "duration": 14.08,
+   "bytes": 243284,
+   "generated": "2026-11-20"
+  },
+  "why-tiling-2": {
+   "file": "why-tiling-2.mp3",
+   "sha256": "44d2bd22a0aa3a724be937954233849ff59d55ce8014349632bfeb4cdf59cd16",
+   "duration": 17.6,
+   "bytes": 299709,
+   "generated": "2026-11-20"
+  },
+  "why-tiling-3": {
+   "file": "why-tiling-3.mp3",
+   "sha256": "1789c696a4ed85a1d24aea1a76d954e0fd0ab7934e7f22091409242650b3dc53",
+   "duration": 12.16,
+   "bytes": 212773,
+   "generated": "2026-11-20"
+  },
+  "why-tiling-4": {
+   "file": "why-tiling-4.mp3",
+   "sha256": "e9d4f3ea87fcd2e51dbc2a313cdb2b2b9e04f55ef9671a9562840fce237c0542",
+   "duration": 18.88,
+   "bytes": 320189,
+   "generated": "2026-11-20"
+  },
+  "why-tiling-5": {
+   "file": "why-tiling-5.mp3",
+   "sha256": "f3505f6eecfc41344cbf814d3187ad3e206debd6e1a124c137d9b7e81e16d450",
+   "duration": 18.32,
+   "bytes": 311412,
+   "generated": "2026-11-20"
+  },
+  "why-tiling-6": {
+   "file": "why-tiling-6.mp3",
+   "sha256": "730ceed4e644cc152adc5e2943fb09df78e3a9a8da7bc843a789a068a5443146",
+   "duration": 19.12,
+   "bytes": 323951,
+   "generated": "2026-11-20"
+  }
+ }
+}

@@ -1,0 +1,56 @@
+# PMPP, worked through
+
+An interactive study copy of *Programming Massively Parallel Processors* (5th edition),
+built for one reader: lessons with simulations and narrated animation in a local web
+app, and labs that run on your own GPUs through CUDA, HIP or Metal.
+
+Status: chapter 5 is the finished pilot. The rest is planned in `PLAN.md`; current state
+is in `PROGRESS.md`.
+
+## Run the app
+
+```sh
+./start.sh          # then open http://localhost:5173
+```
+
+Needs Node.js 20 or newer. Your progress is saved to `progress/progress.json`; commit it
+or sync it to carry it between machines.
+
+## Run the labs
+
+```sh
+./verify.sh                         # build + test + benchmark everything this machine supports,
+                                    # writes reports/verify-<time>-<os>-<backends>.md
+./verify.sh --quick                 # same without benchmarks
+python3 labs/pmpp.py doctor         # which backends were found, and what the device reports
+python3 labs/pmpp.py run 5.2        # test your work for lab 5.2 on every backend
+python3 labs/pmpp.py run 5.2 --bench
+python3 labs/pmpp.py run 5.2 --backend emu
+python3 labs/pmpp.py run 5.2 --solution
+```
+
+Needs CMake 3.21 or newer, a C++17 compiler and Python 3. Backends are detected and the
+missing ones are skipped:
+
+| Backend | Needs | Status of the pilot's reference solutions |
+|---|---|---|
+| `metal` | macOS with Xcode command line tools | verified on Metal (Apple M3 Max) |
+| `emu` | nothing extra | emulator-checked: a CPU emulator of the CUDA subset, logic only |
+| `cuda` | NVIDIA CUDA toolkit | front-end-checked; **never run on a CUDA device** |
+| `hip` | AMD ROCm (`ROCM_PATH` or `/opt/rocm`) | **unverified**, never compiled |
+
+If you have a CUDA or ROCm machine: run `./verify.sh` there and keep the report it
+writes. It records build errors and test failures in enough detail to fix from.
+
+## Layout
+
+```
+app/        the web app; app/src/chapters/chNN/ holds a chapter's lessons
+content/    narration scripts, audio and manifests
+labs/       build system, runtime, CPU emulator, and labs/chNN/labM_name/{starter,work,solution}
+notes/      notes on every chapter of the book, with page references
+progress/   your progress file
+reports/    verify reports
+```
+
+The book's PDF is not part of the repository and is not needed to run anything.

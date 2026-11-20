@@ -1,0 +1,1 @@
+Phase 1 reuses the same slots for the next tile. That is why there is a second barrier: nobody may overwrite a slot until everyone has finished reading it. [short pause] Load. Wait. Compute. Wait. After the last phase, each thread stores its sum.

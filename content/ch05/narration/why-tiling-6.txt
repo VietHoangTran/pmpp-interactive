@@ -1,0 +1,1 @@
+The answer is the same. The traffic is not. Each element came from global memory once for the block, instead of once for every thread that needed it. With tiles T wide, that is T times less traffic. [short pause] The price is two barriers per phase, and a few bytes of shared memory per thread.
