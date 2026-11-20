@@ -1,0 +1,1 @@
+Take blocks of 16 by 16 threads and lay them down one at a time. The width is 76, so it takes 5 blocks across. The height is 62, so it takes 4 down. That is 20 blocks, and 20 times 256 is 5120 threads. More threads than pixels.

@@ -1,0 +1,1 @@
+Here are 8 numbers, and two loops that look almost the same. The first writes each sum into a second array, called y. The second writes it back into x itself. Now give every step of each loop to its own thread, and ask one question. Does the order the threads run in change the answer?

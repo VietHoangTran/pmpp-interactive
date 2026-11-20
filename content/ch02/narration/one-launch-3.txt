@@ -1,0 +1,1 @@
+Here is the grid. 3 blocks, with 8 threads in each. Every thread will run the same three lines of code. What differs is the pair of numbers each thread carries. The index of its block, and its own index inside that block.

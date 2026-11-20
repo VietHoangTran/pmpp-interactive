@@ -1,0 +1,1 @@
+After a launch, the runtime holds a list of every block that has not started yet. Here, the list is 8 blocks long. A block can start only when some SM has a free slot for all of its threads. So one question decides everything that follows. How many slots does the device have?

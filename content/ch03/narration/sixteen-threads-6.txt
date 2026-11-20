@@ -1,0 +1,1 @@
+That is the whole kernel: one loop, run by 16 threads. It is the kernel this chapter's milestone lab asks you to write, for any shape. Chapter 5 starts from this same picture with one question: how many times was each element of M and N fetched?

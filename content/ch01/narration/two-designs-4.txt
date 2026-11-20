@@ -1,0 +1,1 @@
+Sweep the number of chains from 1 to 64. Below about 16 independent chains, the fast units lead. Above it, the many units lead. [short pause] Now make every chain twice as long. Both lines rise together, and the crossing stays where it was. Length does not pick the winner. Independence does.

@@ -1,0 +1,1 @@
+The runtime checks the configuration, and puts the grid in a queue. Then the statement returns. [short pause] The host is already on its next line, and no thread has run yet. A check of the error state, right here, would catch a configuration the device cannot satisfy.

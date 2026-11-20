@@ -1,0 +1,1 @@
+This is one warp. In the book it has 32 threads, drawn here as 32 lanes. The hardware fetches one instruction and every lane executes it, each on its own data. Then the next instruction, and the next. One fetch, every lane, in step.

@@ -1,0 +1,1 @@
+One launch statement. The host evaluates the configuration first. 22 plus 7 is 29. And 29 divided by 8, in whole numbers, is 3. So, 3 blocks of 8 threads. [short pause] Then it evaluates the arguments. Three device addresses, and n, the number 22, passed by value.

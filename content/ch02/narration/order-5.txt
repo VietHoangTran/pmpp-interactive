@@ -1,0 +1,1 @@
+Run loop 2 backwards. Now each thread reads its left neighbour before that neighbour has been updated. Only the first 2 results still match the loop. The other 6 are different. Same code, same data, another answer. And on a GPU you do not choose the order the threads run in.

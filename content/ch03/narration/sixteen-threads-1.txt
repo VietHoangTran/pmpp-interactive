@@ -1,0 +1,1 @@
+P is a 4 by 4 matrix. Cut it into 4 blocks, each 2 threads wide and 2 threads tall. That makes 16 threads, one on every element. Each thread finds its row from the block's y and its own y, and its column from the two x values. These are the same sums you used for pixels.

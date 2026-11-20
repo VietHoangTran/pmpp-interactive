@@ -1,0 +1,1 @@
+Loop 1, with thread 0 first. Each thread reads two neighbours in x, adds them, and writes one element of y. Nobody ever writes to x. So every thread sees the numbers we started with, whenever it runs.

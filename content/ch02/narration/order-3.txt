@@ -1,0 +1,1 @@
+Now run the same threads backwards, last one first. The reads are the same as before, because x has not changed. So y comes out the same, element for element. Any order would do. So would all at once. That is what data parallel means.

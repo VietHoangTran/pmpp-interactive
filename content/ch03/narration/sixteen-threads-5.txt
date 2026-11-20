@@ -1,0 +1,1 @@
+The other 3 blocks do the same, here in a shuffled order. P fills in block by block. Notice what never happened. No thread waited for another. Each one only read M and N, and wrote a single element that no other thread touches. So any order gives the same P.

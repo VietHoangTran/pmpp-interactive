@@ -1,0 +1,1 @@
+A GPU is the right-hand design. Here its 64 units each take one element of an 8 by 8 matrix product, and every cell fills together. So a GPU pays only when your work arrives as many independent pieces. Writing kernels that supply those pieces, then keeping them fed from memory, is the rest of this course.

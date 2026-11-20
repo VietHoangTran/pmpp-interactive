@@ -1,0 +1,1 @@
+Now follow one thread: thread 0, 0 of block 1, 0. The book writes the vertical index first, so this block is one down and none across. Its row is the block index times 16, plus the thread index. That is row 16. Its column, worked out the same way, is column 0.

@@ -1,0 +1,1 @@
+Count the steps. This warp spent 8 where a uniform warp needs 5. Now slide the threshold from 24 up to 32. The split reaches the edge of the warp, and the second pass vanishes. [short pause] The cost comes from the number of paths inside one warp. A split that falls between warps costs nothing.

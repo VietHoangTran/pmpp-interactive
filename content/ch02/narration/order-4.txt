@@ -1,0 +1,1 @@
+Loop 2 writes into x itself. With thread 0 first, each thread reads the element that its left neighbour has just written. The sums pile up along the array: 3, 4, 11, and on up to 25. This is a running total. Each step needs the result of the step before.

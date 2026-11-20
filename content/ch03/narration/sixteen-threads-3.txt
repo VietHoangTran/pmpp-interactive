@@ -1,0 +1,1 @@
+Now the same loop, as memory holds it. Both matrices are flat arrays, stored row after row. In M the thread moves 1 slot each step: 0, 1, 2, 3. In N it jumps a whole row each step: 0, 4, 8, 12. [short pause] One loop, two different strides.

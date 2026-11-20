@@ -1,0 +1,1 @@
+Here is a picture: 62 rows of pixels, 76 columns. That makes 4712 pixels, and we want one thread for each of them. Threads come in blocks. So the question is how to lay blocks over this picture, and how each thread then finds its own pixel.

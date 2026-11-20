@@ -1,0 +1,1 @@
+Run the same kernel again, with the threads in reverse order. Now the smear goes the other way, toward the top left. It is a different wrong picture, from the same code and the same input. On a GPU the order is not yours to choose, so you cannot predict which one you get.

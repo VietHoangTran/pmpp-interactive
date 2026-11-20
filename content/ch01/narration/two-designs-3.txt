@@ -1,0 +1,1 @@
+Now give them 64 chains that do not depend on each other. The right side takes all 64 at once and is done at time 16. The left side works through 16 waves of 4 and is done at time 64. Its first result still came sooner, at time 4. First result is latency. Last result is throughput.

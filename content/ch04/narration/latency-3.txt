@@ -1,0 +1,1 @@
+With 4 warps, the timing closes. Just as the last warp sends its request, the first warp's data arrives. There is always a warp that is ready, so the unit never idles. No single warp got faster. Its wait is hidden behind the work of the others. The book calls this latency tolerance.

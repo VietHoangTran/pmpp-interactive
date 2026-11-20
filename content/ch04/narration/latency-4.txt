@@ -1,0 +1,1 @@
+Why does switching cost nothing? Every resident warp keeps its program counter and its registers on the chip, for its whole life. The scheduler only chooses where the next instruction comes from. A CPU that switches threads has to save one thread's state to memory and load another's. Here, nothing is saved, and nothing is restored.

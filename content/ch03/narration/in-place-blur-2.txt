@@ -1,0 +1,1 @@
+Now take the second buffer away. The kernel reads and writes the same picture. The first 7 threads store a zero over a zero, and nothing changes. Then the thread for row 1, column 1 stores its average, 28. Its neighbour runs next. It reads 28 where the input held zero.

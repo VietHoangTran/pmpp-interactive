@@ -1,0 +1,1 @@
+One last thing. Older NVIDIA GPUs finished one path before starting the other. Current ones may mix the two, as drawn here. AMD documents lockstep. Apple does not say. So when the next step needs every lane to have finished, call the warp-level barrier first.

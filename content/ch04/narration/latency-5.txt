@@ -1,0 +1,1 @@
+The price is space. The register file of an SM is shared out among the warps that are resident. On the book's example, 64 warps fit when each thread uses 32 registers. Give each thread 64 registers, and only 32 warps fit. How many warps fit is the subject of the next section.

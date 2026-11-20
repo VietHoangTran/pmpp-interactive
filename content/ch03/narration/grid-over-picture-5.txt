@@ -1,0 +1,1 @@
+Memory is one flat line, so the picture's rows go into it one after another. [short pause] Row 16 begins after 16 full rows of 76. So our thread writes element 1216. The colour input has 3 bytes for every pixel, so its red byte sits at 3 times that: 3648.

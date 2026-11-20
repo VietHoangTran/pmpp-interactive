@@ -1,0 +1,1 @@
+Two kernels, one model. On the left, 30 cycles of arithmetic between loads. 2 warps keep the unit busy. On the right, a load on every other instruction. That one needs 16. [short pause] Decoding one token at a time looks like the kernel on the right. Little arithmetic per load, so it wants a full SM.

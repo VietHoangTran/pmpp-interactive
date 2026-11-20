@@ -1,0 +1,1 @@
+Last, shade each block by how many of its threads work. 12 blocks are full: 256 each. 3 on the right edge have 192. 4 along the bottom have 224. The corner has 168. Add them up: 4712, every pixel exactly once. Chapter 4 comes back to these four kinds of block.

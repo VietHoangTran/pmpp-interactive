@@ -1,0 +1,1 @@
+Start with a fixed budget of power: 64 equal squares. By the book's rule, halving the latency of a unit costs 4 times the power. So the same 64 squares buy 4 units that are each 4 times faster. Or they buy 64 plain ones. One budget, two designs.

@@ -1,0 +1,1 @@
+The grid has finished. Only now does the host's blocking call return. That call is the copy back, or a synchronise. [short pause] C is complete. And it would be the same C for every order the blocks could have run in.

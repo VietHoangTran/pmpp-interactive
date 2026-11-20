@@ -1,0 +1,1 @@
+This small device has 2 slots. Blocks 0 and 1 go first. When they finish, blocks 2 and 3 take their place, and so on down the list. 2 blocks at a time, 4 rounds. The book calls each round a wave. 8 blocks, 2 at a time, make 4 waves.

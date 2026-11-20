@@ -1,0 +1,1 @@
+Now the same launch with 22 divided by 8, and no rounding up. In whole numbers, that is 2. So block 2 is never created. Nothing reports an error. [short pause] Elements 16 to 21 of C keep whatever the allocation held.

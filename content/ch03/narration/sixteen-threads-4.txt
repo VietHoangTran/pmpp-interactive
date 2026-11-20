@@ -1,0 +1,1 @@
+Every thread in a block runs that loop at the same time. Block 0, 0 has 4 threads. Together they walk 2 rows of M and 2 columns of N, and 4 running sums grow side by side. When the loop ends, each thread stores its sum into its own element of P.

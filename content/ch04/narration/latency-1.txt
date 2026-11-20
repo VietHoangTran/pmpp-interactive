@@ -1,0 +1,1 @@
+One warp, alone on an execution unit. It computes for 2 cycles. Then it asks global memory for data, and waits 6 cycles for the answer. [short pause] Watch the strip at the bottom. For most of this time, the execution unit has nothing to do.

@@ -1,0 +1,1 @@
+Then path B. Now the 8 run and the 24 wait. After that, all 32 lanes carry on together with whatever comes next. Every thread got its own path, exactly as the code says. The price was a second pass, with most of the lanes idle during it.

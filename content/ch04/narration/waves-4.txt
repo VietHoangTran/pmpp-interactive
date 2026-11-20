@@ -1,0 +1,1 @@
+Why is that safe? Look inside a block. Its threads meet at a barrier. But the barrier stops at the edge of the block, and nothing ties one block to another. So the runtime may hand the blocks out in any order. Shuffle the list, and every part of the output is still written.

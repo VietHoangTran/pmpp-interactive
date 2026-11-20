@@ -1,0 +1,1 @@
+Look at the overhang. On the right, 4 columns of threads have no pixel. At the bottom, 2 rows have none. Together that is 408 threads with nothing to do. So the kernel tests its column and its row before it touches memory, and those 408 simply stop.

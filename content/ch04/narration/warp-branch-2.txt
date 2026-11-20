@@ -1,0 +1,1 @@
+Now the warp reaches a branch. Each thread tests whether its index is below 24. The first 24 lanes say yes and want path A. The last 8 say no and want path B. The threads now want different instructions, and the hardware has only one stream to give them.

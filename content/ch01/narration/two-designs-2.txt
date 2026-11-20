@@ -1,0 +1,1 @@
+Give both designs one chain of 16 operations. Each step needs the result of the step before it. So only one unit can work, however many there are. The fast unit is done at time 4. The plain unit is done at time 16, while 63 others sit idle. Here the fast design wins by 4.

@@ -1,0 +1,1 @@
+Follow one thread: thread 0, 0 of block 0, 0. It owns the top left element of P. Its loop counter k goes 0, 1, 2, 3. Each step takes the next element along row 0 of M, the next element down column 0 of N, multiplies them, and adds the product to a running sum.

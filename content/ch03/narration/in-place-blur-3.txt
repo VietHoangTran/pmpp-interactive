@@ -1,0 +1,1 @@
+Let the threads finish in order. Each one reads some values that are already averages, and averages them again. The bright spot smears toward the bottom right. Compare with the reference: 24 of 36 pixels are wrong. And nothing crashed. Every read and every write stayed inside the buffer.

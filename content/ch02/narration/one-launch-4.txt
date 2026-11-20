@@ -1,0 +1,1 @@
+This device runs 2 blocks at a time, and it chooses which ones. Here it takes block 2 and block 0 first. Block 1 waits in the queue. [short pause] In each running block, every thread computes its own i, and keeps it in a private register.

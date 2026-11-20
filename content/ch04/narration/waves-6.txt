@@ -1,0 +1,1 @@
+There are 2 ways out. Make the block count a multiple of 264, and the empty slots are gone. That works when blocks take equal time. When they do not, slots free up one by one, and the waves blur. Then many waves help, because each free slot takes the next block at once.

@@ -1,0 +1,1 @@
+Now 3 warps are resident. When the first one starts to wait, the scheduler issues from another warp that is ready. Then from the third. Their waits overlap, so the gaps shrink. The unit is now busy for 6 cycles out of every 8.

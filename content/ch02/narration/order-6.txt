@@ -1,0 +1,1 @@
+So the test is not whether threads read the same elements. In loop 1 they do, and it is fine. The test is whether any thread reads something that another thread writes. Loop 2 fails that test. Chapter 11 computes the same running total with a different algorithm, one that passes.

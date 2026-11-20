@@ -1,0 +1,1 @@
+Here is a 6 by 6 picture with one bright pixel, and a second buffer for the result. Every thread reads its patch from the input, which nobody changes, and stores one average in the output. The result is an even smudge around the spot. It matches the reference.

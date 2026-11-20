@@ -1,0 +1,1 @@
+So the blur keeps two buffers. Each thread writes only its own element, and reads only data that no thread writes. Then the order cannot matter. All three kernels of this chapter follow that rule. In chapter 5, threads start sharing memory that they also write, and they will need barriers.

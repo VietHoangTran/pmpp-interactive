@@ -1,0 +1,1 @@
+A loop can diverge as well. Here each thread reads its own trip count, from 4 to 8. For 4 rounds every lane works. Then lanes drop out, a few at a time, until only the longest are left. The warp runs as long as its longest lane, and the others wait.

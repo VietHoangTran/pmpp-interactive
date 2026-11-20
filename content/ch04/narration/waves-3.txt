@@ -1,0 +1,1 @@
+Now a larger device, with 4 slots. The same list drains 4 blocks at a time, in 2 waves instead of 4. [short pause] Not one line of the kernel changed. The launch did not change either. The grid never said how many blocks should run together. The device decided.
