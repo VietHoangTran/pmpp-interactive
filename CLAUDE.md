@@ -57,8 +57,11 @@ shows it passing. Never write "verified" for anything else.
 
 - `app/src/chapters/chNN/` holds a chapter: `index.ts` (metadata, section list) and one
   component per section. Chapter 5 is the template.
-- Shared pieces live in `app/src/components` (Source, Today, Simplification, Predict,
-  Quiz, CodeTabs, LabCard, ScenePlayer) and `app/src/sim` (simulators with unit tests).
+- Shared pieces live in `app/src/components`: `notes.tsx` (Source, Today, Simplification,
+  Beyond, Aside, Bench, TierLegend), `Ask.tsx` (Ask, Predict), `Code.tsx` (Code,
+  useLabFile), `Scene.tsx` (the narrated-animation player), `LabKit.tsx` (everything a
+  labs page needs; read its header comment). Simulators with unit tests live in
+  `app/src/sim`.
 - Progress lives in `progress/progress.json` via `/api/progress`. Keys are stable ids
   (`ch05/5.1/q-flopb`); never rename an id once shipped.
 - Style: plain, direct prose. No decoration for its own sake. Dark and light themes.

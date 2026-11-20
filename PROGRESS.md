@@ -27,6 +27,12 @@ pages, and commits. Per-chapter hints given to the designers are in the wave's `
 - [ ] Wave 4: ch20 (Deep), ch22, ch19, appA (Standard), x1 sampling (Deep).
 - [ ] Wave 5: x2 quantised kernels (Deep), x3 reading real backends (Standard),
       ch16, ch17, ch18, ch21, ch23 (Condensed).
+- [ ] Final pass to-do list (collected along the way):
+      lab 5.5's prediction compares GFLOP/s at different matrix widths (2048 vs lab 5.2's
+      adaptive width): make the two benchmarks use the same width or reword the prompt;
+      the labs page uses two wordings for the same statuses (table vs tabs) and the
+      kernel.cu tab says "no run" when a run failed; `app-review.mjs` only visits
+      chapter 5 routes: extend to every built chapter.
 - [ ] Final: whole-course consistency pass, spaced-review pool check, final verify
       report, hand-off.
 
