@@ -1,0 +1,94 @@
+{
+ "model": "eleven_v4",
+ "voice": "tnSpp4vdxKPjI9w0GnoV",
+ "clips": {
+  "corank-search-1": {
+   "file": "corank-search-1.mp3",
+   "sha256": "8c84316d5c151184b39962d5261f3ad9dcee69d47dacf68c5e97fba120eae32d",
+   "duration": 19.36,
+   "bytes": 328130,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "corank-search-2": {
+   "file": "corank-search-2.mp3",
+   "sha256": "20ff14ece57412407f37bfc5e316669b93b9a5fe35f303806088d8ede7480f08",
+   "duration": 19.68,
+   "bytes": 333146,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "corank-search-3": {
+   "file": "corank-search-3.mp3",
+   "sha256": "b4468dfe306b7838c83ec11bb96da3644bcc52579f6d18d5922c18a466ca7c8a",
+   "duration": 21.44,
+   "bytes": 361149,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "corank-search-4": {
+   "file": "corank-search-4.mp3",
+   "sha256": "9a1bf6ef7cd6fb4b6db7f31f22ee2804a522749d9d3ed3100b9b607bb2eef40e",
+   "duration": 21.04,
+   "bytes": 354880,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "corank-search-5": {
+   "file": "corank-search-5.mp3",
+   "sha256": "e883160e922986e32a4224916f1ab7fa236d52a95f94a890e326d0d7a880b432",
+   "duration": 22.48,
+   "bytes": 377867,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "corank-search-6": {
+   "file": "corank-search-6.mp3",
+   "sha256": "0c458b158e97c6161a68f838c372eec4d95b49f3dd02d2b15b4d57c40bc0f9cd",
+   "duration": 21.52,
+   "bytes": 362403,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "tile-waste-1": {
+   "file": "tile-waste-1.mp3",
+   "sha256": "4977dedc3f0ae38add5e13768ba20fe83c9d0fc1d138bd5924fa006365eac39e",
+   "duration": 17.92,
+   "bytes": 304724,
+   "generated": "2026-11-20",
+   "take": 2
+  },
+  "tile-waste-2": {
+   "file": "tile-waste-2.mp3",
+   "sha256": "5cae265380cc8b30dda6c7c1a2c80df34715789ecf7c5b589912a56ee3452434",
+   "duration": 17.04,
+   "bytes": 290932,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "tile-waste-3": {
+   "file": "tile-waste-3.mp3",
+   "sha256": "3b779fcad43c7bef6ef169fc79e1c12048ab246ee0a8c26e6d6d8f7ca5b7c817",
+   "duration": 19.52,
+   "bytes": 330638,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "tile-waste-4": {
+   "file": "tile-waste-4.mp3",
+   "sha256": "28eac49730fc4677338cd4d0e843dc6c61dfce01e855758e1b09a8c51777e08f",
+   "duration": 18.32,
+   "bytes": 311412,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "tile-waste-5": {
+   "file": "tile-waste-5.mp3",
+   "sha256": "ee88bfcb63fd6874e447c263fca8e9c973ceb387af8a895c74f918d05c3a6565",
+   "duration": 19.52,
+   "bytes": 330638,
+   "generated": "2026-11-20",
+   "take": 1
+  }
+ }
+}

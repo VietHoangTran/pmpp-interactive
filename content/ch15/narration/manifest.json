@@ -1,0 +1,190 @@
+{
+ "model": "eleven_v4",
+ "voice": "tnSpp4vdxKPjI9w0GnoV",
+ "clips": {
+  "outer-product-1": {
+   "file": "outer-product-1.mp3",
+   "sha256": "dead0b5f0011a08a16453ce22a12fd3ac5a91a52aff5df022f969f2cf887c241",
+   "duration": 19.52,
+   "bytes": 330638,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "outer-product-2": {
+   "file": "outer-product-2.mp3",
+   "sha256": "9c2214ebc8cbd9f88bab7f726cb89b51e5623e9fe35a42ebb6d2937b0f4552ba",
+   "duration": 20.24,
+   "bytes": 341923,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "outer-product-3": {
+   "file": "outer-product-3.mp3",
+   "sha256": "69e80919b3379160669e25d19f8ca03c3989a47776baab6b5ee7fa0a428c150d",
+   "duration": 19.6,
+   "bytes": 331892,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "outer-product-4": {
+   "file": "outer-product-4.mp3",
+   "sha256": "690b9a559f3b54d08e256206d423d0cbe35ea98d5f4bc534e709730bf57cc6c3",
+   "duration": 19.28,
+   "bytes": 326876,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "outer-product-5": {
+   "file": "outer-product-5.mp3",
+   "sha256": "7a5cf6009f70a7041226430b0cfbc99a63f243413510e91d225916d779499a69",
+   "duration": 21.6,
+   "bytes": 363657,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "outer-product-6": {
+   "file": "outer-product-6.mp3",
+   "sha256": "ec28da1e5fd2d559541c131f0d3d882152bbacce138073dc926bd8b267bdb989",
+   "duration": 20.96,
+   "bytes": 353626,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "pipeline-1": {
+   "file": "pipeline-1.mp3",
+   "sha256": "b335333982b72800aacd100a5d0781f649f430543d6cc526fbd8bad217f72852",
+   "duration": 21.04,
+   "bytes": 354880,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "pipeline-2": {
+   "file": "pipeline-2.mp3",
+   "sha256": "1f29a8b65e2077112b9e3c4b0a0fb8fee4bfd3ca5759288bfba8f08a5925e5ad",
+   "duration": 20.16,
+   "bytes": 340669,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "pipeline-3": {
+   "file": "pipeline-3.mp3",
+   "sha256": "8128640d017a387696370cb13dd824a3a56252dfa2d54ac59c3e8e5a0431d47b",
+   "duration": 17.76,
+   "bytes": 302217,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "pipeline-4": {
+   "file": "pipeline-4.mp3",
+   "sha256": "227880e7da4a114bbf915bb4a451b9cb3ac8a08e8d1a54a3bc09a0c113fb495a",
+   "duration": 20,
+   "bytes": 338161,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "pipeline-5": {
+   "file": "pipeline-5.mp3",
+   "sha256": "8ead258a4e67a4f44f3cba7176a20a5f4df52c33fc99d8c759370d6be57930bb",
+   "duration": 21.6,
+   "bytes": 363657,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "pipeline-6": {
+   "file": "pipeline-6.mp3",
+   "sha256": "856c929d52ac2e6a4efd0f433296169607fb33dec1d06009c180dae6eebeb1e9",
+   "duration": 21.12,
+   "bytes": 356133,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "remap-1": {
+   "file": "remap-1.mp3",
+   "sha256": "019e7d66bc73f42ada08a4ce22bc03d5f94b4623d77f831d4981fdc01e2c5370",
+   "duration": 21.92,
+   "bytes": 369090,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "remap-2": {
+   "file": "remap-2.mp3",
+   "sha256": "21f3454b54b5bcf19bf03897134d6af1b8b24a3a89176661e65dea03d2f2e8b5",
+   "duration": 17.04,
+   "bytes": 290932,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "remap-3": {
+   "file": "remap-3.mp3",
+   "sha256": "a93c82073349395b2e20905a9af3d37a1a2c81d5e7341ee7f019bbe0baf2573c",
+   "duration": 16.24,
+   "bytes": 277975,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "remap-4": {
+   "file": "remap-4.mp3",
+   "sha256": "f6c4e0e2f5f1243944b595f426b96cf75e346ce38bc0126b305fd6848415746c",
+   "duration": 20.8,
+   "bytes": 351118,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "remap-5": {
+   "file": "remap-5.mp3",
+   "sha256": "696503608adcaa0f07d23a0acffbb909de1c50270e5d360947c0c497004247db",
+   "duration": 18.56,
+   "bytes": 315173,
+   "generated": "2026-11-20",
+   "take": 2
+  },
+  "remap-6": {
+   "file": "remap-6.mp3",
+   "sha256": "1e80dc852ac7009c9f9e1c0ce9b964411c15ee8125c3e9f1b49bdd4ad25f07d5",
+   "duration": 19.84,
+   "bytes": 335653,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "reuse-1": {
+   "file": "reuse-1.mp3",
+   "sha256": "d9e1bfa7eb4a4ca4121d8c017fb36f46f58952c31ab7423d1b089f09f6e6c7f2",
+   "duration": 22,
+   "bytes": 370344,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "reuse-2": {
+   "file": "reuse-2.mp3",
+   "sha256": "2507a13d3cda0af822bf035f32c4953cec6be73f7fe7a1bccdb65967b557040f",
+   "duration": 17.28,
+   "bytes": 294693,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "reuse-3": {
+   "file": "reuse-3.mp3",
+   "sha256": "347748c5bb6d1a4cfe92b5e8404b4e55704d177d8f32dcd45b133aa510f6ebab",
+   "duration": 19.36,
+   "bytes": 328130,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "reuse-4": {
+   "file": "reuse-4.mp3",
+   "sha256": "4ff07a432c545eb94f8a2172d9288c6eb1180aec9e4656ae97abc1996503e573",
+   "duration": 19.12,
+   "bytes": 323951,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "reuse-5": {
+   "file": "reuse-5.mp3",
+   "sha256": "4587b789cc963239f6fb8018871373fd4c9303c4471346438b1273ad4f16ad94",
+   "duration": 17.84,
+   "bytes": 303471,
+   "generated": "2026-11-20",
+   "take": 1
+  }
+ }
+}

@@ -1,1 +1,1 @@
-Number 0 reads its keys, counts the ones it keeps, and publishes its total with a release. Number 1 has read and counted too. But its keys go into slots that number 0 owns, so before it writes anything, it spins with an acquire, waiting for number 0's flag.
+Number 0 reads its keys, counts the ones it keeps, and publishes its total with a release. Number 1 has read and counted too. But its keys go into slots that number 0 owns, so before it writes anything, it spins on number 0's flag, reading it with an acquire load.

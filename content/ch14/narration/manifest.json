@@ -1,0 +1,150 @@
+{
+ "model": "eleven_v4",
+ "voice": "tnSpp4vdxKPjI9w0GnoV",
+ "clips": {
+  "local-sort-1": {
+   "file": "local-sort-1.mp3",
+   "sha256": "1b018b8a097e2e3be2becb502e567ce1d680ae78f7419a191065fb02522a1231",
+   "duration": 22.8,
+   "bytes": 382883,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "local-sort-2": {
+   "file": "local-sort-2.mp3",
+   "sha256": "f42aef32d7c4599a49986fceb1f5bf970b21a85210134f2af3eb47c060a2fe96",
+   "duration": 19.76,
+   "bytes": 334400,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "local-sort-3": {
+   "file": "local-sort-3.mp3",
+   "sha256": "0e466876a86180e558d6f9d8929284547c9e4d6a40d27bcea71b92234d99a7bb",
+   "duration": 16.8,
+   "bytes": 287170,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "local-sort-4": {
+   "file": "local-sort-4.mp3",
+   "sha256": "8223e4376f7adaf77353c625e37a12e5d794633383657a877b5921058af93bcd",
+   "duration": 22.32,
+   "bytes": 375360,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "local-sort-5": {
+   "file": "local-sort-5.mp3",
+   "sha256": "36555fc613fbaee280fd5f881b5f1a719c6a85400e985d64fed3a2774c9f6ad9",
+   "duration": 21.04,
+   "bytes": 354880,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "local-sort-6": {
+   "file": "local-sort-6.mp3",
+   "sha256": "4e5b1a2f416a11d28e7a52aa054a80f0e1b74f6a5f3276aa756b66d957a666fc",
+   "duration": 21.76,
+   "bytes": 366164,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "lsd-passes-1": {
+   "file": "lsd-passes-1.mp3",
+   "sha256": "b19f13dd7022e90da685e80c395de09db047582feba3302e1e44a2020812683c",
+   "duration": 17.36,
+   "bytes": 295947,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "lsd-passes-2": {
+   "file": "lsd-passes-2.mp3",
+   "sha256": "592d87501ea9b7c37147955797d90c4f684063dbe4e98b46c55aa2e023b4e518",
+   "duration": 16.8,
+   "bytes": 287170,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "lsd-passes-3": {
+   "file": "lsd-passes-3.mp3",
+   "sha256": "4cdb1b72a81bc7d2067230bad3a74c94b26389ad26bb123ddd7bc5158992b297",
+   "duration": 20.72,
+   "bytes": 349864,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "lsd-passes-4": {
+   "file": "lsd-passes-4.mp3",
+   "sha256": "22f08b16909d0a91ddec1aa2f72526dbdefdf2a04d614b81fdc33d340fd78b0b",
+   "duration": 16.88,
+   "bytes": 288424,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "lsd-passes-5": {
+   "file": "lsd-passes-5.mp3",
+   "sha256": "a771a2ae2d0b36ba6425fc9fd673cecc99f3883f363ed9f01da3c773facfdf4d",
+   "duration": 18.72,
+   "bytes": 317681,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "lsd-passes-6": {
+   "file": "lsd-passes-6.mp3",
+   "sha256": "1a94b375d9120e8b0c428e5eb286b76d11d588c30898666d02aa8211cf1924dc",
+   "duration": 17.6,
+   "bytes": 299709,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "oddeven-walk-1": {
+   "file": "oddeven-walk-1.mp3",
+   "sha256": "3bfc4d50e916f9095db77e354142a6e53573fe4cfd4309c7afb36b047a4747b9",
+   "duration": 18.72,
+   "bytes": 317681,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "oddeven-walk-2": {
+   "file": "oddeven-walk-2.mp3",
+   "sha256": "fc606c82449d221c10f9139d71b5bf0cf365f3b79bc5c1513f0ad0b0b70d4574",
+   "duration": 14.56,
+   "bytes": 251226,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "oddeven-walk-3": {
+   "file": "oddeven-walk-3.mp3",
+   "sha256": "4ed183435eb34d1a48eda71aea03a6966409a950c87cb3a1d582d84ddaa19426",
+   "duration": 16.8,
+   "bytes": 287170,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "oddeven-walk-4": {
+   "file": "oddeven-walk-4.mp3",
+   "sha256": "255a0cd1ab3a31ffbc42dfa6d212e1eaec9c8d284d7d7f01782a19da28dab012",
+   "duration": 17.68,
+   "bytes": 300963,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "oddeven-walk-5": {
+   "file": "oddeven-walk-5.mp3",
+   "sha256": "2824ce64574bae7d1e116bc1282877ad7065d4ab92665b756f39549c35172f93",
+   "duration": 15.6,
+   "bytes": 267944,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "oddeven-walk-6": {
+   "file": "oddeven-walk-6.mp3",
+   "sha256": "f4b04695546d84c9a0321d1fef5f5375145d7976c55c8397c78cf6efe4d73e93",
+   "duration": 20,
+   "bytes": 338161,
+   "generated": "2026-11-20",
+   "take": 1
+  }
+ }
+}

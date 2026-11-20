@@ -1,1 +1,1 @@
-Here is one array of 12 keys, filtered in place by 3 blocks of 4 keys each. Every arrow shows where a kept key will land. The red arrows land on a slot that an earlier block still has to read. 5 of the 7 writes are red, so something must make those reads happen first.
+Here is one array of 12 keys, filtered in place by 3 blocks of 4 keys each. Every arrow shows where a kept key will land. The red arrows land on a slot that an earlier block still has to read. 5 of the 7 arrows are red, so something must make those reads happen first.
