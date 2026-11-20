@@ -46,7 +46,7 @@ pages, and commits. Per-chapter hints given to the designers are in the wave's `
       for all its barriers (can hide races between barrier 1 and 2 on small launches);
       pmpp.py should accept appendix lab numbers (C.1); Code tabs' status text is squeezed
       at 390 px; ch12's lab 1 comment says the HIP build does not link libhipcxx (now it
-      does where ROCm has it); emu.json lost chapters 2–6 results before the lock: re-run;
+      does where ROCm has it); (emu.json results for chapters 2–6 re-recorded after the lock: all 23 solutions pass);
       the labs page uses two wordings for the same statuses (table vs tabs) and the
       kernel.cu tab says "no run" when a run failed. (`app-review.mjs` now sweeps every
       built chapter from the registry; `CHAPTERS=ch01,ch02` limits it.)

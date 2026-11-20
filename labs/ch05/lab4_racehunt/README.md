@@ -11,7 +11,11 @@ Method:
    deterministic, so a synchronisation defect fails every time, and AddressSanitizer
    stops at the first out-of-bounds access and names the line.
 2. Fix one thing, run again. The failures change as you go.
-3. Then run on your GPU: `python3 labs/pmpp.py run 5.4`. Note which defects the GPU
+3. For a second opinion on the synchronisation defect, `python3 labs/pmpp.py run 5.4
+   --backend race` runs the threads at the same time under ThreadSanitizer. It names the
+   two source lines whose write and read collide, which says where a barrier is missing.
+   It only sees collisions that happened in that run, so a clean report is not a proof.
+4. Then run on your GPU: `python3 labs/pmpp.py run 5.4`. Note which defects the GPU
    showed you and which it hid.
 
 Nothing to benchmark here.
