@@ -1,0 +1,158 @@
+{
+ "model": "eleven_v4",
+ "voice": "tnSpp4vdxKPjI9w0GnoV",
+ "clips": {
+  "latency-1": {
+   "file": "latency-1.mp3",
+   "sha256": "f6bd529fa7c26a23fbf2a43f4e5f362b5257ad18a8d30b93dc1eeb14adff77de",
+   "duration": 15.84,
+   "bytes": 271706,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "latency-2": {
+   "file": "latency-2.mp3",
+   "sha256": "0f82fb06ae0613a258531b857191fc43c75f80555796f82c8e10ed947ceeb896",
+   "duration": 14.8,
+   "bytes": 254987,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "latency-3": {
+   "file": "latency-3.mp3",
+   "sha256": "b7f92e4df8c9f5e69a678f9e9d3cd0ef5660a8ce218ec41c9922dffa13c8abe4",
+   "duration": 19.28,
+   "bytes": 326876,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "latency-4": {
+   "file": "latency-4.mp3",
+   "sha256": "9d473953a2bebc1d2303834b6d47c856e8959ba2d6b38b26e7ada4f7e2b81015",
+   "duration": 20.96,
+   "bytes": 353626,
+   "generated": "2026-11-20",
+   "take": 2
+  },
+  "latency-5": {
+   "file": "latency-5.mp3",
+   "sha256": "0c0d055e3b6ee5e0935d07f25e04182db254f32436dfe1b5c1ec7c4605523416",
+   "duration": 20.64,
+   "bytes": 348610,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "latency-6": {
+   "file": "latency-6.mp3",
+   "sha256": "82a58db2dc9929d93b3b44e8c619c6584f5daa1c86aa0b1047826daab78f3ca8",
+   "duration": 20.48,
+   "bytes": 345684,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "warp-branch-1": {
+   "file": "warp-branch-1.mp3",
+   "sha256": "f118e0b287618fe370fca5c962608a5abeba78e65ffe3c8ad2cfe5d6778171f9",
+   "duration": 17.76,
+   "bytes": 302217,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "warp-branch-2": {
+   "file": "warp-branch-2.mp3",
+   "sha256": "17dfd2d42bd222bc9d67ff92aae26156d9ec22c88da6a4d3cd3a57b43b6f7a36",
+   "duration": 17.92,
+   "bytes": 304724,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "warp-branch-3": {
+   "file": "warp-branch-3.mp3",
+   "sha256": "7829bfcf5998a36ee287c6662d8815a3cf2b867b7c28d19c56a119dd5c476bdd",
+   "duration": 16.4,
+   "bytes": 280483,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "warp-branch-4": {
+   "file": "warp-branch-4.mp3",
+   "sha256": "1b20b7669fe36990f9c505b8934ff6dba7a8a29ed1b5762b056d1803d18a0b07",
+   "duration": 17.2,
+   "bytes": 293440,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "warp-branch-5": {
+   "file": "warp-branch-5.mp3",
+   "sha256": "8f36ce6f6cbd0dd776faec5cdc999ff7cec587f19faa671990b8bd947861bfa5",
+   "duration": 19.68,
+   "bytes": 333146,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "warp-branch-6": {
+   "file": "warp-branch-6.mp3",
+   "sha256": "ff0914d63576c8ba78dece56bfd1b67a0acf8817831f41afae84ba22abb01e92",
+   "duration": 17.76,
+   "bytes": 302217,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "warp-branch-7": {
+   "file": "warp-branch-7.mp3",
+   "sha256": "5f2e7bbefc2ea08bdd716d8293db6cdb10ddb9f8f48070477edcf7fe3fdd05f5",
+   "duration": 17.84,
+   "bytes": 303471,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "waves-1": {
+   "file": "waves-1.mp3",
+   "sha256": "92445a959fdbe45933e2016f27341ea975b65d12ab8dea976ed95ef891fe3b7e",
+   "duration": 18.64,
+   "bytes": 316427,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "waves-2": {
+   "file": "waves-2.mp3",
+   "sha256": "f32089a761c42e7654b03872dd00c56e4da4a508a3eca2783711672dd74a652a",
+   "duration": 18.32,
+   "bytes": 311412,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "waves-3": {
+   "file": "waves-3.mp3",
+   "sha256": "7b465846e271c59342621b58d4fa69d75ac07af9a6130df915b1d452df5804e8",
+   "duration": 16.56,
+   "bytes": 282991,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "waves-4": {
+   "file": "waves-4.mp3",
+   "sha256": "341287cf663c396ccd4831b9482261d3bbc880806e61fa7dcea910858a95b5f5",
+   "duration": 16.96,
+   "bytes": 289678,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "waves-5": {
+   "file": "waves-5.mp3",
+   "sha256": "517685150d5e55e4fd7013f113eee10b34b7d49ad3313842128fe9754beb7086",
+   "duration": 20.08,
+   "bytes": 339415,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "waves-6": {
+   "file": "waves-6.mp3",
+   "sha256": "81c52dab61f79c5fdd682639e79e95db9e72a2963e3f8d99f82fb0422b4456dc",
+   "duration": 18.24,
+   "bytes": 310158,
+   "generated": "2026-11-20",
+   "take": 1
+  }
+ }
+}

@@ -87,7 +87,7 @@ describe('the narration of "Three parts, two memories"', () => {
     expect(script(3)).toContain(`${run(p, 5).bytesMoved} bytes have crossed before any arithmetic`);
     expect(script(5)).toContain(`${run(p, 7).bytesMoved - run(p, 6).bytesMoved} more bytes`);
     const end = run(p);
-    expect(script(6)).toContain(`${N} additions were bought with ${end.bytesMoved} bytes`);
+    expect(script(6)).toContain(`To do ${N} additions, ${end.bytesMoved} bytes crossed the boundary`);
     expect(script(6)).toContain(`${end.bytesMoved / N} bytes for every element`);
     const shared = run(program('metal', 'buffers'));
     expect([shared.bytesMoved, shared.frees]).toEqual([0, 0]);

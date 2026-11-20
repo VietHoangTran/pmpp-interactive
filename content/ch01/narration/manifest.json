@@ -1,0 +1,46 @@
+{
+ "model": "eleven_v4",
+ "voice": "tnSpp4vdxKPjI9w0GnoV",
+ "clips": {
+  "two-designs-1": {
+   "file": "two-designs-1.mp3",
+   "sha256": "d98ad3a2e876c2d8615c381f32df7aa3412dc025ec8ec51f9b1dc73bfe706f95",
+   "duration": 20.72,
+   "bytes": 349864,
+   "generated": "2026-11-20",
+   "take": 2
+  },
+  "two-designs-2": {
+   "file": "two-designs-2.mp3",
+   "sha256": "466c8534639b1fe1e410828f1ea720ea4ac1b65ccf2330ec6802e75e59f13ad9",
+   "duration": 20.48,
+   "bytes": 345684,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "two-designs-3": {
+   "file": "two-designs-3.mp3",
+   "sha256": "a12fb73ee4ed013ed69d3de12f39e4f765214f9a1ac2c8ddedfdff360c1a8813",
+   "duration": 20.56,
+   "bytes": 347356,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "two-designs-4": {
+   "file": "two-designs-4.mp3",
+   "sha256": "3f029cee038b46ce075aad015e6387cb227862f4b288b7a468225080eac5834b",
+   "duration": 20.24,
+   "bytes": 341923,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "two-designs-5": {
+   "file": "two-designs-5.mp3",
+   "sha256": "217843bd46fff4de8cb056f94e181caec2cfa8b67a197a651cb828b0dc82391e",
+   "duration": 21.04,
+   "bytes": 354880,
+   "generated": "2026-11-20",
+   "take": 1
+  }
+ }
+}
