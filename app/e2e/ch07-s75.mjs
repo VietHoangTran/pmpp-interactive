@@ -111,7 +111,17 @@ const script = async (n) => (await (await fetch(`${BASE}/content/ch07/narration/
 check('scene offers six parts', (await page.$$(SC + ' .seg button')).length === 6);
 check('scene has a captions option', (await text(SC)).includes('captions'));
 const caption = async () => ((await page.$(SC + ' .caption')) ? (await text(SC + ' .caption')).trim() : '');
-check('without audio, part 1 shows its script as the caption', (await caption()) === (await script(1)), await caption());
+// With audio the caption appears only when the reader turns captions on; without audio
+// the script is always shown. Either way, with captions on, the caption is the script.
+const audible = (await fetch(`${BASE}/content/ch07/narration/manifest.json`).then((r) => r.json()).catch(() => null)) !== null;
+if (audible) check('with audio and captions off, no caption is shown', (await caption()) === '');
+else check('without audio, part 1 shows its script as the caption', (await caption()) === (await script(1)), await caption());
+await page.evaluate((sel) => {
+  const box = [...document.querySelectorAll(sel + ' label.check')].find((l) => l.textContent.includes('captions')).querySelector('input');
+  if (!box.checked) box.click();
+}, SC);
+await pause(100);
+check('with captions on, part 1 shows its script', (await caption()) === (await script(1)), await caption());
 const scenePart = async (k, pos) => {
   await page.evaluate((sel, k) => document.querySelectorAll(sel + ' .seg button')[k - 1].click(), SC, k);
   await pause(100);
@@ -129,6 +139,8 @@ svg = await scenePart(6, 1000);
 check('scene part 6 tallies 400 B against 1296 B: 1.62 and 0.50, then 5.42', ['400 B', '1296 B', '1.62', '0.50', '5.42'].every((s) => svg.includes(s)), svg.slice(-240));
 check('scene part 6 caption is its script', (await caption()) === (await script(6)));
 if (out) await (await page.$(SC)).screenshot({ path: out + '-scene.png' });
+// Leave the remembered captions setting as the reader would find it.
+await page.evaluate(() => { try { localStorage.removeItem('captions'); } catch {} });
 
 // ------------------------------------------------------------- stepper
 const S = bench('Step through one block');
