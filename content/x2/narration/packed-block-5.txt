@@ -1,0 +1,1 @@
+Take one 16-bit word: bytes 4 and 5, which hold four weights. The Metal kernels mask it four ways and never shift. Each masked code comes out 1, 256, 16 or 4096 times too large. So the matching activations were divided by those same powers of two first, and every product comes out exact.

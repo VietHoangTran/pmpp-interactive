@@ -1,0 +1,1 @@
+Each weight is divided by the scale. Then 8 and a half is added, and the result is truncated and clipped to 15. Weight 5, the extreme, lands exactly on code 0. Weight 21, its mirror at plus 0.8, would need code 16. It is clipped to 15, one step short.

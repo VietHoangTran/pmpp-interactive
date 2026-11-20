@@ -1,0 +1,1 @@
+A four-way byte dot product multiplies 4 codes by 4 activation bytes and adds all four products into one integer. The block needs 8 of them. Watch the running sum on the right. It is drawn against the range of a 32-bit integer, and it never comes close to the edge. Every product here is exact.

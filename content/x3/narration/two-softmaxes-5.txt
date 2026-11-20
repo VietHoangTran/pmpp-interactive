@@ -1,0 +1,1 @@
+This is chapter 20's online softmax, applied to one row instead of to attention scores. It saves one read of the row and pays one extra exponential per chunk, even when the maximum does not rise. And each of MLX's backends picked its own exponential: a fast one on Metal, and a low precision intrinsic on CUDA.

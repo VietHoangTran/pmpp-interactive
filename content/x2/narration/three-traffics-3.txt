@@ -1,0 +1,1 @@
+Now the unfused way. A first kernel reads the short stream, turns every code back into float32, and writes a full float32 copy to memory. A second kernel reads that copy back for an ordinary product. So the copy crosses the pipe twice, and the clock runs past the float32 finish line, to a little over 2.

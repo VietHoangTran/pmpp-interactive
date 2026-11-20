@@ -1,0 +1,1 @@
+Take weights trained for the half split and run them through a consecutive pair kernel. Every rotation still happens, so the numbers look plausible. But the scores between this query and the earlier keys come out different from the reference. [short pause] There is no error and no warning. Only a comparison catches it.

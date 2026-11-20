@@ -1,0 +1,1 @@
+Now the weights. One 32-bit word holds 8 four-bit codes. A mask keeps the low 4 bits of every byte: those are weights 0 to 3. Shift the word right by 4 and mask again, and you have weights 16 to 19. The codes stay unsigned, from 0 to 15. Nothing subtracts 8 yet.

@@ -1,0 +1,1 @@
+Across the row, each lane adds its blocks' results in float. Then the warp adds the lanes together. Compare the answer with the float path, which never rounded the activations. The small gap you see comes from rounding them to bytes. Here it is a fraction of a percent. It is the price of the integer path.

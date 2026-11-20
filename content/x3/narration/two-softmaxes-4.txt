@@ -1,0 +1,1 @@
+A second sweep writes each exponential times one over the sum. That is two reads of the row and one write, a quarter fewer bytes than three reads and a write. The outputs agree with the first method to within 2 units in the last place of a float: the same answer, rounded slightly differently.

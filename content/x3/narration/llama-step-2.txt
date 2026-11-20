@@ -1,0 +1,1 @@
+The first RMSNorm, from lab X3.1, scales the row by the inverse of its root mean square, then by a learned weight. Three linear layers produce the query, the key and the value. At batch 1 each is a matrix times a vector, and the gather GEMV of lab 22.1 does the work.

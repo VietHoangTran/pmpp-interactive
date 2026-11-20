@@ -1,0 +1,1 @@
+Next comes the feed forward part. RMSNorm again, then two linear layers side by side, SwiGLU to combine them, a third linear layer to come back down, and another residual add. [short pause] Then the same sixteen launches run again for the next layer, and the next, until every layer is done.

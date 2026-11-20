@@ -1,0 +1,1 @@
+A second sweep subtracts that maximum from every logit, takes the exponential, and adds the results: the sum is about 2.33. A third sweep computes each exponential again and multiplies it by one over the sum. Written as three loops, that is three reads of the row and one write.

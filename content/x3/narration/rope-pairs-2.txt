@@ -1,0 +1,1 @@
+Now the position advances, from 0 to 3. Every arrow turns by the position times its own frequency. The first pair turns fastest, a full radian per step. Each pair after it is ten times slower here, so the last arrow barely moves. Lengths never change. Only the angles do.

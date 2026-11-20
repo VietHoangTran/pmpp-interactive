@@ -1,0 +1,1 @@
+A token id enters the step. The embedding gather from lab 22.2 copies that token's row of the embedding table into the hidden state, one value per thread. Nothing is computed yet. It is a lookup, and its cost is one row of weights, which is tiny next to what follows.

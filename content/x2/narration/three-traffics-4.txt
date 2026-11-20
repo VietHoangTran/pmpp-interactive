@@ -1,0 +1,1 @@
+The fused way reads the short stream once. The unpacking happens inside the kernel, in registers, between the load and the multiply. Masks and shifts cost instructions, not bytes. Nothing extra crosses the pipe, so the clock stops at about one seventh of the float32 time.

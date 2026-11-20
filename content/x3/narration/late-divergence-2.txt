@@ -1,0 +1,1 @@
+At most steps the top logit stands well above the runner-up: at least four tenths, often more than one. The rounding difference between the runs is about one ten-thousandth. A difference that small cannot reorder the top two, so the tokens match, step after step.

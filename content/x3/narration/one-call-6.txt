@@ -1,0 +1,1 @@
+The rule is the same in all three projects. Start where the op becomes a backend call: llama.cpp's switch, MLX's eval GPU method, PyTorch's dispatch table. Follow one name from there. And on Metal, follow the string the host builds. The same three steps find every op in the tour.

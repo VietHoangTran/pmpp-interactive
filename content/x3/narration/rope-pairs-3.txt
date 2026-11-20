@@ -1,0 +1,1 @@
+The half split groups the same eight values differently. Element 0 goes with element 4, element 1 with 5, 2 with 6, and 3 with 7. The rotation is exactly the same, with the same angles and the same frequencies. Only the partners have changed, and that is the whole difference between the two kernels.

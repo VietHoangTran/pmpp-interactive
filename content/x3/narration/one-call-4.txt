@@ -1,0 +1,1 @@
+Metal has its own switch over the same op numbers. The case for RMS norm calls the norm function, which reports that it used 2 nodes, the norm and the multiply. Then it asks for a pipeline by a name it spells out as a string: kernel, RMS norm, mul, F 32.

@@ -1,0 +1,1 @@
+Here is one matrix-vector product, the kind every decode step runs. The weights sit in global memory as float32, 4 bytes each. To reach the kernel they must cross one pipe of fixed width, and a clock runs while they cross. When the last byte arrives, the product is done. Call that time 1.

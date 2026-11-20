@@ -1,0 +1,1 @@
+One block of 32 activations. A warp finds the largest magnitude among them. The scale is that largest value divided by 127. Each activation is divided by the scale and rounded to a signed byte, between minus 127 and 127. The bytes are added up, and their sum times the scale is stored as s, for later.

@@ -1,0 +1,1 @@
+MLX on CUDA reads the row in chunks of 4 and keeps a running maximum and a running sum. When a chunk raises the maximum, the sum so far is scaled by the exponential of the old maximum minus the new one. Here that happens twice: at 3.1, by about 0.33, and at 4, by about 0.41.

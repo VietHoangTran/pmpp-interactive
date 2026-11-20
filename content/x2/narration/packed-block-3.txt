@@ -1,0 +1,1 @@
+Now the codes pair up. Weight j goes into the low half of byte j, and weight j plus 16 goes into the high half. So weights 5 and 21 share byte 5. Sixteen bytes of codes follow a 2-byte scale: 18 bytes for the whole block, where float32 needed 128.

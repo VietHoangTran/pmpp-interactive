@@ -1,0 +1,1 @@
+Now a whole row of 4,096 values: 128 blocks of realistic data. Each block's integer sum becomes a float, and those floats are added up. In a half accumulator, the error climbs to thousands of times the float's. In a float, it stays at rounding. The rule: integer inside a block, float across blocks, never half for a sum.

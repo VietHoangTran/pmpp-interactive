@@ -1,0 +1,1 @@
+Free running, each run feeds its own token back in. From step twenty, the GPU starts from a different token than the reference, so its logits describe a different text, and every later token differs. A test of exact agreement reports a failure at step nineteen, and at every step after it.

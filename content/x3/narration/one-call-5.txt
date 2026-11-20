@@ -1,0 +1,1 @@
+That string is written on one line of norm dot metal, in a host name attribute on an instantiation of the norm template, the one with its fusion level set to 2. The host finds the kernel by that name, not by any C plus plus symbol. So search the Metal files for the string.

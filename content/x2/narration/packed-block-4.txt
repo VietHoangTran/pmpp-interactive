@@ -1,0 +1,1 @@
+Blocks sit end to end in memory, 18 bytes each, and a block's codes start 2 bytes in. So in every other block, the codes start 2 bytes past a 4-byte boundary, and a 4-byte load there is misaligned. The kernels read the codes as 16-bit words, which always line up.

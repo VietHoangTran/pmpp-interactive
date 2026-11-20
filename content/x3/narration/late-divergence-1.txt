@@ -1,0 +1,1 @@
+Two runs of the same model, side by side. On the left, the reference. On the right, the GPU. Each step turns the previous token into sixteen logits, and greedy decoding picks the largest. The two sets of bars look identical, because they differ only by rounding, far too small to see.

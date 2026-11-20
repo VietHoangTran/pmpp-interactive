@@ -1,0 +1,1 @@
+llama.cpp's converter fixes this before the model ever runs. It permutes the rows of the query and key weights, so that each consecutive pair now holds the two values the half split would have paired. The kernel stays the same, the weights move, and the scores match the reference again.

@@ -1,0 +1,1 @@
+The 16-bit integer goes first. After 2 products it holds 32,258. The third product carries it past 32,767, the largest value it can hold, and it wraps around to a negative number. Every later product is added to garbage, and nothing in the kernel notices.

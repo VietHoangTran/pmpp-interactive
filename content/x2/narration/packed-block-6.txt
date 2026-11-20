@@ -1,0 +1,1 @@
+For the whole block, add up code times activation, multiply by the scale, then subtract 8 times the scale times the sum of the activations. That gives 0.716, the same as the dot product with the dequantised weights, to rounding. The float32 weights give 0.605. That difference is the quantisation error.

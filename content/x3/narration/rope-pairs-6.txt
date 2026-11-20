@@ -1,0 +1,1 @@
+For keys, the permutation is done once per key and value head, not once per query head. A grouped query model has fewer key heads, so the converter needs the head count of the cache. Group the rows by the query head count instead, and the wrong rows end up paired. Milestone M10 tests exactly this identity.

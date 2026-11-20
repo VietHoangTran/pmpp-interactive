@@ -1,0 +1,1 @@
+Thirty-two weights from one row of a weight matrix, on a number line. Q4_0 looks for the value with the largest magnitude, and it keeps the sign. Here that is weight 5, at minus 0.8. The scale is that value divided by minus 8: exactly 0.1, which FP16 stores as a hair under 0.1.

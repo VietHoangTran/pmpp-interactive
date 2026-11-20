@@ -1,0 +1,1 @@
+The half cannot even store the first product exactly. Between 8,192 and 16,384 its steps are 8 apart, so 16,129 becomes 16,128. The fourth product brings the sum to 64,512. The fifth passes 65,504, the largest finite half, and the sum becomes infinity. It stays infinity.

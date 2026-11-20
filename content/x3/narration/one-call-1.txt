@@ -1,0 +1,1 @@
+Here is the start of a Llama layer, as llama.cpp builds it. After the embedding lookup comes an RMS norm node, then a multiply by the norm's weight, then the first matrix product. Each node is only an op number in a graph. Nothing has run yet.

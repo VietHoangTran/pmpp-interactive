@@ -1,0 +1,1 @@
+Here are the totals for this model: the launches per token, and the weight bytes each token reads. Near the start of a sequence the matrix products dominate. As pos grows, attention reads more of the cache every step, and its share of the traffic keeps rising, while the weights stay the same.

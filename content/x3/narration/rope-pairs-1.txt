@@ -1,0 +1,1 @@
+Here is one head of a query, eight values, drawn as four little arrows. Each arrow is a pair of numbers, the two coordinates of a point on a circle. With consecutive pairing, element 0 and element 1 make the first arrow, 2 and 3 the second, and so on down the head.

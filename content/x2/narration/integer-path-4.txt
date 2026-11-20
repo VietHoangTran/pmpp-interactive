@@ -1,0 +1,1 @@
+The correction happens once per block. Multiply the integer sum by the activation scale. Subtract 8 times s. That removes the 8 that every unsigned code carried. Then multiply by the weight scale. Three float multiplies and one subtraction, and the block is done. That is all the floating-point work it needs.

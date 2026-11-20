@@ -1,0 +1,1 @@
+Step nineteen is different. Its top two logits are only six millionths apart, much less than the rounding difference. On the GPU, the runner-up ends up on top, and greedy decoding picks it. Nothing is wrong with any kernel. The step was simply too close to call.

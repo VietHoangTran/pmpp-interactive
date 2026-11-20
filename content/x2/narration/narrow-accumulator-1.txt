@@ -1,0 +1,1 @@
+The worst case for one block. Every weight code is 127, and every activation code is 127, so every product is 16,129. Thirty-two of them are added one at a time, into four accumulators side by side: a 16-bit integer, a half, a 32-bit integer, and a float.

@@ -1,0 +1,1 @@
+Side by side. The unfused path takes about 2.1 times as long as float32. The fused one is about 7 times faster. Both ratios come from bytes alone. Your device adds the cost of unpacking, of the scales, and of using less than the full bandwidth. The labs of this module measure how much of that lead survives.

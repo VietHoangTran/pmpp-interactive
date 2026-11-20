@@ -1,0 +1,1 @@
+On CUDA, a fusion pass reads the graph before the dispatch switch does. It finds RMS norm followed by multiply, and replaces the pair with one fused call. So the plain RMS norm function, the one you would find first in the switch, never runs. An environment variable turns fusion off.

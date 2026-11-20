@@ -1,0 +1,1 @@
+Here is one row of 16 logits, and one block of threads to handle it. The usual softmax, the way lab 10.3 writes it and the order MLX uses on Metal, begins with a sweep that only looks for the largest value. For this row the maximum is 4.

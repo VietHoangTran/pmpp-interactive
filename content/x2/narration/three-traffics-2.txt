@@ -1,0 +1,1 @@
+Now store the same weights as Q4 zero. Each weight is a 4-bit code, and every block of 32 weights shares one 2-byte scale. That is 4 and a half bits per weight, so the stream is about one seventh as long. The activations and the outputs ride along as thin slices. They barely change the total.

@@ -1,0 +1,1 @@
+Teacher forced, both runs are fed the reference token at every step. Now only step nineteen differs, and its margin was below twice the logit error, so it is flagged as too close to judge. M10 runs both tests: logits within a stated tolerance, and greedy agreement wherever the margin is large enough.

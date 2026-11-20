@@ -1,0 +1,1 @@
+After the last layer, a final RMSNorm and the LM head produce one logit for every token in the vocabulary. The head reuses the embedding table as its weight. Then lab 10.3's argmax writes the next token id in place, on the device, ready to be the input of the next step.
