@@ -209,3 +209,19 @@ Chapter 5 is the template: read `app/src/chapters/ch05/` and `labs/ch05/` before
   `labs/NN/snippets/` with a unit test tying the lesson copy to the file.
 - Where the PDF looks wrong, say so (the notes list these) and show the corrected,
   tested version.
+
+**Emulators** (details and the modelled / not modelled table: `labs/README.md`)
+- `emu` runs one thread at a time under AddressSanitizer with three deterministic thread
+  orders: it catches wrong indices, missing barriers and out-of-bounds accesses, and
+  cannot see a missing atomic.
+- `race` runs the threads concurrently under ThreadSanitizer: it reports unsynchronised
+  accesses with source lines. Opt a lab in with `RACE` in `pmpp_add_lab` whenever the lab
+  is about atomics, privatisation or any shared update; keep its problem sizes small.
+- Both now cover warps and warp intrinsics, legacy and C++ atomics, constant memory,
+  vector types, a cooperative-groups subset, and synchronous stand-ins for streams and
+  events. Neither models time, caches, coalescing, bank conflicts, divergence cost or
+  occupancy: labs that measure those are for real devices, with correctness tested
+  everywhere.
+- `python3 labs/pmpp.py selftest` checks the emulators themselves.
+- Set `PMPP_ONLY=<chapter id>` to configure one chapter's labs only. A lab without its
+  `main.cpp` yet is skipped, not an error.

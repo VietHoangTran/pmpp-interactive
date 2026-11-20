@@ -5,7 +5,8 @@
   python3 labs/pmpp.py run 5.2                test your work for lab 5.2 on every backend
   python3 labs/pmpp.py run 5.2 --bench        ...and benchmark it
   python3 labs/pmpp.py run 5.2 --solution     run the reference solution instead
-  python3 labs/pmpp.py run 5.2 --backend emu  one backend only (emu, metal, cuda, hip)
+  python3 labs/pmpp.py run 5.2 --backend emu  one backend only (emu, race, metal, cuda, hip)
+  python3 labs/pmpp.py selftest               the emulator's own tests (labs/selftest), no report written
   python3 labs/pmpp.py verify                 everything, and write reports/verify-*.md
   python3 labs/pmpp.py reset 5.2 --yes        overwrite your work for a lab with the starter
 
@@ -27,7 +28,9 @@ LABS = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(LABS)
 BUILD = os.environ.get("PMPP_BUILD_DIR", os.path.join(LABS, "build"))
 REPORTS = os.path.join(REPO, "reports")
-BACKENDS = ["emu", "metal", "cuda", "hip"]
+BACKENDS = ["emu", "race", "metal", "cuda", "hip"]
+# CPU emulators: tests only. Their timings mean nothing, so they are never benchmarked.
+EMULATED = ("emu", "race")
 STUDENT_FILES = ["kernel.cu", "kernel.metal", "launch.mm"]
 
 
@@ -59,7 +62,7 @@ def configure():
     if shutil.which("cmake") is None:
         sys.exit("cmake not found. Install cmake >= 3.21 (macOS: brew install cmake; Linux: your package manager).")
     rc, out = sh(["cmake", "-S", LABS, "-B", BUILD])
-    backends, targets = [], []
+    backends, targets, selftests = [], [], []
     try:
         for line in open(os.path.join(BUILD, "pmpp_backends.txt")):
             name, state, why = line.rstrip("\n").split("|", 2)
@@ -68,9 +71,13 @@ def configure():
             lab, variant, backend, tile, target, exe = line.rstrip("\n").split("|")
             targets.append({"lab": lab, "variant": variant, "backend": backend, "tile": int(tile),
                             "target": target, "exe": exe})
+        for line in open(os.path.join(BUILD, "pmpp_selftests.txt")):
+            name, backend, expect, target, exe = line.rstrip("\n").split("|")
+            selftests.append({"lab": "selftest/" + name, "variant": "selftest", "backend": backend, "tile": 0,
+                              "expect": expect, "target": target, "exe": exe})
     except FileNotFoundError:
         pass
-    return {"rc": rc, "log": out, "backends": backends, "targets": targets}
+    return {"rc": rc, "log": out, "backends": backends, "targets": targets, "selftests": selftests}
 
 
 def build(target):
@@ -90,6 +97,58 @@ def run_exe(exe, flags, timeout):
         else:
             text.append(line)
     return rc, rows, "\n".join(text)
+
+
+def split_tsan(text):
+    """Separate ThreadSanitizer reports (backend `race`) from a program's output.
+    Returns (the output without the reports, one list of key lines per report):
+    what kind of race, the two conflicting accesses with their innermost source
+    line, the memory involved, and the summary."""
+    keep, reports, cur, want_frame = [], [], None, False
+    for line in text.splitlines():
+        if cur is None:
+            if line.startswith("WARNING: ThreadSanitizer:"):
+                if keep and set(keep[-1].strip()) == {"="}:
+                    keep.pop()
+                cur = [re.sub(r"\s*\(pid=\d+\)", "", line.strip())]
+            elif line.startswith("ThreadSanitizer: reported") or (reports and set(line.strip()) == {"="}):
+                continue
+            else:
+                keep.append(line)
+            continue
+        t = line.strip()
+        if re.match(r"(Previous )?(atomic )?(read|write) of size", t, re.I):
+            cur.append("  " + re.sub(r" at 0x[0-9a-f]+", "", t))
+            want_frame = True
+        elif want_frame and t.startswith("#0 "):
+            cur.append("      " + re.sub(r"\s*\(\S+\+0x[0-9a-f]+\)$", "", t[3:]))
+            want_frame = False
+        elif t.startswith("Location is"):
+            cur.append("  " + re.sub(r" at 0x[0-9a-f]+", "", t))
+        elif t.startswith("SUMMARY: ThreadSanitizer:"):
+            cur.append(t)
+            reports.append(cur)
+            cur, want_frame = None, False
+    if cur:
+        reports.append(cur)
+    return "\n".join(keep), reports
+
+
+def tsan_text(reports, limit=4):
+    """Key lines of the first report for each distinct source location, at most `limit`."""
+    out, seen = [], []
+    for rep in reports:
+        where = rep[-1]
+        if where in seen:
+            continue
+        seen.append(where)
+        if len(seen) <= limit:
+            out.extend(rep)
+    more = len(reports) - min(len(seen), limit)
+    if more > 0:
+        out.append("(%d more ThreadSanitizer report%s not shown: %d on the lines above, %d elsewhere)" % (
+            more, "" if more == 1 else "s", len(reports) - len(seen), max(0, len(seen) - limit)))
+    return "\n".join(out)
 
 
 def lab_dir(lab):
@@ -154,8 +213,11 @@ def cuda_frontend_check():
         res["why"] = "no clang++ on PATH"
         return res
     inc = os.path.join(LABS, "common", "include")
+    # The second include directory holds stand-ins for <cuda/atomic>, <cooperative_groups.h>
+    # and <cuda_runtime.h> that switch on the matching sections of the stub header.
     base = [clang, "-x", "cuda", "--cuda-host-only", "-nocudainc", "-nocudalib", "-fsyntax-only",
-            "-std=c++17", "-I", inc, "-include", "pmpp/check/cuda_stub.h", "-DTILE_WIDTH=16"]
+            "-std=c++17", "-I", inc, "-I", os.path.join(inc, "pmpp", "emu", "shim"),
+            "-include", "pmpp/check/cuda_stub.h", "-DTILE_WIDTH=16"]
     with tempfile.TemporaryDirectory() as d:
         probe = os.path.join(d, "probe.cu")
         open(probe, "w").write("__global__ void k(float* a) { a[threadIdx.x] = 0; }\n"
@@ -183,7 +245,7 @@ def cuda_frontend_check():
 def exercise(t, do_test, do_bench, timeout=900):
     """Build one target, then test and/or benchmark it."""
     r = dict(t)
-    r.update({"built": False, "tests": [], "bench": [], "test_rc": None, "log": ""})
+    r.update({"built": False, "tests": [], "bench": [], "test_rc": None, "log": "", "tsan": []})
     ok, out = build(t["target"])
     r["built"] = ok
     if not ok:
@@ -191,11 +253,17 @@ def exercise(t, do_test, do_bench, timeout=900):
         return r
     if do_test:
         rc, rows, text = run_exe(t["exe"], ["--test"], timeout)
+        # A ThreadSanitizer report (backend `race`) is a failure in its own right,
+        # whatever the tests printed; keep its key lines and drop the rest of it.
+        text, tsan = split_tsan(text)
         r["test_rc"] = rc
         r["tests"] = [x for x in rows if x.get("kind") == "test"]
+        r["tsan"] = [[scrub(l) for l in rep] for rep in tsan]
         r["test_text"] = scrub(text)
-        if rc != 0:
+        if rc != 0 or tsan:
             r["log"] = scrub(tail(text, 60))
+            if tsan:
+                r["log"] += "\n\nThreadSanitizer reported %d data race(s). Key lines:\n%s" % (len(tsan), tsan_text(r["tsan"]))
     if do_bench and (not do_test or r["test_rc"] == 0):
         rc, rows, text = run_exe(t["exe"], ["--bench"], timeout)
         r["bench_rc"] = rc
@@ -205,7 +273,19 @@ def exercise(t, do_test, do_bench, timeout=900):
 
 
 def passed(r):
-    return r["built"] and r["test_rc"] == 0 and r["tests"] and all(x["pass"] for x in r["tests"])
+    return (r["built"] and r["test_rc"] == 0 and r["tests"] and all(x["pass"] for x in r["tests"])
+            and not r.get("tsan"))
+
+
+def selftest_verdict(r):
+    """(ok, text). A self-test marked expect=race is a planted data race: it is
+    right only if ThreadSanitizer reported it and every one of its cases failed."""
+    if not r["built"]:
+        return False, "build failed"
+    if r.get("expect") == "race":
+        ok = bool(r["tsan"]) and bool(r["tests"]) and not any(x["pass"] for x in r["tests"])
+        return ok, "race reported, as it must be" if ok else "planted race NOT reported"
+    return (True, "pass") if passed(r) else (False, "FAIL")
 
 
 def save_runs(results, states, devs=None):
@@ -246,7 +326,10 @@ def counts(r):
         return "not run"
     n = len(r["tests"])
     p = sum(1 for x in r["tests"] if x["pass"])
-    extra = "" if r["test_rc"] in (0, 1) else " (exit %d: crashed or aborted)" % r["test_rc"]
+    if r.get("tsan"):
+        extra = " (ThreadSanitizer: %d data race report%s)" % (len(r["tsan"]), "" if len(r["tsan"]) == 1 else "s")
+    else:
+        extra = "" if r["test_rc"] in (0, 1) else " (exit %d: crashed or aborted)" % r["test_rc"]
     return "%d/%d%s" % (p, n, extra)
 
 
@@ -281,6 +364,10 @@ def cmd_run(a):
             print("\n== %s: skipped (%s)" % (b, why))
     rc_all = 0
     ran = []
+    if "race" in want and "race" in enabled and not any(
+            t["lab"] == lab and t["backend"] == "race" for t in cfg["targets"]):
+        print("\n== race: this lab is not built for the race-detection emulator "
+              "(its CMakeLists.txt does not pass RACE to pmpp_add_lab)")
     for t in cfg["targets"]:
         if t["lab"] != lab or t["variant"] != variant or t["backend"] not in want:
             continue
@@ -288,16 +375,19 @@ def cmd_run(a):
         if is_extra_tile and not a.bench:
             continue
         print("\n== %s, %s, %s%s" % (lab, variant, t["backend"], ", TILE_WIDTH=%d" % t["tile"] if is_extra_tile else ""))
-        r = exercise(t, not a.no_test and not is_extra_tile, a.bench)
+        r = exercise(t, not a.no_test and not is_extra_tile, a.bench and t["backend"] not in EMULATED)
         if not r["built"]:
             print("BUILD FAILED\n" + r["log"])
             rc_all = 1
             continue
         if r.get("test_text"):
             print(r["test_text"])
+        if r.get("tsan"):
+            print("\nThreadSanitizer reported %d data race(s): two emulated threads touched the same memory "
+                  "without synchronisation.\n%s" % (len(r["tsan"]), tsan_text(r["tsan"])))
         if r.get("bench_text"):
             print(r["bench_text"])
-        if r["test_rc"] not in (None, 0):
+        if r["test_rc"] not in (None, 0) or r.get("tsan"):
             rc_all = 1
         ran.append(r)
     if ran:   # so the app shows what you just ran
@@ -305,6 +395,45 @@ def cmd_run(a):
         devs = device_info(cfg) if not all(have.values()) else None
         save_runs(ran, {lab: work_state(lab)}, devs)
     return rc_all
+
+
+def run_selftests(cfg, backends, only=None, echo=True):
+    """Build and run the emulator's self-tests (labs/selftest) on the given backends."""
+    results = []
+    for t in cfg["selftests"]:
+        if t["backend"] not in backends or (only and only not in t["lab"]):
+            continue
+        if echo:
+            print("[%s] %s ..." % (t["backend"], t["target"]), flush=True)
+        r = exercise(t, True, False)
+        ok, verdict = selftest_verdict(r)
+        r["ok"], r["verdict"] = ok, verdict
+        if echo:
+            print("    tests: %s -> %s" % (counts(r), verdict), flush=True)
+        results.append(r)
+    return results
+
+
+def cmd_selftest(a):
+    cfg = configure()
+    if cfg["rc"] != 0:
+        sys.exit("cmake configure failed:\n" + tail(cfg["log"], 30))
+    enabled = [b["name"] for b in cfg["backends"] if b["enabled"]]
+    want = enabled if a.backend == "all" else [a.backend]
+    for b in want:
+        if b not in enabled:
+            why = next((x["why"] for x in cfg["backends"] if x["name"] == b), "unknown backend")
+            print("== %s: skipped (%s)" % (b, why))
+    results = run_selftests(cfg, want, a.name)
+    for r in results:
+        if not r["ok"] or a.verbose:
+            print("\n== %s: %s" % (r["target"], r["verdict"]))
+            print(r["log"] if not r["built"] else r.get("test_text", ""))
+        if r["tsan"] and (not r["ok"] or a.verbose or r.get("expect") == "race"):
+            print("\n== %s: ThreadSanitizer key lines\n%s" % (r["target"], tsan_text(r["tsan"])))
+    bad = [r for r in results if not r["ok"]]
+    print("\nself-tests: %d ran, %d failed" % (len(results), len(bad)))
+    return 1 if bad or not results else 0
 
 
 def cmd_reset(a):
@@ -333,16 +462,17 @@ def cmd_verify(a):
             continue
         extra_tile = t["target"].count(".") == 3
         if t["variant"] == "solution":
-            do_test, do_bench = True, (t["backend"] != "emu" and not a.quick)
+            do_test, do_bench = True, (t["backend"] not in EMULATED and not a.quick)
         else:  # your work
             edited = states[t["lab"]] == "edited"
             if extra_tile and not edited:
                 continue
-            do_test, do_bench = True, (edited and t["backend"] != "emu" and not a.quick)
+            do_test, do_bench = True, (edited and t["backend"] not in EMULATED and not a.quick)
         print("[%s] %s ..." % (t["backend"], t["target"]), flush=True)
         r = exercise(t, do_test, do_bench)
         print("    tests: %s%s" % (counts(r), ", %d benchmark rows" % len(r["bench"]) if r["bench"] else ""), flush=True)
         results.append(r)
+    selftests = run_selftests(cfg, usable)
     check = cuda_frontend_check()
 
     report = {
@@ -353,7 +483,7 @@ def cmd_verify(a):
         "configure_ok": cfg["rc"] == 0,
         "configure_log": scrub(tail(cfg["log"], 60)),
         "backends": cfg["backends"], "devices": devs, "usable_backends": usable,
-        "work_state": states, "results": results, "cuda_frontend_check": check,
+        "work_state": states, "results": results, "selftests": selftests, "cuda_frontend_check": check,
     }
     os.makedirs(REPORTS, exist_ok=True)
     stamp = started.strftime("%Y%m%d-%H%M%S")
@@ -366,7 +496,9 @@ def cmd_verify(a):
     bad = [r for r in results if r["variant"] == "solution" and not passed(r)]
     print("\nreport: %s" % os.path.relpath(base + ".md", REPO))
     print("reference solutions: %d ran, %d failed" % (sum(1 for r in results if r["variant"] == "solution"), len(bad)))
-    return 1 if (bad or cfg["rc"] != 0) else 0
+    bad_self = [r for r in selftests if not r["ok"]]
+    print("emulator self-tests: %d ran, %d failed" % (len(selftests), len(bad_self)))
+    return 1 if (bad or bad_self or cfg["rc"] != 0) else 0
 
 
 # ---------------------------------------------------------------- report
@@ -392,6 +524,9 @@ def render(rep):
     w("- `emu` is a CPU emulator of the CUDA subset. It checks kernel logic (indexing, shared memory,")
     w("  barriers, bounds) with deterministic thread schedules and AddressSanitizer. It says nothing")
     w("  about performance, and passing it does not prove a kernel runs on a GPU.")
+    w("- `race` is the same emulator with its threads running concurrently under ThreadSanitizer. A data")
+    w("  race it reports is real for the schedule that ran; a clean run does not prove there is none. It")
+    w("  has no bounds checking, and it too says nothing about performance. Labs opt in to it.")
     w("- The CUDA front-end check parses `.cu` files with clang against hand-written stub headers.")
     w("  It is a syntax and host/device-rule check only.")
     w("- Benchmark numbers are from this machine at this moment. They are not expectations.")
@@ -446,6 +581,29 @@ def render(rep):
         w("| %s | %s | %s | %s | %s | %s |" % (r["lab"], r["backend"], state, "ok" if r["built"] else "FAILED",
                                               counts(r), reading))
     w("")
+    st = rep.get("selftests", [])
+    w("## Emulator self-tests")
+    w("")
+    w("These test the emulator itself (`labs/selftest`), not any lab. A row marked *must be reported* is a")
+    w("planted data race: it is right only when ThreadSanitizer reports it.")
+    w("")
+    if not st:
+        w("None were run.")
+    else:
+        w("| Self-test | Backend | Build | Cases passed | Expectation | Verdict |")
+        w("|---|---|---|---|---|---|")
+        for r in st:
+            w("| %s | %s | %s | %s | %s | %s |" % (
+                r["lab"].split("/", 1)[1], r["backend"], "ok" if r["built"] else "FAILED", counts(r),
+                "data race *must be reported*" if r.get("expect") == "race" else "all cases pass, no race report",
+                r["verdict"] if r["ok"] else "**%s**" % r["verdict"]))
+        for r in st:
+            if r.get("tsan") and r["ok"]:
+                w("")
+                w("ThreadSanitizer key lines for `%s`:" % r["target"])
+                w("")
+                w("```\n%s\n```" % tsan_text(r["tsan"]))
+    w("")
     w("## Benchmarks (this machine, this run)")
     w("")
     any_bench = False
@@ -487,6 +645,7 @@ def render(rep):
     w("")
     fails = [r for r in res if r.get("log") and (r["variant"] == "solution" or rep["work_state"].get(r["lab"]) == "edited")]
     cfails = [f for f in c.get("files", []) if not f["ok"]]
+    fails += [r for r in st if not r["ok"]]
     if fails or cfails:
         w("## Failure details")
         w("")
@@ -514,6 +673,11 @@ def main():
     r.add_argument("--bench", action="store_true")
     r.add_argument("--no-test", action="store_true")
     r.set_defaults(fn=cmd_run)
+    t = sub.add_parser("selftest", help="run the emulator's own tests (labs/selftest); writes no report")
+    t.add_argument("name", nargs="?", help="only self-tests whose name contains this")
+    t.add_argument("--backend", default="all", choices=["all"] + BACKENDS)
+    t.add_argument("--verbose", action="store_true", help="print every test's output, not only failures")
+    t.set_defaults(fn=cmd_selftest)
     v = sub.add_parser("verify")
     v.add_argument("--quick", action="store_true", help="skip benchmarks")
     v.set_defaults(fn=cmd_verify)

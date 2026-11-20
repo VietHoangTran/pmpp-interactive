@@ -214,7 +214,9 @@ struct GemmProblem {
   }
 };
 
-inline bool is_emu() { return std::string(backend()) == "emu"; }
+// True on both CPU emulators ("emu" and the ThreadSanitizer flavour "race"): drivers use
+// it to pick small problem sizes and to skip benchmarks, which mean nothing there.
+inline bool is_emu() { const std::string b = backend(); return b == "emu" || b == "race"; }
 
 // Standard main(): device info, then tests and/or benchmarks.
 inline int lab_main(int argc, char** argv, const std::function<int(const Args&)>& tests,

@@ -1,260 +1,176 @@
 // pmpp CPU emulator for the subset of CUDA used in this course.
 //
 // This is NOT a GPU and NOT a CUDA implementation. It exists so that kernel
-// logic (index arithmetic, shared-memory use, barrier placement, bounds checks)
-// can be executed and tested on a machine with no CUDA or HIP device.
+// logic (index arithmetic, shared-memory use, barrier placement, warp-level
+// data movement, atomics, bounds) can be executed and tested on a machine with
+// no CUDA or HIP device. Passing here does not prove a kernel runs on a GPU.
 //
-// What it models faithfully:
-//   - grid / block / thread indices (threadIdx, blockIdx, blockDim, gridDim)
-//   - one private copy of automatic variables per thread
-//   - __shared__ variables visible to every thread of a block
-//   - __syncthreads() as a barrier across the live threads of a block
-//   - dynamically sized shared memory (third launch parameter)
+// It is force-included into every .cu file after labs/tools/cu2emu.py has
+// rewritten the three pieces of CUDA syntax that are not C++ (kernel launches,
+// __shared__ declarations, and a registration line per kernel).
 //
-// What it does NOT model (do not draw conclusions about these from it):
-//   - timing, bandwidth, caches, occupancy, warps, coalescing, bank conflicts
-//   - true concurrency: exactly one emulated thread runs at a time, switching
-//     only at __syncthreads() or when a thread returns. Schedules are
-//     deterministic (forward, reverse, shuffled) so that a missing barrier
-//     produces a wrong answer every time instead of sometimes.
-//   - separate host and device address spaces: cudaMemcpy is a memcpy, so
-//     dereferencing a device pointer on the host is not caught here.
-//   - blocks run one after another, so __shared__ state left by one block is
-//     visible to the next (on a GPU shared memory is simply uninitialised).
-//   - atomics, warp intrinsics, cooperative groups, streams, textures.
+// TWO FLAVOURS, one source (the build picks; see labs/cmake/Backends.cmake):
+//
+//   emu   One emulated thread runs at a time. A thread keeps running until it
+//         reaches a synchronisation point (__syncthreads, a warp *_sync call,
+//         a cooperative-groups sync) or returns; then the next one runs. Each
+//         test is repeated under three deterministic orders (forward, reverse,
+//         shuffled), so a missing barrier gives a wrong answer every time.
+//         Built with AddressSanitizer: an out-of-bounds access in a kernel is
+//         reported with its source line.
+//         CANNOT see: a missing atomic. `bins[x]++` from many threads is always
+//         "correct" here because no thread is interrupted in the middle of it.
+//
+//   race  The threads of a block, and several blocks, run truly concurrently
+//         as OS threads under ThreadSanitizer. An unsynchronised access to the
+//         same memory from two emulated threads is reported with both source
+//         lines, whether or not it happened to corrupt the result in that run.
+//         CANNOT see: out-of-bounds accesses (no AddressSanitizer), races
+//         between the same thread index of two blocks that ran one after the
+//         other on the same OS thread, or anything that depends on a schedule
+//         that did not occur. ThreadSanitizer prints each pair of racing source
+//         lines once per process, so a later test of the same kernel may pass.
+//         Scheduling is the operating system's: a wrong answer caused by a race
+//         is not reproducible, and a clean run does not prove there is no race.
+//         Blocks run concurrently in groups whose threads fit in 256 OS threads
+//         (one block at a time for blocks larger than 128 threads).
+//
+// NEVER modelled, in either flavour (do not draw conclusions about these):
+//   timing, bandwidth, caches, memory coalescing, shared-memory bank conflicts,
+//   occupancy, register use, the cost of divergence, instruction scheduling
+//   inside a warp. The "device properties" are synthetic. Host and device share
+//   one address space: cudaMemcpy is a memcpy, and dereferencing a device
+//   pointer on the host is not caught.
+//
+// FEATURE BY FEATURE: what is modelled, and what is not.
+//
+// Threads, blocks, grids
+//   modelled:     threadIdx, blockIdx, blockDim, gridDim; private automatic variables per thread; launch
+//                 configuration checks (at most 1024 threads per block).
+//   not modelled: any limit on the grid size (the reported maxGridSize is not enforced); the order and
+//                 overlap of blocks on a GPU. In emu, blocks run one after another in index order.
+// __shared__ variables and dynamic shared memory
+//   modelled:     one copy per block, freshly allocated and filled with 0xCD for every block (reading
+//                 shared memory nobody wrote gives garbage, as on a GPU); `extern __shared__ T a[];` sized by
+//                 the third launch parameter, up to 48 KiB, or 96 KiB after cudaFuncSetAttribute(
+//                 cudaFuncAttributeMaxDynamicSharedMemorySize). Out-of-bounds accesses are caught in emu.
+//   not modelled: the total size limit of statically declared shared memory; alignment and placement of
+//                 several shared arrays relative to each other; bank conflicts.
+// __syncthreads, __syncthreads_count / _and / _or
+//   modelled:     a barrier across the live (non-exited) threads of a block; a barrier that can never be
+//                 passed is reported as a deadlock with the source lines involved instead of hanging.
+//   not modelled: detection of barriers in divergent code that happen to pair up (thread A at one
+//                 __syncthreads, thread B at another): they are treated as the same barrier.
+// Warps: warpSize, lane numbering
+//   modelled:     warpSize == 32; warp w of a block is the 32 consecutive threads 32w .. 32w+31 in linear
+//                 thread order (x fastest, then y, then z); the last warp of a block may be partial.
+//   not modelled: any execution property of a warp (lockstep, divergence cost, scheduling).
+// __shfl_sync, __shfl_up_sync, __shfl_down_sync, __shfl_xor_sync, __ballot_sync, __any_sync, __all_sync,
+// __match_any_sync, __match_all_sync, __syncwarp
+//   modelled:     a rendezvous: each call waits until every non-exited lane named in its mask is in the same
+//                 call (same source line, same mask), then all get their results; `width`; out-of-range
+//                 sources return the caller's own value as documented; exited lanes are ignored by votes.
+//                 Reported instead of hanging: a mask without the caller's own lane, a bad width, and a
+//                 named lane that is waiting somewhere else (deadlock). Reading a lane that takes no part
+//                 (exited, absent, not in the mask) returns 0xCD bytes and prints a note once per call site.
+//                 Operand types: int, unsigned, long, unsigned long, long long, unsigned long long, float,
+//                 double. In race, only __syncwarp orders memory accesses (as the CUDA guide specifies).
+//   not modelled: __half / __nv_bfloat16 operands; the 5-bit truncation of shuffle arguments in hardware;
+//                 a live lane named in a mask that later exits without making the call is treated as
+//                 exited (on a GPU that is undefined).
+// __activemask, cooperative_groups::coalesced_threads
+//   modelled:     the lanes of the caller's warp that arrive at the same call site before any of them moves
+//                 on: every lane of the warp must be waiting somewhere or have exited before the set is fixed.
+//   not modelled: real convergence. A GPU may report fewer lanes than this, and code must not depend on
+//                 the set being maximal.
+// __popc, __popcll, __clz, __clzll, __ffs, __ffsll, __brev, __brevll
+//   modelled:     the bit operations (signatures from memory of device_functions.h, see emu_device.h).
+//   not modelled: nothing known.
+// Atomics: atomicAdd, atomicSub, atomicExch, atomicMin, atomicMax, atomicInc, atomicDec, atomicCAS,
+// atomicAnd, atomicOr, atomicXor; cuda::atomic_ref and cuda::atomic from <cuda/atomic>
+//   modelled:     the operation and its return value (the old value), for exactly the legacy overloads the
+//                 CUDA guide lists (minus half/bfloat16, float2/float4 and 128-bit); atomic_ref / atomic
+//                 with load, store, exchange, compare_exchange_weak/strong, fetch_add/sub/and/or/xor/min/
+//                 max and the operators, on 1-, 2-, 4- and 8-byte types. In race they are real atomics.
+//   not modelled: thread scopes and memory orders have no observable effect; atomics on shared memory
+//                 versus global memory are not distinguished; wait/notify; contention cost. In emu a plain
+//                 `x++` behaves exactly like an atomic one (see above).
+// Constant memory: __constant__, cudaMemcpyToSymbol, cudaMemcpyFromSymbol, cudaGetSymbolAddress
+//   modelled:     a file-scope __constant__ variable is a global the host fills through the symbol calls;
+//                 offset + count is checked against the symbol's size.
+//   not modelled: read-only enforcement in kernels (a kernel that writes one compiles and runs here); the
+//                 size limit of constant memory; any caching behaviour.
+// Vector types and qualifiers: float2/3/4, int2/3/4, uint2/3/4, double2/3/4, make_*, __forceinline__,
+// __noinline__, __inline_hint__, __restrict__, #pragma unroll
+//   modelled:     the types, their field names and the make_ functions; the qualifiers compile.
+//   not modelled: `#pragma unroll` is honoured or ignored by the host compiler as it sees fit (clang knows
+//                 the pragma; gcc ignores it and warns under -Wall); inlining decisions mean nothing here.
+// Cooperative groups (<cooperative_groups.h>): this_thread_block, this_grid, coalesced_threads,
+// tiled_partition<Size>(thread_block), cooperative_groups::sync
+//   modelled:     thread_block (sync, thread_rank, group_index, thread_index, dim_threads, num_threads and
+//                 the legacy size / group_dim); grid_group (is_valid, sync, thread_rank, block_rank,
+//                 num_threads, num_blocks, dim_blocks, block_index, size, group_dim) with grid-wide sync when
+//                 launched by cudaLaunchCooperativeKernel, where all blocks are alive at once (grid x block
+//                 at most 1024 threads, else cudaErrorCooperativeLaunchTooLarge); coalesced_group and
+//                 thread_block_tile<1..32> (sync, num_threads, size, thread_rank, meta_group_rank,
+//                 meta_group_size, shfl, shfl_up, shfl_down, any, all, ballot; shfl_xor on tiles).
+//   not modelled: clusters, barrier_arrive / barrier_wait, tiles above 32 or tiles of tiles,
+//                 binary_partition, labeled_partition, match_any / match_all on groups, reduce, scan,
+//                 memcpy_async, invoke_one. Kernel templates cannot be launched cooperatively.
+// Host API: streams, events, async copies, pinned and managed memory, attributes, occupancy
+//   modelled:     the calls exist with their documented prototypes and succeed; everything is synchronous
+//                 (a launch has finished when the launch statement returns); cudaStreamCreate/Destroy and
+//                 cudaEventCreate/Destroy allocate and free, so a leak or double destroy shows up in emu.
+//   not modelled: asynchrony, overlap of copies and kernels, stream ordering, page locking, unified-memory
+//                 migration. cudaEventElapsedTime returns host wall-clock time of the emulator, which is
+//                 meaningless for a GPU. cudaOccupancyMaxActiveBlocksPerMultiprocessor returns a synthetic
+//                 number (1024 / blockSize) that only serves to size a cooperative launch.
+// Failures the emulator detects (deadlocks, invalid masks, grid sync without a cooperative launch)
+//   modelled:     the launch is stopped, cudaGetLastError() returns cudaErrorLaunchFailure once, and
+//                 cudaGetErrorString() of it carries the explanation. Nothing hangs.
+//   not modelled: on a GPU the same mistakes hang or return garbage, usually with no message at all.
 #pragma once
+
+// Standard headers first: emu_types.h defines __noinline__, which the standard
+// library's own headers must not see.
 #include <algorithm>
+#include <array>
+#include <atomic>
+#include <cassert>
+#include <cfloat>
+#include <chrono>
+#include <climits>
+#include <cmath>
 #include <condition_variable>
+#include <cstdarg>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <cmath>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <map>
 #include <memory>
 #include <mutex>
+#include <new>
+#include <numeric>
+#include <set>
 #include <string>
+#include <system_error>
 #include <thread>
 #include <tuple>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
-struct uint3 { unsigned x, y, z; };
-struct dim3 {
-  unsigned x, y, z;
-  constexpr dim3(unsigned x_ = 1, unsigned y_ = 1, unsigned z_ = 1) : x(x_), y(y_), z(z_) {}
-};
+#define PMPP_EMU 1                 // lets a .cu file hold emulator-only checks
+#if defined(PMPP_BACKEND_RACE) && !defined(PMPP_EMU_RACE)
+#define PMPP_EMU_RACE 1
+#endif
 
-typedef int cudaError_t;
-enum { cudaSuccess = 0, cudaErrorInvalidValue = 1, cudaErrorMemoryAllocation = 2,
-       cudaErrorInvalidConfiguration = 9 };
-enum cudaMemcpyKind { cudaMemcpyHostToHost = 0, cudaMemcpyHostToDevice = 1,
-                      cudaMemcpyDeviceToHost = 2, cudaMemcpyDeviceToDevice = 3 };
-typedef struct pmpp_emu_stream* cudaStream_t;
-
-// Only the fields this course reads. Values are synthetic: they describe the
-// emulator, not any real GPU.
-struct cudaDeviceProp {
-  char name[256];
-  size_t totalGlobalMem;
-  size_t sharedMemPerBlock;
-  size_t sharedMemPerMultiprocessor;
-  int regsPerBlock;
-  int regsPerMultiprocessor;
-  int warpSize;
-  int maxThreadsPerBlock;
-  int maxThreadsPerMultiProcessor;
-  int maxBlocksPerMultiProcessor;
-  int multiProcessorCount;
-  int maxThreadsDim[3];
-  int maxGridSize[3];
-  int major, minor;
-};
-
-namespace pmpp_emu {
-
-enum class Schedule { Forward, Reverse, Shuffle };
-
-struct Slot {
-  std::mutex m;
-  std::condition_variable cv;
-  bool go = false;
-};
-
-struct State {
-  dim3 gridDim, blockDim;
-  std::vector<unsigned char> dynShared;
-  Schedule schedule = Schedule::Forward;
-  uint32_t seed = 1;
-  cudaError_t lastError = cudaSuccess;
-  // scheduling of the block currently running
-  std::vector<std::unique_ptr<Slot>> slots;   // one per emulated thread
-  Slot coord;
-  enum St : unsigned char { Ready, AtBarrier, Done };
-  std::vector<St> st;
-  bool shutdown = false;
-  uint3 curBlock{0, 0, 0};
-  long launches = 0;
-};
-
-inline State& S() { static State s; return s; }
-inline thread_local uint3 t_threadIdx{0, 0, 0};
-inline thread_local int t_tid = -1;
-
-inline void wait_go(Slot& s) {
-  std::unique_lock<std::mutex> lk(s.m);
-  s.cv.wait(lk, [&] { return s.go; });
-  s.go = false;
-}
-inline void give(Slot& s) {
-  { std::lock_guard<std::mutex> lk(s.m); s.go = true; }
-  s.cv.notify_one();
-}
-
-inline void set_schedule(Schedule sch, uint32_t seed = 1) { S().schedule = sch; S().seed = seed; }
-inline void* dyn_shared() { return S().dynShared.empty() ? nullptr : S().dynShared.data(); }
-
-// Called by an emulated thread at __syncthreads(): hand control back to the
-// coordinator and sleep until every live thread of the block has arrived.
-inline void barrier() {
-  State& s = S();
-  if (t_tid < 0) { std::fprintf(stderr, "pmpp-emu: __syncthreads() called outside a kernel\n"); std::abort(); }
-  s.st[t_tid] = State::AtBarrier;
-  give(s.coord);
-  wait_go(*s.slots[t_tid]);
-}
-
-struct Limits {
-  static constexpr unsigned maxThreadsPerBlock = 1024;
-  static constexpr size_t sharedMemPerBlock = 48 * 1024;
-};
-
-class Launch {
- public:
-  Launch(dim3 grid, dim3 block, size_t sharedBytes = 0, cudaStream_t = nullptr)
-      : grid_(grid), block_(block), shared_(sharedBytes) {}
-
-  template <class F, class... A>
-  void run(F kernel, A... args) {
-    State& s = S();
-    const unsigned T = block_.x * block_.y * block_.z;
-    const uint64_t B = uint64_t(grid_.x) * grid_.y * grid_.z;
-    if (T == 0 || B == 0 || T > Limits::maxThreadsPerBlock || shared_ > Limits::sharedMemPerBlock) {
-      std::fprintf(stderr, "pmpp-emu: invalid launch configuration: grid %ux%ux%u, block %ux%ux%u "
-                           "(%u threads, emulator limit %u), %zu bytes dynamic shared memory (limit %zu)\n",
-                   grid_.x, grid_.y, grid_.z, block_.x, block_.y, block_.z, T,
-                   Limits::maxThreadsPerBlock, shared_, Limits::sharedMemPerBlock);
-      s.lastError = cudaErrorInvalidConfiguration;
-      return;
-    }
-    s.gridDim = grid_; s.blockDim = block_;
-    s.dynShared.assign(shared_, 0xCD);
-    s.slots.clear();
-    for (unsigned i = 0; i < T; ++i) s.slots.emplace_back(new Slot());
-    s.st.assign(T, State::Ready);
-    s.shutdown = false;
-    s.launches++;
-
-    std::tuple<A...> packed(args...);
-    std::vector<std::thread> pool;
-    pool.reserve(T);
-    for (unsigned i = 0; i < T; ++i) {
-      pool.emplace_back([&, i] {
-        State& st = S();
-        t_tid = int(i);
-        t_threadIdx = uint3{i % block_.x, (i / block_.x) % block_.y, i / (block_.x * block_.y)};
-        for (;;) {
-          wait_go(*st.slots[i]);
-          if (st.shutdown) return;
-          std::apply(kernel, packed);
-          st.st[i] = State::Done;
-          give(st.coord);
-        }
-      });
-    }
-
-    std::vector<unsigned> order(T);
-    for (unsigned i = 0; i < T; ++i) order[i] = i;
-    uint32_t rng = s.seed * 2654435761u + 12345u;
-    for (uint64_t b = 0; b < B; ++b) {
-      s.curBlock = uint3{unsigned(b % grid_.x), unsigned((b / grid_.x) % grid_.y),
-                         unsigned(b / (uint64_t(grid_.x) * grid_.y))};
-      std::fill(s.st.begin(), s.st.end(), State::Ready);
-      if (s.schedule == Schedule::Reverse) {
-        for (unsigned i = 0; i < T; ++i) order[i] = T - 1 - i;
-      } else if (s.schedule == Schedule::Shuffle) {
-        for (unsigned i = T - 1; i > 0; --i) {
-          rng = rng * 1664525u + 1013904223u;
-          std::swap(order[i], order[(rng >> 8) % (i + 1)]);
-        }
-      }
-      bool any = true;
-      while (any) {
-        any = false;
-        for (unsigned k = 0; k < T; ++k) {
-          const unsigned id = order[k];
-          if (s.st[id] == State::Done) continue;
-          give(*s.slots[id]);     // run thread `id` until its next barrier or its return
-          wait_go(s.coord);
-          if (s.st[id] != State::Done) any = true;
-        }
-      }
-    }
-    s.shutdown = true;
-    for (unsigned i = 0; i < T; ++i) give(*s.slots[i]);
-    for (auto& t : pool) t.join();
-    s.slots.clear();
-  }
-
- private:
-  dim3 grid_, block_;
-  size_t shared_;
-};
-
-}  // namespace pmpp_emu
-
-#define __global__
-#define __device__
-#define __host__
-#define __constant__
-#define __shared__ static
-#define threadIdx (::pmpp_emu::t_threadIdx)
-#define blockIdx  (::pmpp_emu::S().curBlock)
-#define blockDim  (::pmpp_emu::S().blockDim)
-#define gridDim   (::pmpp_emu::S().gridDim)
-inline void __syncthreads() { ::pmpp_emu::barrier(); }
-
-inline cudaError_t cudaMalloc(void** p, size_t n) {
-  *p = std::malloc(n ? n : 1);
-  if (*p) std::memset(*p, 0xA5, n);            // device memory is not zeroed
-  return *p ? cudaSuccess : cudaErrorMemoryAllocation;
-}
-// No typed overload on purpose: real CUDA takes void**, so `cudaMalloc(&floatPtr, n)`
-// must be written with a (void**) cast here too.
-inline cudaError_t cudaFree(void* p) { std::free(p); return cudaSuccess; }
-inline cudaError_t cudaMemcpy(void* d, const void* s, size_t n, cudaMemcpyKind) { std::memcpy(d, s, n); return cudaSuccess; }
-inline cudaError_t cudaMemset(void* d, int v, size_t n) { std::memset(d, v, n); return cudaSuccess; }
-inline cudaError_t cudaDeviceSynchronize() { return cudaSuccess; }
-inline cudaError_t cudaGetLastError() { auto e = ::pmpp_emu::S().lastError; ::pmpp_emu::S().lastError = cudaSuccess; return e; }
-inline cudaError_t cudaPeekAtLastError() { return ::pmpp_emu::S().lastError; }
-inline const char* cudaGetErrorString(cudaError_t e) {
-  switch (e) { case cudaSuccess: return "no error";
-               case cudaErrorInvalidConfiguration: return "invalid configuration argument";
-               case cudaErrorMemoryAllocation: return "out of memory";
-               default: return "error (pmpp emulator)"; }
-}
-inline cudaError_t cudaGetDeviceCount(int* n) { *n = 1; return cudaSuccess; }
-inline cudaError_t cudaGetDeviceProperties(cudaDeviceProp* p, int) {
-  std::memset(p, 0, sizeof(*p));
-  std::snprintf(p->name, sizeof(p->name), "pmpp CPU emulator (not a GPU)");
-  p->sharedMemPerBlock = ::pmpp_emu::Limits::sharedMemPerBlock;
-  p->sharedMemPerMultiprocessor = ::pmpp_emu::Limits::sharedMemPerBlock;
-  p->maxThreadsPerBlock = ::pmpp_emu::Limits::maxThreadsPerBlock;
-  p->maxThreadsPerMultiProcessor = ::pmpp_emu::Limits::maxThreadsPerBlock;
-  p->maxBlocksPerMultiProcessor = 1;
-  p->multiProcessorCount = 1;
-  p->warpSize = 1;
-  p->maxThreadsDim[0] = p->maxThreadsDim[1] = p->maxThreadsDim[2] = ::pmpp_emu::Limits::maxThreadsPerBlock;
-  p->maxGridSize[0] = p->maxGridSize[1] = p->maxGridSize[2] = 65535;
-  return cudaSuccess;
-}
+#include "pmpp/emu/emu_types.h"
+#include "pmpp/emu/emu_runtime.h"
+#include "pmpp/emu/emu_device.h"
+#include "pmpp/emu/emu_host.h"

@@ -1,0 +1,5 @@
+// Stands in for libcu++'s <cuda/std/atomic>. The emulator and the front-end check provide the
+// memory orders and thread scopes through the same declarations as <cuda/atomic>;
+// cuda::std::atomic<T> itself is NOT provided.
+#pragma once
+#include "../atomic"

@@ -1,0 +1,8 @@
+// Stands in for libcu++'s <cuda/atomic> in emulator builds and in the CUDA front-end check.
+#pragma once
+#if defined(PMPP_CUDA_FRONTEND_CHECK)
+#define PMPP_STUB_WANT_CUDA_ATOMIC
+#include "pmpp/check/cuda_stub.h"
+#else
+#include "pmpp/emu/cuda_atomic_emu.h"
+#endif

@@ -26,7 +26,9 @@ find_package(Python3 COMPONENTS Interpreter)
 find_package(Threads)
 if(Python3_FOUND AND Threads_FOUND)
   add_library(pmpp_rt_emu STATIC ${PMPP_ROOT}/common/src/backend_cudalike.cpp ${PMPP_RT_COMMON})
-  target_include_directories(pmpp_rt_emu PUBLIC ${PMPP_INC})
+  # The second directory holds stand-ins for <cuda/atomic>, <cooperative_groups.h>
+  # and <cuda_runtime.h>, so that the same #include lines work as under nvcc.
+  target_include_directories(pmpp_rt_emu PUBLIC ${PMPP_INC} ${PMPP_INC}/pmpp/emu/shim)
   target_compile_definitions(pmpp_rt_emu PUBLIC PMPP_BACKEND_EMU)
   target_link_libraries(pmpp_rt_emu PUBLIC Threads::Threads)
   # AddressSanitizer turns an out-of-bounds read or write in a kernel (device
@@ -53,6 +55,64 @@ if(Python3_FOUND AND Threads_FOUND)
   pmpp_backend_status(emu TRUE "${pmpp_emu_note}")
 else()
   pmpp_backend_status(emu FALSE "needs python3 and a threads library")
+endif()
+
+# ---------------- race ----------------
+# The emulator in its race-detection flavour: emulated threads run concurrently
+# under ThreadSanitizer. Needs a compiler whose TSan runtime works on this
+# machine and exports the dynamic annotations the emulator uses to keep its own
+# bookkeeping out of the analysis. Labs opt in with `pmpp_add_lab(... RACE)`.
+if(PMPP_DISABLE_RACE)
+  pmpp_backend_status(race FALSE "disabled with PMPP_DISABLE_RACE")
+elseif(NOT TARGET pmpp_rt_emu)
+  pmpp_backend_status(race FALSE "needs the emu backend")
+else()
+  include(CheckCXXSourceCompiles)
+  include(CheckCXXSourceRuns)
+  set(pmpp_tsan_probe "
+    #include <thread>
+    extern \"C\" {
+    void AnnotateIgnoreSyncBegin(const char*, int); void AnnotateIgnoreSyncEnd(const char*, int);
+    void AnnotateIgnoreReadsBegin(const char*, int); void AnnotateIgnoreReadsEnd(const char*, int);
+    void AnnotateIgnoreWritesBegin(const char*, int); void AnnotateIgnoreWritesEnd(const char*, int);
+    void AnnotateHappensBefore(const char*, int, const volatile void*);
+    void AnnotateHappensAfter(const char*, int, const volatile void*);
+    }
+    int main() {
+      int token = 0, x = 0;
+      std::thread t([&] {
+        AnnotateIgnoreSyncBegin(\"\", 0); AnnotateIgnoreReadsBegin(\"\", 0); AnnotateIgnoreWritesBegin(\"\", 0);
+        x = 1;
+        AnnotateIgnoreWritesEnd(\"\", 0); AnnotateIgnoreReadsEnd(\"\", 0); AnnotateIgnoreSyncEnd(\"\", 0);
+        AnnotateHappensBefore(\"\", 0, &token);
+      });
+      t.join();
+      AnnotateHappensAfter(\"\", 0, &token);
+      return x == 1 ? 0 : 1;
+    }")
+  set(CMAKE_REQUIRED_FLAGS "-fsanitize=thread")
+  set(CMAKE_REQUIRED_LINK_OPTIONS "-fsanitize=thread")
+  set(CMAKE_REQUIRED_LIBRARIES Threads::Threads)
+  if(CMAKE_CROSSCOMPILING)
+    check_cxx_source_compiles("${pmpp_tsan_probe}" PMPP_HAVE_TSAN)
+  else()
+    check_cxx_source_runs("${pmpp_tsan_probe}" PMPP_HAVE_TSAN)
+  endif()
+  unset(CMAKE_REQUIRED_FLAGS)
+  unset(CMAKE_REQUIRED_LINK_OPTIONS)
+  unset(CMAKE_REQUIRED_LIBRARIES)
+  if(PMPP_HAVE_TSAN)
+    add_library(pmpp_rt_race STATIC ${PMPP_INC}/pmpp/emu/rt/backend_race.cpp ${PMPP_RT_COMMON})
+    target_include_directories(pmpp_rt_race PUBLIC ${PMPP_INC} ${PMPP_INC}/pmpp/emu/shim)
+    target_compile_definitions(pmpp_rt_race PUBLIC PMPP_BACKEND_RACE)
+    target_compile_options(pmpp_rt_race PUBLIC -fsanitize=thread -fno-omit-frame-pointer -g)
+    target_link_options(pmpp_rt_race PUBLIC -fsanitize=thread)
+    target_link_libraries(pmpp_rt_race PUBLIC Threads::Threads)
+    list(APPEND PMPP_BACKENDS race)
+    pmpp_backend_status(race TRUE "CPU emulator with concurrent threads; ThreadSanitizer on (${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION})")
+  else()
+    pmpp_backend_status(race FALSE "this compiler's ThreadSanitizer (-fsanitize=thread) does not build and run a test program here")
+  endif()
 endif()
 
 # ---------------- metal ----------------
