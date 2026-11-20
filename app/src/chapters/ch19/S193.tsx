@@ -1222,16 +1222,19 @@ export const questionsS193: Record<string, Question> = {
     id: 'ch19/19.3/q-vit',
     prompt: (
       <>
-        Beyond the book: a vision patch embedding is a convolution of a 3 × 224 × 224 image with K = 16, stride 16, no padding. What is B's
-        expansion ratio (elements of B per element of X)?
+        Beyond the book: a vision patch embedding convolves a 3 × 224 × 224 image with K = 16 at stride 16, so its windows
+        do not overlap. A variant uses stride 8, so neighbouring windows overlap by half. What is B&rsquo;s expansion ratio
+        (elements of B per element of X) for the variant?
       </>
     ),
-    answer: 1,
-    tol: 0.001,
+    answer: Number(expansion({ C: 3, H: 224, W: 224, K: 16, M: 1, N: 1, stride: 8 }).toFixed(2)), // 3.7194, shown as 3.72
+    tol: 0.02,
     explain: (
       <p>
-        The windows do not overlap: 14 × 14 output pixels, each with 3·256 = 768 values, is 150,528 entries for 150,528 inputs. B is only a
-        reshuffle of X, so a patch embedding is an unroll followed by a linear layer (ch19-facts E1, D2).
+        (224 − 16) / 8 + 1 = 27 windows each way, 729 in all, each with 3·256 = 768 values: 559,872 entries for 150,528
+        inputs, about 3.72. Halving the stride roughly quadruples the copies, (K / stride)² = 4, a little less because the
+        windows at the edges have no neighbour beyond them. At stride 16 the ratio is exactly 1: B is a reshuffle of X,
+        and a patch embedding is an unroll followed by a linear layer (ch19-facts E1, D2).
       </p>
     ),
     source: 'ours (Beyond); ch19-facts E1, D2',
@@ -1296,16 +1299,18 @@ export function S193() {
       <p>
         Each output pixel is a dot product: C·K·K input values against C·K·K weights. A matrix product is a table of dot products, rows of
         the first operand against columns of the second. So put each output map's weights in a row, each output pixel's input patches in a
-        column, and the whole layer is one matrix multiplication, Y = F · B. The tiling of chapters 5 and 15 then reuses both the inputs and
-        the filters, or a GEMM library (the book names cuBLAS) does the work. The book credits the idea to Chellapilla and colleagues, its
-        reference 8 (pp. 463–464).
+        column, and the whole layer is one matrix multiplication, Y = F · B.
       </p>
       <Source section="19.3" pages="463–464" />
-      <Today checked="2026-11-20 (notes/today/ch19-facts.md, A10)">
+      <p>
+        The tiling of chapters 5 and 15 then reuses both the inputs and the filters, or a GEMM library (the book names cuBLAS) does the
+        work. The book credits the idea to Chellapilla and colleagues, its reference 8 (pp. 463–464).
+      </p>
+      <Today checked="2026-11-20 (ch19-facts A10)">
         <p>
-          The book's footnote 3, Pete Warden's 2015 post{' '}
-          <a href="https://petewarden.com/2015/04/20/why-gemm-is-at-the-heart-of-deep-learning/">"Why GEMM is at the heart of deep learning"</a>,
-          is still online.
+          Footnote 3,{' '}
+          <a href="https://petewarden.com/2015/04/20/why-gemm-is-at-the-heart-of-deep-learning/">Pete Warden's 2015 post</a>, is still
+          online.
         </p>
       </Today>
 
@@ -1313,14 +1318,16 @@ export function S193() {
       <p>
         Row m of F holds every filter of output map m, each read row by row, input map 0 first. That is M rows of C·K·K weights, and it is
         exactly how the M × C × K × K filter array already sits in memory: the same pointer, read as a matrix whose rows are C·K·K long.
-        Nothing is copied. In the book's example the two rows are <code>1 1 2 2 | 1 1 1 1 | 0 1 1 0</code> and{' '}
-        <code>1 0 0 1 | 2 1 2 1 | 1 2 2 0</code> (pp. 464–465).
+        In the book's example the two rows are <code>1 1 2 2 | 1 1 1 1 | 0 1 1 0</code> and <code>1 0 0 1 | 2 1 2 1 | 1 2 2 0</code>{' '}
+        (pp. 464–465).
       </p>
       <Source section="19.3" pages="464–465" figs="Fig. 19.8" />
-      <Today checked="2026-11-20 (notes/today/ch19-facts.md, D4)">
+      <p>
+        Nothing is copied. In PyTorch terms, <code>conv.weight.view(M, -1)</code> is this F.
+      </p>
+      <Today checked="2026-11-20 (ch19-facts D4)">
         <p>
-          PyTorch stores <code>nn.Conv2d.weight</code> as (out_channels, in_channels / groups, kH, kW), the book's layout, so{' '}
-          <code>conv.weight.view(M, -1)</code> is this F without a copy.
+          PyTorch documents the weight as (out_channels, in_channels / groups, kH, kW): with one group, the book's layout.
         </p>
       </Today>
 
@@ -1334,10 +1341,35 @@ export function S193() {
       <p>
         Because the columns follow the output pixels in row-major order, row m of the product is output map m, laid out row by row. Y = F · B
         is already Y[n, m, :, :], in the layout the next layer reads, and nothing is reshuffled afterwards (p. 466). The book draws one sample
-        at a time: each sample has its own B and all of them share F (p. 464). And M appears nowhere in B's size, because every output map is
-        computed from the same B (p. 467).
+        at a time: each sample has its own B and all of them share F (p. 464).
       </p>
-      <Source section="19.3" pages="464, 466–467" />
+      <Source section="19.3" pages="464, 466" />
+      <Predict
+        id="ch19/19.3/p-ratio-c1"
+        prompt={
+          <>
+            LeNet C1 (1 × 32 × 32 input, K = 5): how many times as many elements as X does B have? Commit a number now; the animation
+            and the explorer below both come back to it.
+          </>
+        }
+        unit="×"
+      >
+        {(v) => (
+          <p>
+            It is 25·784 / 1024 = <b>19.14</b>: 25 values per output pixel, 28 × 28 output pixels, 32 × 32 inputs.{' '}
+            {Math.abs(v - 19.14) < 1 ? 'Close.' : v > 25 ? 'It cannot pass K² = 25.' : 'K² = 25 is the ceiling; a 32 × 32 map is already large next to a 5 × 5 filter.'}
+          </p>
+        )}
+      </Predict>
+      <p>
+        The animation builds F and B for the book's example, multiplies them, and then scales the example up.
+      </p>
+      <Simplification>
+        <p>
+          One sample, stride 1, no padding. B fills one column at a time so you can follow it; a real unroll writes every column at once.
+          Values are counted, not bytes or time.
+        </p>
+      </Simplification>
       <UnfoldScene />
 
       <h2>What unfolding costs</h2>
@@ -1372,21 +1404,9 @@ export function S193() {
       <Simplification>
         <p>FP32 only; stride 1 and no padding unless the Beyond toggle is on. Byte counts are B alone, not the GEMM's output.</p>
       </Simplification>
-      <Predict
-        id="ch19/19.3/p-ratio-c1"
-        prompt={<>LeNet C1 (1 × 32 × 32 input, K = 5): how many times as many elements as X does B have? Commit a number, then set the explorer to LeNet C1.</>}
-        unit="×"
-      >
-        {(v) => (
-          <p>
-            It is 25·784 / 1024 = <b>19.14</b>: 25 values per output pixel, 28 × 28 output pixels, 32 × 32 inputs.{' '}
-            {Math.abs(v - 19.14) < 1 ? 'Close.' : v > 25 ? 'It cannot pass K² = 25.' : 'K² = 25 is the ceiling; a 32 × 32 map is already large next to a 5 × 5 filter.'}
-          </p>
-        )}
-      </Predict>
       <UnfoldExplorer />
-      <Ask q={questionsS193['ch19/19.3/q-belems']} label="Work it out" />
       <Ask q={questionsS193['ch19/19.3/q-noM']} />
+      <Ask q={questionsS193['ch19/19.3/q-belems']} label="Work it out" />
 
       <h2>Unfolding without storing B</h2>
       <p>
@@ -1408,6 +1428,15 @@ export function S193() {
         Y matrix is two of its columns, and the columns are pixels (p. 468).
       </p>
       <Source pages="468" />
+      <p>
+        The animation runs that left block through all six phases of the book's example, with 2 × 2 tiles.
+      </p>
+      <Simplification>
+        <p>
+          One block of one sample; the other block does the same work on its own columns. Reads are counted as values, not memory
+          transactions. No caches, no timing.
+        </p>
+      </Simplification>
       <ImplicitTilesScene />
 
       <h2>Eq. 19.5: where each element of B comes from</h2>
@@ -1467,20 +1496,24 @@ export function S193() {
           ceil(P / T) pixel tiles in x, ceil(M / T) map tiles in y and N samples in z. That launch is our derivation.
         </li>
       </ul>
+      <p>Printed line 28 is where Eq. 19.5 lives, as one flat index (broken here at its + signs):</p>
+      <Source pages="471" figs="Fig. 19.11, lines 19 and 28" />
+      <p data-line="28" style={{ overflowX: 'auto' }}>
+        <code style={{ whiteSpace: 'pre', display: 'inline-block', lineHeight: 1.6 }}>
+          {'Bds[ty][tx]=X[bz*(C*H*W)\n  +(u/(K*K))*(H*W)\n  +((u%(K*K))/K + v/(W-K+1))*W\n  +((u%(K*K))%K + (v%(W-K+1)))];'}
+        </code>
+      </p>
       <p>
-        Printed line 28 is where Eq. 19.5 lives:{' '}
-        <code style={{ overflowWrap: 'anywhere' }}>
-          Bds[ty][tx]=X[bz*(C*H*W)+(u/(K*K))*(H*W)+((u%(K*K))/K + v/(W-K+1))*W+((u%(K*K))%K + (v%(W-K+1)))];
-        </code>{' '}
         The row term is multiplied by the input width W, while v is divided by the output width W − K + 1. The two widths are easy to mix up,
         and using W for both is the planted bug in the hunt below.
       </p>
-      <Source pages="471" figs="Fig. 19.11, lines 19 and 28" />
-      <Today checked="2026-11-20 (notes/today/ch19-facts.md, B1, C1)">
+      <p>
+        On HIP the CUDA file compiles unchanged: it uses only shared arrays, barriers, block and thread indices and the triple-chevron
+        launch. On Metal, Fds and Bds become <code>threadgroup</code> arrays; lab 19.1's <code>implicit_gemm.metal</code> shows the rest.
+      </p>
+      <Today checked="2026-11-20 (ch19-facts B1, C1)">
         <p>
-          HIP compiles the CUDA file unchanged: it uses only <code>__shared__</code>, <code>__syncthreads()</code>, block and thread indices and
-          the triple-chevron launch. Metal writes Fds and Bds as <code>threadgroup</code> arrays and both barriers as{' '}
-          <code>threadgroup_barrier(mem_flags::mem_threadgroup)</code>.
+          Metal spells both barriers <code>threadgroup_barrier(mem_flags::mem_threadgroup)</code>.
         </p>
       </Today>
       <p>
@@ -1491,6 +1524,7 @@ export function S193() {
         <p>
           Values only, no timing; one sample. A read outside X or F is counted, not executed: its value is undefined. A store from a thread
           outside Y's range that lands on another output's slot marks that slot wrong, because on a GPU which store lands last is not defined.
+          The launch, which the book does not show, is always rounded up here; with truncation as well, LeNet C1 would launch no blocks at all.
         </p>
       </Simplification>
       <Predict
@@ -1511,8 +1545,8 @@ export function S193() {
       <p>
         A block covers T rows of Y (T output maps) and T columns (T output pixels). Each B tile it gathers from X is used by all T output maps
         in the block, and each F tile by all T pixels: the reuse across output maps that the direct kernel could not get. Per output, the
-        direct kernel requests 2·C·K² global loads, one X and one F per term; the tiled one requests 2 per phase, 2·ceil(C·K² / T). For LeNet
-        C3 at T = 16 that is 300 against 20 (derived from the listings).
+        direct kernel requests 2·C·K² global loads, one X and one F per term. Count the tiled kernel's from the listing above: what does one
+        thread load from global memory in a phase, and how many phases are there?
       </p>
       <Source section="19.3" pages="462, 471" figs="Figs. 19.7, 19.11" />
       <Ask q={questionsS193['ch19/19.3/q-loads']} label="Work it out" />
@@ -1539,16 +1573,19 @@ export function S193() {
         Exercise 4 asks whether Fig. 19.11's global accesses are coalesced and whether its shared-memory accesses conflict. With 16 × 16
         tiles a warp is two rows of threads: two values of ty, and tx from 0 to 15. The F load and the Y store move by one element per tx. The
         gather does too, except where v reaches the next output row: there the address jumps by K, because an input row is K − 1 longer than an
-        output row. In shared memory the stores go to 32 consecutive words, <code>Fds[ty][k]</code> is read at two words 16 apart, and{' '}
-        <code>Bds[k][tx]</code> at 16 consecutive words, each by two threads (Exercise 4, p. 475; the analysis is ours).
+        output row.
       </p>
       <Source section="19.6" pages="475" figs="Exercise 4" />
+      <p>
+        In shared memory the stores go to 32 consecutive words, <code>Fds[ty][k]</code> is read at two words 16 apart, and{' '}
+        <code>Bds[k][tx]</code> at 16 consecutive words, each by two threads (the analysis is ours).
+      </p>
       <Today checked="2026-11-20 (ch06-facts A12; infra-facts A10, B10, C13)">
         <p>
-          NVIDIA documents 32 banks of 4 bytes, and threads that read the same 32-bit word do not conflict. AMD has 32 or 64 banks depending
-          on the architecture. Metal documents no bank structure at all.
+          NVIDIA: 32 banks of 4 bytes; threads reading the same word do not conflict. AMD: 32 or 64 banks. Metal documents none.
         </p>
       </Today>
+      <p>The explorer lays out the addresses one warp touches in each access; choose the shape, the block, the phase, the warp and the inner step.</p>
       <Simplification>
         <p>
           NVIDIA's documented warp width and bank model. Runs are counted in floats, not memory transactions, and there are no caches.

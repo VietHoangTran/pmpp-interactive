@@ -214,7 +214,7 @@ q = await question('where are PagedAttention’s KV blocks');
 await (await q.$$('input[type=radio]'))[0].click();
 await (await q.$('button.primary')).click();
 await pause(150);
-check('q-paged accepts “in GPU memory, anywhere”', (await qText(q)).includes('Correct.'));
+check('q-paged accepts “anywhere in GPU memory”', (await qText(q)).includes('Correct.'));
 await pause(1200);
 check('answers were saved through PUT /api/progress (intercepted)', puts.some((p) => p.answers && p.answers['ch20/20.7/q-gq']?.correct === true), String(puts.length));
 

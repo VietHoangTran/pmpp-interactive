@@ -57,7 +57,7 @@ inline double ulp(const Format& f, double x) {
 inline double roundPair(const Format& f, double x, double tail, Mode mode) {
     if (std::isnan(x)) return x;
     const bool neg = std::signbit(x);
-    if (std::isinf(x)) return mode == Mode::TowardZero ? (neg ? -maxFinite(f) : maxFinite(f)) : x;
+    if (std::isinf(x)) return x;                         // an infinite input stays infinite in every mode (IEEE 754)
     if (x == 0) return x;
     const double a = std::fabs(x);
     const double t = neg ? -tail : tail;                 // > 0: the exact value is further from 0

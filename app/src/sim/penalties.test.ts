@@ -14,6 +14,7 @@ import {
   frequencyPresence,
   mappingAccess,
   penalise,
+  penaltyEffects,
   repetition,
   segmentFor,
   softmaxDouble,
@@ -81,6 +82,19 @@ describe('what the penalties explorer shows', () => {
     const llama = softmaxDouble(applyPenalties(PEN_LOGITS, counts, S({ repeat: 1.5, rule: 'llama' })));
     expect(ctrl[1]).toBeGreaterThan(base[1]);
     expect(llama[1]).toBeLessThan(base[1]);
+  });
+  it('the explorer names raised logits (CTRL only) apart from probability gained by renormalisation', () => {
+    const before = PEN_LOGITS.map(f32);
+    const at = (rule: 'llama' | 'hf' | 'ctrl') =>
+      penaltyEffects(before, applyPenalties(before, counts, S({ repeat: 1.25, rule, float32: true })), counts);
+    // llama.cpp and transformers never raise a logit; tokens 2, 4, 5, 7 and 8 are penalised
+    // and still gain probability, because token 3 (used five times) and token 1 lose more.
+    expect(at('llama')).toEqual({ raised: [], gained: [2, 4, 5, 7, 8] });
+    expect(at('hf')).toEqual(at('llama'));
+    // CTRL raises every repeated negative logit: tokens 1, 4 and 6.
+    expect(at('ctrl').raised).toEqual([1, 4, 6]);
+    // penalties off: nothing raised, nothing gained
+    expect(penaltyEffects(before, applyPenalties(before, counts, S({ float32: true })), counts)).toEqual({ raised: [], gained: [] });
   });
   it('presence acts once per token, frequency grows with each repeat', () => {
     const p = [1, 2, 5].map((c) => 1 - frequencyPresence(1, c, 0, 0.5));

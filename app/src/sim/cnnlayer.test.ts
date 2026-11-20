@@ -10,6 +10,7 @@ import {
   changedByFlip,
   directLoadsPerOutput,
   directRatio,
+  directRatioMaps,
   directTrace,
   forward,
   forwardBatched,
@@ -192,6 +193,12 @@ describe('what the direct kernel reads (the "direct-reads" scene)', () => {
     const c3 = lenetLayer('C3')!;
     expect(directLoadsPerOutput(c3)).toBe(300);
     expect(directRatio(c3)).toBe(0.25);
+  });
+  it('two maps per thread sharing each X load: 600 FLOP over 1800 bytes, one third', () => {
+    const c3 = lenetLayer('C3')!;
+    expect(directRatioMaps(c3, 1)).toBe(directRatio(c3));
+    expect(directRatioMaps(c3, 2)).toBeCloseTo(1 / 3, 12);
+    expect(directRatioMaps(lenetLayer('C1')!, 2)).toBeCloseTo(1 / 3, 12);
   });
 });
 

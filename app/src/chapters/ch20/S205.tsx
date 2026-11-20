@@ -70,19 +70,16 @@ export const questionsS205: Record<string, Question> = {
     id: 'ch20/20.5/q-why-hard',
     prompt: <>A block has computed one B_r × B_c tile of S for its rows. Why can it not yet turn any element of that tile into a probability p?</>,
     options: [
-      {
-        label: 'p needs the max and the denominator of the whole row, and the tile has seen only B_c of its N columns. The merge rule gets around it by carrying (m, D) per row and rescaling as tiles arrive.',
-        correct: true,
-      },
-      { label: 'The S tile is not in shared memory yet.', why: 'It is: the kernel writes it there. Where it lives does not change what p depends on.' },
-      { label: 'The causal mask can only be applied once the whole row is known.', why: 'The mask depends only on the row and column indices, which every tile knows.' },
-      { label: 'exp is too slow to apply tile by tile.', why: 'The number of exponentials is the same either way.' },
+      { label: 'p needs the max and the sum of the whole row, and the tile holds B_c of N columns.', correct: true },
+      { label: 'The S tile is still in registers and has not been written to shared memory yet.', why: 'It is written there. Where it lives does not change what p depends on.' },
+      { label: 'The causal mask can only be applied once the whole row of scores is known.', why: 'The mask depends only on the row and column indices, which every tile knows.' },
+      { label: 'exp is too slow to apply tile by tile, so it waits for the whole row of scores.', why: 'The number of exponentials is the same either way.' },
     ],
     explain: (
       <p>
         Every p in a row is e<sup>l − m</sup> divided by the sum over the row, both of which need all N columns. A naive
         tiling would need one pass for the max and the sum and another for P, with the whole of S in memory between them.
-        Carrying (m, D) and rescaling removes the second pass.
+        The merge rule carries (m, D) per row and rescales as tiles arrive, which removes the second pass.
       </p>
     ),
     source: 'ch. 20 §20.5, p. 493',
@@ -151,18 +148,16 @@ export const questionsS205: Record<string, Question> = {
     id: 'ch20/20.5/q-rescale-order',
     prompt: <>In compute_O, what goes wrong if the multiply by exp(last_m − m_new) comes after adding P·V_j instead of before?</>,
     options: [
-      {
-        label: 'The new tile’s terms, already computed against the new max, get scaled a second time and come out too small whenever the max rose.',
-        correct: true,
-      },
-      { label: 'Nothing: multiplication commutes.', why: 'The factor should apply to the old part only. Applied after the addition it also hits the new part.' },
-      { label: 'Only the first tile is wrong.', why: 'On the first tile O is 0, so the order cannot matter there; it matters on every later tile where the max rises.' },
-      { label: 'D becomes wrong.', why: 'D is updated in other functions; compute_O touches only O.' },
+      { label: 'The new tile’s terms get the factor too, and come out too small.', correct: true },
+      { label: 'Nothing: the factor and the addition commute, so the order is free.', why: 'The factor should apply to the old part only. Applied after the addition it also hits the new part.' },
+      { label: 'Only the first tile is wrong, because O starts at 0 there.', why: 'On the first tile O is 0, so the order cannot matter there; it matters on every later tile where the max rises.' },
+      { label: 'D becomes wrong, because it is rescaled in the same place.', why: 'D is updated in other functions; compute_O touches only O.' },
     ],
     explain: (
       <p>
         P was exponentiated against the updated max, so it is already in the new frame. The old O is in the old frame
-        and needs the factor. Rescale first, then add, as Fig. 20.13 does.
+        and needs the factor. Applied after the addition, it scales the new terms a second time, and they come out too
+        small whenever the max rose. Rescale first, then add, as Fig. 20.13 does.
       </p>
     ),
     source: 'ch. 20 §20.5, Fig. 20.13, p. 503',
@@ -172,20 +167,17 @@ export const questionsS205: Record<string, Question> = {
     id: 'ch20/20.5/q-init',
     prompt: <>The book's Exercise 3: why must O_i and D_i start at 0, and what should m_i start at?</>,
     options: [
-      {
-        label:
-          'They are sums over an empty set so far; anything else would be carried, rescaled, into the result. m starts at minus infinity (FlashAttention-2) or a finite stand-in such as -FLT_MAX/2 (llama.cpp): with minus infinity, a first tile with no visible column makes the rescale (−∞) − (−∞) = NaN, which the book’s left-to-right causal order never meets.',
-        correct: true,
-      },
-      { label: 'All three start at 0.', why: '0 is not below every score. If a row’s scores are all very negative, the max never moves off 0, every e^(l − 0) can underflow to 0, and the final division is 0/0.' },
-      { label: 'All three start at minus infinity.', why: 'O and D are sums: minus infinity times a factor, plus a finite term, stays minus infinity (or turns NaN).' },
-      { label: 'O at 1, so that the final division is safe.', why: 'The division is by D, not O, and a 1 in O would be carried into the output.' },
+      { label: 'O and D at 0, as empty sums; m below every score, best kept finite.', correct: true },
+      { label: 'All three at 0, since nothing has been accumulated in any of them yet.', why: '0 is not below every score. If a row’s scores are all very negative, the max never moves off 0, every e^(l − 0) can underflow to 0, and the final division is 0/0.' },
+      { label: 'All three at minus infinity, so that the first tile overwrites them all.', why: 'O and D are sums: minus infinity times a factor, plus a finite term, stays minus infinity (or turns NaN).' },
+      { label: 'O and D at 1 and m at 0, so that the final division is always safe.', why: 'The division is by D, not O, and a 1 in O would be carried into the output.' },
     ],
     explain: (
       <p>
         O and D accumulate: each tile multiplies what is there by a factor and adds its own part, so the start value is
-        part of the answer unless it is 0. For m, FlashAttention-2's Algorithm 1 starts at minus infinity. The hazard is
-        IEEE arithmetic: minus infinity minus minus infinity is NaN. Production kernels start from a finite value, and
+        carried, rescaled, into the answer unless it is 0. For m, FlashAttention-2's Algorithm 1 starts at minus
+        infinity. The hazard is IEEE arithmetic: if a first tile has no visible column, the rescale computes (−∞) − (−∞),
+        which is NaN; the book&rsquo;s left-to-right causal order never meets that case, others do. Production kernels start from a finite value, and
         the labs do too.
       </p>
     ),
@@ -194,9 +186,20 @@ export const questionsS205: Record<string, Question> = {
   'ch20/20.5/q-lane': {
     kind: 'numeric',
     id: 'ch20/20.5/q-lane',
-    prompt: <>d = 128, 32-lane warps, the layout of Fig. 20.10. Which lane holds element dd = 77 of a Q row?</>,
-    answer: 13,
-    explain: <p>77 = 2 · 32 + 13: lane 13, register slot 2. In compute_S_and_max, step dd = 77 is a broadcast from lane 13.</p>,
+    prompt: (
+      <>
+        A model with a head width of 256 (the bench above stops at 128), 32-lane warps, the layout of Fig. 20.10. How many
+        register slots does each lane need for a Q row, and which lane holds element dd = 201? Give the lane.
+      </>
+    ),
+    answer: 9,
+    explain: (
+      <p>
+        256 / 32 = 8 slots per lane. 201 = 6 · 32 + 9: lane 9, register slot 6. In compute_S_and_max, step dd = 201 is a
+        broadcast from lane 9, <code>__shfl_sync(mask, Q_i[ii][6], 9)</code>. The rule is the same at any width: lane
+        dd mod 32, slot dd / 32.
+      </p>
+    ),
     source: 'ch. 20 §20.5, Figs. 20.10 and 20.12, pp. 498–500',
   },
   'ch20/20.5/q-hip-lane': {
@@ -231,19 +234,17 @@ export const questionsS205: Record<string, Question> = {
     id: 'ch20/20.5/q-syncwarp',
     prompt: <>The book's kernel needs one warp barrier it does not have. Where does it go, and why do the shuffles already there not do its job?</>,
     options: [
-      {
-        label:
-          'After compute_P_and_update_D writes each lane’s P element to shared memory and before compute_O reads the whole row. Shuffles exchange registers but "do not guarantee any memory ordering"; __syncwarp() does.',
-        correct: true,
-      },
-      { label: 'Before compute_S_and_max, because Q is in registers.', why: 'Q moves by shuffle, register to register; there is no shared-memory hand-off there.' },
-      { label: 'After compute_O, before the next row.', why: 'The next row uses a different row of S_i, so nothing is overwritten there.' },
-      { label: 'None is needed: a warp executes in lockstep.', why: 'NVIDIA has not promised that since independent thread scheduling, and on Metal lockstep is undocumented.' },
+      { label: 'Between the P write and compute_O; shuffles do not order memory.', correct: true },
+      { label: 'Before compute_S_and_max, because Q arrives there through shuffles.', why: 'Q moves by shuffle, register to register; there is no shared-memory hand-off there.' },
+      { label: 'After compute_O, before the warp moves on to its next row.', why: 'The next row uses a different row of S_i, so nothing is overwritten there.' },
+      { label: 'None is needed, because a warp always executes in lockstep.', why: 'NVIDIA has not promised that since independent thread scheduling, and on Metal lockstep is undocumented.' },
     ],
     explain: (
       <p>
-        Lane L writes P element L; compute_O makes every lane read all B_c elements. That is a read-after-write between
-        lanes through shared memory, and only a barrier with memory ordering protects it. llama.cpp's attention kernel
+        Lane L writes P element L in compute_P_and_update_D; compute_O makes every lane read all B_c elements. That is a
+        read-after-write between lanes through shared memory, and only a barrier with memory ordering protects it.
+        Shuffles exchange registers but &ldquo;do not guarantee any memory ordering&rdquo;; <code>__syncwarp()</code>{' '}
+        does. llama.cpp's attention kernel
         has a <code>ggml_cuda_syncwarp()</code> at exactly this point.
       </p>
     ),
@@ -269,18 +270,16 @@ export const questionsS205: Record<string, Question> = {
     id: 'ch20/20.5/q-kv-coalesced',
     prompt: <>The book's Exercise 4: are the loads from K and V in Fig. 20.11 coalesced, and which threads do the work with d = 128 and 512 threads?</>,
     options: [
-      {
-        label: 'Yes. For a fixed jj, thread t reads element t of one K row and of one V row, so a warp reads 32 neighbouring floats. Only threads 0 to 127 have dd < d; the rest skip the loop.',
-        correct: true,
-      },
-      { label: 'No: the K^T store is transposed, so the K loads are strided.', why: 'The transposition happens on the shared-memory side. The global reads walk along a row of K.' },
+      { label: 'Yes; threads 0 to 127 load, one element each, and the rest idle.', correct: true },
+      { label: 'No: the K^T store is transposed, so the K loads from global are strided.', why: 'The transposition happens on the shared-memory side. The global reads walk along a row of K.' },
       { label: 'Yes, and all 512 threads load four elements each.', why: 'The inner loop is over dd with stride blockDim.x = 512, so it runs once, for dd = t < 128.' },
-      { label: 'Only the V loads are coalesced.', why: 'K and V are both N × d row-major and are read with the same index.' },
+      { label: 'Only the V loads are coalesced; the K loads walk down a column.', why: 'K and V are both N × d row-major and are read with the same index.' },
     ],
     explain: (
       <p>
-        Both arrays are row-major, and the inner loop index is the thread index, so neighbouring threads touch
-        neighbouring addresses. The cost of the transposition lands on the shared-memory store, which is what the padding
+        Both arrays are row-major, and the inner loop index is the thread index: for a fixed jj, thread t reads element t
+        of one K row and of one V row, so a warp reads 32 neighbouring floats. Only threads 0 to 127 have dd &lt; d; the
+        rest skip the loop. The cost of the transposition lands on the shared-memory store, which is what the padding
         is for.
       </p>
     ),
@@ -304,15 +303,15 @@ export const questionsS205: Record<string, Question> = {
     id: 'ch20/20.5/q-lse',
     prompt: <>The book writes the final denominator D "for training". Why can D alone not rebuild P for the backward pass, and what does FlashAttention-2 store?</>,
     options: [
-      { label: 'P = exp(s − m) / D also needs the row max m. FlashAttention-2 stores L = m + log D, so P = exp(s − L).', correct: true },
-      { label: 'D is enough, because m is always 0.', why: 'm is the row max of the scores, which can be anything.' },
-      { label: 'FlashAttention-2 stores both m and D.', why: 'It stores one number per row, the logsumexp, which carries both.' },
-      { label: 'FlashAttention-2 stores P.', why: 'P is N × N; not storing it is the point.' },
+      { label: 'P also needs the row max; FA2 stores L = m + log D.', correct: true },
+      { label: 'D is enough, because the row max m is always 0.', why: 'm is the row max of the scores, which can be anything.' },
+      { label: 'FlashAttention-2 stores both m and D for each row.', why: 'It stores one number per row, the logsumexp, which carries both.' },
+      { label: 'FlashAttention-2 stores P itself for the backward pass.', why: 'P is N × N; not storing it is the point.' },
     ],
     explain: (
       <p>
-        D is measured against the final max, which store_O does not write. The logsumexp folds the two together: e<sup>s − L</sup> =
-        e<sup>s − m</sup> / D. Lab 20.2 writes L.
+        P = e<sup>s − m</sup> / D, and D is measured against the final max, which store_O does not write. The logsumexp
+        L = m + log D folds the two together: e<sup>s − L</sup> = e<sup>s − m</sup> / D. Lab 20.2 writes L.
       </p>
     ),
     source: 'ch20 facts A7',
@@ -380,12 +379,14 @@ export function S205() {
       <Ask q={Q['ch20/20.5/q-merged-d']} label="Work it out" />
       <p>
         The same move works for the output. Eq. 20.5 defines a partial output o<sub>A</sub> normalised by D<sub>A</sub>,
-        and Eq. 20.6 merges two of them, each weighted by its rescaled share of the merged denominator. The kernel does
-        something simpler that is the same arithmetic: it keeps the un-normalised Õ = Σ e<sup>l − m</sup> v, rescales it
-        by e<sup>m_old − m_new</sup> whenever the max rises, adds the new tile's terms (already measured against the new
-        max), and divides by D once at the very end. FlashAttention-2 describes exactly this.
+        and Eq. 20.6 merges two of them, each weighted by its rescaled share of the merged denominator.
       </p>
       <Source section="20.5" pages="494–495" figs="Eqs. 20.5, 20.6" />
+      <p>
+        The kernel does something simpler that is the same arithmetic: it keeps the un-normalised Õ = Σ e<sup>l − m</sup>{' '}
+        v, rescales it by e<sup>m_old − m_new</sup> whenever the max rises, adds the new tile's terms (already measured
+        against the new max), and divides by D once at the very end. FlashAttention-2 describes exactly this.
+      </p>
       <Aside>
         <p>
           <b>Erratum, p. 495.</b> In the first line of the continued derivation of Eq. 20.6 the second exponent is printed
@@ -412,12 +413,14 @@ export function S205() {
       <h3>What m starts at</h3>
       <p>
         Exercise 3 asks for the function that initialises O<sub>i</sub>, D<sub>i</sub> and m<sub>i</sub>. O and D are
-        sums over nothing yet, so 0. For m, FlashAttention-2's Algorithm 1 uses minus infinity. Now set the stepper to row
-        2, tiles of 4, right to left, starting at minus infinity: the first tile has no visible column, its max is still
-        minus infinity, and the rescale computes (−∞) − (−∞), which IEEE arithmetic defines as NaN. The output is NaN from
-        then on. Switch the start to −FLT_MAX/2 and the same order is exact.
+        sums over nothing yet, so 0. For m, FlashAttention-2's Algorithm 1 uses minus infinity.
       </p>
       <Source section="20.9" pages="511" figs="Exercise 3" />
+      <p>
+        Now set the stepper to row 2, tiles of 4, right to left, starting at minus infinity: the first tile has no visible
+        column, its max is still minus infinity, and the rescale computes (−∞) − (−∞), which IEEE arithmetic defines as
+        NaN. The output is NaN from then on. Switch the start to −FLT_MAX/2 and the same order is exact.
+      </p>
       <Today checked="2026-11-20 (notes/today/ch20-facts.md A5, A7, C5, D1, D4)">
         <p>
           CUDA's guide lists Inf − Inf among the forms that give NaN. llama.cpp starts its running max at −FLT_MAX/2 with
@@ -459,9 +462,13 @@ export function S205() {
       <p>
         The book's advice on sizes: B_r as large as on-chip memory and the number of blocks needed to fill the device
         allow, since it sets the reuse of every K and V tile; B_c as large as shared memory allows, since every tile costs
-        one rescale of O. Find the book's numbers in the explorer, then a configuration that fits Metal.
+        one rescale of O.
       </p>
       <Source section="20.5" pages="497, 499" />
+      <p>
+        Both pull against the same budget. The shared tiles grow with B_c, and the per-lane rows of Q and O grow with B_r.
+        Find the book's numbers in the explorer, then a configuration that fits Metal.
+      </p>
       <Simplification>
         <p>
           Static arithmetic only: bytes and registers, not speed. The register count is what the arrays need, not what a
@@ -472,9 +479,13 @@ export function S205() {
       <p>
         37,376 bytes fits CUDA's 48 KB of static shared memory and any AMD LDS. It does not fit Metal's 32 KB, and the
         failure is late: the compiler accepts the kernel, and building the pipeline fails with "Threadgroup memory size
-        (37376) exceeds the maximum threadgroup memory allowed (32768)". Lab 20.2 reads the limit and picks B_c from it.
+        (37376) exceeds the maximum threadgroup memory allowed (32768)".
       </p>
       <Source section="20.5" pages="496" />
+      <p>
+        So the book's sizes are a choice for one machine, not a property of the algorithm. Lab 20.2 reads the limit from
+        the device and picks B_c from it.
+      </p>
       <Today checked="2026-11-20 (notes/today/ch20-facts.md C1; ch05 A3, C1)">
         <p>
           The error message is from a run on one Mac while these notes were checked; the 32 KB limit is Apple's feature
@@ -493,7 +504,8 @@ export function S205() {
       <p>
         FlashAttention-2 skips the empty tiles and applies the mask only to tiles that cross the diagonal, about half the
         work saved for long sequences. The book's kernel computes every tile; its mask then turns every score in the empty
-        ones to minus infinity and every probability to 0.
+        ones to minus infinity and every probability to 0. Lab 20.2's reference skips them, as FlashAttention-2 does,
+        so the corrected kernel below differs from the page here too.
       </p>
       <Beyond>
         <p>
@@ -513,9 +525,13 @@ export function S205() {
       <p>
         To compute a score, a lane needs a whole row of Q, but holds only 4 of its 128 elements. So at step dd of the inner product,
         the lane that owns element dd broadcasts it: <code>__shfl_sync(mask, Q_i[ii][dd / 32], dd % 32)</code>. Every lane
-        receives the same value and multiplies it by its own column of KT_j. That is one shuffle per multiply-add.
+        receives the same value and multiplies it by its own column of KT_j.
       </p>
       <Source section="20.5" pages="500" figs="Fig. 20.12" />
+      <p>
+        That is one shuffle per multiply-add. Below, walk the inner loop element by element and watch which lane
+        broadcasts each one; then switch to a 64-wide AMD wavefront running the same code.
+      </p>
       <Simplification>
         <p>
           The picture is the indexing only. On AMD it follows HIP's shuffle source code; nothing was run on AMD hardware.
@@ -563,11 +579,13 @@ export function S205() {
       <p>
         Each tile of K arrives as rows (one key per row), but the score loop wants keys as columns, so that lane jj walks
         down column jj. The load reads K row by row and writes it transposed. Thread dd then stores to word dd · B_c + jj:
-        consecutive threads are B_c words apart, and with B_c = 32 on 32 banks, all of them hit the same bank. The book
-        pads every address with <code>addr(x) = x + (x {'>>'} LOG_NUM_BANKS)</code>, which inserts one spare word per 32 and
-        turns the stride into 33.
+        consecutive threads are B_c words apart, and with B_c = 32 on 32 banks, all of them hit the same bank.
       </p>
       <Source section="20.5" pages="499" figs="Fig. 20.11" />
+      <p>
+        The book pads every address with <code>addr(x) = x + (x {'>>'} LOG_NUM_BANKS)</code>, which inserts one spare word
+        per 32 and turns the stride into 33.
+      </p>
       <Aside>
         <p>
           The text on p. 499 calls the function <code>load_KTV()</code>; the listing calls it <code>load_KT_and_V</code>.
@@ -583,6 +601,10 @@ export function S205() {
       <Today checked="2026-11-20 (notes/today/infra-facts.md A10, C13; ch20 B3)">
         <p>Bank counts per vendor as documented today; Apple's threadgroup memory has no published bank layout.</p>
       </Today>
+      <p>
+        Count the passes one transposed store needs, with and without the padding, for each vendor&rsquo;s bank count.
+        Predict first.
+      </p>
       <Simplification>
         <p>
           NVIDIA's rule (bank = word mod bank count; a pass per distinct word on the busiest bank) applied to each vendor's
@@ -608,6 +630,11 @@ export function S205() {
         and returns the <i>old</i> max, because compute_O still needs it.
       </p>
       <Source section="20.5" pages="502" figs="Fig. 20.14" />
+      <p>
+        In Eq. 20.4&rsquo;s terms, <code>last_m</code> is m<sub>A</sub>, the tile&rsquo;s max is m<sub>B</sub> and the
+        updated max is m<sub>A∪B</sub>. So line 6, <code>D *= exp(last_m - m_i[ii])</code>, moves the denominator kept so
+        far to the new max.
+      </p>
       <Aside>
         <p>
           <b>Erratum, p. 502.</b> The text says line 6 computes the B term of Eq. 20.4. It rescales the old denominator: the
@@ -617,10 +644,13 @@ export function S205() {
       <Ask q={Q['ch20/20.5/q-a-term']} />
       <p>
         <b>compute_P_and_update_D</b> replaces each score in S_i by e<sup>s − m</sup> against the max just updated (masked
-        columns get 0 by index), sums them across the warp and adds the sum to D. That sum is the whole B term of Eq. 20.4,
-        already in the new frame.
+        columns get 0 by index), sums them across the warp and adds the sum to D.
       </p>
       <Source section="20.5" pages="502–503" figs="Fig. 20.15" />
+      <p>
+        That sum is the whole B term of Eq. 20.4, already in the new frame: each exponent subtracts m<sub>A∪B</sub>, so
+        no D<sub>B</sub> is ever formed and nothing needs rescaling afterwards.
+      </p>
       <Aside>
         <p>
           <b>Erratum, p. 502.</b> The text says this sum is Σ e<sup>l − m_B</sup>. The code subtracts the updated max, so
@@ -639,11 +669,13 @@ export function S205() {
       <p>
         Look at the data flow between compute_P_and_update_D and compute_O. Lane L writes P element L to shared memory;
         then every lane reads all B_c elements of the row. That is a hand-off between lanes through shared memory, and the
-        listing has no barrier for it. The shuffles in between exchange registers, but NVIDIA's guide says plainly that
-        they "do not guarantee any memory ordering". One <code>__syncwarp()</code> between the two calls is what the rules
-        require.
+        listing has no barrier for it.
       </p>
       <Source section="20.5" pages="501–503" figs="Figs. 20.13, 20.15" />
+      <p>
+        The shuffles in between exchange registers, but NVIDIA's guide says plainly that they "do not guarantee any
+        memory ordering". One <code>__syncwarp()</code> between the two calls is what the rules require.
+      </p>
       <Today checked="2026-11-20 (notes/today/ch20-facts.md A3, B4, C4, D1)">
         <p>
           CUDA guide 5.4.6.5 on shuffles and 5.4.4.2 on <code>__syncwarp</code>. The call compiles on HIP; on Metal the
@@ -736,7 +768,7 @@ export function S205() {
           </tr>
           <tr>
             <td>B_c a multiple of 32</td>
-            <td>any B_c; lanes without a column bring the identity to the reductions</td>
+            <td>B_c of 8, 16 or 32; lanes without a column bring the identity to the reductions</td>
             <td>Metal's limit forces B_c = 16 at d = 128 (C1)</td>
           </tr>
           <tr>
@@ -748,6 +780,16 @@ export function S205() {
             <td><code>out_D</code>, the final denominator</td>
             <td><code>L = m + log D</code>, the logsumexp</td>
             <td>D alone cannot rebuild P; FlashAttention-2 stores L (A7)</td>
+          </tr>
+          <tr>
+            <td>every tile for every panel</td>
+            <td>tiles wholly above the diagonal skipped (loop bound <code>lastTile</code>)</td>
+            <td>FlashAttention-2 does (A7); the masked tiles only cost time</td>
+          </tr>
+          <tr>
+            <td>the head width is the macro <code>d</code></td>
+            <td><code>HEAD_DIM</code>; <code>d_size</code> is <code>D_SIZE</code></td>
+            <td>a macro named d would rewrite every d in the file</td>
           </tr>
           <tr>
             <td><code>#define</code> sizes</td>
@@ -766,15 +808,16 @@ export function S205() {
         (section <a href={href('ch20', '20.6')}>20.6</a>); lab 20.4 writes a decode kernel with its own division of work.
       </p>
       <Source section="20.5" pages="504" />
+      <p>
+        The book closes the section with FlashAttention-3 on Hopper: TMA, asynchronous WGMMA, FP8 and warp
+        specialisation. Since then FlashAttention-4, written in CuTeDSL for Hopper and Blackwell, ships as betas. cuDNN&rsquo;s
+        SDPA implements the FlashAttention-2 algorithm on SM80 and later in fp16, bf16 and fp8, with paged caches, and has
+        no fp32 path. On ROCm, FlashAttention-2 runs through Composable Kernel or Triton (aiter), and PyTorch uses
+        AOTriton and CK. Apple offers MPSGraph&rsquo;s <code>scaledDotProductAttention</code> (macOS 15; a causal option
+        from macOS 27) without documenting its algorithm, and MLX has its own tiled &ldquo;steel&rdquo; attention kernels.
+      </p>
       <Today checked="2026-11-20 (notes/today/ch20-facts.md A6, B5, C7, D4)">
-        <p>
-          FlashAttention-3 (Hopper: TMA, asynchronous WGMMA, FP8, warp specialisation) is what the book describes on p. 504;
-          FlashAttention-4, written in CuTeDSL for Hopper and Blackwell, ships as betas. cuDNN's SDPA implements the
-          FlashAttention-2 algorithm on SM80 and later in fp16, bf16 and fp8, with paged caches, and has no fp32 path. On
-          ROCm, FlashAttention-2 runs through Composable Kernel or Triton (aiter), and PyTorch uses AOTriton and CK. Apple
-          offers MPSGraph's <code>scaledDotProductAttention</code> (macOS 15; a causal option from macOS 27) without
-          documenting its algorithm, and MLX has its own tiled "steel" attention kernels.
-        </p>
+        <p>Everything after FlashAttention-3 is not in the book; each item is from the project&rsquo;s or vendor&rsquo;s own pages, quoted in the facts file.</p>
       </Today>
       <p>
         When you read a production backend, this section is what you are looking for. llama.cpp's CUDA vector kernel does
@@ -783,8 +826,9 @@ export function S205() {
       </p>
       <Beyond>
         <p>
-          The llama.cpp reading is ours, from its sources on 2026-11-20 (ch20 facts D1, D2). The same file also merges
-          partial results of separate blocks with Eq. 20.4, which is the scene's last beat.
+          The llama.cpp reading is ours, from its sources on 2026-11-20 (ch20 facts D1, D2). Its fattn-common.cuh (
+          <code>flash_attn_combine_results</code>) merges partial results of separate blocks with Eqs. 20.4 and 20.6,
+          which is the scene's last beat.
         </p>
       </Beyond>
       <Code

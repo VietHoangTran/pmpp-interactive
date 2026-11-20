@@ -87,6 +87,19 @@ export function crossover(s: LayerShape, phase: Phase): number {
   return lin / (2 * s.dModel);
 }
 
+/**
+ * Compulsory bytes one decode step reads per layer for a batch of `batch` sequences, each at
+ * context n: the linear layers' weights once (they are shared by the batch) and every
+ * sequence's own K and V cache (2 n d_model elements, multi-head attention). Ours, from the
+ * book's shapes. The cache read overtakes the weights once batch * n exceeds
+ * linear MACs / (2 d_model), which is 6 d_model for the book's shape: the FLOP crossover.
+ */
+export function decodeBytes(n: number, s: LayerShape, batch: number, bytesPer: number) {
+  const weights = linearMacsPerToken(s) * bytesPer;
+  const cache = batch * 2 * n * s.dModel * bytesPer;
+  return { weights, cache, cacheOverWeights: cache / weights, crossBatchN: linearMacsPerToken(s) / (2 * s.dModel) };
+}
+
 // ---------------------------------------------------------------- Fig. 20.1 as kernels
 export type Primitive = 'host' | 'gather' | 'elementwise' | 'gemm' | 'rowreduce' | 'attention';
 export const PRIMITIVES: readonly Primitive[] = ['host', 'gather', 'elementwise', 'gemm', 'rowreduce', 'attention'];

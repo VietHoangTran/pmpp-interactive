@@ -239,7 +239,8 @@ export function S220() {
       <ul>
         <li>
           Which kernel multiplies the weights at which batch size is algorithm selection: llama.cpp keeps a
-          matrix-vector kernel and a matrix kernel for the same operation and switches at a threshold tuned per GPU (
+          matrix-vector kernel and a matrix kernel for the same operation and switches at a fixed batch of about 8 tokens,
+          lowered for some weight types on particular GPUs where it was measured to cross sooner (
           <a href={href('ch22', '22.1')}>22.1</a>).
         </li>
         <li>

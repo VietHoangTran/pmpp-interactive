@@ -11,9 +11,8 @@
 // the exact midpoint between two neighbouring values of the format, its negation, and the
 // doubles on either side of it; the overflow threshold; and additions of two random values
 // of the format, which for FP32 and BF16 include large exponent gaps. Infinite inputs are
-// left out: fpformat.h maps them to the largest finite value toward zero, where IEEE 754
-// (and minifloat.ts) keep them infinite. The lab only rounds finite sums, so this does not
-// affect it.
+// left out: both sides keep them infinite in every mode, as IEEE 754 does (only a finite
+// overflow goes to the largest finite value toward zero), and the lab only rounds finite sums.
 #include "../../lab1_sumerror/fpformat.h"
 
 #include <cmath>

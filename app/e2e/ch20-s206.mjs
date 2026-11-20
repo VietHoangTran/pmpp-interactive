@@ -136,6 +136,7 @@ await setSelect(`${bench(Z)} select[aria-label="Model"]`, 'deepseek-v2');
 check('DeepSeek-V2: 69,120 bytes per token, and the printed Eq. 20.14 shown beside it', (await num('data-per-token')) === 69120 && (await text(bench(Z))).includes('printed equation gives 15 KiB'));
 await setSelect(`${bench(Z)} select[aria-label="Model"]`, 'llama2-7b');
 await setSelect(`${bench(Z)} select[aria-label="Device memory"]`, 'custom');
+check('a typed size starts empty and asks for your device, with no batch claimed', (await attr(`${bench(Z)} [data-max-batch]`, 'data-max-batch')) === '' && (await text(bench(Z))).includes('type your device’s memory'));
 await setNumber(`${bench(Z)} input[type=number]:not([aria-label])`, 22);
 const mb = await num('data-max-batch');
 const expect = km.maxBatch(22 * km.GiB, 7e9 * 2, km.presetByKey('llama2-7b').shape, 4096, 2);

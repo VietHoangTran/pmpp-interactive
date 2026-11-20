@@ -39,6 +39,10 @@ describe('a stream each', () => {
     // round-robin: stream j on queue j mod 4
     expect(r.kernels.map((x) => x.row)).toEqual([0, 1, 2, 3, 0, 1, 2, 3]);
   });
+  it('q-hip-queues: 8 kernels at 10%, no launch cost, ROCm defaults: 2d, against d with a queue per stream', () => {
+    expect(run({ mode: 'streams', f: 0.1, L: 0, queues: HIP_DEFAULT_QUEUES }).total).toBe(2);
+    expect(run({ mode: 'streams', f: 0.1, L: 0 }).total).toBe(1);
+  });
   it('kernels that each fill the device gain nothing from streams', () => {
     const one = run({ mode: 'stream', f: 1 });
     const many = run({ mode: 'streams', f: 1 });

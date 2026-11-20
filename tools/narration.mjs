@@ -38,7 +38,26 @@ function readManifest(chapter) {
 
 function writeManifest(chapter, m) {
   const clips = Object.fromEntries(Object.keys(m.clips).sort().map((k) => [k, m.clips[k]]));
-  fs.writeFileSync(path.join(dirOf(chapter), 'manifest.json'), JSON.stringify({ model: m.model, voice: m.voice, clips }, null, 1) + '\n');
+  const p = path.join(dirOf(chapter), 'manifest.json');
+  fs.writeFileSync(p + '.tmp', JSON.stringify({ model: m.model, voice: m.voice, clips }, null, 1) + '\n');
+  fs.renameSync(p + '.tmp', p); // readers never see a half-written manifest
+}
+
+// Several `add` commands may run at once (a batch of takes registered in parallel). Each
+// holds a per-chapter lock directory across its read-modify-write of the manifest, so no
+// update overwrites another's. A lock older than a minute is from a crashed run.
+function withManifestLock(chapter, fn) {
+  const lock = path.join(dirOf(chapter), '.manifest.lock');
+  const nap = new Int32Array(new SharedArrayBuffer(4));
+  for (let i = 0; ; i++) {
+    try { fs.mkdirSync(lock); break; } catch (e) {
+      if (e.code !== 'EEXIST') throw e;
+      try { if (Date.now() - fs.statSync(lock).mtimeMs > 60000) fs.rmdirSync(lock); } catch {}
+      if (i > 3000) throw new Error(`manifest lock ${lock} is held`);
+      Atomics.wait(nap, 0, 0, 20);
+    }
+  }
+  try { return fn(); } finally { fs.rmdirSync(lock); }
 }
 
 function duration(file) {
@@ -84,10 +103,7 @@ function add(chapter, clip, audio, take, model = MODEL) {
   if (!fs.existsSync(audio)) throw new Error(`no audio file at ${audio}`);
   const dest = path.join(dirOf(chapter), clip + '.mp3');
   fs.copyFileSync(audio, dest);
-  const m = readManifest(chapter);
-  m.model = MODEL;
-  m.voice = VOICE;
-  m.clips[clip] = {
+  const entry = {
     file: clip + '.mp3',
     sha256: hash(fs.readFileSync(script, 'utf8')),
     duration: duration(dest),
@@ -96,8 +112,14 @@ function add(chapter, clip, audio, take, model = MODEL) {
     model,
     ...(take ? { take } : {}),
   };
-  writeManifest(chapter, m);
-  console.log(`registered ${chapter}/${clip}: ${m.clips[clip].duration ?? '?'}s, ${m.clips[clip].bytes} bytes`);
+  withManifestLock(chapter, () => {
+    const m = readManifest(chapter);
+    m.model = MODEL;
+    m.voice = VOICE;
+    m.clips[clip] = entry;
+    writeManifest(chapter, m);
+  });
+  console.log(`registered ${chapter}/${clip}: ${entry.duration ?? '?'}s, ${entry.bytes} bytes`);
 }
 
 // Command line, only when run directly (tools/tts-api.mjs imports MODELS and VOICE).

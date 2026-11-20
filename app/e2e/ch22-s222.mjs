@@ -7,7 +7,7 @@
 import { open, goto } from './browser.mjs';
 import { warpAccess } from '../src/sim/coalesce.ts';
 import {
-  PRESETS, SPLITK_TINY, TOUR, decomposeState, describeSKStep, describeWorker, matvec, splitKOrder, splitKRun, warp0Load,
+  NVIDIA_WARP, PRESETS, SPLITK_TINY, TOUR, conv, decompose, decomposeState, describeSKStep, describeWorker, matvec, splitKOrder, splitKRun, warp0Load,
 } from '../src/sim/decompose.ts';
 
 const out = process.argv[2];
@@ -227,7 +227,8 @@ const choose = async (needle, idx) => {
   await pause(120);
   return q.evaluate((e) => e.textContent);
 };
-check('q-conv-writers accepts 5', (await numeric('Away from the edges, how many threads write each output?', 5)).includes('Correct.'));
+const qConv = decompose(conv(20, 7), 'input', { warpWidth: NVIDIA_WARP, S: 1 }).metrics.atomicUpdates;
+check(`q-conv-writers: the model gives ${qConv}, and the question accepts it`, qConv === 128 && (await numeric('How many atomic updates does it make in all?', qConv)).includes('Correct.'));
 check('q-hist-inspect accepts 256', (await numeric('How many times as many input reads', 256)).includes('Correct.'));
 check('q-merge: the load-balance answer is correct', (await choose('atomics are not the reason. What is?', 0)).includes('Correct.'));
 const wrong = await choose('in all three thread orders. Is it correct?', 1);

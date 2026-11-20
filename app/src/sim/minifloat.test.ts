@@ -80,6 +80,16 @@ describe('§A.1: the 6-bit format and the formulas (pp. 584–586)', () => {
     expect(decode(TOY6, bin('010010')).value).toBe(3);
     expect(decode(TOY6, bin('000110')).value).toBe(0.375);
   });
+  it('§A.1 reads E = 000 with Eq. (A.1) too: no zero, smallest 1/8, largest 14 (Exercise 2)', () => {
+    expect(TOY6.subnormals).toBe('nozero');
+    expect(decode(TOY6, bin('000000')).value).toBe(0.125);
+    expect(anatomy(TOY6, bin('000001'))).toMatchObject({ hidden: 1, scale: -3, cls: 'normal', value: 0.15625 });
+    expect(values(TOY6)).not.toContain(0);
+    expect(values(TOY6).filter((v) => v > 0)).toHaveLength(28);
+    expect(minPositive(TOY6)).toBe(0.125);
+    expect(maxFinite(TOY6)).toBe(14);
+    expect(round(TOY6, 0)).toBe(0.125);
+  });
   it('the general formula (-1)^S · 1.M · 2^(E - (2^(n-1) - 1)) for every normal pattern, n = 2 to 8', () => {
     for (let n = 2; n <= 8; n++) {
       const f = makeFormat(n, 3, 'denorm');
@@ -595,6 +605,28 @@ function refRound(f: Format, num: bigint, den: bigint, mode: Mode): number {
   }
   return neg ? -mag : mag;
 }
+describe('the labs page prediction p-lab1-half-loop: where an FP16 loop stalls, by rounding mode', () => {
+  // 65,536 uniform values from [0, 1), each rounded to FP16 first, added in order.
+  let h = 1;
+  const next = () => {
+    h = (h + 0x6d2b79f5) >>> 0;
+    let t = h;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const xs = Array.from({ length: 65536 }, () => round(FP16, next()));
+  const loop = (mode: Mode) => xs.reduce((s, x) => add(FP16, s, x, mode), 0);
+  it('round to nearest: 2048, where the gap reaches 2 and every term is below half of it', () => {
+    expect(loop('rne')).toBe(2048);
+  });
+  it('toward zero: near 1024, where the gap reaches 1 (a little above: a few inputs round to exactly 1)', () => {
+    const r = loop('rtz');
+    expect(r).toBeGreaterThanOrEqual(1024);
+    expect(r).toBeLessThan(1100);
+  });
+});
+
 describe('add, sub, mul and div are correctly rounded (all pairs, all modes, exact rationals)', () => {
   const modes: Mode[] = ['rne', 'rtz', 'up', 'down'];
   for (const f of [TOY5, E2M1, E4M3]) {

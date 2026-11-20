@@ -391,6 +391,13 @@ export const readsOfThread = (b: DirectBlock, thread: number): DirectRead[] => b
 export const directLoadsPerOutput = (s: LayerShape): number => 2 * s.C * s.K * s.K;
 /** FLOP per byte the direct kernel requests: 2 FLOP per multiply-add over 8 bytes of loads. */
 export const directRatio = (s: LayerShape): number => (2 * s.C * s.K * s.K) / (4 * directLoadsPerOutput(s));
+/**
+ * The same ratio when each thread computes `maps` output maps at one pixel and loads each X
+ * value once for all of them: C·K² X loads plus maps·C·K² F loads for maps·C·K² multiply-adds.
+ * Ours (a variation for a question); with maps = 1 it is directRatio.
+ */
+export const directRatioMaps = (s: LayerShape, maps: number): number =>
+  (2 * maps * s.C * s.K * s.K) / (4 * (s.C * s.K * s.K * (1 + maps)));
 
 // ---------------------------------------------------------------- lesson regions of lab files
 

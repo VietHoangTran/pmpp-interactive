@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BLOCKS, BOOK_SHAPE, MILESTONES, PRIMITIVES, attentionPairs, crossover, judge, layerFlops, linearMacsPerToken } from './llmflops';
+import { BLOCKS, BOOK_SHAPE, MILESTONES, PRIMITIVES, attentionPairs, crossover, decodeBytes, judge, layerFlops, linearMacsPerToken } from './llmflops';
 
 const book = (dModel: number) => ({ ...BOOK_SHAPE, dModel });
 
@@ -38,6 +38,22 @@ describe('FLOPs per layer, from the book\'s shapes', () => {
   it('a three-matrix SwiGLU feed-forward moves the crossover out', () => {
     const s = { ...book(4096), ffn: 'swiglu' as const, ffRatio: 3.5 };
     expect(crossover(s, 'prefill')).toBe(((4 + 3 * 3.5) * 4096) / 2);
+  });
+});
+
+describe('bytes one decode step reads per layer', () => {
+  it('weights 12 d_model^2, cache 2 N d_model per sequence, crossing at b N = 6 d_model', () => {
+    const d = 4096;
+    const one = decodeBytes(4096, book(d), 1, 2);
+    expect(one.weights).toBe(12 * d * d * 2);
+    expect(one.cache).toBe(2 * 4096 * d * 2);
+    expect(one.cacheOverWeights).toBeCloseTo(4096 / (6 * d), 12);
+    expect(one.crossBatchN).toBe(6 * d);
+    // Batched: the weights stay, the caches multiply.
+    const eight = decodeBytes(4096, book(d), 8, 2);
+    expect(eight.weights).toBe(one.weights);
+    expect(eight.cacheOverWeights).toBeCloseTo(8 * one.cacheOverWeights, 12);
+    expect(decodeBytes(6 * d, book(d), 1, 2).cacheOverWeights).toBeCloseTo(1, 12);
   });
 });
 

@@ -178,7 +178,16 @@ describe('storage (MX v1.1 Table 1, cuBLAS, llama.cpp ggml-common.h: appA-facts 
 });
 
 describe('the decode ceiling (ch. 5 §5.1 method; ours)', () => {
-  it('q-ceiling: BF16 to MXFP4 raises the batch-1 ceiling by 16 / 4.25 ≈ 3.76', () => {
+  it('q-ceiling: 4-bit codes with an FP16 scale and an FP16 zero point per 32 weights are 5 bits; 16 / 5 = 3.2 over BF16', () => {
+    const bits = 4 + (16 + 16) / 32;
+    expect(bits).toBe(5);
+    expect(decodeCeiling(7e9, bits, 1000) / decodeCeiling(7e9, bitsPerWeight('bf16'), 1000)).toBeCloseTo(3.2, 12);
+  });
+  it('q-mxfp4-bits: one UE8M0 scale per 64 E2M1 weights would be 4.125 bits; the real 32 give 4.25', () => {
+    expect((blockBytes(4, 64, 1) * 8) / 64).toBe(4.125);
+    expect((blockBytes(4, 32, 1) * 8) / 32).toBe(bitsPerWeight('mxfp4'));
+  });
+  it('the bench: BF16 to MXFP4 raises the batch-1 ceiling by 16 / 4.25 ≈ 3.76', () => {
     const r = decodeCeiling(7e9, bitsPerWeight('mxfp4'), 1000) / decodeCeiling(7e9, bitsPerWeight('bf16'), 1000);
     expect(r).toBeCloseTo(16 / 4.25, 12);
     expect(r).toBeCloseTo(3.76, 2);

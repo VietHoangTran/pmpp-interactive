@@ -611,7 +611,7 @@ export const questionsS221: Record<string, Question> = {
     ),
     options: [
       {
-        label: `Brent-Kung, about ${Q_BK} time units against ${Q_KS}: with so few units, the total number of additions decides.`,
+        label: 'Brent-Kung, although it takes 19 steps to Kogge-Stone’s 10: with 32 adders a step’s additions wait their turn, so the total number of additions decides.',
         correct: true,
       },
       {
@@ -755,7 +755,8 @@ export const questionsS221: Record<string, Question> = {
       <p>
         The book&rsquo;s rule is to choose the best compromise for the given hardware. Here the two algorithms differ in
         how they reuse weights and in how much decoding work they repeat per token, and where those costs cross depends
-        on the device and on the format. A threshold tuned per GPU is that rule written into a dispatch function.
+        on the device and on the format. A limit lowered for some formats on particular GPUs is that rule written into a
+        dispatch function.
       </p>
     ),
     source: 'ch. 22 §22.1, p. 530; notes/today/ch22-facts.md D6',

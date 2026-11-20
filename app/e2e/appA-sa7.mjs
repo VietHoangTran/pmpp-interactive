@@ -286,7 +286,7 @@ const answerNum = async (needle, v) => {
   await pause(150);
   return (await q.evaluate((e) => e.textContent)).includes('Correct.');
 };
-check('q-idle: 50% is accepted', await answerNum('what percentage of thread slots', 50));
+check('q-idle: 53.33% (8 equations) is accepted', await answerNum('what percentage of thread slots', 53.33));
 check('q-tiny: 0 is right', await answerChoice('What does elimination give for x1', 0));
 check('q-a11: 2 is right', await answerChoice('What should the divisor be', 1));
 check('q-pivot-cost: a max seen by every thread is right', await answerChoice('cheap inside one block', 0));

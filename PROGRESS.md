@@ -35,18 +35,19 @@ pages, and commits. Per-chapter hints given to the designers are in the wave's `
       13.1, 14.1–14.3, 15.1–15.7); milestones M3 (15.6) and the M5 pieces (11.6 top-p mask,
       12.4 candidates, 14.3 sorted rows). Labs 11.5 and 12.5 are CUDA-family only (Metal
       documents no forward progress between threadgroups). Every browser check passes.
-- [ ] Wave 4 (run wf_ccca9f22-a5f, STOPPED 2026-11-20 by the weekly usage limit; resets Nov 27):
-      26 of 45 agents done. Facts and designs done for all five; ch20 sections built, its labs,
-      integration and review not; x1 sections and labs not built; ch22, ch19, appA partly built
-      (their integration and review not run). Resume with the same script and args:
-      Workflow({scriptPath: <session>/workflows/scripts/build-chapters-v3.js,
-      resumeFromRunId: 'wf_ccca9f22-a5f', args: scratchpad wave4-args.json}).
-- [ ] Wave 5a (run wf_63d11bbd-bd6, resumed after the limit reset and finished on Opus 5.5):
+- [x] Wave 4 (run wf_ccca9f22-a5f, resumed after the limit reset and finished on Opus 5.5):
+      ch20 (Deep, 5 labs: M6 causal softmax and flash attention, a bug hunt, M7 decode and
+      GQA decode), x1 (Deep, 4 labs: top-k, top-p/min-p, the M5 sampler, a bug hunt), ch22
+      (Standard, M8 batching study), ch19 (Standard, conv as GEMM), appA (Standard, summation
+      error). Every review's must-fix items fixed; all checks pass. Narration with
+      eleven_v4_turbo through the API (credits were low). Lab 20.5's starter carries lab
+      20.4's reference kernel (finish 20.4 first, the page says).
+- [x] Wave 5a (run wf_63d11bbd-bd6, resumed after the limit reset and finished on Opus 5.5):
       ch16, ch17, ch18, ch21, ch23 (Condensed: start, one or two pages, labs, wrap; one lab
       each; two narrated scenes each). Every review's must-fix items fixed; all checks pass.
       Metal benchmarks for 16.1, 21.1 and 23.1 were recorded on a loaded machine: rerun them
       on a quiet one. Lab 18.1 part B (grid-wide barrier) is CUDA-family only.
-- [ ] Wave 5b (after wave 4; briefs in the session scratchpad, ports 6700+): x2 quantised
+- [ ] Wave 5b (run wf_df00289e-445, launched after wave 4; ports 6700+): x2 quantised
       kernels (Deep), x3 reading real backends (Standard). M10 must not download anything:
       a deterministic toy model generated in the repo; a real checkpoint only by the reader.
 - [ ] Final pass to-do list (collected along the way):
@@ -173,6 +174,9 @@ settings follow AMD's and CMake's documentation (facts file, B6 and B7).
 - 2026-11-20: pilot chapter is 5 (memory and data locality, tiled matmul).
 
 ### Findings worth remembering
+- On the M3 Max (appendix A's probe, wave 4): Metal flushed FP32 denormals, rounded to
+  nearest, fused a*b+c, and its default math mode deleted the Kahan compensation;
+  `#pragma METAL fp math_mode(safe)` (upper-case METAL) restored it. One machine only.
 - On the M3 Max, chapter 15's M3 GEMM (the book's 128x128 tile, register tiling, padding,
   pipelining) measured slower than chapter 5's M2 at batch 256 and far below MPS: the
   book's NVIDIA-shaped tuning does not transfer to Apple's GPU as is. Pages show only

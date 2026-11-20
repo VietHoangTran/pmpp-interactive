@@ -476,10 +476,12 @@ export const questionsSA4: Record<string, Question> = {
       <p>
         Before comparing two vendors' numbers, find what each counts from. NVIDIA: "the difference in ULPs between the
         value returned by the function and a correctly rounded result". Metal: "the infinitely precise result". The book:
-        the exact result. Metal's fast-math division is correctly rounded only with fast math off.
+        the exact result. Metal's fast-math division is correctly rounded only with fast math off. AMD documents
+        measured differences against the C++ library instead (<code>__fadd_rn</code>: 0 over [−1000, 1000]), and nothing
+        about the plain operators.
       </p>
     ),
-    source: `book §A.4, p. 592; ${FACTS} A8 (NVIDIA 5.6.6, 5.6.7) and C2 (MSL spec 8.4)`,
+    source: `book §A.4, p. 592; ${FACTS} A8 (NVIDIA 5.6.6, 5.6.7), B4 (AMD) and C2 (MSL spec 8.4)`,
   },
   'appA/A.4/q-ex3': {
     kind: 'choice',
@@ -528,12 +530,13 @@ export const questionsSA4: Record<string, Question> = {
     id: 'appA/A.4/q-fma',
     prompt: (
       <>
-        Your CPU reference and your CUDA kernel compute the same <code>a*b + c</code> on the same floats, and differ in
-        the last bit. Nothing else in the kernel is wrong. What is the most likely cause?
+        Your CUDA kernel computes <code>a*b + c</code>. Your CPU reference, built with Clang's defaults, computes{' '}
+        <code>float p = a*b; float r = p + c;</code> on the same floats. The two differ in the last bit, and nothing else
+        in the kernel is wrong. What is the most likely cause?
       </>
     ),
     options: [
-      { label: 'nvcc fused the multiply and the add into one FMA, which rounds once instead of twice; it does so by default.', correct: true },
+      { label: 'nvcc fused the kernel\'s multiply and add into one FMA, which rounds once; the reference rounds the product first.', correct: true },
       { label: 'The GPU rounds toward zero.', why: 'CUDA rounds to nearest even by default; other modes need the _rz, _ru, _rd intrinsics.' },
       { label: 'The GPU flushed a denormal.', why: 'Possible only with -ftz=true or --use_fast_math, which are off by default, and only if a value is tiny.' },
       { label: 'A race condition between threads.', why: 'A race gives wrong or varying results, not a consistent one-bit difference in an expression with no shared data.' },
@@ -541,10 +544,13 @@ export const questionsSA4: Record<string, Question> = {
     explain: (
       <>
         <p>
-          nvcc's <code>--fmad</code> is true by default, and HIP-Clang fuses across statements by default; Clang on the host
-          fuses only within one statement. Neither result is wrong: the fused one is in fact the more accurate. Compare
-          with a tolerance, or, where you need bit-for-bit agreement, write <code>__fadd_rn(__fmul_rn(a, b), c)</code>:
-          those two intrinsics are never merged into an FMA.
+          nvcc's <code>--fmad</code> is true by default, so the kernel rounds once. Your reference stores the product in{' '}
+          <code>p</code> first, and Clang on the host fuses only within one statement, so it rounds twice. (HIP-Clang
+          fuses across statements by default, so the same split would not stop it there.) Had the reference been the one
+          statement <code>a*b + c</code>, a host with FMA instructions could fuse it too, and the two might agree. Neither
+          result is wrong: the fused one is in fact the more accurate. Compare with a tolerance, or, where you need
+          bit-for-bit agreement, write <code>__fadd_rn(__fmul_rn(a, b), c)</code>: those two intrinsics are never merged
+          into an FMA.
         </p>
         <p>The probe of lab A.1 reports what your own compiler did.</p>
       </>
@@ -621,15 +627,6 @@ export function SA4() {
         what CUDA devices achieve.
       </p>
       <Source section="A.4" pages="592" />
-      <Today checked={CHECKED('A8, B4, C2')}>
-        <p>
-          NVIDIA states it for <code>+ − × /</code> and <code>1/x</code> on float and double as "a maximum ULP error of
-          zero", counted from the correctly rounded result. Metal counts from "the infinitely precise result": <code>+ − ×</code>{' '}
-          are correctly rounded in every mode, but under fast math <code>x / y</code> is within 2.5 ulp and{' '}
-          <code>1.0 / x</code> within 1 ulp. AMD documents measured differences against the C++ library (
-          <code>__fadd_rn</code>: 0 over [−1000, 1000]), and nothing about the plain operators.
-        </p>
-      </Today>
       <Ask q={questionsSA4['appA/A.4/q-ulp-reference']} />
 
       <h2>Four rounding modes</h2>
@@ -681,20 +678,29 @@ export function SA4() {
         inversion was this inaccurate; the book says recent CUDA devices are IEEE-conformant.
       </p>
       <Source section="A.4" pages="592" />
-      <Today checked={CHECKED('A8, A14; ch10-facts A11, C4')}>
+      <p>
+        The inaccurate division is still available today, by choice. In CUDA, <code>-prec-div=false</code>, which{' '}
+        <code>--use_fast_math</code> implies, turns <code>x / y</code> into <code>__fdividef</code>, within 2 ULP, and{' '}
+        <code>1/x</code> into a 1-ULP reciprocal; the default is the correctly rounded division.
+      </p>
+      <Today checked={CHECKED('A8, A14')}>
         <p>
-          The 2-ULP division is still there, by choice: <code>-prec-div=false</code>, which <code>--use_fast_math</code>{' '}
-          implies, turns <code>x / y</code> into <code>__fdividef</code> (2 ULP) and <code>1/x</code> into 1 ULP. The
-          default is the correctly rounded division. <code>expf</code> is within 2 ULP; <code>__expf</code> within 2 +
-          ⌊|1.173 x|⌋. Metal's <code>exp</code> is within 4 ulp, <code>fast::exp</code> within 3 + ⌊|2x|⌋. The book's
-          "special function units" (p. 599) do not appear in NVIDIA's current text, which says intrinsics "map to fewer
-          native instructions".
+          The book's "special function units" (p. 599) do not appear in NVIDIA's current text, which says intrinsics "map
+          to fewer native instructions".
         </p>
       </Today>
       <p>
-        Both fast exponentials get worse as |x| grows, which is one more reason softmax keeps the argument of exp at or
-        below 0 (section <a href={href('appA', 'A.3')}>A.3</a>).
+        Exponentials make the same trade. CUDA's <code>expf</code> is within 2 ULP and <code>__expf</code> within 2 +
+        ⌊|1.173 x|⌋; Metal's <code>exp</code> is within 4 ulp and <code>fast::exp</code> within 3 + ⌊|2x|⌋. Both fast
+        exponentials get worse as |x| grows, which is one more reason softmax keeps the argument of exp at or below 0
+        (section <a href={href('appA', 'A.3')}>A.3</a>).
       </p>
+      <Today checked="2026-11-20 (notes/today/ch10-facts.md, A11, C4)">
+        <p>
+          Bounds from NVIDIA's guide (sections 5.6.7.2 and 5.6.9.2) and the Metal Shading Language specification
+          (Tables 8.1 and 8.2).
+        </p>
+      </Today>
       <Ask q={questionsSA4['appA/A.4/q-ex5']} label="Work it out" />
 
       <h2>One rounding instead of two</h2>

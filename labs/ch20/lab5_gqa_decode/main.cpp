@@ -23,7 +23,12 @@ void encodeKvAppend(id<MTLComputeCommandEncoder>, id<MTLComputePipelineState>, i
                     id<MTLBuffer> vNew, id<MTLBuffer> Kc, id<MTLBuffer> Vc, id<MTLBuffer> pos,
                     uint32_t batch, uint32_t maxSeq, uint32_t hKv);
 using pmpp::metal::buffer;
-static id<MTLComputePipelineState> groupedPso() { return pmpp::metal::pipeline(PMPP_METAL_SOURCE, "decode_attention_grouped"); }
+// Your kernel.metal is compiled once per group size g_q = hQ / hKv, with GQ defined as that
+// number (the counterpart of kernel.cu's template parameter). The runtime caches each one.
+static const int kMaxGq = 8;
+static id<MTLComputePipelineState> groupedPso(int gq) {
+    return pmpp::metal::pipeline(PMPP_METAL_SOURCE, "decode_attention_grouped", {{"GQ", std::to_string(gq)}});
+}
 static id<MTLComputePipelineState> perHeadPso() { return pmpp::metal::pipeline(PMPP_CH20_PERHEAD_METAL, "decode_attention"); }
 static id<MTLComputePipelineState> appendPso() { return pmpp::metal::pipeline(PMPP_CH20_PERHEAD_METAL, "kv_append"); }
 
@@ -41,7 +46,13 @@ static std::string checkPso(id<MTLComputePipelineState> p, const char* name) {
                                            (double)p.maxTotalThreadsPerThreadgroup);
     return "";
 }
-static std::string pipelineProblem() { return checkPso(groupedPso(), "decode_attention_grouped"); }
+static std::string pipelineProblem() {
+    for (int gq = 1; gq <= kMaxGq; ++gq) {
+        std::string p = checkPso(groupedPso(gq), "decode_attention_grouped");
+        if (!p.empty()) return p + m7::fmt(" (compiled with GQ = %.0f)", gq);
+    }
+    return "";
+}
 static std::string providedProblem() {
     if (!appendPso()) return "lab 20.4's kv_append did not build: " + pmpp::take_error();
     return checkPso(perHeadPso(), "lab 20.4's decode_attention");
@@ -58,7 +69,7 @@ static pmpp::Timing runDecodeWith(id<MTLComputePipelineState> p, bool grouped, B
 }
 static pmpp::Timing runGrouped(Buf* q, Buf* Kc, Buf* Vc, Buf* len, Buf* out, int batch, int hQ, int hKv, int maxSeq,
                                float scale) {
-    return runDecodeWith(groupedPso(), true, q, Kc, Vc, len, out, batch, hQ, hKv, maxSeq, scale);
+    return runDecodeWith(groupedPso(hQ / hKv), true, q, Kc, Vc, len, out, batch, hQ, hKv, maxSeq, scale);
 }
 static pmpp::Timing runPerHead(Buf* q, Buf* Kc, Buf* Vc, Buf* len, Buf* out, int batch, int hQ, int hKv, int maxSeq,
                                float scale) {
@@ -66,7 +77,7 @@ static pmpp::Timing runPerHead(Buf* q, Buf* Kc, Buf* Vc, Buf* len, Buf* out, int
 }
 static pmpp::Timing runStep(Buf* kNew, Buf* vNew, Buf* pos, Buf* q, Buf* Kc, Buf* Vc, Buf* len, Buf* out,
                             int batch, int hQ, int hKv, int maxSeq, float scale) {
-    id<MTLComputePipelineState> pa = appendPso(), pd = groupedPso();
+    id<MTLComputePipelineState> pa = appendPso(), pd = groupedPso(hQ / hKv);
     if (!pa || !pd) return {0, 0};
     return pmpp::run([&](void* v) {   // one encoder: the attention runs after the append (ch02-facts C9)
         id<MTLComputeCommandEncoder> enc = ((pmpp::metal::Pass*)v)->encoder;
@@ -178,7 +189,8 @@ static int tests(const pmpp::Args& a) {
                 return m7::runDecodeCase(runPerHead, m7::makeDecodeData(8, 2, {33, 1, 9}, true, 7), kRtol);
             });
     const std::string problem = pipelineProblem();
-    t.check("your kernel builds; decode_attention_grouped gets 32-lane SIMD-groups and 256 threads (Metal only)",
+    t.check("your kernel builds for GQ = 1 to 8; decode_attention_grouped gets 32-lane SIMD-groups and 256 threads "
+            "(Metal only)",
             [&] { return problem; });
 
     m7::decodeTests(t, runGrouped, {{8, 8}, {8, 4}, {8, 2}, {8, 1}, {6, 2}}, kRtol, "grouped decode");

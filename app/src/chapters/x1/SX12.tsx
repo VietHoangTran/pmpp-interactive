@@ -248,7 +248,7 @@ function TemperatureExplorer() {
             y = v >= 0 ? BASE - PH / 2 - h : BASE - PH / 2;
           }
           return (
-            <g key={i} onClick={() => click(i)} style={{ cursor: 'pointer' }} data-token={i} data-prob={probs[i].toPrecision(6)}>
+            <g key={i} onClick={() => click(i)} style={{ cursor: 'pointer' }} data-token={i} data-prob={String(probs[i])}>
               <rect x={x} y={y} width={bw - 6} height={h} rx="2"
                 fill={won ? 'var(--ink)' : 'var(--ink-3)'} fillOpacity={won ? 0.9 : 0.5}
                 stroke={picked ? 'var(--ink)' : 'var(--ink-3)'} strokeWidth={picked ? 2.4 : 1} />
@@ -267,7 +267,7 @@ function TemperatureExplorer() {
 
       <table className="data" style={{ margin: '0.6rem 0 0', maxWidth: '40rem' }} data-part="readouts">
         <tbody>
-          <tr data-readout="top1"><th>top-1 probability</th><td className="num">{top.toFixed(4)}</td></tr>
+          <tr data-readout="top1" data-top={top}><th>top-1 probability</th><td className="num">{top.toFixed(4)}</td></tr>
           <tr data-readout="entropy"><th>entropy</th><td className="num">{H.toFixed(3)} bits <span className="muted">(of at most {Math.log2(n).toFixed(3)})</span></td></tr>
           <tr data-readout="ratio" data-ratio={ratio.toPrecision(6)}>
             <th>p(token {a}) / p(token {b})</th>
@@ -455,8 +455,8 @@ export function SX12() {
       </Today>
       <Aside>
         <p>
-          The tolerance lab 10.3 uses, and why, is in its README: the exp error bounds of each backend times the row
-          length tested.
+          The tolerance lab 10.3 uses, and why, is in its README, derived from each backend's documented exp error
+          bound at the longest row it tests.
         </p>
       </Aside>
     </>

@@ -60,12 +60,16 @@ await page.waitForSelector(S);
 
 // ---- the prediction gates the probe readout
 check('before the prediction the probe errors are hidden', (await text(`${N} [data-part="locked"]`)).includes('Commit your prediction'));
+const rings = () => page.$$eval(`${N} svg circle[r="7"]`, (cs) => cs.length);
+const probeLines = () => page.$$eval(`${N} svg line[stroke-dasharray="4 3"]`, (ls) => ls.length);
+check('before the prediction the number line draws no probe rings and no probe line', (await rings()) === 0 && (await probeLines()) === 0, `${await rings()} rings`);
 const pred = await page.evaluateHandle(() => [...document.querySelectorAll('.q')].find((e) => e.textContent.includes('0.2 is rounded to the nearest')));
 await (await pred.$('input[aria-label="your prediction"]')).type('0.3');
 await pred.evaluate((e) => [...e.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Commit prediction').click());
 await pause(150);
 const pt = await pred.evaluate((e) => e.textContent);
 check('the reveal gives 0.3 and acknowledges the right prediction', pt.includes('0.3') && pt.includes('That is what you had.'), pt.slice(0, 200));
+check('after the prediction the probe line and one ring per convention appear', (await rings()) === 3 && (await probeLines()) === 1, `${await rings()} rings, ${await probeLines()} lines`);
 
 // ---- the book's 5-bit format and the probe 0.2
 let pr = await probeRows();
@@ -158,7 +162,9 @@ check('q-ex1 accepts 24', (await numeric('How many positive values can it repres
 check('q-ex2 accepts 14', (await numeric('What is the largest representable value', 14)).includes('Correct.'));
 check('q-int-half rejects 2048', (await numeric('smallest positive integer that FP16', 2048)).includes('Not quite. The answer is 2049.'));
 check('q-ftz accepts the flush answer', (await choose('--ftz=true', 0)).includes('Correct.'));
-check('q-range-vs-bits accepts FP32 only', (await choose('activation of 70,000', 3)).includes('Correct.'));
+check('q-range-vs-bits accepts FP32 only', (await choose('value of 100,000', 3)).includes('Correct.'));
+check('q-range-vs-bits numbers match the model: FP16 overflows 100,000 and keeps 1001; BF16 stores 99,840 and rounds 1001 to 1000',
+  round(FP16, 100000) === Infinity && round(FP16, 1001) === 1001 && round(BF16, 100000) === 99840 && round(BF16, 1001) === 1000 && round(FP32, 1001) === 1001);
 
 check('no console or page errors', errors.length === 0, errors.join(' | '));
 await browser.close();

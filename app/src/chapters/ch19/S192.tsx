@@ -1,11 +1,11 @@
-import { useMemo, useState, type MouseEvent } from 'react';
+import { useMemo, useState, type MouseEvent, type ReactNode } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
 import { Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
 import type { Tier } from '../../components/notes';
 import { labStatus, useReports } from '../../lib/reports';
 import { href } from '../../lib/router';
-import { FIG_19_4_LOOPS, directRatio, gradeLoops, lenetLayer, lessonRegion, type LoopRole, type LoopVar } from '../../sim/cnnlayer';
+import { FIG_19_4_LOOPS, directRatioMaps, gradeLoops, lenetLayer, lessonRegion, type LoopRole, type LoopVar } from '../../sim/cnnlayer';
 import { SEGMENT_MODELS, type SegmentModelId } from '../../sim/coalesce';
 import {
   CUDA_GRID,
@@ -32,6 +32,11 @@ import { DirectReadsScene } from './DirectReadsScene';
 const LAB = 'ch19/lab1_convgemm';
 const SOL = LAB + '/solution';
 const big = (v: number) => v.toLocaleString('en-US');
+/** A documented limit, written as 2^k − 1 when it is one and too long to read as digits. */
+const limitText = (v: number) => {
+  const k = Math.log2(v + 1);
+  return Number.isInteger(k) && k > 16 ? <>2<sup>{k}</sup> − 1</> : big(v);
+};
 const CONV_TIERS: Record<string, Tier> = {
   X: 'global', F: 'global', Y: 'global',
   acc: 'reg', n: 'reg', m: 'reg', h: 'reg', w: 'reg', c: 'reg', p: 'reg', q: 'reg',
@@ -43,21 +48,37 @@ export const questionsS192: Record<string, Question> = {
   'ch19/19.2/q-loops': {
     kind: 'choice',
     id: 'ch19/19.2/q-loops',
-    prompt: <>Which of Fig. 19.4&rsquo;s seven loops can be split across threads with no atomics and no change in the result?</>,
+    prompt: (
+      <>
+        You split Fig. 19.4&rsquo;s c loop for LeNet&rsquo;s C3 across its six input maps: six threads each add their
+        own partial sum into the same output with a plain <code>Y[i] += part</code>, and Y[i] starts at 0. What can
+        Y[i] hold when all six are done?
+      </>
+    ),
     options: [
-      { label: 'n, m, h and w.', correct: true },
-      { label: 'All seven.', why: 'Every iteration of c, p and q adds into the same Y[n, m, h, w]. Split them and threads would read, add and write that element at the same time.' },
-      { label: 'Only h and w.', why: 'n and m also choose a different output element: another sample, another map.' },
-      { label: 'Only n and m.', why: 'h and w choose different pixels of one map, and nothing else writes those.' },
+      { label: 'The full sum, or the sum of only some of the six parts.', correct: true },
+      {
+        label: 'Always the full sum; only the order of the additions varies.',
+        why: 'That is what an atomic add guarantees. A plain += is a load, an add and a store, and two threads can load the same old value.',
+      },
+      {
+        label: 'The full sum, or 0.',
+        why: 'Whichever thread stores last stores its own part plus the value it loaded, so at least one part always survives.',
+      },
+      {
+        label: 'The full sum, as long as the six threads are in one warp.',
+        why: 'Being in one warp orders nothing here: all six lanes can load the old value before any of them stores.',
+      },
     ],
     explain: (
       <p>
-        Iterations of n, m, h and w write different Y elements, so they can run in any order on any thread. Iterations
-        of c, p and q all add into one element: a read-modify-write that would need atomic operations if it were split.
-        The book keeps those loops inside each thread (p. 460).
+        Each <code>+=</code> is three steps: load, add, store. If two threads both load 0 and both store, the later store
+        erases the earlier thread&rsquo;s part. Any number of parts can be lost this way, but never the last
+        writer&rsquo;s. That is why the book keeps c, p and q inside each thread: splitting them needs atomic operations
+        (p. 460).
       </p>
     ),
-    source: 'ch. 19 §19.2, p. 460',
+    source: 'ch. 19 §19.2, p. 460; the lost update is our illustration',
   },
   'ch19/19.2/q-mapping': {
     kind: 'choice',
@@ -133,21 +154,24 @@ export const questionsS192: Record<string, Question> = {
     id: 'ch19/19.2/q-ratio',
     prompt: (
       <>
-        The direct kernel on LeNet&rsquo;s C3 (C = 6, K = 5): how many floating-point operations does it perform per
-        byte it requests from global memory?
+        A colleague changes the direct kernel so that each thread computes two output maps, m and m + 1, at its
+        pixel. It loads each X value once and uses it for both maps, each with its own F weight. On LeNet&rsquo;s C3 (C
+        = 6, K = 5), how many floating-point operations does it perform per byte it requests from global memory?
       </>
     ),
-    answer: directRatio(lenetLayer('C3')!),
-    tol: 0.02,
+    answer: Number(directRatioMaps(lenetLayer('C3')!, 2).toFixed(2)), // 1/3, shown as 0.33
+    tol: 0.03,
     unit: 'FLOP/B',
     explain: (
       <p>
-        Each output takes C · K² = 150 multiply-adds, 300 FLOP, and each multiply-add loads one X value and one F value:
-        300 loads of 4 bytes, 1200 bytes. 300 / 1200 = 0.25. The layer&rsquo;s shape cancels out, as it did for the
-        naive matrix multiplication in chapter 5 and the basic convolution kernel in chapter 7.
+        Per thread: 2 · 150 = 300 multiply-adds, 600 FLOP. Loads: 150 X values, now shared by both maps, and 300 F
+        values, one per multiply-add. That is 450 loads of 4 bytes, 1800 bytes, and 600 / 1800 ≈ 0.33. Better than 0.25,
+        and still independent of the layer&rsquo;s shape. With r maps per thread the ratio is r / (2(1 + r)), which
+        never reaches 0.5, because every multiply-add still loads its own weight. Going past that needs the weights
+        reused as well, across pixels: the tiles of section 19.3.
       </p>
     ),
-    source: 'ch. 19 §19.2, p. 463 (bandwidth-bound); the count is derived (notes, §19.2)',
+    source: 'ch. 19 §19.2, p. 463 (bandwidth-bound); the variation and its count are ours (notes, §19.2)',
   },
   'ch19/19.2/q-layout': {
     kind: 'choice',
@@ -292,6 +316,31 @@ function NumField({ label, value, min, max, onChange }: { label: string; value: 
   );
 }
 
+/** One row of the grid-limits table: a verdict chip over the documented limit, per vendor. */
+function LimitRow({ label, value, cuda, hip }: {
+  label: ReactNode;
+  value: number;
+  cuda: [boolean, number] | null;
+  hip: [boolean, number, string?];
+}) {
+  const pad = { padding: '0.4rem 0.45rem 0.4rem 0' };
+  const cell = ([ok, limit, mark]: [boolean, number, string?]) => (
+    <td style={pad}>
+      <span className={'chip ' + (ok ? 'ok' : 'fail')}>{ok ? 'within' : 'over'}</span>
+      <br />
+      <span style={{ whiteSpace: 'nowrap' }}>≤ {limitText(limit)}{mark ?? ''}</span>
+    </td>
+  );
+  return (
+    <tr>
+      <td style={{ ...pad, paddingLeft: '0.6rem' }}>{label}</td>
+      <td className="num" style={pad}>{big(value)}</td>
+      {cuda ? cell(cuda) : <td className="muted" style={pad}>no cap</td>}
+      {cell(hip)}
+    </tr>
+  );
+}
+
 function GridMap() {
   const [s, setS] = useState<Shape>(PRESETS[0].s);
   const [host, setHost] = useState<Host>('floor');
@@ -374,7 +423,6 @@ function GridMap() {
   };
   const FILL = ['var(--fail-wash)', 'var(--ok-wash)', 'var(--fail)'];
 
-  const lit = (ok: boolean) => <span className={'chip ' + (ok ? 'ok' : 'fail')}>{ok ? 'within' : 'over'}</span>;
 
   return (
     <Bench
@@ -595,21 +643,24 @@ function GridMap() {
         )
       ) : null}
 
-      <table className="data" style={{ margin: '0.9rem 0 0', background: 'var(--page)' }} data-out="limits"
-        data-cuda={lim.cuda.ok ? 'ok' : 'over'} data-hip={lim.hip.ok ? 'ok' : 'over'}>
-        <thead>
-          <tr><th style={{ paddingLeft: '0.6rem' }}>this launch</th><th className="num">value</th><th>CUDA</th><th>HIP</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td style={{ paddingLeft: '0.6rem' }}>gridDim.x (output maps)</td><td className="num">{big(g.grid.x)}</td><td>{lit(lim.cuda.x)} ≤ {big(CUDA_GRID.x)}</td>
-            <td>{lit(g.grid.x * g.threadsPerBlock <= HIP_GRID.threads)} ≤ {big(HIP_GRID.threads)}, read as threads (the stricter reading)</td>
-          </tr>
-          <tr><td style={{ paddingLeft: '0.6rem' }}>gridDim.y (tiles per map)</td><td className="num">{big(g.grid.y)}</td><td>{lit(lim.cuda.y)} ≤ {big(CUDA_GRID.y)}</td><td>{lit(lim.hip.y)} ≤ {big(HIP_GRID.y)}</td></tr>
-          <tr><td style={{ paddingLeft: '0.6rem' }}>gridDim.z (samples)</td><td className="num">{big(g.grid.z)}</td><td>{lit(lim.cuda.z)} ≤ {big(CUDA_GRID.z)}</td><td>{lit(lim.hip.z)} ≤ {big(HIP_GRID.z)}</td></tr>
-          <tr><td style={{ paddingLeft: '0.6rem' }}>threads in the grid</td><td className="num">{big(g.threads)}</td><td className="muted">no cap documented</td><td>{lit(lim.hip.threads)} ≤ {big(HIP_GRID.threads)}</td></tr>
-        </tbody>
-      </table>
+      <div style={{ overflowX: 'auto', margin: '0.9rem 0 0' }} data-out="limits-wrap">
+        <table className="data" style={{ margin: 0, background: 'var(--page)' }} data-out="limits"
+          data-cuda={lim.cuda.ok ? 'ok' : 'over'} data-hip={lim.hip.ok ? 'ok' : 'over'}>
+          <thead>
+            <tr><th style={{ paddingLeft: '0.6rem' }}>grid</th><th className="num">this launch</th><th>CUDA</th><th>HIP</th></tr>
+          </thead>
+          <tbody>
+            <LimitRow label={<>x<br /><span className="muted">maps</span></>} value={g.grid.x} cuda={[lim.cuda.x, CUDA_GRID.x]} hip={[g.grid.x * g.threadsPerBlock <= HIP_GRID.threads, HIP_GRID.threads, '*']} />
+            <LimitRow label={<>y<br /><span className="muted">tiles</span></>} value={g.grid.y} cuda={[lim.cuda.y, CUDA_GRID.y]} hip={[lim.hip.y, HIP_GRID.y]} />
+            <LimitRow label={<>z<br /><span className="muted">samples</span></>} value={g.grid.z} cuda={[lim.cuda.z, CUDA_GRID.z]} hip={[lim.hip.z, HIP_GRID.z]} />
+            <LimitRow label="threads" value={g.threads} cuda={null} hip={[lim.hip.threads, HIP_GRID.threads]} />
+          </tbody>
+        </table>
+      </div>
+      <p className="muted" style={{ margin: '0.4rem 0 0', fontSize: '0.9em' }}>
+        * HIP documents 2<sup>32</sup> − 1 for x without saying whether it counts blocks or threads; the check reads it as
+        threads, the stricter reading. CUDA documents no cap on the threads in a grid.
+      </p>
     </Bench>
   );
 }
@@ -799,14 +850,18 @@ export function S192() {
     <>
       <h2>Which loops can run in parallel</h2>
       <p>
-        Look at Fig. 19.4 again, the seven loops of the batched layer. The four outer ones, n, m, h and w, each pick a
-        different element of Y to write, so their iterations can run in any order, on any thread. The three inner ones,
-        c, p and q, all add into the same element. They could be parallelised too, but every thread would then be reading,
-        adding to and writing one shared Y element, which needs atomic operations. The book keeps them serial unless more
-        parallelism is really needed.
+        Look at Fig. 19.4 again, the seven loops of the batched layer. Some of them move to a different element of Y on
+        each iteration; others keep adding into the element already chosen. Sort them before reading on: only the first
+        kind can be handed to separate threads as it stands.
       </p>
       <Source section="19.2" pages="460" figs="Fig. 19.4" />
       <LoopSort />
+      <p>
+        The four outer loops, n, m, h and w, each pick a different element of Y to write, so their iterations can run in
+        any order, on any thread. The three inner ones, c, p and q, all add into the same element. They could be
+        parallelised too, but every thread would then be reading, adding to and writing one shared Y element. The book
+        keeps them serial unless more parallelism is really needed.
+      </p>
       <Ask q={questionsS192['ch19/19.2/q-loops']} />
       <p>
         That still leaves N · M · H_out · W_out independent outputs. For LeNet&rsquo;s C1 at batch 1 that is 6 · 28 · 28
@@ -935,9 +990,19 @@ export function S192() {
       <p>
         Where does the waste come from? Neighbouring threads read overlapping patches, and caches may serve some of those
         repeats. But every block that computes another output map reads the very same input again, and shared memory
-        cannot help, because it belongs to one block. The animation counts both on the book&rsquo;s example.
+        cannot help, because it belongs to one block.
       </p>
       <Source section="19.2" pages="463" />
+      <p>
+        The animation counts both kinds on the book&rsquo;s example: three 3 × 3 input maps, 2 × 2 filters, two output
+        maps, and tiles of 2 × 2 threads.
+      </p>
+      <Simplification>
+        <p>
+          Counts read requests, one per thread per step of the c, p, q loop. The blocks run one after the other for
+          clarity. No caches, no coalescing, no timing.
+        </p>
+      </Simplification>
       <DirectReadsScene />
       <Ask q={questionsS192['ch19/19.2/q-reuse']} />
       <p>
@@ -967,6 +1032,10 @@ export function S192() {
       </Simplification>
       <WarpReadsBench />
       <Ask q={questionsS192['ch19/19.2/q-layout']} />
+      <p>
+        Libraries choose a layout for more reasons than this kernel&rsquo;s loads. NVIDIA&rsquo;s matrix units want
+        channels last, and AMD&rsquo;s library does not take Exercise 2&rsquo;s CHWN at all.
+      </p>
       <Today checked="2026-11-20 (notes/today/ch19-facts.md, A5, B3)">
         <p>
           cuDNN: &ldquo;Tensor Cores require that the tensors be in the NHWC data layout&rdquo;, and it converts between

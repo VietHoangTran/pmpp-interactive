@@ -18,7 +18,8 @@ ways and measures which way your device prefers.
   atomics. The kernel has `out` warps' worth of parallelism.
 - **(b) Split-K, input-centric along `in` (provided, with one defect).** `in` is cut into S
   chunks, and one warp takes one (chunk, output) pair. It reduces its chunk's partial
-  sums the same way and adds them into `Y[b][j]`, which S warps share. The launch zeroes
+  sums the same way, with the same function as your gather, and adds them into `Y[b][j]`,
+  which S warps share. The launch zeroes
   Y first. This is a scatter, and p. 533 says what a scatter needs: several threads may
   update the same output at once, so atomics are needed to avoid lost updates. In
   exchange it has S times as many warps.
@@ -34,9 +35,14 @@ trade on layer shapes you will meet in a real model.
 
 ## Your part
 
-1. **(a)** Write `gemvGatherKernel` and `launchGemvGather` in `work/kernel.cu`, and
-   `gemv_gather` in `work/kernel.metal` plus the dispatch in `encodeGemvGather` in
-   `work/launch.mm`.
+1. **(a)** Write the work both kernels share, once: `warpRowDots` in `work/kernel.cu`
+   (`simdRowDots` in `work/kernel.metal`). One warp takes a stretch `[k0, k1)` of one row
+   of W and leaves, in lane 0, its dot product with every batch row of X: the register
+   sums, the warp-strided loop and the warp reduction. Then write `gemvGatherKernel` and
+   `launchGemvGather` around it in `work/kernel.cu`, and `gemv_gather` in
+   `work/kernel.metal` plus the dispatch in `encodeGemvGather` in `work/launch.mm`.
+   The provided split-K calls the same function on its chunk, so it computes nothing until
+   yours is written.
    - Never a literal 32 for the warp width: `warpSize` in the kernel, the device property
      in the launcher (provided: `deviceWarpSize()`), the pipeline's
      `threadExecutionWidth` on Metal. Chapter 10's `warpSum`, with its own lane-mask type,
@@ -54,12 +60,13 @@ trade on layer shapes you will meet in a real model.
 
 ## Files
 
-- `work/kernel.cu` (CUDA, HIP and both emulators): `gemvGatherKernel` and
-  `launchGemvGather` are yours. Fix the defect in `gemvSplitKKernel`.
+- `work/kernel.cu` (CUDA, HIP and both emulators): `warpRowDots`, `gemvGatherKernel`
+  and `launchGemvGather` are yours. Fix the defect in `gemvSplitKKernel`, which calls
+  your `warpRowDots`.
   `launchGemvSplitK` is provided and correct: it zeroes Y with `cudaMemset`, then
   launches `ceil(S x out / 4)` blocks of 4 warps.
-- `work/kernel.metal`: `gemv_gather` is yours. Fix `gemv_splitk`. `gemv_zero` is
-  provided.
+- `work/kernel.metal`: `simdRowDots` and `gemv_gather` are yours. Fix `gemv_splitk`.
+  `gemv_zero` is provided.
 - `work/launch.mm`: the dispatch in `encodeGemvGather` is yours. `encodeGemvSplitK` is
   provided: it dispatches `gemv_zero` and then `gemv_splitk` in the same serial encoder.
 - `main.cpp`: the driver and the CPU reference `cpuLinear`. You do not need to edit it.

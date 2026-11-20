@@ -163,6 +163,10 @@ describe('presets', () => {
     expect(m['spmv-coo']).toMatchObject({ threads: 20, atomicUpdates: 20, imbalance: 1 });
     expect(m['gemv-narrow']).toMatchObject({ threads: 256, atomicUpdates: 8, worstWriters: 4 });
   });
+  it('q-conv-writers: 20 inputs, a 7-wide filter, input-centric: 128 atomic updates, none output-centric', () => {
+    expect(decompose(conv(20, 7), 'input', { warpWidth: NVIDIA_WARP, S: 1 }).metrics).toMatchObject({ atomicUpdates: 128, outputsNeedingAtomics: 20, worstWriters: 7, plainStores: 0 });
+    expect(decompose(conv(20, 7), 'output', { warpWidth: NVIDIA_WARP, S: 1 }).metrics).toMatchObject({ atomicUpdates: 0, plainStores: 20 });
+  });
 });
 
 describe('the gather-scatter scene', () => {

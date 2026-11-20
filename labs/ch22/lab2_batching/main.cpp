@@ -6,7 +6,9 @@
 //   provided/pieces.cmake   copies the earlier labs' reference solutions into the build
 //   provided/step_timer.cu  one pair of events around a stretch of launches (CUDA, HIP)
 //   cpuDecodeStep (below)   the CPU reference, in double
+#include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <functional>
 #include <map>
@@ -793,6 +795,12 @@ static int tests(const pmpp::Args& a) {
           [&] { return checkEmbed(*tm, dm, embedA); });
   t.check("embed alone: batch 1, token V-1", [&] { return checkEmbed(*tm, dm, {vocab - 1}); });
 
+  // On the emulators the batch-invariance check runs once, with the GEMM that costs the
+  // emulator least (M3: its 128-wide tiles launch the fewest threads), since invariance is a
+  // property of how your step treats the batch, not of the GEMM it calls. On a GPU it runs
+  // once per GEMM.
+  std::string unused;
+  const Gemm invGemm = gemmPresent(M3, &unused) ? M3 : M2;
   for (Gemm g : kGemms) {
     std::string why;
     if (!gemmPresent(g, &why)) {
@@ -808,10 +816,10 @@ static int tests(const pmpp::Args& a) {
                   " steps against the CPU reference",
               [&] { return checkDecode(g, *tm, dm, B, steps, &together[B]); });
     }
-    // Once per GEMM: every sequence of one batch decoded alone again. The largest batch on a
-    // GPU; batch 3 on the emulators, where each decode of the batch costs seconds.
+    // Every sequence of one batch decoded alone again. The largest batch on a GPU; batch 3
+    // on the emulators, where each decode of the batch costs seconds.
     const int inv = emu ? 3 : largest;
-    if (inv > 1 && together.count(inv)) {
+    if (inv > 1 && together.count(inv) && (!emu || g == invGemm)) {
       t.check(std::string(gemmName(g)) + ", batch " + std::to_string(inv) + ": each sequence decodes as it does alone",
               [&] { return checkInvariance(g, *tm, dm, inv, steps, together[inv]); });
     }
@@ -1012,8 +1020,8 @@ static int bench(const pmpp::Args& a) {
       }
     }
   }
-  std::printf("\nThese are measurements of this machine. The knee (the first doubling of the batch that raises\n"
-              "tokens per second by less than 1.5x) is computed in the app from the 'step' rows.\n");
+  std::printf("\nThese are measurements of this machine. The knee (the first batch whose time per step is at\n"
+              "least 1.5x the time at the smallest batch) is computed in the app from the 'step' rows.\n");
   return 0;
 }
 

@@ -7,9 +7,12 @@
 //   q, out [batch, h_q, HEAD_DIM]; Kc, Vc [batch, max_seq, h_kv, HEAD_DIM]; len [batch],
 //   1 <= len[b] <= max_seq; query head h reads K/V head h / g_q.
 //
-// The kernel below is lab 20.4's reference per-head kernel, with only its name changed.
-// It computes ONE query head per block. Regroup it: the TODOs mark where.
+// The kernel body below is lab 20.4's reference per-head kernel: it computes ONE query head
+// per block. It is already a template on GQ, the group size, so that the arrays you add can
+// be sized GQ and every loop over them has a trip count the compiler knows: then they can
+// stay in registers. Regroup the body: the TODOs mark where.
 #include <cfloat>
+#include <cstdio>
 
 #if defined(PMPP_CUDA_FRONTEND_CHECK)
 __device__ float expf(float x);
@@ -22,7 +25,7 @@ __device__ float fmaxf(float x, float y);
 #define N_WARPS (BLOCK_SIZE / WARP_SIZE)
 #define D_PER_LANE (HEAD_DIM / WARP_SIZE)
 #define M_INIT (-FLT_MAX / 2.0f)
-#define MAX_GQ 8                               // query heads per K/V head your kernel must serve
+#define MAX_GQ 8                               // the largest group your launcher must serve
 
 #if defined(__HIPCC__)
 typedef unsigned long long lane_mask_t;
@@ -41,18 +44,19 @@ __device__ float warpSumAll(float v) {
     return v;
 }
 
+template <int GQ>
 __global__ void decodeAttentionGroupedKernel(const float* q, const float* Kc, const float* Vc, const int* len,
                                              float* out, int h_q, int h_kv, int max_seq, float scale) {
-    // TODO 1: the warps now merge g_q heads. Give m_s and D_s a second
-    //         dimension, [N_WARPS][MAX_GQ]. O_s can stay [N_WARPS][HEAD_DIM] if the
-    //         merge handles one query head at a time (all eight at once would be 32 KiB,
-    //         the whole of a Metal threadgroup's memory).
+    // TODO 1: the warps now merge GQ heads. Give m_s and D_s a second dimension of GQ.
+    //         O_s can stay [N_WARPS][HEAD_DIM] if the merge handles one query head at a
+    //         time (eight heads at once would be 32 KiB, the whole of a Metal
+    //         threadgroup's memory).
     __shared__ float m_s[N_WARPS];
     __shared__ float D_s[N_WARPS];
     __shared__ float O_s[N_WARPS][HEAD_DIM];
 
     // TODO 2: the block is now (K/V head, sequence): blockIdx.x is the K/V head, and its
-    //         query heads are kvh * g_q ... kvh * g_q + g_q - 1.
+    //         query heads are kvh * GQ ... kvh * GQ + GQ - 1.
     const int h = blockIdx.x;
     const int b = blockIdx.y;
     const int kvh = h / (h_q / h_kv);
@@ -60,10 +64,9 @@ __global__ void decodeAttentionGroupedKernel(const float* q, const float* Kc, co
     const int w = warpIdx();
     const int n = len[b];
 
-    // TODO 3: g_q queries and g_q running states (m, D, O~) per warp. Size the arrays
-    //         with MAX_GQ, loop over them with `#pragma unroll` and switch the unused
-    //         ones off with `g < g_q`, so that every index is a constant and the arrays
-    //         can stay in registers.
+    // TODO 3: GQ queries and GQ running states (m, D, O~) per warp: arrays of GQ, filled
+    //         in loops over g < GQ (`#pragma unroll` on them is harmless and documents
+    //         the intent).
     const float* qrow = q + ((size_t)b * h_q + h) * HEAD_DIM;
     float qr[D_PER_LANE];
     for (int i = 0; i < D_PER_LANE; ++i) {
@@ -83,8 +86,7 @@ __global__ void decodeAttentionGroupedKernel(const float* q, const float* Kc, co
     for (int t = w; t < n; t += N_WARPS) {
         // TODO 4: load this lane's part of the K row and the V row ONCE into registers,
         //         then score and update every query head of the group against them.
-        //         Every lane must take part in every shuffle: a condition on g_q is fine
-        //         (it is the same in every lane), a condition on the lane is not.
+        //         Every lane must take part in every shuffle.
         const float* krow = Kb + t * rowStride;
         float partial = 0.0f;
         for (int i = 0; i < D_PER_LANE; ++i) {
@@ -137,6 +139,9 @@ __global__ void decodeAttentionGroupedKernel(const float* q, const float* Kc, co
 
 void launchDecodeAttentionGrouped(const float* q, const float* Kc, const float* Vc, const int* len, float* out,
                                   int batch, int h_q, int h_kv, int max_seq, float scale) {
-    // TODO 6: a grid of (h_kv, batch) blocks of BLOCK_SIZE threads. (Lab 20.4 launched
-    //         (h_q, batch).) Refuse g_q above MAX_GQ.
+    // TODO 6: a grid of (h_kv, batch) blocks of BLOCK_SIZE threads (lab 20.4 launched
+    //         (h_q, batch)), and the instance for this group size, one case per g_q from
+    //         1 to MAX_GQ, for example
+    //             case 4: decodeAttentionGroupedKernel<4><<<grid, BLOCK_SIZE>>>(...); break;
+    //         Print a message and launch nothing for a g_q above MAX_GQ.
 }

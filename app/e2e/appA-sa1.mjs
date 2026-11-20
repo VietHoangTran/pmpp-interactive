@@ -90,6 +90,11 @@ check("the book's format has no not-in-the-book badge", (await page.$(`${B} [dat
 await setInput(`${B} input[aria-label="value to encode"]`, '0.75');
 check('typing 0.75 gives 0 010 10 (the q-encode answer)', (await part(B, 'pattern')) === showBits(TOY6, encode(TOY6, 0.75)) && (await part(B, 'pattern')) === '0 010 10');
 check('0.75 is exact in the 6-bit format', (await part(B, 'typed')).includes('Exact'));
+await setInput(`${B} input[aria-label="value to encode"]`, '0');
+check('§A.1 has no zero: 0 rounds to 0 000 00 = 0.125, read with Eq. (A.1), as the model says',
+  (await part(B, 'pattern')) === '0 000 00' && (await part(B, 'value')) === show(round(TOY6, 0)) && round(TOY6, 0) === 0.125 &&
+  (await part(B, 'class')) === 'normal' && (await part(B, 'unbiased')) === '−3' && (await part(B, 'facts')).includes('no zero'),
+  `${await part(B, 'pattern')} ${await part(B, 'value')} ${await part(B, 'class')} | ${await part(B, 'facts')}`);
 await setInput(`${B} input[aria-label="value to encode"]`, '0.6');
 check('0.6 rounds to the nearest 6-bit value', (await part(B, 'typed')).includes(show(round(TOY6, 0.6))), await part(B, 'typed'));
 

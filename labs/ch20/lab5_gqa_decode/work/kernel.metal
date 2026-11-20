@@ -1,14 +1,21 @@
 // Lab 20.5 starter (Metal Shading Language): the grouped-query decode of kernel.cu.
-// One threadgroup of 256 threads per (K/V head, sequence), serving its g_q = hQ / hKv
-// (at most MAX_GQ) query heads.
+// One threadgroup of 256 threads per (K/V head, sequence), serving its GQ query heads.
+//
+// GQ, the group size hQ / hKv, is a compile-time constant here as the template parameter
+// is in kernel.cu: the driver compiles this file once per group size (1 to 8) with GQ
+// defined as a preprocessor macro. Size your arrays with it.
 //
 // The kernel below is lab 20.4's reference per-head kernel with only its name changed: it
 // computes ONE query head per threadgroup. Regroup it, following kernel.cu's TODOs 1 to 5.
-// simd_sum is the warpSumAll of kernel.cu; a condition on gq around it is fine (it is the
-// same in every lane), a condition on the lane is not. The driver checks for 32-lane
-// SIMD-groups. Keep the running max finite (M_INIT): fast math leaves infinities undefined.
+// simd_sum is the warpSumAll of kernel.cu; every lane must reach every simd_sum call. The
+// driver checks for 32-lane SIMD-groups. Keep the running max finite (M_INIT): fast math
+// leaves infinities undefined.
 #include <metal_stdlib>
 using namespace metal;
+
+#ifndef GQ
+#error "GQ (query heads per K/V head) is defined by the driver when it builds the pipeline"
+#endif
 
 #define HEAD_DIM 128
 #define SIMD_WIDTH 32
@@ -16,7 +23,6 @@ using namespace metal;
 #define N_WARPS (BLOCK_SIZE / SIMD_WIDTH)
 #define D_PER_LANE (HEAD_DIM / SIMD_WIDTH)
 #define M_INIT (-FLT_MAX / 2.0f)
-#define MAX_GQ 8
 
 kernel void decode_attention_grouped(device const float* q     [[buffer(0)]],
                                      device const float* Kc    [[buffer(1)]],

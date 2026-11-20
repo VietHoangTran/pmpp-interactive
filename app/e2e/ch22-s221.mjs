@@ -106,7 +106,7 @@ check('q-scan-units sits before the scan explorer', order);
 const m1024 = await model(1024, 32, 'adds', 32);
 let v = await answerChoice('can keep only 32 adders busy', 'Kogge-Stone, because it takes 10 steps');
 check('q-scan-units: Kogge-Stone is wrong, with the reason', v && v.includes('Not quite.') && v.includes('up to 32 rounds'), v);
-v = await answerChoice('can keep only 32 adders busy', 'Brent-Kung, about');
+v = await answerChoice('can keep only 32 adders busy', 'Brent-Kung, although');
 check(`q-scan-units: Brent-Kung is right, ${m1024.rows['brent-kung'].time} against ${m1024.rows['kogge-stone'].time}, Kogge-Stone only from ${m1024.ksFrom}`,
   v && v.includes('Correct.') && v.includes(`${m1024.rows['kogge-stone'].time} in all`) && v.includes(`: ${m1024.rows['brent-kung'].time}.`) && v.includes(`from ${m1024.ksFrom}`), v);
 

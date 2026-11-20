@@ -560,20 +560,24 @@ export const questionsS223: Record<string, Question> = {
     id: 'ch22/22.3/q-hip-queues',
     prompt: (
       <>
-        On ROCm with default settings, a program creates 8 streams on one GPU and puts a small kernel on each. At most how
-        many hardware queues carry those kernels?
+        On ROCm with default settings, a program puts 8 independent kernels on 8 streams, one each, on one GPU. Each
+        kernel fills 10% of the device and runs for a time d, and launch cost is negligible. How long until all 8 have
+        finished, in units of d? Assume a hardware queue shared by several streams runs their kernels one after another.
       </>
     ),
-    answer: 4,
+    answer: 2,
+    unit: 'd',
     explain: (
       <p>
-        <code>GPU_MAX_HW_QUEUES</code> defaults to 4: the HIP runtime creates at most that many hardware queues per device
-        per process, and streams beyond them reuse the same queues round-robin. In the explorer, a stream each with 4
-        queues stops at 4 kernels at once however small f is (the model assumes a shared queue runs its kernels in order,
-        which AMD's page does not spell out). CUDA's guide gives a different limit, 128 resident grids per device.
+        8 kernels at 10% each would fit on the device at once, so the device is not the limit. The queues are:{' '}
+        <code>GPU_MAX_HW_QUEUES</code> defaults to 4, the HIP runtime creates at most that many hardware queues per device
+        per process, and streams beyond them reuse the same queues round-robin. Two streams share each queue, so the
+        kernels run in two rounds of 4: 2d, against d with a queue per stream. That a shared queue runs its kernels in
+        order is the model&rsquo;s assumption, and AMD&rsquo;s page does not spell it out. In the explorer above, set 8
+        kernels, f at 10%, a stream each and 4 queues to see it. CUDA&rsquo;s guide gives a different limit, 128 resident grids per device.
       </p>
     ),
-    source: 'notes/today/ch22-facts.md B1, A2 (HIP docs at ROCm 10.2; CUDA Programming Guide 13.5)',
+    source: 'notes/today/ch22-facts.md B1, A2 (HIP docs at ROCm 10.2; CUDA Programming Guide 13.5); our model (sim/tasklanes.ts)',
   },
   'ch22/22.3/q-default-stream': {
     kind: 'choice',
@@ -835,7 +839,7 @@ export function S223() {
         each other. A multi-core host can run them on different cores. Or the GPU can run several small kernels at once,
         one per activity: each alone may use the device poorly and gain little over the CPU, but together they can fill it.
         CUDA expresses this with streams, which{' '}
-        <a href={href('ch23')}>chapter 23</a> covers in §23.3 (pp. 553–563).
+        chapter 23 covers in <a href={href('ch23', '23.3')}>§23.3</a> (pp. 553–563).
       </p>
       <Source section="22.3" pages="538" />
       <p>

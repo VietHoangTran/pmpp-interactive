@@ -1,10 +1,12 @@
 import type { Chapter } from '../types';
 
-// Planned. The sections are added when the chapter is built (see PLAN.md).
+// Standard depth (PLAN.md). The chapter prints no code and no exercises; the course adds
+// two labs, the second of which is milestone M8. One file per section, each loaded on
+// demand and exporting its component and its questions.
 export const chapter: Chapter = {
   id: 'ch22',
   num: '22',
-  title: 'Algorithm selection and problem formulation',
+  title: 'Algorithm selection, problem decomposition, and problem formulation',
   pages: '529–540',
   sections: [
     {
@@ -36,6 +38,16 @@ export const chapter: Chapter = {
       id: '22.5', num: '22.5', title: 'Batching: latency versus throughput', pages: '539–540',
       lede: 'Predict where a decode step stops being bandwidth-bound as the batch grows, and say what each user pays in latency for the throughput gained.',
       load: () => import('./S225').then((m) => ({ Component: m.S225, questions: m.questionsS225 })),
+    },
+    {
+      id: 'labs', num: '', title: 'Labs', pages: null,
+      lede: 'Two labs on your own GPUs: two decompositions of a decode-time matrix-vector product, and the batching study (milestone M8).',
+      load: () => import('./Labs').then((m) => ({ Component: m.Labs, questions: m.questionsLabs })),
+    },
+    {
+      id: 'wrap', num: '22.6', title: 'Summary', pages: '540',
+      lede: "What to carry forward, a mixed check, the PDF's apparent slips, and where milestone M8 stands.",
+      load: () => import('./Wrap').then((m) => ({ Component: m.Wrap, questions: m.questionsWrap })),
     },
   ],
 };

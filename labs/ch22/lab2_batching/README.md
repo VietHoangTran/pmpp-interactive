@@ -82,9 +82,9 @@ buffer.
 ## Commands
 
 - Test: `python3 labs/pmpp.py run 22.2 --backend emu` first, then `python3 labs/pmpp.py
-  run 22.2` on your GPU. The emulator run takes several minutes: it runs every thread of
-  every launch of every step, under three thread orders, and lab 22.1's gather does a
-  warp shuffle per sequence per output.
+  run 22.2` on your GPU. The emulator run is slow: it runs
+  every thread of every launch of every step, under three thread orders, for every GEMM,
+  and M2's 16-wide tiles launch many more threads than M3's.
 - Measure: `python3 labs/pmpp.py run 22.2 --bench`.
 
 ## What the tests do
@@ -104,9 +104,11 @@ buffer.
   logit beats the runner-up by more than `1e-5 * (2 + mag)` of the two, far more than
   float32 rounding moves a logit; a seed that fails this is replaced by the next one. Ties
   would go to the lowest index (M4's rule), but the margin rules them out.
-- Batch invariance, once per GEMM, after that batch has passed: every sequence's tokens in
-  the batch equal its tokens when it is decoded alone. On a GPU the batch is the largest
-  tested; on the emulators it is batch 3, to keep the run short.
+- Batch invariance, after that batch has passed: every sequence's tokens in the batch
+  equal its tokens when it is decoded alone. On a GPU it runs once per GEMM, on the largest
+  batch tested. On the emulators it runs once, on batch 3, with M3 (or M2 without lab 15.6),
+  to keep the run short: invariance depends on how your step treats the batch, not on
+  which GEMM it calls.
 - The weights are unchanged after the run. H, T, logits, probs and tokens are each followed
   by a guard band that must be intact, and the outputs start as NaN, so a value nobody
   wrote cannot pass. The weights are allocated to their exact size, so on `emu` a read past
@@ -118,8 +120,8 @@ buffer.
 
 Take your lab 5.1 threshold T (section 22.5's explorer shows it) and write down:
 
-1. The batch at which tokens per second, with M3, stops rising by at least 1.5x per
-   doubling of the batch.
+1. The knee with M3: the first batch, among 1, 2, 4, ..., whose time per step is at least
+   1.5x the time at batch 1. Below it, more sequences ride along almost for free.
 2. Tokens per second at batch 64 divided by tokens per second at batch 1, with M3.
 
 Things to weigh:
@@ -164,16 +166,17 @@ the best of several timed runs after an untimed one.
   step runs the linear, bias and residual pieces once per layer.
 
 The rows are measurements of your machine, not expectations. The app finds the knee from
-the `step` rows: the first doubling of the batch that raises tokens per second by less
-than 1.5x (a definition that is ours). `llama-batched-bench` measures the same quantity on
+the `step` rows: the first batch whose time per step is at least 1.5x the time at the
+smallest batch measured (a definition that is ours; section 22.5's explorer uses the same). `llama-batched-bench` measures the same quantity on
 a real model (D3).
 
 ## Portability
 
 - HIP: your `kernel.cu` uses threads, blocks and runtime launches only, which build through
-  `pmpp/vendors/hip.h` unchanged. The pieces with warp intrinsics (M3, M4, lab 22.1) use
-  typed lane masks and read the warp width from the device. Nothing here has been compiled
-  or run on AMD hardware: unverified.
+  `pmpp/vendors/hip.h` unchanged. The pieces with warp shuffles (M4, lab 22.1) use a typed
+  lane mask, since HIP needs a 64-bit one, and loop over `warpSize`; M3 has no warp
+  intrinsics but lays its warps out for the width the device reports (32 or 64). Nothing
+  here has been compiled or run on AMD hardware: unverified.
 - CUDA: unverified until a `reports/verify-*.md` from a CUDA machine shows this lab passing.
 - Metal: M3's SIMD-group width comes from its pipeline's `threadExecutionWidth`, as in lab
   15.6; Apple documents no fixed width (ch15-facts C1).

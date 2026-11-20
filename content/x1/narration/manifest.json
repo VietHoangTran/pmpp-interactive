@@ -1,0 +1,222 @@
+{
+ "model": "eleven_v4",
+ "voice": "tnSpp4vdxKPjI9w0GnoV",
+ "clips": {
+  "chain-row-1": {
+   "file": "chain-row-1.mp3",
+   "sha256": "c48d04f4fc8cce2b72ef3f0ad46620c0151ab94acbbb1bd796fb2c2f24a90492",
+   "duration": 25.52,
+   "bytes": 409225,
+   "generated": "2026-11-20",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "chain-row-2": {
+   "file": "chain-row-2.mp3",
+   "sha256": "0ca53d7fdc0d730d284d36dbdfe7d276d90fcb7d21eccf1c316d36b3641a70b2",
+   "duration": 22.08,
+   "bytes": 354472,
+   "generated": "2026-11-20",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "chain-row-3": {
+   "file": "chain-row-3.mp3",
+   "sha256": "ef9840759bbc461e3c74bbdfef62c999368f4a743d67985030f9da3940b6128c",
+   "duration": 19.84,
+   "bytes": 318527,
+   "generated": "2026-11-20",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "chain-row-4": {
+   "file": "chain-row-4.mp3",
+   "sha256": "5fd82639fc2be48ed80c886c6161faadf485dcb0c75170974c55c2e2e758a756",
+   "duration": 28.48,
+   "bytes": 456872,
+   "generated": "2026-11-20",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "chain-row-5": {
+   "file": "chain-row-5.mp3",
+   "sha256": "fbe5b9c6ebfbdd1174602503bce3b4d8b0150c7e6986526519175951157598c0",
+   "duration": 23.2,
+   "bytes": 372444,
+   "generated": "2026-11-20",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "chain-row-6": {
+   "file": "chain-row-6.mp3",
+   "sha256": "a95705c24a6815e6dcb7b3a91df3a5189d662121f82d5a15633d8325ab196fbc",
+   "duration": 23.2,
+   "bytes": 372444,
+   "generated": "2026-11-20",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "find-u-1": {
+   "file": "find-u-1.mp3",
+   "sha256": "f042c07128c7b9094ba9c00b39a42af208b3bdffd4fa5a697ed4816b7e2557eb",
+   "duration": 16.16,
+   "bytes": 259595,
+   "generated": "2026-11-20",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "find-u-2": {
+   "file": "find-u-2.mp3",
+   "sha256": "f5c0e3f19bd0fd8bf547e6bd6f271e790b0f52ae2e0ec55e0fa96981b3aa930f",
+   "duration": 14.08,
+   "bytes": 226158,
+   "generated": "2026-11-20",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "find-u-3": {
+   "file": "find-u-3.mp3",
+   "sha256": "a60a7e5758dc357439bccce559633a75cdc3f1fca2a85a2305f91141ae9c5f5e",
+   "duration": 15.28,
+   "bytes": 245385,
+   "generated": "2026-11-20",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "find-u-4": {
+   "file": "find-u-4.mp3",
+   "sha256": "96f18a5c7368d319b15e6caf7d58de357f3054c9e47e0bcf775c0b6f3db0caf1",
+   "duration": 14.96,
+   "bytes": 240369,
+   "generated": "2026-11-20",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "find-u-5": {
+   "file": "find-u-5.mp3",
+   "sha256": "a461601fea4f94093ee8fd779673b5e8b7ffd52b355890ddf0ec5e9f05af3d3e",
+   "duration": 17.52,
+   "bytes": 281329,
+   "generated": "2026-11-20",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "find-u-6": {
+   "file": "find-u-6.mp3",
+   "sha256": "2662fd6bbc68df16393360ed8495308004fb3340dbf2c587b20f3e1acc453459",
+   "duration": 16.4,
+   "bytes": 263357,
+   "generated": "2026-11-20",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "philox-rounds-1": {
+   "file": "philox-rounds-1.mp3",
+   "sha256": "235ee4825b6c696ff7f4dbcbe79990a78b556ce68c0cab131387df8d3b52d2da",
+   "duration": 16.72,
+   "bytes": 268790,
+   "generated": "2026-11-20",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "philox-rounds-2": {
+   "file": "philox-rounds-2.mp3",
+   "sha256": "e92f7372831af16d164af7b8c5c6f76f5312199cdb77520fd9546dfcf3d24177",
+   "duration": 18.88,
+   "bytes": 303063,
+   "generated": "2026-11-20",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "philox-rounds-3": {
+   "file": "philox-rounds-3.mp3",
+   "sha256": "8a5688b202e0106f760a51b6df2f1f002725b0ecf83ce45021ceda9380f20fb0",
+   "duration": 15.84,
+   "bytes": 254580,
+   "generated": "2026-11-20",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "philox-rounds-4": {
+   "file": "philox-rounds-4.mp3",
+   "sha256": "2f9cbeb6d301b892bd19c16b50814894d05cf518a25fec35fffd902ba1771e65",
+   "duration": 17.44,
+   "bytes": 280075,
+   "generated": "2026-11-20",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "philox-rounds-5": {
+   "file": "philox-rounds-5.mp3",
+   "sha256": "bf0d03012cfb18bfcace583ade3c046ad1b0bec979f4bc45dfa9256fe0ed959b",
+   "duration": 18.64,
+   "bytes": 299301,
+   "generated": "2026-11-20",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "philox-rounds-6": {
+   "file": "philox-rounds-6.mp3",
+   "sha256": "f322d073b8260c3a5881f0ecf71a0144ad3f1d83c3c8954f6681ef299ead5f56",
+   "duration": 16.32,
+   "bytes": 262103,
+   "generated": "2026-11-20",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "radix-select-1": {
+   "file": "radix-select-1.mp3",
+   "sha256": "f77a365a3d29b9ebe04101e28b900fa7c3ef03267c2c17e803ebe791ac867521",
+   "duration": 20.48,
+   "bytes": 328558,
+   "generated": "2026-11-20",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "radix-select-2": {
+   "file": "radix-select-2.mp3",
+   "sha256": "6a8d34db6eaca1fd6ab6f3c3940b05ae6c3c6d349bb15ee79b619bafc80d766a",
+   "duration": 22,
+   "bytes": 353218,
+   "generated": "2026-11-20",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "radix-select-3": {
+   "file": "radix-select-3.mp3",
+   "sha256": "1cf33c2532809f8f6653dfecbd76e286d7d8391e51bb7421fd3a6615295883c6",
+   "duration": 21.04,
+   "bytes": 337754,
+   "generated": "2026-11-20",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "radix-select-4": {
+   "file": "radix-select-4.mp3",
+   "sha256": "a22bd5da7a2256485f6f49b23841367ddf30e9b2d0eeb2352b8f5d8329b3e083",
+   "duration": 20,
+   "bytes": 321035,
+   "generated": "2026-11-20",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "radix-select-5": {
+   "file": "radix-select-5.mp3",
+   "sha256": "42173a3bdea83fb9082754654028eb6eeeabed36a6cbd45adb599f59b4d47be4",
+   "duration": 16.88,
+   "bytes": 271298,
+   "generated": "2026-11-20",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "radix-select-6": {
+   "file": "radix-select-6.mp3",
+   "sha256": "25f9f21f8aa47afa305bd012b7360580ed98e1058762e1e72eec457aa5660a96",
+   "duration": 18.88,
+   "bytes": 303063,
+   "generated": "2026-11-20",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  }
+ }
+}

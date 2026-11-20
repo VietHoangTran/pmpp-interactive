@@ -1,0 +1,1 @@
+Now the lanes vote. Inside each warp, a ballot collects the flags, and the lowest flagged lane is found from its bits. Across warps, the lowest flagged warp wins. That one lane writes its survivor's position, and the row has its token.

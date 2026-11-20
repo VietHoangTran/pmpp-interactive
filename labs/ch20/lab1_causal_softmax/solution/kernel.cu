@@ -149,7 +149,8 @@ __global__ void causalSoftmaxKernel(const float* S, float* P, float* L, int nq, 
 
     // Every thread has just read m from scratch[0]; blockReduceSum writes scratch[0] again.
     // Without this barrier a fast warp 0 can overwrite m before a slow warp has read it
-    // (lab 10.3's case; the book's line 19 plays the same role for its temp_store).
+    // (lab 10.3's case). The book's kernel broadcasts through a separate scalar, so its
+    // line 19 is not needed there (section 20.3); here the slot is shared, so this barrier is.
     __syncthreads();
 
     // Pass 2: s = sum of exp(scale*S - m). Every term is in (0, 1] and one of them is 1.

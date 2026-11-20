@@ -22,6 +22,21 @@ using namespace metal;
 
 #define MAX_BATCH 8
 
+// ---------------------------------------------------------------- one SIMD-group, one row of W: yours
+// TODO 4: the same as warpRowDots in kernel.cu, used by both kernels. One SIMD-group's dot
+// products of a stretch [k0, k1) of row w of W with every batch row of X. Every lane calls
+// it with the same arguments (and its own lane); on return lane 0's total[b] must hold the
+// sum over k in [k0, k1) of X[b * in + k] * w[k], for every b < batch.
+//   a. One running sum per batch row, MAX_BATCH floats, `b < batch` tested inside.
+//   b. The lanes stride along [k0, k1) by `width`, reading w contiguously.
+//   c. simd_sum adds a value across the SIMD-group and gives the sum to every lane.
+void simdRowDots(device const float* X, device const float* w, uint batch, uint in, uint k0, uint k1,
+                 uint lane, uint width, thread float* total) {
+    for (uint b = 0; b < MAX_BATCH; ++b) {
+        total[b] = 0.0f;   // a placeholder so the starter runs: replace it
+    }
+}
+
 // ---------------------------------------------------------------- (a) gather: yours
 kernel void gemv_gather(device const float* X     [[buffer(0)]],
                         device const float* W     [[buffer(1)]],
@@ -34,19 +49,18 @@ kernel void gemv_gather(device const float* X     [[buffer(0)]],
                         uint lane   [[thread_index_in_simdgroup]],
                         uint sg     [[simdgroup_index_in_threadgroup]],
                         uint groups [[simdgroups_per_threadgroup]]) {
-    // TODO 3: the same kernel as gemvGatherKernel in kernel.cu, one SIMD-group per output.
+    // TODO 5: the same kernel as gemvGatherKernel in kernel.cu, one SIMD-group per output.
     //   a. This SIMD-group's output j comes from tg, groups and sg. Past the end: return.
-    //   b. One running sum per batch row, MAX_BATCH floats, `b < batch` tested inside.
-    //   c. The lanes stride along `in` by `width`, reading row j of W contiguously.
-    //   d. simd_sum adds a value across the SIMD-group and gives the sum to every lane.
-    //   e. Lane 0 writes Y[b * out + j].
+    //   b. Call simdRowDots on the whole of row j.
+    //   c. Lane 0 writes Y[b * out + j].
 }
 
 // ---------------------------------------------------------------- (b) split-K: provided
 // This kernel has the same ONE defect as gemvSplitKKernel in kernel.cu. Metal has no
 // race detector here; README, "What each backend can catch", says how the driver looks
 // for it. The fix changes the type of one parameter; launch.mm binds the same buffer
-// whatever its type in the kernel.
+// whatever its type in the kernel. It calls your simdRowDots on its chunk, so it computes
+// nothing until TODO 4 is done.
 //
 // SIMD-group g takes output j = g / splits and chunk s = g % splits of `in`.
 kernel void gemv_splitk(device const float* X      [[buffer(0)]],
@@ -73,25 +87,12 @@ kernel void gemv_splitk(device const float* X      [[buffer(0)]],
     if (k0 >= in) {
         return;                         // an empty chunk: nothing to add
     }
-    device const float* w = W + j * in;
-
-    float sum[MAX_BATCH];
-    for (uint b = 0; b < MAX_BATCH; ++b) {
-        sum[b] = 0.0f;
-    }
-    for (uint k = k0 + lane; k < k1; k += width) {
-        const float wk = w[k];
+    float total[MAX_BATCH];
+    simdRowDots(X, W + j * in, batch, in, k0, k1, lane, width, total);   // chunk s of row j only
+    if (lane == 0) {
         for (uint b = 0; b < MAX_BATCH; ++b) {
             if (b < batch) {
-                sum[b] += X[b * in + k] * wk;
-            }
-        }
-    }
-    for (uint b = 0; b < MAX_BATCH; ++b) {
-        if (b < batch) {
-            const float total = simd_sum(sum[b]);
-            if (lane == 0) {
-                Y[b * out + j] += total;
+                Y[b * out + j] += total[b];
             }
         }
     }

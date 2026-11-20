@@ -1,13 +1,14 @@
 import type { Chapter } from '../types';
 
-// Planned. The sections are added when the chapter is built (see PLAN.md).
+// Module X1 is not in the book: every section is ours, so no section carries book pages.
+// Built in the shape of chapter 5: one file per section, each loaded on demand and
+// exporting its component and its questions.
 export const chapter: Chapter = {
   id: 'x1',
   num: 'X1',
   title: 'Sampling kernels',
   pages: 'not in the book',
   sections: [
-    // Temporary wiring by the section group 1 builder (start, X1.1 to X1.3); the integrator owns this list.
     {
       id: 'start', num: '', title: 'Before you start', pages: null,
       lede: 'See where the sampler sits after the model’s last matmul, which earlier lab supplies each of its stages, and check what this module assumes from chapters 9 to 14.',
@@ -25,10 +26,9 @@ export const chapter: Chapter = {
     },
     {
       id: 'X1.3', num: 'X1.3', title: 'Penalties from token counts', pages: null,
-      lede: 'Apply repetition, frequency and presence penalties from lab 9.3’s counts in one coalesced, memory-bound pass, and say which sign rule each project uses.',
+      lede: 'Apply repetition, frequency and presence penalties from lab 9.3’s counts in coalesced, memory-bound elementwise passes, and say which sign rule each project uses.',
       load: () => import('./SX13').then((m) => ({ Component: m.SX13, questions: m.questionsSX13 })),
     },
-    // Temporary wiring by the section group 2 builder (X1.4 to X1.6); the integrator owns this list.
     {
       id: 'X1.4', num: 'X1.4', title: 'Top-k is a selection, not a sort', pages: null,
       lede: 'Find the k largest of 150,000 logits without sorting them, by an 8-bit radix select, and predict how much reading and writing that saves over a full sort.',
@@ -36,13 +36,33 @@ export const chapter: Chapter = {
     },
     {
       id: 'X1.5', num: 'X1.5', title: 'Top-p over a sorted row', pages: null,
-      lede: "Compose lab 14.3's sort, lab 10.3's softmax and lab 11.6's scan into top-p, state its boundary and tie rule exactly, and decide how much of the row you really need to sort.",
+      lede: 'Compose lab 14.3’s sort, lab 10.3’s softmax and lab 11.6’s scan into top-p, state its boundary and tie rule exactly, and decide how much of the row you really need to sort.',
       load: () => import('./SX15').then((m) => ({ Component: m.SX15, questions: m.questionsSX15 })),
     },
     {
       id: 'X1.6', num: 'X1.6', title: 'Min-p as a filter', pages: null,
-      lede: "Turn min-p into one comparison against max + ln p, run it as lab 12.4's stable filter or as a prefix count on a sorted row, and predict how temperature placement changes what it keeps.",
+      lede: 'Turn min-p into one comparison against max + ln p, run it as lab 12.4’s stable filter or as a prefix count on a sorted row, and predict how temperature placement changes what it keeps.',
       load: () => import('./SX16').then((m) => ({ Component: m.SX16, questions: m.questionsSX16 })),
+    },
+    {
+      id: 'X1.7', num: 'X1.7', title: 'Random numbers every backend agrees on', pages: null,
+      lede: 'Derive one uniform number per row and step from (seed, stream, step) with Philox4x32-10, check it against published test vectors, and convert its bits to a float that is identical on CUDA, HIP, Metal and the CPU.',
+      load: () => import('./SX17').then((m) => ({ Component: m.SX17, questions: m.questionsSX17 })),
+    },
+    {
+      id: 'X1.8', num: 'X1.8', title: 'The draw: inverse CDF over a scan', pages: null,
+      lede: 'Pick the token where u lands in the running sum of the survivors’ weights with one block per row, make it safe at both ends of [0, 1), and test it for exact agreement across backends despite floating-point differences.',
+      load: () => import('./SX18').then((m) => ({ Component: m.SX18, questions: m.questionsSX18 })),
+    },
+    {
+      id: 'labs', num: '', title: 'Labs', pages: null,
+      lede: 'Four labs on your own GPUs: top-k by selection against a full sort, top-p and min-p composed and then fused, the M5 sampler end to end with a fixed seed, and a hunt for three defects in a fused filter.',
+      load: () => import('./Labs').then((m) => ({ Component: m.Labs, questions: m.questionsLabs })),
+    },
+    {
+      id: 'wrap', num: '', title: 'Summary', pages: null,
+      lede: 'What to carry forward, a mixed check, where every exercise of the module is worked, where the sources disagree, and milestone M5.',
+      load: () => import('./Wrap').then((m) => ({ Component: m.Wrap, questions: m.questionsWrap })),
     },
   ],
 };

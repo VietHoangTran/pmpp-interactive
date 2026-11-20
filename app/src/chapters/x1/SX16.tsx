@@ -114,8 +114,9 @@ function TempExplorer() {
             strokeWidth={placement === 'before' ? 2 : 1} strokeDasharray={placement === 'before' ? undefined : '5 4'} opacity={placement === 'before' ? 1 : 0.5} />
           <line x1={X0} y1={sy(v.thrAfter)} x2={W - 10} y2={sy(v.thrAfter)} stroke="var(--ink)"
             strokeWidth={placement === 'after' ? 2 : 1} strokeDasharray={placement === 'after' ? undefined : '5 4'} opacity={placement === 'after' ? 1 : 0.5} />
-          <text x={W - 12} y={sy(v.thrBefore) - 4} fontSize="10" textAnchor="end" style={{ fill: 'var(--ink)' }}>before: {f3(v.thrBefore)}</text>
-          <text x={W - 12} y={sy(v.thrAfter) + 12} fontSize="10" textAnchor="end" style={{ fill: 'var(--ink)' }}>after: {f3(v.thrAfter)}</text>
+          {/* The higher threshold is labelled above its line, the lower one below, so the labels never overlap. */}
+          <text x={W - 12} y={v.thrBefore >= v.thrAfter ? sy(v.thrBefore) - 4 : sy(v.thrBefore) + 12} fontSize="10" textAnchor="end" style={{ fill: 'var(--ink)' }}>before: {f3(v.thrBefore)}</text>
+          <text x={W - 12} y={v.thrBefore >= v.thrAfter ? sy(v.thrAfter) + 12 : sy(v.thrAfter) - 4} fontSize="10" textAnchor="end" style={{ fill: 'var(--ink)' }}>after: {f3(v.thrAfter)}</text>
           <text x={X0} y={12} fontSize="9.5" style={{ fill: 'var(--ink-2)' }}>● kept by top-p at T = {T.toFixed(2)}</text>
         </svg>
       </div>

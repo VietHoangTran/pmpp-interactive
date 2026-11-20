@@ -86,7 +86,7 @@ let model = runRow(cfgOf(), input, 5, 'in-order', 1);
 await clickText(ST, 'Step');
 let n = await narr();
 check('step 1: thread 0 reads S[5][0] at line 8, highlighted', n.startsWith('Thread 0, line 8: S[5][0]') && JSON.stringify(await hl()) === '[8]', n);
-check('thread 1 owns columns 1 and 5 in row 5 (q-cols)', (await threadRow(1))[1] === '1, 5');
+check('thread 1 owns columns 1 and 5 in row 5 (the small case q-cols points to)', (await threadRow(1))[1] === '1, 5');
 // to the max reduction: release at 10, then BlockReduce at 11
 await clickText(ST, 'Run to next barrier');
 n = await narr();
@@ -212,8 +212,8 @@ const pick = async (part, label) => {
   await pause(150);
   return h.evaluate((e) => e.textContent);
 };
-let a = await typeIn('how many columns does thread 1 read', 2);
-check('q-cols: 2 columns', a.includes('Correct.'));
+let a = await typeIn('how many columns does thread 3 read', 250);
+check('q-cols: 250 columns', a.includes('Correct.'));
 a = await pick('thread 3 reads no column', 'The identities');
 check('q-idle: the identities', a.includes('Correct.'));
 a = await pick('removing the barrier at line 19', 'Thread 0 needs every private sum');

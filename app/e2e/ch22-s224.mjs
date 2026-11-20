@@ -156,8 +156,10 @@ v = await answerChoice('What does it spend instead', 'Accuracy, because the cach
 check('q-kv-cost: stale keys is wrong, with the causal-mask reason', v && v.includes('Not quite.') && v.includes('causal mask'), v);
 v = await answerChoice('What does it spend instead', 'Memory that grows');
 check('q-kv-cost: memory is right; the explanation gives Eq. 20.8, 2 GiB and points to 22.5', v && v.includes('Correct.') && v.includes('Eq. 20.8') && v.includes('2 GiB') && v.includes('22.5'), v);
-v = await answerChoice('needs domain insight as well as computer-science skill', 'Which accuracy can go');
-check('q-why-domain: physics plus computing is right', v && v.includes('Correct.') && v.includes('physics'), v);
+v = await answerChoice('Which one is a reformulation', 'Split each attention row');
+check('q-why-domain: split softmax is a decomposition, not a reformulation', v && v.includes('Not quite.') && v.includes('decomposition'), v);
+v = await answerChoice('Which one is a reformulation', 'Attend only to the most recent');
+check('q-why-domain: the key window is right, physics plus computing', v && v.includes('Correct.') && v.includes('physics'), v);
 
 // ---- notes and links
 const misplaced = await page.$$eval('.prose > .note', (ns) => ns.filter((n) => n.previousElementSibling?.tagName !== 'P').map((n) => n.textContent.slice(0, 60)));

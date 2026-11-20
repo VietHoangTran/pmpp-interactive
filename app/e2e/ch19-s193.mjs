@@ -5,7 +5,7 @@
 // Usage: node e2e/ch19-s193.mjs [screenshot-prefix]
 import { open, goto, BASE } from './browser.mjs';
 
-const out = process.argv[2];
+const out = process.argv.slice(2).find((a) => !a.startsWith('--')); // a screenshot prefix; flags are ignored
 const { browser, page, errors } = await open({ width: 1440, height: 1000 });
 // Leave no trace in the real progress file.
 let puts = 0;
@@ -74,6 +74,35 @@ const misplaced = await page.$$eval('.prose > aside.note', (notes) =>
   }).length,
 );
 check('every margin note follows a paragraph, never a bench, code block or question', misplaced === 0, `${misplaced} misplaced`);
+// Nothing inside a paragraph or list item reaches past it into the margin column.
+const pastText = () => page.evaluate(() => {
+  const bad = [];
+  for (const p of document.querySelectorAll('.prose > p, .prose > ul > li')) {
+    if (getComputedStyle(p).overflowX === 'auto') continue; // a scrolling block, such as Eq. 19.5
+    const right = p.getBoundingClientRect().right;
+    for (const c of p.querySelectorAll('*')) {
+      const r = c.getBoundingClientRect().right;
+      if (r > right + 1) bad.push(`${Math.round(r - right)}px: ${c.textContent.slice(0, 40)}`);
+    }
+  }
+  return bad;
+});
+let past = await pastText();
+check('at 1440 px nothing in a paragraph extends past it (printed line 28 included)', past.length === 0, past.join(' | '));
+const l28 = await page.$eval('.prose > p[data-line="28"]', (p) => ({ sw: p.scrollWidth, cw: p.clientWidth, lines: p.textContent.split('\n').length }));
+check('printed line 28 is a block broken at its + terms, and fits at 1440 px', l28.lines === 4 && l28.sw <= l28.cw + 1, JSON.stringify(l28));
+const order = await page.evaluate(() => {
+  const all = [...document.querySelectorAll('.prose > *')];
+  const at = (f) => all.findIndex(f);
+  return {
+    predictBeforeScene: at((e) => e.classList.contains('q') && e.textContent.includes('LeNet C1 (1 × 32 × 32 input, K = 5)')) < at((e) => e.matches('section.scene[aria-label="Unfolding the input into a matrix"]')),
+    noMBeforeBelems: at((e) => e.textContent.includes('Why does the number of output maps M not appear')) < at((e) => e.textContent.includes('How many elements does B hold for one sample')),
+    scenesSimplified: [...document.querySelectorAll('.prose > section.scene')].every((s) => s.previousElementSibling?.matches('aside.note') && /No caches|not bytes or time/.test(s.previousElementSibling.textContent)),
+  };
+});
+check('the C1 prediction comes before the animation that names the ratio', order.predictBeforeScene);
+check('q-noM comes before q-belems, whose explanation answers it', order.noMBeforeBelems);
+check('both narrated scenes state what they simplify', order.scenesSimplified);
 const h2 = await page.$$eval('.prose > h2', (h) => h.map((x) => x.textContent));
 check('section headings are sentence case', h2.every((t) => !/\s[A-Z][a-z]+\s[A-Z][a-z]/.test(t.replace(/Eq\. 19\.5|B\[u, v\]|Exercise 4|GEMM/g, ''))), h2.join(' | '));
 
@@ -301,6 +330,15 @@ await wb.evaluate((e) => e.querySelector('button.primary').click());
 await pause(150);
 check('question q-wholebatch: claiming NCHW for free is marked wrong, with the reason', (await wb.evaluate((e) => e.textContent)).includes('Not quite.') && (await wb.evaluate((e) => e.textContent)).includes('the sample index sits inside the map index'));
 check('answers were sent to the (intercepted) progress endpoint', puts > 0, String(puts));
+
+// ---------------------------------------------------------------- narrow width
+await page.setViewport({ width: 390, height: 900, deviceScaleFactor: 1 });
+await pause(400);
+const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+check('at 390 px the page does not scroll sideways', over <= 1, `overflow ${over}px`);
+past = await pastText();
+check('at 390 px nothing in a paragraph extends past it', past.length === 0, past.join(' | '));
+if (out) await page.$eval('.prose > p[data-line="28"]', (e) => e.scrollIntoView({ block: 'center' })), await page.screenshot({ path: out + '-narrow-line28.png' });
 
 check('no console or page errors', errors.length === 0, errors.join(' | '));
 await browser.close();

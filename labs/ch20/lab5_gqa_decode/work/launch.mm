@@ -1,5 +1,7 @@
 // Lab 20.5 starter: the Metal counterpart of launchDecodeAttentionGrouped. It encodes into
-// the open compute encoder it is given and commits nothing.
+// the open compute encoder it is given and commits nothing. The pipeline it receives was
+// compiled with GQ = hQ / hKv (the driver picks it, as kernel.cu's switch picks a template
+// instance).
 #import <Metal/Metal.h>
 #include <cstdint>
 #include <cstdio>
@@ -21,7 +23,7 @@ void encodeDecodeAttentionGrouped(id<MTLComputeCommandEncoder> enc, id<MTLComput
     [enc setBytes:&hKv length:sizeof(hKv) atIndex:6];
     [enc setBytes:&maxSeq length:sizeof(maxSeq) atIndex:7];
     [enc setBytes:&scale length:sizeof(scale) atIndex:8];
-    // TODO 6: refuse hQ / hKv above kMaxGq (encode nothing), then one threadgroup of
-    //         kBlockSize threads per (K/V head, sequence):
+    // TODO 6: refuse hQ / hKv above kMaxGq (print a message, encode nothing), then one
+    //         threadgroup of kBlockSize threads per (K/V head, sequence):
     //   [enc dispatchThreadgroups:MTLSizeMake(?, ?, 1) threadsPerThreadgroup:MTLSizeMake(?, 1, 1)];
 }

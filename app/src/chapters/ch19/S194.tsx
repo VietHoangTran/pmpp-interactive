@@ -955,6 +955,7 @@ export function S194() {
           cuDNN parameters that Table 19.1 does not list.
         </p>
       </Today>
+      <Ask q={q['ch19/19.4/q-padding']} />
       <p>
         Padding needs a correction. The book says it serves memory alignment or vectorised execution. That is not what
         the parameter documents. <code>pad_h</code> is the number of zero rows cuDNN adds at the top and at the bottom of
@@ -988,7 +989,6 @@ export function S194() {
         </p>
       </Simplification>
       <DescribeBench layer={layer} setLayer={setLayer} />
-      <Ask q={q['ch19/19.4/q-padding']} />
 
       <h2>The algorithms</h2>
       <p>
@@ -1191,8 +1191,9 @@ export function S194() {
       </Beyond>
       <p>
         llama.cpp&rsquo;s CUDA backend, which also builds for HIP, has <code>conv2d_implicit_gemm_f16</code>: Fig. 19.11
-        in production. Its grid is the book&rsquo;s (x over tiles of output pixels, y over tiles of output channels, z over
-        the batch, times the pieces of a split reduction), with ceiling division and every bounds check Fig. 19.11 leaves out. It gathers the input tile with
+        in production. Its grid is the one we derived for Fig. 19.11 in section 19.3 (the book states only that z is the
+        sample): x over tiles of output pixels, y over tiles of output channels, z over the batch times the pieces of
+        a split reduction. It adds ceiling division and every bounds check Fig. 19.11 leaves out. It gathers the input tile with
         Eq. 19.5, using literal divisors for 3 × 3 and 1 × 1 filters and a precomputed fast division otherwise, and it
         handles padding beforehand by writing a zero-padded copy of the input. Its Metal backend has an explicit unfold, a
         direct kernel and <code>kernel_conv_2d_mm</code>, an implicit GEMM on simdgroup matrices. MLX works channels-last

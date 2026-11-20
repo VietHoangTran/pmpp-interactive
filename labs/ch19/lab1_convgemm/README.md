@@ -148,8 +148,8 @@ Things to weigh:
 
 - The direct kernel requests 0.25 FLOP/B: per output, C*K*K multiply-adds and two loads
   for each (notes on section 19.2). But neighbouring threads read overlapping patches,
-  and caches may serve much of that. Chapter 5's naive kernel ran well above its model
-  ceiling on the machine this course was built on (section 5.1 of the lesson).
+  and caches may serve much of that. Compare your own lab 5.1 naive result with its
+  0.25 FLOP/B ceiling on the roofline in section 5.1 of the lesson.
 - The unroll writes B^T and the GEMM reads it back. B^T is the expansion ratio times the
   size of one sample's X.
 - Tile counts with 16 x 16 tiles. Late: 16 tile rows, 9 tile columns, 144 phases. Early:

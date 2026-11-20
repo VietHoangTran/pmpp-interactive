@@ -1,5 +1,7 @@
 // Lab 20.5 reference solution: the Metal counterpart of launchDecodeAttentionGrouped.
-// It encodes into the open compute encoder it is given and commits nothing.
+// It encodes into the open compute encoder it is given and commits nothing. The pipeline
+// it receives was compiled with GQ = hQ / hKv (the driver picks it, as kernel.cu's switch
+// picks a template instance).
 #import <Metal/Metal.h>
 #include <cstdint>
 #include <cstdio>

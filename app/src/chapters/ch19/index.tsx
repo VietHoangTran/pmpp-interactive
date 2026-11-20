@@ -10,7 +10,7 @@ export const chapter: Chapter = {
   sections: [
     {
       id: 'start', num: '', title: 'Before you start', pages: '453–454',
-      lede: 'See what a convolution chapter is doing in a course about LLM kernels, what it builds, and the one idea from it that carries over, then check what it assumes from chapters 3, 5 and 7.',
+      lede: 'See what a convolution chapter is doing in a course about LLM kernels, what it builds, and the one idea from it that carries over, then check what it assumes from chapters 3, 5, 7 and 15.',
       load: () => import('./S190').then((m) => ({ Component: m.S190, questions: m.questionsS190 })),
     },
     {
@@ -35,7 +35,7 @@ export const chapter: Chapter = {
     },
     {
       id: 'labs', num: '', title: 'Labs', pages: null,
-      lede: 'One lab on your own GPUs: a convolutional layer computed directly and as unroll plus the project’s GEMM, timed on early, late and pointwise layer shapes against your prediction.',
+      lede: 'One lab on your own GPUs: a convolutional layer computed directly and as unroll plus the project’s GEMM, timed on five layer shapes, from an early layer to a pointwise one and LeNet C3 at batch 64, against your prediction.',
       load: () => import('./Labs').then((m) => ({ Component: m.Labs, questions: m.questionsLabs })),
     },
     {

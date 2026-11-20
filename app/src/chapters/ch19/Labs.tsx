@@ -122,7 +122,6 @@ const PATH: Record<string, string> = { direct: 'direct', unroll_gemm: 'unroll + 
 const COLS: Col[] = [
   { head: 'Layer', cell: (r) => String(r.shape ?? '') },
   { head: 'Path', cell: (r) => PATH[r.name] ?? r.name },
-  { head: 'N, C, H × W, M, K', cell: (r) => `${String(r.n)}, ${String(r.c)}, ${String(r.h)} × ${String(r.w)}, ${String(r.m)}, ${String(r.k)}` },
   msCol,
   numCol('GFLOP/s', 'gflops'),
   { head: 'Unrolls alone, ms', num: true, cell: (r) => (num(r.unroll_seconds) ? fmt(num(r.unroll_seconds)! * 1000) : '') },
@@ -289,6 +288,7 @@ export function Labs() {
         is <code>N × C × H × W</code>, F is <code>M × C × K × K</code>, Y is <code>N × M × H_out × W_out</code>, and P ={' '}
         <code>H_out · W_out</code> is the number of pixels in one output map. You compute it two ways.
       </p>
+      <Source section="19.2, 19.3" pages="460–472" figs="Figs. 19.5, 19.7, 19.11; Eqs. 19.4, 19.5" />
       <ol>
         <li>
           <b>Direct.</b> Fig. 19.7, corrected: one thread per output pixel, blocks of <code>TILE_WIDTH × TILE_WIDTH</code>{' '}
@@ -301,7 +301,6 @@ export function Labs() {
           Then, for each sample, one unroll into a scratch <code>Bt</code> and one call of the project's GEMM.
         </li>
       </ol>
-      <Source section="19.2, 19.3" pages="460–472" figs="Figs. 19.5, 19.7, 19.11; Eqs. 19.4, 19.5" />
       <p>
         Why both. Section 19.3 argues that the explicit unfold costs memory and bandwidth (p. 467) and that the GEMM form
         pays when the matrices are large (p. 472). Here you measure both claims on your own device, on layers chosen to
@@ -347,6 +346,11 @@ export function Labs() {
       </Today>
 
       <h3>Where the code differs from the page</h3>
+      <p>
+        The lab departs from the book's figures in four places. Three are the notes' "Unclear in the PDF" items for pp.
+        461, 462 and 471: section 19.2's "From blockIdx to pixel" explorer shows the first two failing and section 19.3's erratum hunt the
+        third. The fourth fills a gap the book leaves.
+      </p>
       <ul>
         <li>
           Fig. 19.5 divides <code>W_out / TILE_WIDTH</code>, which leaves 12 rows and 12 columns of LeNet C1's 28 × 28
@@ -369,12 +373,6 @@ export function Labs() {
           <code>(ceil(P/16), ceil(M/16), N)</code> blocks.
         </li>
       </ul>
-      <Aside>
-        <p>
-          These are the notes' "Unclear in the PDF" items for pp. 461, 462 and 471. Section 19.3's erratum hunt shows each
-          one failing.
-        </p>
-      </Aside>
 
       <h3>Provided, not edited</h3>
       <ul>
@@ -551,12 +549,23 @@ export function Labs() {
           </>
         }
       />
-      <p>Things to weigh, for all three:</p>
+      <p>
+        Things to weigh, for all three. None of them gives the answer, and some pull in opposite directions. What the
+        vendors say about integer division, and llama.cpp's rule for small layers, were checked on the date in the
+        margin; the rest is the chapter's arithmetic and ours.
+      </p>
+      <Today checked="2026-11-20 (ch19-facts A8, B5, C6, D1)">
+        <p>
+          CUDA Best Practices Guide; HIP documentation; WWDC16 session 606. llama.cpp: <code>small_conv</code> in{' '}
+          <code>ggml-cuda/conv2d.cu</code>.
+        </p>
+      </Today>
       <ul>
         <li>
-          Requested traffic is not traffic. Chapter 5's naive matmul ran well above the ceiling its 0.25 FLOP/B gave it on
-          the machine this course was built on (<a href={href('ch05', '5.1')}>section 5.1</a>), because caches served much
-          of what it asked for. The direct kernel here has the same ratio.
+          Requested traffic is not traffic. Neighbouring threads ask for overlapping patches, and caches can serve a
+          repeated request without another trip to memory. The direct kernel here has the same 0.25 FLOP/B as chapter
+          5&rsquo;s naive matmul: compare your own lab 5.1 naive result with that ceiling on the roofline in{' '}
+          <a href={href('ch05', '5.1')}>section 5.1</a> (tick &ldquo;show my measurements&rdquo;).
         </li>
         <li>
           The small layer, LeNet C3 at batch 64, makes {small.launches} unroll launches and {small.launches} GEMM
@@ -580,12 +589,6 @@ export function Labs() {
           kernels, not a prediction for yours.
         </li>
       </ul>
-      <Today checked="2026-11-20 (notes/today/ch19-facts.md A8, B5, C6, D1)">
-        <p>
-          "Up to 20 instructions" (CUDA Best Practices Guide); "many more hardware cycles than multiplication" (HIP);
-          WWDC16 session 606 (Apple). llama.cpp's rule is <code>small_conv</code> in <code>ggml-cuda/conv2d.cu</code>.
-        </p>
-      </Today>
       <LabResults lab={l1} cols={COLS} />
       <p>
         "Unroll share" is the N unrolls alone over the whole unroll + GEMM layer. "Expansion" is Eq. 19.4 for the layer,
@@ -615,6 +618,13 @@ export function Labs() {
       </Simplification>
 
       <h3>Go further</h3>
+      <p>
+        Once your kernels pass, five things to try. The first is the book's own suggestion; the constant K and the
+        whole-batch GEMM come from how production code handles this layer.
+      </p>
+      <Beyond>
+        <p>Ours, from llama.cpp's and PyTorch's code as read on 2026-11-20 (ch19-facts D1, D2, D4, E2).</p>
+      </Beyond>
       <ul>
         <li>
           The book leaves shared-memory tiling of the direct kernel to you (p. 463). Chapter 7's halo tiles, section{' '}
@@ -637,20 +647,15 @@ export function Labs() {
           Run with <code>PMPP_CH19_GEMM=work</code> once your lab 6.4 kernel passes: the same layer, your own GEMM.
         </li>
       </ul>
-      <Beyond>
-        <p>
-          The whole-batch GEMM and the K-as-constant trick are ours, from llama.cpp's and PyTorch's code as read on
-          2026-11-20 (ch19-facts D1, D2, D4, E2).
-        </p>
-      </Beyond>
       <p>
         If you compare with <code>torch.nn.functional.conv2d</code> on an NVIDIA GPU, a float32 call may run in TF32
-        unless you turn that off. Compare with a tolerance and print the setting.
+        unless you turn that off. Compare with a tolerance and print the setting. Section{' '}
+        <a href={href('ch19', '19.4')}>19.4</a> asks what to check first when the two disagree.
       </p>
-      <Today checked="2026-11-20 (notes/today/ch19-facts.md A6)">
+      <Today checked="2026-11-20 (ch19-facts A6)">
         <p>
-          <code>torch.backends.cudnn.allow_tf32</code> defaults to True and is to be deprecated in favour of{' '}
-          <code>torch.backends.cudnn.conv.fp32_precision</code>, whose default the page does not state.
+          <code>cudnn.allow_tf32</code> defaults to True; PyTorch plans to replace it with{' '}
+          <code>cudnn.conv.fp32_precision</code>, whose default it does not state.
         </p>
       </Today>
       <ReferenceSolution lab={l1} />

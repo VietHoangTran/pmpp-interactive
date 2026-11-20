@@ -1,0 +1,1 @@
+Here are forty survivors after temperature, drawn as one stacked bar. Their total is the bar's length. Multiply u by the total and you get the target, marked on the bar. The token we want is the first one whose running sum is strictly greater than the target.

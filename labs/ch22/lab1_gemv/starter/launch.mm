@@ -37,7 +37,7 @@ void encodeGemvGather(id<MTLComputeCommandEncoder> enc, id<MTLComputePipelineSta
     [enc setComputePipelineState:pipeline];
     bindProblem(enc, X, W, Y, batch, in, out);
 
-    // TODO 4: one SIMD-group per output. The SIMD-group width is the pipeline's
+    // TODO 6: one SIMD-group per output. The SIMD-group width is the pipeline's
     //         threadExecutionWidth; make each threadgroup simdGroupsPerGroup(pipeline)
     //         whole SIMD-groups, and dispatch enough threadgroups to cover `out`:
     //   [enc dispatchThreadgroups:MTLSizeMake(?, 1, 1) threadsPerThreadgroup:MTLSizeMake(?, 1, 1)];

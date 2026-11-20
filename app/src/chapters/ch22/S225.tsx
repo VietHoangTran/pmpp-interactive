@@ -155,20 +155,37 @@ export const questionsS225: Record<string, Question> = {
   'ch22/22.5/q-cpu-gpu': {
     kind: 'choice',
     id: 'ch22/22.5/q-cpu-gpu',
-    prompt: <>Why does the book call batching the same trade-off as CPU against GPU design (p. 540)?</>,
+    prompt: (
+      <>
+        A server has two decode paths. Path A runs one request per step, and a step takes t. Path B always runs a step of
+        64 rows, padding empty ones, and a step takes 4t. Which design goal does each serve, and what does a user who
+        arrives at an empty server get from each?
+      </>
+    ),
     options: [
-      { label: 'A CPU core is built to finish a few threads\' work soon; a GPU is built for throughput over very many threads, each of which is slower.', correct: true },
-      { label: 'Because a GPU cannot run a single request.', why: 'It can; batch 1 is what decoding for one user is. It just leaves most of the device idle.' },
-      { label: 'Because a CPU cannot batch.', why: 'Nothing stops a CPU from multiplying a matrix instead of a vector. The analogy is about what each design optimises.' },
+      {
+        label: 'A serves latency and B throughput. Alone on the server, the user gets a token every t on A and every 4t on B; with 64 users waiting, B delivers 16 times A\'s tokens per second.',
+        correct: true,
+      },
+      {
+        label: 'B serves both. It delivers 16 times A\'s tokens per second, so even a lone user gets each token sooner on B.',
+        why: 'The 16 times is tokens per second for the device, spread over 64 rows. A lone user fills one row of B and still waits 4t for each token, against t on A.',
+      },
+      {
+        label: 'A serves throughput and B latency. A finishes 4 steps in the time B finishes one, so it produces more tokens per second.',
+        why: 'A finishes more steps, but each yields one token. A full step of B yields 64 tokens in 4t, which is 16 per t against A\'s 1.',
+      },
     ],
     explain: (
       <p>
-        Batching moves a server along the same axis that separates the two designs: latency for one, throughput for the
-        group. NVIDIA's Best Practices Guide puts the hardware side in those words: CPU cores "minimize latency for a
-        small number of threads", GPUs handle many lightweight threads "to maximize throughput".
+        Path A is the CPU's design goal in the book's analogy: the shortest time for each element, here each user's token.
+        Path B is the GPU's: the most work per second over many elements, paid for by each one taking longer. Which is
+        better depends on the load, not on the path. NVIDIA's Best Practices Guide puts the hardware side the same way:
+        CPU cores "minimize latency for a small number of threads", GPUs handle many lightweight threads "to maximize
+        throughput".
       </p>
     ),
-    source: 'ch. 22 §22.5, p. 540; CUDA Best Practices Guide §3.1 (ch22-facts A8)',
+    source: 'ch. 22 §22.5, pp. 539–540; CUDA Best Practices Guide §3.1 (ch22-facts A8); our arithmetic',
   },
   'ch22/22.5/q-continuous': {
     kind: 'choice',
@@ -978,8 +995,9 @@ export function S225() {
       </p>
       <p>
         You will see both in llama.cpp. Its CUDA and HIP backend sends a 2-D weight times a batch of tokens to one plain
-        GEMM. Below about 8 tokens it does not use a GEMM at all but its own matrix-vector kernels (the constant{' '}
-        <code>MMVF_MAX_BATCH_SIZE</code> is 8, with exceptions tuned per GPU); its Metal backend does the same with{' '}
+        GEMM. Up to 8 tokens it normally uses its own matrix-vector kernels instead of a GEMM (
+        <code>MMVF_MAX_BATCH_SIZE</code> is 8); for some quantised types on particular GPUs the limit is lower, because
+        the matrix kernel wins sooner. Its Metal backend does the same with{' '}
         <code>mul_mv_ext</code> for 2 to 8 tokens, for most weight types. Eight is a code constant, not a device figure: the crossover is
         measured, which is lab 22.2's point.
       </p>

@@ -1,0 +1,1 @@
+Between rounds the key grows by two fixed constants, so every round mixes in something new. Now compare the rows side by side. They started one bit apart, in the stream word. After round one, exactly one of the four output words differs.

@@ -418,7 +418,18 @@ function BitsBench() {
             </button>
           </div>
           <p className="muted" style={{ margin: 0 }} data-part="facts">
-            {f.name}: {f.e} exponent bits give normal values from {show(minNormal(f))} to {show(maxFinite(f))}. {f.m} mantissa
+            {f.name}: {f.e} exponent bits give{' '}
+            {f.subnormals === 'nozero' ? (
+              <>
+                values from {show(minNormal(f))} to {show(maxFinite(f))}, and no zero: §A.1 reads E = {bitString(0, f.e)} with
+                the same formula as every other code (§A.2 shows the fixes).
+              </>
+            ) : (
+              <>
+                normal values from {show(minNormal(f))} to {show(maxFinite(f))}.
+              </>
+            )}{' '}
+            {f.m} mantissa
             bits plus the hidden one give {precisionBits(f)} significant bits: {2 ** f.m} values between each power of two and
             the next.
           </p>

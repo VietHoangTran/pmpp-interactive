@@ -827,19 +827,22 @@ export const questionsS222: Record<string, Question> = {
     id: 'ch22/22.2/q-conv-writers',
     prompt: (
       <>
-        A 1-D convolution with a 5-wide filter is decomposed input-centric: each thread owns one input and adds its
-        contributions into the outputs. Away from the edges, how many threads write each output?
+        A 1-D convolution of 20 inputs with a 7-wide filter, zero-padded so that there are 20 outputs, is decomposed
+        input-centric: each thread owns one input and adds its contributions into the outputs. How many atomic updates
+        does it make in all? (The explorer stops at 16 inputs; use it to check your method, not the answer.)
       </>
     ),
-    answer: 5,
+    answer: 128,
     explain: (
       <p>
-        Each output is the sum of 5 inputs, so the 5 threads that own them all add into it, and each of those updates needs
-        an atomic. Output-centric, the output has one writer that adds the 5 products in a register and stores once. In the
-        explorer's convolution preset (12 inputs) that is 54 atomic updates against none.
+        Count the contributions by output. The 14 inner outputs each receive 7, which is 98. Near each edge the padding
+        removes 3, 2 and 1 of them, so the 3 edge outputs on each side receive 4, 5 and 6: 15 per side, 30 in all.
+        That is 128 contributions. Every output has at least 4 writers, so every one of the 128 is an atomic.
+        Output-centric, each output has one writer that adds its products in a register and stores once: 20 plain stores,
+        no atomics. The explorer&rsquo;s convolution preset, 12 inputs and 5 wide, is the same count: 54.
       </p>
     ),
-    source: 'ch. 22 §22.2, pp. 533–534',
+    source: 'ch. 22 §22.2, pp. 533–534; our arithmetic (sim/decompose.ts)',
   },
   'ch22/22.2/q-hist-inspect': {
     kind: 'numeric',
@@ -1074,8 +1077,9 @@ export function S222() {
         <p>
           The mechanism is documented: NVIDIA says a register access "consumes zero extra clock cycles per instruction"
           (Best Practices Guide 10.2.7), atomics on one address are serialised, and device-scope atomics run in the L2
-          (ch09-facts A4). How much slower an atomic is than a register add is documented nowhere, so this course gives no
-          ratio. Chapter 9's labs and lab 22.1 measure it on your device.
+          (ch09-facts A4). No backend documents how much slower an atomic is than a register add, so this course gives no
+          ratio. Chapter 9's labs measure contended atomics; lab 22.1 measures the whole trade (more warps against S
+          atomics per output) on a decode GEMV, not an atomic's cost alone.
         </p>
       </Today>
       <p>

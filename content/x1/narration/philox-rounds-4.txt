@@ -1,0 +1,1 @@
+Watch the difference spread. After round two it is still one word, but a different one. After round three, two words differ. After round four, three. By round five, all four words differ. These counts come straight from the tested model, not from a drawing.

@@ -453,16 +453,18 @@ export function S191() {
     <>
       <p>
         Convolutional networks are older than the GPUs that made them practical. In the book&rsquo;s short history they
-        were invented in the late 1980s, and feed-forward networks came back around 2006. In 2012 a University of
-        Toronto entry won the ImageNet challenge with a network of about 60 million parameters, trained on two GPUs with
-        a CUDA library called cuda-convnet; its error rate was 15.3% against 26.2% for the runner-up. The book dates deep
-        learning&rsquo;s take-off in industry to that year.
+        were invented in the late 1980s, and feed-forward networks came back around 2006.
       </p>
       <Source section="19.1" pages="453–455" />
-      <Today checked="2026-11-20 (notes/today/ch19-facts.md, A9)">
+      <p>
+        In 2012 a University of Toronto entry won the ImageNet challenge with a network of about 60 million parameters,
+        trained on two GPUs with a CUDA library called cuda-convnet; its error rate was 15.3% against 26.2% for the
+        runner-up. The book dates deep learning&rsquo;s take-off in industry to that year.
+      </p>
+      <Today checked="2026-11-20 (ch19-facts A9)">
         <p>
-          The paper says five to six days, not a week, and credits the 15.3% to &ldquo;a variant of this model&rdquo;.
-          Cite the NIPS 2012 PDF; its landing page shows an older abstract.
+          The NIPS 2012 paper says five to six days of training, not a week, and credits the 15.3% to &ldquo;a variant of
+          this model&rdquo;.
         </p>
       </Today>
       <p>
@@ -549,8 +551,8 @@ export function S191() {
       <Today checked="2026-11-20 (notes/today/ch07-facts.md, D1)">
         <p>
           PyTorch 2.15 calls <code>Conv2d</code> &ldquo;the valid 2D cross-correlation operator&rdquo;, default{' '}
-          <code>padding=0</code>. cuDNN and MIOpen offer both modes and PyTorch asks for cross-correlation; Apple&rsquo;s
-          MPSGraph documents neither (ch19-facts C3).
+          <code>padding=0</code>. cuDNN offers both modes and PyTorch asks for cross-correlation; MIOpen computes cross-correlation
+          (ch07-facts D1, ch19-facts B3); Apple&rsquo;s MPSGraph documents neither (C3).
         </p>
       </Today>
       <Ask q={questionsS191['ch19/19.1/q-outsize']} label="Work it out" />
@@ -559,16 +561,18 @@ export function S191() {
       <h2>Three tensors and their shapes</h2>
       <p>
         For one sample, the layer reads X, of shape C × H × W, and F, of shape M × C × K × K, and writes Y, of shape M ×
-        H_out × W_out. All three are flat arrays in row-major order with the highest dimension first. So{' '}
-        <code>F[m, c, _, _]</code> is the K × K filter that carries input map c into output map m, and the filters for
-        one output map sit next to each other in memory.
+        H_out × W_out.
       </p>
       <Source section="19.1" pages="458" />
+      <p>
+        All three are flat arrays in row-major order with the highest dimension first. So <code>F[m, c, _, _]</code> is
+        the K × K filter that carries input map c into output map m, and the filters for one output map sit next to each
+        other in memory.
+      </p>
       <Aside>
         <p>
-          Two slips on p. 458. The text says the filter bank arrives in an array called <code>W</code>; the code calls
-          it <code>F</code>, and <code>W</code> is the width. And it leaves the fully connected layer &ldquo;as an
-          exercise&rdquo;, but none of the chapter&rsquo;s exercises asks for it.
+          Two slips on p. 458: the text names the filter array <code>W</code>, the code <code>F</code>; and no exercise
+          takes up the fully connected layer it leaves &ldquo;as an exercise&rdquo;.
         </p>
       </Aside>
       <p>

@@ -82,8 +82,8 @@ shows it passing. Never write "verified" for anything else.
   reports as stale. Commit the audio.
 - Pick between takes by transcribing them locally (whisper-cli) against the script; a
   word heard as a different word in both takes means the script needs rewording.
-- Write for the ear: short sentences, no symbols read aloud, numbers spelled the way they
-  are said.
+- Write for the ear: short sentences, no symbols read aloud. Digits are fine for numbers the
+  voice reads naturally (7, 128, 2 by 2); spell out anything it might misread.
 
 ## Repository
 

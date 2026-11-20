@@ -1,6 +1,6 @@
 import { Fragment, useMemo, useState } from 'react';
 import { Ask, type Question } from '../../components/Ask';
-import { Aside, Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
+import { Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
 import { href } from '../../lib/router';
 import {
   CLASSIFIER_FORMATS,
@@ -489,12 +489,10 @@ export function SA3() {
         range comes from: double reaches about 10<sup>308</sup>, against about 10<sup>80</sup> atoms in the universe.
       </p>
       <Source section="A.3" pages="590" />
-      <Aside>
-        <p>
-          <b>Erratum.</b> The book says the extra exponent bits multiply the number of intervals "by 2<sup>(2<sup>3</sup>)</sup> = 256
-          times". Three extra bits give 2<sup>3</sup> = 8 times as many exponent codes.
-        </p>
-      </Aside>
+      <p>
+        <b>In the PDF</b>, the extra exponent bits multiply the number of intervals "by 2<sup>(2<sup>3</sup>)</sup> = 256
+        times". That is not what three extra bits give. Work out the right factor.
+      </p>
       <Ask q={questionsSA3['appA/A.3/q-intervals']} label="Work it out" />
       <p>
         The formats you will use most for inference are narrower. FP16 and BF16 are both 16 bits, split differently: FP16
@@ -542,6 +540,7 @@ export function SA3() {
         <li>exponent all zeros, mantissa 0: zero (there are two, +0 and −0);</li>
         <li>exponent all zeros, mantissa not 0: a denormal, read as 0.M instead of 1.M (section <a href={href('appA', 'A.2')}>A.2</a>).</li>
       </ul>
+      <Ask q={questionsSA3['appA/A.3/q-nan-count']} label="Work it out" />
       <p>
         Every other pattern is a normal number. Use the classifier to find each group, then try the narrow formats. They
         do not all follow Fig. A.8.
@@ -568,6 +567,12 @@ export function SA3() {
         divided by ±∞ is 0. Integer arithmetic does something else: a result out of range wraps around, or is undefined.
       </p>
       <Source section="A.3" pages="590" />
+      <p>
+        The trouble starts when an infinity crosses into integers. NVIDIA calls a float-to-integer conversion whose result
+        does not fit undefined behaviour, NaN and infinity included. That matters as soon as you quantise: a kernel that
+        turns an activation into an int8 code with a cast has undefined behaviour if the activation has already become
+        infinity.
+      </p>
       <Today checked={CHECKED('A7')}>
         <p>
           NVIDIA: "operations that overflow the representable range result in +Infinity or -Infinity", and "Converting a
@@ -575,10 +580,6 @@ export function SA3() {
           also includes NaN and infinity."
         </p>
       </Today>
-      <p>
-        That last sentence matters as soon as you quantise: a kernel that turns an activation into an int8 code with a cast
-        has undefined behaviour if the activation has already become infinity.
-      </p>
 
       <h2>NaN</h2>
       <p>
@@ -631,7 +632,6 @@ export function SA3() {
           2<sup>24</sup> − 2; NVIDIA writes 2<sup>(mantissa + 1)</sup> − 2.
         </p>
       </Today>
-      <Ask q={questionsSA3['appA/A.3/q-nan-count']} label="Work it out" />
 
       <h2>Where infinities come from: softmax</h2>
       <p>

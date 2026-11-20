@@ -1,0 +1,1 @@
+Finally, the two ends. If u is exactly zero, the strict test never picks a token with zero weight. And if rounding leaves no sum above the target, which the kernel's two orders of addition make possible, the block takes the last survivor with a positive weight.

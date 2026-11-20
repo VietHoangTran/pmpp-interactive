@@ -1,6 +1,6 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
-import { Aside, Beyond, Bench, Simplification, Source, Today } from '../../components/notes';
+import { Aside, Bench, Simplification, Source, Today } from '../../components/notes';
 import { benchRows, fmt, num, realBackends, useReports, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import { batchToReach, batchedDecodeAttentionAI, linearAI } from '../../sim/kvmath';
@@ -29,8 +29,8 @@ function ridges(reports: Reports): Ridge[] {
 // ---------------------------------------------------------------- batching explorer
 
 const LAYERS = [
-  { key: 'book', label: '1,024 → 4,096 (the book’s example)', inF: 1024, outF: 4096 },
-  { key: 'qkv', label: '4,096 → 12,288 (Q, K and V of a 4,096-wide model)', inF: 4096, outF: 12288 },
+  { key: 'book', label: '1,024 → 4,096 (the book’s)', inF: 1024, outF: 4096 },
+  { key: 'qkv', label: '4,096 → 12,288 (fused Q, K, V)', inF: 4096, outF: 12288 },
   { key: 'square', label: '4,096 → 4,096', inF: 4096, outF: 4096 },
 ];
 const N_ATTN = 4096;
@@ -72,7 +72,10 @@ function BatchPlot({ inF, outF, p, b, lines }: { inF: number; outF: number; p: n
       <polyline points={lin} fill="none" stroke="var(--global)" strokeWidth="2.4" />
       <line x1={pad.l} x2={W - pad.r} y1={Y(att)} y2={Y(att)} stroke="var(--reg)" strokeWidth="2.4" />
       <text x={pad.l + 6} y={Y(att) + 15} fontSize="10.5" style={{ fill: 'var(--reg)' }}>decode attention, each request its own cache</text>
-      <text x={X(512) - 4} y={Y(linearAI(512, inF, outF, p)) + 18} fontSize="10.5" textAnchor="end" style={{ fill: 'var(--global)' }}>linear layer, weights shared</text>
+      <g data-linear-key="">
+        <line x1={pad.l + 8} x2={pad.l + 30} y1={pad.t + 14} y2={pad.t + 14} stroke="var(--global)" strokeWidth="2.4" />
+        <text x={pad.l + 36} y={pad.t + 18} fontSize="10.5" style={{ fill: 'var(--global)' }}>linear layer, weights shared</text>
+      </g>
       <circle cx={X(b)} cy={Y(linearAI(b, inF, outF, p))} r="5" fill="var(--global)" />
       <circle cx={X(b)} cy={Y(att)} r="5" fill="var(--reg)" />
     </svg>
@@ -106,15 +109,15 @@ function BatchingBench() {
           Batch b = {b}
           <input type="range" min="0" max="9" step="1" value={logB} aria-label="Batch size" onChange={(e) => setLogB(Number(e.target.value))} />
         </label>
-        <label className="field">
+        <label className="field" style={{ maxWidth: '100%', minWidth: 0 }}>
           Linear layer
-          <select value={layerKey} onChange={(e) => setLayerKey(e.target.value)} aria-label="Linear layer">
+          <select value={layerKey} onChange={(e) => setLayerKey(e.target.value)} aria-label="Linear layer" style={{ maxWidth: '100%' }}>
             {LAYERS.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}
           </select>
         </label>
         <label className="field">
           Element
-          <select value={p} onChange={(e) => setP(Number(e.target.value))} aria-label="Element size">
+          <select value={p} onChange={(e) => setP(Number(e.target.value))} aria-label="Element size" style={{ maxWidth: '100%' }}>
             <option value={4}>fp32, 4 bytes</option>
             <option value={2}>16-bit, 2 bytes</option>
             <option value={1}>8-bit, 1 byte</option>
@@ -384,12 +387,12 @@ export const questionsS206: Record<string, Question> = {
     id: 'ch20/20.6/q-attn-batch',
     prompt: <>Why does batching 64 decode requests together not raise the intensity of their attention?</>,
     options: [
-      { label: 'Each request reads its own cache, so bytes and FLOPs grow together; no byte is shared between requests.', correct: true },
-      { label: 'The softmax cannot be batched.', why: 'The softmax is a small part of the work and batches fine; the issue is what is read.' },
-      { label: 'The causal mask differs from request to request.', why: 'A decode step needs no mask at all.' },
-      { label: 'It does raise it, 64 times.', why: 'That is what happens to the projections, whose weights are shared. The caches are not.' },
+      { label: 'Each request reads its own cache, so bytes grow with the FLOPs.', correct: true },
+      { label: 'The softmax cannot be batched across requests of different lengths.', why: 'The softmax is a small part of the work and batches fine; the issue is what is read.' },
+      { label: 'The causal mask differs from request to request in the batch.', why: 'A decode step needs no mask at all.' },
+      { label: 'It does raise it, 64 times, just as it does for the projections.', why: 'That is what happens to the projections, whose weights are shared. The caches are not.' },
     ],
-    explain: <p>Intensity rises when one loaded byte feeds more arithmetic. Weights are common to every request; a cache belongs to one request, so 64 requests read 64 caches.</p>,
+    explain: <p>Intensity rises when one loaded byte feeds more arithmetic. Weights are common to every request; a cache belongs to one request, so 64 requests read 64 caches and no byte is shared between them.</p>,
     source: 'ch. 20 §20.6, p. 505, Fig. 20.17',
   },
   'ch20/20.6/q-gpt3': {
@@ -420,19 +423,16 @@ export const questionsS206: Record<string, Question> = {
     id: 'ch20/20.6/q-palm',
     prompt: <>The book’s “PaLM 2” row (64 layers, hidden dimension 8,192) gives a cache of 8 GB for 4,096 tokens. What is wrong with it?</>,
     options: [
-      {
-        label: 'PaLM 2’s architecture was never published. These are PaLM 62B’s numbers, and PaLM uses multi-query attention with one K/V head of 256, so its cache is 256 MiB: 32 times smaller.',
-        correct: true,
-      },
-      { label: 'Nothing: the arithmetic of Eq. 20.8 is right.', why: 'The arithmetic is right; the model it describes does not exist in that form.' },
-      { label: 'It should be 16 GB, because K and V are both cached.', why: 'Eq. 20.8 already has the factor 2 for K and V.' },
-      { label: 'The precision should be 4 bytes.', why: 'The book states 16-bit, which is what such models are served in.' },
+      { label: 'The shape is PaLM 62B’s, which caches one K/V head, not 32.', correct: true },
+      { label: 'Nothing: the arithmetic of Eq. 20.8 is right for that shape.', why: 'The arithmetic is right; the model it describes does not exist in that form.' },
+      { label: 'It should be 16 GB, because K and V are both cached per layer.', why: 'Eq. 20.8 already has the factor 2 for K and V.' },
+      { label: 'The precision should be 4 bytes, as the model was trained in fp32.', why: 'The book states 16-bit, which is what such models are served in.' },
     ],
     explain: (
       <p>
-        Google withheld PaLM 2’s architecture. The first PaLM paper lists PaLM 62B with 64 layers, 32 heads and d_model
+        Google withheld PaLM 2’s architecture, so these are not its numbers. The first PaLM paper lists PaLM 62B with 64 layers, 32 heads and d_model
         8,192, and uses multi-query attention with a head size of 256. With one K and one V head of 256 per layer, 4,096
-        tokens take 4,096 × 2 × 64 × 256 × 2 bytes = 256 MiB.
+        tokens take 4,096 × 2 × 64 × 256 × 2 bytes = 256 MiB, 32 times less than the book&rsquo;s figure.
       </p>
     ),
     source: 'notes/today/ch20-facts.md E2, F1; book p. 506',
@@ -442,12 +442,12 @@ export const questionsS206: Record<string, Question> = {
     id: 'ch20/20.6/q-spec-ai',
     prompt: <>Speculative decoding verifies k drafted tokens in one pass of the target model. What happens to the cache bytes read per verified token?</>,
     options: [
-      { label: 'The shared prefix’s K and V rows are read once and serve all k query rows, so attention’s intensity rises about k times.', correct: true },
-      { label: 'Nothing: each token still needs its own copy of the cache.', why: 'The k rows share one prefix, so they share one cache. That is the difference from batching separate requests.' },
-      { label: 'They double, because two models run.', why: 'The draft model is small and has its own small cache; the target’s cache is read once per pass.' },
-      { label: 'They fall to zero.', why: 'The cache is still read, once per pass.' },
+      { label: 'They fall about k times: one read of the prefix serves all k rows.', correct: true },
+      { label: 'Nothing changes: each drafted token still reads its own copy of the cache.', why: 'The k rows share one prefix, so they share one cache. That is the difference from batching separate requests.' },
+      { label: 'They double, because two models run and each reads a cache.', why: 'The draft model is small and has its own small cache; the target’s cache is read once per pass.' },
+      { label: 'They fall to zero, because the drafts were already computed.', why: 'The cache is still read, once per pass.' },
     ],
-    explain: <p>The book’s point on p. 508: a speculative batch is special because all its entries share a common prefix, so the same cached K and V serve every output token instead of being loaded once per token.</p>,
+    explain: <p>The book’s point on p. 508: a speculative batch is special because all its entries share a common prefix, so the same cached K and V serve every output token instead of being loaded once per token. Attention&rsquo;s intensity rises about k times.</p>,
     source: 'ch. 20 §20.6, p. 508; notes/today/ch20-facts.md E4',
   },
   'ch20/20.6/q-inflight': {
@@ -455,17 +455,14 @@ export const questionsS206: Record<string, Question> = {
     id: 'ch20/20.6/q-inflight',
     prompt: <>The book says in-flight batching slots a new request into the batch with the lowest workload (p. 506). What do the paper it cites and NVIDIA’s documentation actually describe?</>,
     options: [
-      {
-        label: 'Iteration-level scheduling (from Orca): after every iteration finished requests leave the batch and waiting ones join. TensorRT-LLM calls it in-flight batching, also known as continuous batching.',
-        correct: true,
-      },
+      { label: 'After every iteration, finished requests leave and waiting ones join.', correct: true },
       { label: 'The book’s description: a new request joins whichever batch has the least work.', why: 'Neither source describes choosing a batch by workload.' },
-      { label: 'Padding every request to one length so the batch stays rectangular.', why: 'That is what iteration-level scheduling avoids.' },
-      { label: 'Running prefill and decode on separate GPUs.', why: 'TensorRT-LLM says the opposite: context-phase and generation-phase sequences are processed together.' },
+      { label: 'Padding every request to one length, so that the batch stays rectangular.', why: 'That is what iteration-level scheduling avoids.' },
+      { label: 'Running prefill and decode on separate GPUs, each with its own batch.', why: 'TensorRT-LLM says the opposite: context-phase and generation-phase sequences are processed together.' },
     ],
     explain: (
       <p>
-        The vLLM paper credits iteration-level scheduling to Orca: “After each iteration, completed requests are removed from
+        This is iteration-level scheduling. The vLLM paper credits it to Orca: “After each iteration, completed requests are removed from
         the batch, and new ones are added.” TensorRT-LLM: “in-flight batching of requests (also known as continuous batching
         or iteration-level batching)”.
       </p>
@@ -489,11 +486,14 @@ export function S206() {
       <h2>Batching the projections</h2>
       <p>
         Batching is how every neural network raises its intensity: stack several input rows into a matrix, so that each
-        weight loaded from memory serves all of them. The book’s example is a linear layer with 1,024 inputs and 4,096
-        outputs in 16-bit: about 1 FLOP per byte with one row, 315 with 512 rows. Its footnote adds that this is the
-        theoretical gain; what a kernel gets depends on the tile size it uses.
+        weight loaded from memory serves all of them.
       </p>
       <Source section="20.6" pages="504–505" />
+      <p>
+        The book&rsquo;s example is a linear layer with 1,024 inputs and 4,096 outputs in 16-bit: about 1 FLOP per byte
+        with one row, 315 with 512 rows. Its footnote adds that this is the theoretical gain; what a kernel gets depends
+        on the tile size it uses.
+      </p>
       <Aside>
         <p>The book does not show its count. Weights once, plus every input and output row, gives 0.9988 and 315.08 exactly (facts F1). Chapter 22 builds the same count into a whole decode step.</p>
       </Aside>
@@ -508,6 +508,13 @@ export function S206() {
         Batching is then limited by memory: the weights plus one cache per request.
       </p>
       <Source section="20.6" pages="505" figs="Fig. 20.17" />
+      <p>Watch both streams as the batch grows: which one&rsquo;s intensity moves, and which one fills memory.</p>
+      <Simplification>
+        <p>
+          One layer of a Llama 2 7B shape, 16-bit, every request with the same 1,024-token cache. Only the weight and cache
+          reads are counted: the Q, K and V projection and attention, no output projection, no feed-forward.
+        </p>
+      </Simplification>
       <BatchShareScene />
       <Ask q={questionsS206['ch20/20.6/q-attn-batch']} />
 
@@ -531,12 +538,13 @@ export function S206() {
       <p>
         The book’s conclusion survives the corrections: batch many requests and the caches quickly outgrow one GPU’s
         memory, which is why LLM serving commonly spans several GPUs. Size it for yourself, against the memory your own
-        device reported. The last row is our addition: a floor on the time of one decode step, if every weight and every
-        cached byte had to be read once at the bandwidth lab 5.1 measured.
+        device reported.
       </p>
-      <Beyond>
-        <p>The floor is ours, not the book’s. It answers “how fast could decode possibly go here?” with one division.</p>
-      </Beyond>
+      <p>
+        The last row is ours, not the book&rsquo;s: a floor on the time of one decode step, if every weight and every
+        cached byte had to be read once at the bandwidth lab 5.1 measured. It answers &ldquo;how fast could decode
+        possibly go here?&rdquo; with one division.
+      </p>
       <Simplification>
         <p>The floor counts reads only, assumes every byte streams once at lab 5.1’s bandwidth, and ignores caches, overlap, kernel launches and everything outside attention and the weights.</p>
       </Simplification>
@@ -573,10 +581,13 @@ export function S206() {
       <p>
         Eq. 20.9 counts one layer of decode attention with the cache: it reads 2 × h_q × d × N cached elements, plus Q′ and
         O′, and does 2 × N × h_q × d operations for (Q′Kᵀ)V. That is N / (1 + N), about one operation per element, and
-        batching cannot change it. The book counts a multiply-add as one operation and an element as one byte (p = 1). In
-        FLOP per byte, that is 1 in 16-bit and 0.5 in the fp32 the labs use.
+        batching cannot change it.
       </p>
       <Source section="20.6" pages="506–507" figs="Eq. 20.9" />
+      <p>
+        The book counts a multiply-add as one operation and an element as one byte (p = 1). In FLOP per byte, that is 1 in
+        16-bit and 0.5 in the fp32 the labs use.
+      </p>
       <Today checked="2026-11-20 (ch20-facts E4)">
         <p>The book’s source, [13], states it per byte: “Every loaded BF16 (2 bytes) element of the cached key matrix performs one MAC (2 FLOPs) … yielding a 1:1 FLOP-to-byte ratio.”</p>
       </Today>

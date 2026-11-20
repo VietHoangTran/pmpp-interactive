@@ -59,7 +59,7 @@ function SortExplorer() {
       id: 'adaptive', label: "llama.cpp's host route", n: plan.sizes.adaptive,
       note: V <= 1024 ? '1,024 candidates or fewer: a full sort' : plan.widened ? 'the top 256 hold less than p: widened to the row' : 'the top 256 reach p: a partial sort of 256',
     },
-    { id: 'minp', label: 'min-p 0.05 first, then sort the survivors', n: plan.sizes.minPFirst, note: 'section X1.6' },
+    { id: 'minp', label: 'min-p 0.05 first, then sort the survivors', n: plan.sizes.minPFirst, note: "when the chain has min-p, as llama.cpp's default does: section X1.6" },
   ];
   // The cumulative mass against rank on a log axis, sampled at about 160 ranks.
   const PW = 560;
@@ -126,10 +126,11 @@ function SortExplorer() {
           <text x={L - 4} y={ly(1) + 4} fontSize="10" textAnchor="end">1</text>
           <text x={L - 4} y={ly(0) + 4} fontSize="10" textAnchor="end">0</text>
           <line x1={L} y1={ly(p)} x2={PW - 10} y2={ly(p)} stroke="var(--ink)" strokeDasharray="4 3" />
-          <text x={PW - 12} y={ly(p) + 13} fontSize="10" textAnchor="end">p = {p.toFixed(2)}</text>
+          <text x={(L + PW) / 2} y={ly(p) + 13} fontSize="10" textAnchor="middle">p = {p.toFixed(2)}</text>
           <polyline points={pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')} fill="none" stroke="var(--global)" strokeWidth={2} />
           <line x1={lx(Math.min(kept, V))} y1={ly(0)} x2={lx(Math.min(kept, V))} y2={ly(1)} stroke="var(--ink)" />
-          <text x={Math.min(lx(Math.min(kept, V)) + 4, PW - 120)} y={ly(0) - 6} fontSize="10.5" fontWeight="650">top-p keeps {n0(kept)}</text>
+          <text x={lx(Math.min(kept, V)) + (lx(Math.min(kept, V)) > PW - 140 ? -4 : 4)} y={ly(0) - 6} fontSize="10.5" fontWeight="650"
+            textAnchor={lx(Math.min(kept, V)) > PW - 140 ? 'end' : 'start'}>top-p keeps {n0(kept)}</text>
           {V > 256 ? <line x1={lx(256)} y1={ly(0)} x2={lx(256)} y2={ly(0) + 6} stroke="var(--ink-2)" /> : null}
           {V > 256 ? <text x={lx(256)} y={PH - 6} fontSize="9.5" textAnchor="middle" style={{ fill: 'var(--ink-2)' }}>256</text> : null}
           <text x={L} y={PH - 6} fontSize="9.5" style={{ fill: 'var(--ink-2)' }}>rank 1</text>

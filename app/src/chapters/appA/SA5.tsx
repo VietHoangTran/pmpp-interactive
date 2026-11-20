@@ -136,7 +136,7 @@ function DecodeCeilingBench() {
               <td className="num">{fmt(r.ceil)}</td>
               <td className="num">{fmt(r.ceil / bf16.ceil)}</td>
               <td>
-                <span style={{ display: 'block', height: '0.7rem', width: `${(100 * r.ceil) / top}%`, background: 'var(--global)', borderRadius: 2 }} />
+                <span style={{ display: 'block', height: '0.7rem', width: `${(100 * r.ceil) / top}%`, background: 'var(--ink-3)', borderRadius: 2 }} />
               </td>
             </tr>
           ))}
@@ -319,8 +319,8 @@ function MxBlockBench() {
             return (
               <g key={i} data-i={i} data-lost={lost ? 1 : 0}>
                 <line x1={x} x2={x} y1={ly(Math.abs(v))} y2={ly(Math.abs(d))} stroke={bad ? 'var(--fail)' : 'var(--ink-3)'} strokeWidth="1.6" />
-                <circle cx={x} cy={ly(Math.abs(v))} r="4" fill="none" stroke="var(--global)" strokeWidth="1.3" />
-                <circle cx={x} cy={ly(Math.abs(d))} r="3" fill={bad ? 'var(--fail)' : 'var(--global)'} />
+                <circle cx={x} cy={ly(Math.abs(v))} r="4" fill="none" stroke="var(--ink-2)" strokeWidth="1.3" />
+                <circle cx={x} cy={ly(Math.abs(d))} r="3" fill={bad ? 'var(--fail)' : 'var(--ink)'} />
               </g>
             );
           })}
@@ -429,18 +429,25 @@ export const questionsSA5: Record<string, Question> = {
   'appA/A.5/q-ceiling': {
     kind: 'numeric',
     id: 'appA/A.5/q-ceiling',
-    prompt: <>A model's weights move from BF16 to MXFP4. By what factor does its batch-1 decode ceiling rise, by the bandwidth argument above?</>,
-    answer: 3.76,
+    prompt: (
+      <>
+        A format not in the table stores 4-bit codes plus one FP16 scale and one FP16 zero point for every 32 weights. A
+        model's weights move to it from BF16. By what factor does the batch-1 decode ceiling rise, by the bandwidth
+        argument above?
+      </>
+    ),
+    answer: 3.2,
     tol: 0.02,
     unit: '×',
     explain: (
       <p>
-        The ceiling is bandwidth divided by bytes per token, so it scales with 1 / bits per weight: 16 / 4.25 = 3.76. Not
-        4: MXFP4's scales cost a quarter of a bit per weight. A real decode step also reads the KV cache and activations,
-        which do not shrink with the weights, so the measured gain is smaller.
+        Bits per weight: 4 + (16 + 16) / 32 = 5. The ceiling is bandwidth divided by bytes per token, so it scales with 1
+        / bits per weight: 16 / 5 = 3.2. The 4-bit codes alone would promise 4; two 16-bit numbers per 32 weights cost a
+        whole bit each, four times MXFP4's quarter bit. A real decode step also reads the KV cache and activations, which
+        do not shrink with the weights, so the measured gain is smaller.
       </p>
     ),
-    source: 'ch. 5 §5.1 method; MX v1.1 Table 1 (notes/today/appA-facts.md A4); our arithmetic',
+    source: 'ch. 5 §5.1 method; our arithmetic (the format is a hypothetical one)',
   },
   'appA/A.5/q-outlier': {
     kind: 'choice',
@@ -464,14 +471,15 @@ export const questionsSA5: Record<string, Question> = {
   'appA/A.5/q-mxfp4-bits': {
     kind: 'numeric',
     id: 'appA/A.5/q-mxfp4-bits',
-    prompt: <>How many bits per weight does MXFP4 take, counting its scale?</>,
-    answer: 4.25,
+    prompt: <>Suppose MXFP4 shared each UE8M0 scale across 64 weights instead of 32. How many bits per weight would it take?</>,
+    answer: 4.125,
     tol: 0.001,
     unit: 'bits',
     explain: (
       <p>
-        32 elements of 4 bits plus one 8-bit UE8M0 scale: 136 bits for 32 weights, 4.25 per weight. llama.cpp's{' '}
-        <code>block_mxfp4</code> is exactly that: 17 bytes per 32 weights.
+        64 elements of 4 bits plus one 8-bit scale: 264 bits for 64 weights, 4.125 per weight. The real format's 32 cost
+        4.25, which is llama.cpp's <code>block_mxfp4</code>: 17 bytes per 32 weights. Bigger blocks save an eighth of a
+        bit, and let one outlier erase twice as many weights (the question above).
       </p>
     ),
     source: 'MX v1.1 Table 1; llama.cpp ggml-common.h (notes/today/appA-facts.md A4, D3)',
@@ -527,8 +535,8 @@ export function SA5() {
       </p>
       <Today checked="2026-11-20 (notes/today/appA-facts.md A10, A11; ch05-facts.md A8)">
         <p>
-          Both figures are NVIDIA's "with sparsity" rows, and the 989 is TF32 (FP32's range, at least 10 mantissa bits),
-          not IEEE single precision. FP8 tensor cores start at compute capability 8.9; FP6 and FP4 at 10.0.
+          Checked against NVIDIA's H100 table: its rows are labelled differently from the book's wording (the question
+          below asks how). FP8 tensor cores start at compute capability 8.9; FP6 and FP4 at 10.0.
         </p>
       </Today>
       <Ask q={questionsSA5['appA/A.5/q-h100']} />
@@ -768,7 +776,8 @@ export function SA5() {
           <tr>
             <td>Frameworks</td>
             <td>
-              PyTorch's "shell" dtypes such as <code>float8_e4m3fn</code> ("fn": finite only; "uz": unsigned zero)
+              PyTorch's "shell" dtypes such as <code>float8_e4m3fn</code> ("f": finite only, no infinity; "n": NaN encodings
+              differ from IEEE; "uz": unsigned zero only)
             </td>
             <td>
               MLX <code>quantize</code> modes <code>mxfp4</code>, <code>mxfp8</code>, <code>nvfp4</code>

@@ -1,0 +1,1 @@
+Here are two rows of a batch at step zero. Each row's counter is four thirty-two-bit words: two for the step, two for the stream. The key is two more words, made from the seed. There is no state anywhere. The random bits are just a function of where you are.

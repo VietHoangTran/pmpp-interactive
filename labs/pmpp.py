@@ -184,8 +184,16 @@ def source_hash(lab, variant):
 def resolve_lab(cfg, token):
     labs = sorted({t["lab"] for t in cfg["targets"] if t["lab"] != "devinfo"})
     m = re.fullmatch(r"(\d+)\.(\d+)", token)
+    a = re.fullmatch(r"([A-Za-z])\.(\d+)", token)      # appendix labs: A.1 -> appA/lab1_
+    x = re.fullmatch(r"[Xx](\d+)\.(\d+)", token)       # our modules: X1.3 -> x1/lab3_
     if m:
         want = "ch%02d/lab%s_" % (int(m.group(1)), m.group(2))
+        hits = [l for l in labs if l.startswith(want)]
+    elif a:
+        want = "app%s/lab%s_" % (a.group(1).upper(), a.group(2))
+        hits = [l for l in labs if l.startswith(want)]
+    elif x:
+        want = "x%s/lab%s_" % (x.group(1), x.group(2))
         hits = [l for l in labs if l.startswith(want)]
     else:
         hits = [l for l in labs if token in l]

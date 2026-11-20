@@ -90,7 +90,7 @@ for (const T of [0.05, 0.2, 1, 2.5, 4]) {
 }
 check('the tallest bar never moves with T', seen.every((i) => i === M.argmax), seen.join(' '));
 await setT(0.05);
-check('near T = 0 the peaked row is one-hot', Number((await readout('top1')).text.split(' ').pop()) > 0.999);
+check('near T = 0 the peaked row is one-hot', Number((await readout('top1')).top) > 0.999, (await readout('top1')).text);
 
 // ---------------------------------------------------------------- the tied row
 check('tied row button', await clickIn('Row', 'two tied maxima'));
@@ -130,7 +130,7 @@ for (const T of [3, 2]) {
   t = await setT(T);
   M = await model('peaked', t, true);
   got = await bars();
-  check(`float32 at T = ${t}: bars are the model's float32 softmax`, got.every((p, i) => close(p, M.probs[i], 1e-6)));
+  check(`float32 at T = ${t}: bars are the model's float32 softmax`, got.every((p, i) => p === M.probs[i]), JSON.stringify(got.slice(0, 3)));
   r = await readout('reciprocal');
   check(`float32 at T = ${t}: ${M.mismatch} logits differ between dividing and multiplying by 1/T`, Number(r.mismatch) === M.mismatch, r.text);
 }

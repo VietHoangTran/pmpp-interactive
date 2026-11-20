@@ -187,8 +187,12 @@ export function kernelTotal(weights: number[], cfg: KernelCfg): { partials: numb
   return { partials, warpSums, total };
 }
 
-/** One chunk scanned as the kernel scans it (every survivor's cumulative sum, flags against target). */
-function scanChunk(weights: number[], base: number, aggregate: number, target: number, cfg: KernelCfg, flagIt: boolean): Omit<Chunk, 'c' | 'aggAfter' | 'crosses' | 'winner'> {
+/**
+ * One chunk scanned as the kernel scans it (every survivor's cumulative sum, flags against
+ * the target). `target` is one number, or one per thread (what each thread read as the total
+ * after a missing barrier); `flagIt` says which threads take the crossing branch.
+ */
+function scanChunk(weights: number[], base: number, aggregate: number, target: number | number[], cfg: KernelCfg, flagIt: boolean | boolean[]): Omit<Chunk, 'c' | 'aggAfter' | 'crosses' | 'winner'> {
   const n = weights.length;
   const { threads, warp, vec } = cfg;
   const nW = Math.ceil(threads / warp);
@@ -211,25 +215,47 @@ function scanChunk(weights: number[], base: number, aggregate: number, target: n
     const incl = inclAll[t];
     const excl = lane === 0 ? 0 : inclAll[t - 1];
     const before = f32(aggregate + f32(carry + excl));
-    const cum = flagIt ? r.local.map((x) => f32(before + x)) : [];
-    const flags = flagIt ? cum.map((c, j) => r.first + j < n && c > target) : [];
+    const on = Array.isArray(flagIt) ? flagIt[t] : flagIt;
+    const tt = Array.isArray(target) ? target[t] : target;
+    const cum = on ? r.local.map((x) => f32(before + x)) : [];
+    const flags = on ? cum.map((c, j) => r.first + j < n && c > tt) : [];
     const hit = flags.findIndex(Boolean);
     return { thread: t, warp: wi, lane, first: r.first, w: r.w, local: r.local, run: r.run, incl, excl, carry, before, cum, flags, hit };
   });
   return { base, end: Math.min(n, base + threads * vec), warpTotals, sum, aggBefore: aggregate, lanes, ballots: [], warpFirst: [] };
 }
 
-/** The chunk loop of the kernel against a given target (float32, the kernel's order). */
-export function chunkedSearch(weights: number[], target: number, cfg: KernelCfg = STEPPER_CFG): { chunks: Chunk[]; index: number; fallback: boolean; winner: KernelTrace['winner'] } {
+export interface Search {
+  chunks: Chunk[];
+  index: number;
+  fallback: boolean;
+  winner: KernelTrace['winner'];
+  /** Some warp had lanes on both sides of the crossing test, so its full-mask ballot was not reached by every lane (only possible with per-thread targets). */
+  voteSplit: boolean;
+}
+
+/**
+ * The chunk loop of the kernel against a given target (float32, the kernel's order). The
+ * target is one number, or one per thread: what each thread computed from the value it read
+ * as the total (barrierHunt), so a missing barrier can be followed to the token it causes.
+ */
+export function chunkedSearch(weights: number[], target: number | number[], cfg: KernelCfg = STEPPER_CFG): Search {
   const n = weights.length;
   const nW = Math.ceil(cfg.threads / cfg.warp);
   const chunks: Chunk[] = [];
+  const tOf = (t: number) => (Array.isArray(target) ? target[t] : target);
   let aggregate = 0;
   let winner: KernelTrace['winner'] = null;
+  let voteSplit = false;
   for (let base = 0, c = 0; base < n; base += cfg.threads * cfg.vec, c++) {
     const probe = scanChunk(weights, base, aggregate, target, cfg, false);
-    const crosses = f32(aggregate + probe.sum) > target;
-    const s = crosses ? scanChunk(weights, base, aggregate, target, cfg, true) : probe;
+    const each = Array.from({ length: cfg.threads }, (_, t) => f32(aggregate + probe.sum) > tOf(t));
+    const crosses = each.some(Boolean);
+    for (let k = 0; k < nW; k++) {
+      const ws = each.slice(k * cfg.warp, (k + 1) * cfg.warp);
+      if (ws.some(Boolean) && !ws.every(Boolean)) voteSplit = true;
+    }
+    const s = crosses ? scanChunk(weights, base, aggregate, target, cfg, each) : probe;
     const ballots: number[] = [];
     const warpFirst: number[] = [];
     let best: number | null = null;
@@ -251,10 +277,10 @@ export function chunkedSearch(weights: number[], target: number, cfg: KernelCfg 
     }
     const aggAfter = f32(aggregate + s.sum);
     chunks.push({ ...s, c, crosses, ballots, warpFirst, winner: best, aggAfter });
-    if (best !== null) return { chunks, index: best, fallback: false, winner };
+    if (best !== null) return { chunks, index: best, fallback: false, winner, voteSplit };
     aggregate = aggAfter;
   }
-  return { chunks, index: lastPositive(weights), fallback: true, winner: null };
+  return { chunks, index: lastPositive(weights), fallback: true, winner: null, voteSplit };
 }
 
 /** The whole kernel for one row: total, target = u x total, the chunk loop, the fallback. */
@@ -424,6 +450,35 @@ export function barrierHunt(weights: number[], u: number, cfg: KernelCfg, missin
   };
 }
 
+export interface HuntDraw {
+  hunt: Hunt;
+  /** Each thread's target: u times what it read as the total. */
+  targets: number[];
+  /** The token the kernel writes under this order with this barrier missing. */
+  index: number;
+  /** The token with both barriers in place. */
+  correct: number;
+  search: Search;
+}
+/** Follow a missing barrier to the token: barrierHunt's reads become per-thread targets for the chunk loop. */
+export function huntDraw(weights: number[], u: number, cfg: KernelCfg, missing: Missing, order: HuntOrder): HuntDraw {
+  const hunt = barrierHunt(weights, u, cfg, missing, order);
+  const targets = hunt.reads.map((r) => f32(f32(u) * r.value));
+  const search = chunkedSearch(weights, targets, cfg);
+  return { hunt, targets, index: search.index, correct: drawKernel(weights, u, cfg).index, search };
+}
+
+/**
+ * The stepper's rows (ours). Each is a sorted survivor row at a temperature with a u; 'hunt'
+ * is chosen so that removing barrier A changes the token under the emulator's in-order run
+ * at the stepper's display width (pinned in draw.test.ts).
+ */
+export const STEP_ROWS: { id: string; label: string; n: number; T: number; u: number }[] = [
+  { id: 'short', label: '40 survivors', n: 40, T: 1, u: 0.6 },
+  { id: 'long', label: '200 survivors, T = 2.5', n: 200, T: 2.5, u: 0.85 },
+  { id: 'hunt', label: '120 survivors, T = 2', n: 120, T: 2, u: 0.7 },
+];
+
 // ---------------------------------------------------------------- near a boundary
 export type CdfOrder = 'double' | 'f32-loop' | 'f32-kernel';
 export const CDF_LABEL: Record<CdfOrder, string> = {
@@ -579,3 +634,58 @@ export const P_DRAW = { weights: [1, 1, 1, 1], u: 0.6 };
 export const GE_GT = { weights: [0, 0.5, 0.5], u: 0 };
 /** Question x1/X1.8/q-risk: 40 survivors, a margin of 2^-20. */
 export const RISK = { n: 40, margin: 2 ** -20 };
+
+// ---------------------------------------------------------------- the find-u scene
+/** The scene's block: 8 threads, a display warp of 4, 2 survivors per thread, so chunks of 16. */
+export const SCENE_CFG: KernelCfg = { threads: 8, warp: 4, vec: 2 };
+/** The scene's row: 40 sorted survivors at T = 3 (sampleLogits seed 3), flat enough to need a second chunk. */
+export const SCENE_T = 3;
+export const SCENE_WEIGHTS = weightsFrom(sampleLogits(40, 3), SCENE_T);
+/** The scene's u: chunk 0 is skipped and chunk 1 crosses (pinned in draw.test.ts). */
+export const SCENE_U = 0.8;
+/** The scene's draw through the kernel. */
+export const sceneDraw = () => drawKernel(SCENE_WEIGHTS, SCENE_U, SCENE_CFG);
+
+export interface BoundaryCase {
+  u: number;
+  boundary: number;
+  /** Per order: the inclusive sum at the boundary, the target, the token chosen. */
+  loop: { cum: number; target: number; index: number };
+  kernel: { cum: number; target: number; index: number };
+}
+/**
+ * The first u (a multiple of 2^-24, so one M5 can produce) at which the scene row's two
+ * float32 orders pick neighbouring tokens: the left-to-right sums and the kernel's.
+ */
+export function sceneBoundary(weights = SCENE_WEIGHTS, cfg = SCENE_CFG): BoundaryCase | null {
+  const { bands } = disagreement([{ weights, order: 'f32-loop' }, { weights, order: 'f32-kernel' }], cfg);
+  const L = cdfIn(weights, 'f32-loop', cfg);
+  const K = cdfIn(weights, 'f32-kernel', cfg);
+  for (const b of bands) {
+    for (let q = Math.floor(b.lo * 2 ** 24) - 2; q <= Math.ceil(b.hi * 2 ** 24) + 2; q++) {
+      const u = q / 2 ** 24;
+      const a = chooseIn(weights, u, 'f32-loop', cfg);
+      const k = chooseIn(weights, u, 'f32-kernel', cfg);
+      if (a !== k) {
+        const i = b.boundary;
+        return {
+          u,
+          boundary: i,
+          loop: { cum: L.cum[i], target: f32(f32(u) * L.total), index: a },
+          kernel: { cum: K.cum[i], target: f32(f32(u) * K.total), index: k },
+        };
+      }
+    }
+  }
+  return null;
+}
+
+/** M5's largest u, 1 - 2^-24. */
+export const TOP_U = 1 - 2 ** -24;
+/**
+ * The scene's fallback row: 8 survivors (sampleLogits(8, 2), T = 1) where, at M5's largest u,
+ * the kernel's last scanned sum ends at or below u x total, because the total (a strided sum and
+ * two warp trees) and the scan add the same weights in different orders (pinned in draw.test.ts).
+ */
+export const FALLBACK_WEIGHTS = weightsFrom(sampleLogits(8, 2), 1);
+export const fallbackDraw = () => drawKernel(FALLBACK_WEIGHTS, TOP_U, SCENE_CFG);

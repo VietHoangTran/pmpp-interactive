@@ -11,7 +11,7 @@ const KEYWORDS = new Set(
     '__host__ __shared__ __constant__ define ifndef endif include id uint32_t NSUInteger'
   ).split(' '),
 );
-const SYNC = new Set(['__syncthreads', 'threadgroup_barrier']);
+const SYNC = new Set(['__syncthreads', 'threadgroup_barrier', '__syncwarp', 'simdgroup_barrier']);
 
 export const MATMUL_TIERS: Record<string, Tier> = {
   M: 'global', N: 'global', P: 'global', A: 'global', B: 'global', C: 'global',

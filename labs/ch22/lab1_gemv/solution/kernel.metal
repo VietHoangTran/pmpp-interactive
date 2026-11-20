@@ -22,6 +22,30 @@ using namespace metal;
 
 #define MAX_BATCH 8
 
+// ---------------------------------------------------------------- one SIMD-group, one row of W
+// The same as warpRowDots in kernel.cu: one SIMD-group's dot products of a stretch
+// [k0, k1) of row w of W with every batch row of X. Every lane calls it with the same
+// arguments (and its own lane). simd_sum gives the sum to every lane; only lane 0's
+// totals are used.
+void simdRowDots(device const float* X, device const float* w, uint batch, uint in, uint k0, uint k1,
+                 uint lane, uint width, thread float* total) {
+    float sum[MAX_BATCH];
+    for (uint b = 0; b < MAX_BATCH; ++b) {
+        sum[b] = 0.0f;
+    }
+    for (uint k = k0 + lane; k < k1; k += width) {
+        const float wk = w[k];
+        for (uint b = 0; b < MAX_BATCH; ++b) {
+            if (b < batch) {
+                sum[b] += X[b * in + k] * wk;
+            }
+        }
+    }
+    for (uint b = 0; b < MAX_BATCH; ++b) {
+        total[b] = (b < batch) ? simd_sum(sum[b]) : 0.0f;   // `b < batch` is the same for every lane
+    }
+}
+
 // ---------------------------------------------------------------- (a) gather
 kernel void gemv_gather(device const float* X     [[buffer(0)]],
                         device const float* W     [[buffer(1)]],
@@ -38,25 +62,12 @@ kernel void gemv_gather(device const float* X     [[buffer(0)]],
     if (j >= out) {
         return;                         // the whole SIMD-group leaves together
     }
-    device const float* w = W + j * in;
-
-    float sum[MAX_BATCH];
-    for (uint b = 0; b < MAX_BATCH; ++b) {
-        sum[b] = 0.0f;
-    }
-    for (uint k = lane; k < in; k += width) {
-        const float wk = w[k];
+    float total[MAX_BATCH];
+    simdRowDots(X, W + j * in, batch, in, 0, in, lane, width, total);   // the whole of row j
+    if (lane == 0) {
         for (uint b = 0; b < MAX_BATCH; ++b) {
             if (b < batch) {
-                sum[b] += X[b * in + k] * wk;
-            }
-        }
-    }
-    for (uint b = 0; b < MAX_BATCH; ++b) {
-        if (b < batch) {                       // the same for every lane
-            const float total = simd_sum(sum[b]);
-            if (lane == 0) {
-                Y[b * out + j] = total;
+                Y[b * out + j] = total[b];   // nobody else writes this element
             }
         }
     }
@@ -88,27 +99,14 @@ kernel void gemv_splitk(device const float* X      [[buffer(0)]],
     if (k0 >= in) {
         return;                         // an empty chunk: nothing to add
     }
-    device const float* w = W + j * in;
-
-    float sum[MAX_BATCH];
-    for (uint b = 0; b < MAX_BATCH; ++b) {
-        sum[b] = 0.0f;
-    }
-    for (uint k = k0 + lane; k < k1; k += width) {
-        const float wk = w[k];
+    float total[MAX_BATCH];
+    simdRowDots(X, W + j * in, batch, in, k0, k1, lane, width, total);   // chunk s of row j only
+    if (lane == 0) {
         for (uint b = 0; b < MAX_BATCH; ++b) {
             if (b < batch) {
-                sum[b] += X[b * in + k] * wk;
-            }
-        }
-    }
-    for (uint b = 0; b < MAX_BATCH; ++b) {
-        if (b < batch) {
-            const float total = simd_sum(sum[b]);
-            if (lane == 0) {
                 // `splits` SIMD-groups add into this element. Relaxed is the order the
                 // spec allows for fetch-and-modify functions (infra-facts C1).
-                atomic_fetch_add_explicit(Y + b * out + j, total, memory_order_relaxed);
+                atomic_fetch_add_explicit(Y + b * out + j, total[b], memory_order_relaxed);
             }
         }
     }

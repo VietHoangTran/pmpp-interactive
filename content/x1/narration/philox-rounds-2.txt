@@ -1,0 +1,1 @@
+One round. Words zero and two are multiplied by two fixed Philox constants. Each sixty-four-bit product splits into a high half and a low half. The high halves are mixed with the other two words and the key by exclusive or. Then the four words swap places, ready for the next round.

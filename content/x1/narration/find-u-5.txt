@@ -1,0 +1,1 @@
+Near a boundary, rounding decides. Here the same survivors are summed in two orders: left to right, and the kernel's order. The two sums differ in their last bit, and the same target picks neighbouring tokens. A test must allow either token for a draw this close.

@@ -85,14 +85,17 @@ function NumField({ label, value, onChange, min = 1, step = 1, width = '6rem' }:
 
 function ElementSelect({ label, value, onChange }: { label: string; value: string; onChange: (k: string) => void }) {
   return (
-    <label className="field">
+    <label className="field" style={FIT}>
       {label}
-      <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={label}>
+      <select style={FIT} value={value} onChange={(e) => onChange(e.target.value)} aria-label={label}>
         {ELEMENT_SIZES.map((e) => <option key={e.key} value={e.key}>{e.label}</option>)}
       </select>
     </label>
   );
 }
+
+/** Lets a long select shrink with the bench on a narrow screen. */
+const FIT = { maxWidth: '100%', minWidth: 0 } as const;
 
 const divisors = (n: number) => Array.from({ length: n }, (_, i) => i + 1).filter((k) => n % k === 0);
 
@@ -113,7 +116,7 @@ function SizeMode() {
   const [params, setParams] = useState<number | null>(7);
   const [welem, setWelem] = useState('f16');
   const [dev, setDev] = useState<string>('');
-  const [customGiB, setCustomGiB] = useState(24);
+  const [customGiB, setCustomGiB] = useState<number | null>(null);
 
   const choose = (k: string) => {
     setKey(k);
@@ -128,18 +131,18 @@ function SizeMode() {
   const wp = ELEMENT_SIZES.find((e) => e.key === welem)!.bytes;
   const device = devices.find((d) => d.key === dev) ?? (dev === '' && devices.length ? devices[0] : undefined);
   const useCustom = dev === 'custom' || !device;
-  const memBytes = useCustom ? customGiB * 2 ** 30 : device.bytes;
+  const memBytes = useCustom ? (customGiB != null ? customGiB * 2 ** 30 : null) : device.bytes;
   const weights = params != null ? params * 1e9 * wp : 0;
   const perLayer = valuesPerTokenLayer(shape) * p;
   const perToken = bytesPerToken(shape, p);
   const printed = bytesPerTokenPrinted(shape, p);
   const total = cacheTotal(shape, b, N, p);
-  const fits = maxBatch(memBytes, weights, shape, N, p);
+  const fits = memBytes != null ? maxBatch(memBytes, weights, shape, N, p) : null;
   const ai = decodeAI(shape, N);
   const variant = variantOf(shape);
   const bw = useCustom ? undefined : device.bw;
   const floor = bw ? stepFloorSeconds(weights, total, bw) : null;
-  const over = weights + total > memBytes;
+  const over = memBytes != null && weights + total > memBytes;
 
   return (
     <Bench
@@ -154,9 +157,9 @@ function SizeMode() {
       }
     >
       <div className="row" style={{ marginBottom: '0.8rem' }}>
-        <label className="field">
+        <label className="field" style={FIT}>
           Model
-          <select value={key} onChange={(e) => choose(e.target.value)} aria-label="Model">
+          <select style={FIT} value={key} onChange={(e) => choose(e.target.value)} aria-label="Model">
             {PRESETS.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}
             <option value="custom">Custom shape</option>
           </select>
@@ -215,14 +218,20 @@ function SizeMode() {
             onChange={(e) => setParams(e.target.value === '' ? null : Math.max(0, Number(e.target.value)))} />
         </label>
         <ElementSelect label="Weight element" value={welem} onChange={setWelem} />
-        <label className="field">
+        <label className="field" style={FIT}>
           Memory to fit in
-          <select value={useCustom ? 'custom' : device.key} onChange={(e) => setDev(e.target.value)} aria-label="Device memory">
+          <select style={FIT} value={useCustom ? 'custom' : device.key} onChange={(e) => setDev(e.target.value)} aria-label="Device memory">
             {devices.map((d) => <option key={d.key} value={d.key}>{d.label}: {fmtBytes(d.bytes)}</option>)}
             <option value="custom">A size you type</option>
           </select>
         </label>
-        {useCustom ? <NumField label="GiB" value={customGiB} onChange={setCustomGiB} /> : null}
+        {useCustom ? (
+          <label className="field">
+            GiB
+            <input type="number" min="1" step="1" value={customGiB ?? ''} placeholder="your device's" style={{ width: '8rem' }}
+              onChange={(e) => { const v = Number(e.target.value); setCustomGiB(e.target.value === '' || !isFinite(v) || v <= 0 ? null : v); }} />
+          </label>
+        ) : null}
       </div>
 
       <table className="data" style={{ background: 'var(--page)', margin: 0 }} data-kv-size="">
@@ -257,14 +266,20 @@ function SizeMode() {
             <td>Weights + cache</td>
             <td className="num">{fmtBytes(weights + total)}</td>
             <td>
-              {over ? <span className="chip fail" data-fits="no">does not fit in {fmtBytes(memBytes)}</span> : <span className="chip ok" data-fits="yes">fits in {fmtBytes(memBytes)}</span>}
-              {useCustom && !devices.length ? <span className="muted"> (a size you typed: no device has reported its memory yet)</span> : null}
+              {memBytes == null ? (
+                <span className="muted" data-fits="">type your device&rsquo;s memory to compare</span>
+              ) : over ? (
+                <span className="chip fail" data-fits="no">does not fit in {fmtBytes(memBytes)}</span>
+              ) : (
+                <span className="chip ok" data-fits="yes">fits in {fmtBytes(memBytes)}</span>
+              )}
+              {useCustom && memBytes != null && !devices.length ? <span className="muted"> (a size you typed: no device has reported its memory yet)</span> : null}
             </td>
           </tr>
           <tr>
             <td>Largest batch of N-token sequences that fits</td>
-            <td className="num" data-max-batch={fits}>{fits.toLocaleString('en-US')}</td>
-            <td className="muted">{fits === 0 ? 'not even one: the weights leave too little, or one sequence is too long' : 'memory minus weights, divided by one sequence’s cache'}</td>
+            <td className="num" data-max-batch={fits ?? ''}>{fits != null ? fits.toLocaleString('en-US') : '–'}</td>
+            <td className="muted">{fits == null ? 'needs a memory size' : fits === 0 ? 'not even one: the weights leave too little, or one sequence is too long' : 'memory minus weights, divided by one sequence’s cache'}</td>
           </tr>
           <tr>
             <td>Decode attention intensity</td>
@@ -292,20 +307,20 @@ function SizeMode() {
   );
 }
 
-function MemoryBar({ weights, cache, mem }: { weights: number; cache: number; mem: number }) {
-  const total = Math.max(mem, weights + cache);
+function MemoryBar({ weights, cache, mem }: { weights: number; cache: number; mem: number | null }) {
+  const total = Math.max(mem ?? 0, weights + cache) || 1;
   const s = 100 / total;
   return (
     <div style={{ marginTop: '0.8rem' }} aria-label="Memory use" data-memory-bar="">
       <div style={{ position: 'relative', height: '1.1rem', background: 'var(--cell)', border: '1px solid var(--rule)', borderRadius: 2 }}>
         <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${weights * s}%`, background: 'var(--global-wash)', borderRight: '1px solid var(--global)' }} />
-        <div style={{ position: 'absolute', left: `${weights * s}%`, top: 0, bottom: 0, width: `${cache * s}%`, background: weights + cache > mem ? 'var(--fail)' : 'var(--global)' }} />
-        <div style={{ position: 'absolute', left: `${mem * s}%`, top: -4, bottom: -4, borderLeft: '2px solid var(--ink)' }} />
+        <div style={{ position: 'absolute', left: `${weights * s}%`, top: 0, bottom: 0, width: `${cache * s}%`, background: mem != null && weights + cache > mem ? 'var(--fail)' : 'var(--global)' }} />
+        {mem != null ? <div style={{ position: 'absolute', left: `${mem * s}%`, top: -4, bottom: -4, borderLeft: '2px solid var(--ink)' }} /> : null}
       </div>
       <div className="legend" style={{ marginTop: '0.3rem', fontSize: '0.8rem' }}>
         <span><i style={{ background: 'var(--global-wash)', border: '1px solid var(--global)' }} />weights</span>
         <span><i style={{ background: 'var(--global)' }} />KV cache</span>
-        <span>black line: the memory you chose</span>
+        {mem != null ? <span>black line: the memory you chose</span> : null}
       </div>
     </div>
   );
@@ -353,15 +368,15 @@ function CompareMode() {
       }
     >
       <div className="row" style={{ marginBottom: '0.9rem' }}>
-        <label className="field">
+        <label className="field" style={FIT}>
           Model
-          <select value={key} onChange={(e) => setKey(e.target.value)} aria-label="Model to compare">
+          <select style={FIT} value={key} onChange={(e) => setKey(e.target.value)} aria-label="Model to compare">
             {PRESETS.filter((x) => x.key !== 'palm2-printed').map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}
           </select>
         </label>
-        <label className="field">
+        <label className="field" style={FIT}>
           GQA K/V heads
-          <select value={hkv} onChange={(e) => setHkv(Number(e.target.value))} aria-label="GQA K/V heads">
+          <select style={FIT} value={hkv} onChange={(e) => setHkv(Number(e.target.value))} aria-label="GQA K/V heads">
             {choices.map((k) => <option key={k} value={k}>{k} (g_q = {base.hq / k})</option>)}
           </select>
         </label>

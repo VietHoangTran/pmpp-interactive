@@ -6,6 +6,8 @@
 // Book: section 22.2 (pp. 532-533) names the two decompositions and the criteria for
 // choosing between them; section 22.5 (p. 539) is why decode is a matrix-vector product.
 // Chapter 22 prints no code, so both kernels are ours.
+//   warpRowDots, one warp's dot products along a stretch of one row of W: yours to write,
+//       and used by both kernels.
 //   (a) gemvGatherKernel, output-centric (gather): yours to write.
 //   (b) gemvSplitKKernel, input-centric along `in` (scatter): provided, with one defect.
 //
@@ -42,24 +44,39 @@ static int deviceWarpSize() {
     return width;
 }
 
+// ---------------------------------------------------------------- one warp, one row of W: yours
+// TODO 1: the work both kernels share, written once. One warp computes the dot products
+// of a stretch [k0, k1) of row w of W with every batch row of X. Every lane of the warp
+// calls it with the same arguments (and its own lane). On return lane 0's total[b] must
+// hold, for every b < batch,
+//     the sum over k in [k0, k1) of X[b][k] * w[k];
+// what the other lanes hold is not used.
+//   a. Keep one running sum per batch row in registers: an array of MAX_BATCH floats,
+//      with every loop over it bounded by the constant MAX_BATCH and `b < batch`
+//      tested inside, so that the compiler can keep it out of memory.
+//   b. The lanes stride along [k0, k1) together. Which order of reads lets each step of
+//      the warp read consecutive floats of w? Read each W element once and use it for
+//      every batch row.
+//   c. Reduce each sum across the warp with warpSum. Which lanes must call it?
+__device__ void warpRowDots(const float* X, const float* w, int batch, int in, int k0, int k1, int lane,
+                            float total[MAX_BATCH]) {
+    for (int b = 0; b < MAX_BATCH; ++b) {
+        total[b] = 0.0f;   // a placeholder so the starter runs: replace it
+    }
+}
+
 // ---------------------------------------------------------------- (a) gather: yours
 __global__ void gemvGatherKernel(const float* X, const float* W, float* Y, int batch, int in, int out) {
-    // TODO 1: one warp owns one output column j, for every batch row.
+    // TODO 2: one warp owns one output column j, for every batch row.
     //   a. Find this thread's lane and its warp's output j from threadIdx.x, blockIdx.x,
     //      blockDim.x and warpSize. A warp whose j is past the end has nothing to do;
     //      can it return without leaving lanes of a shuffle behind?
-    //   b. Keep one running sum per batch row in registers: an array of MAX_BATCH floats,
-    //      with every loop over it bounded by the constant MAX_BATCH and `b < batch`
-    //      tested inside, so that the compiler can keep it out of memory.
-    //   c. The lanes stride along `in` together. Which order of reads lets each step of
-    //      the warp read consecutive floats of row j of W? Read each W element once and
-    //      use it for every batch row.
-    //   d. Reduce each sum across the warp with warpSum. Which lanes must call it?
-    //   e. Lane 0 writes Y[b][j]. No atomics: nobody else writes that element.
+    //   b. Call warpRowDots on the whole of row j.
+    //   c. Lane 0 writes Y[b][j]. No atomics: nobody else writes that element.
 }
 
 void launchGemvGather(const float* X, const float* W, float* Y, int batch, int in, int out) {
-    // TODO 2: one warp per output. Blocks of WARPS_PER_BLOCK warps of deviceWarpSize()
+    // TODO 3: one warp per output. Blocks of WARPS_PER_BLOCK warps of deviceWarpSize()
     //         threads; how many blocks cover `out` outputs? Return without launching when
     //         there is nothing to compute, and refuse a batch above MAX_BATCH.
 }
@@ -67,6 +84,7 @@ void launchGemvGather(const float* X, const float* W, float* Y, int batch, int i
 // ---------------------------------------------------------------- (b) split-K: provided
 // This kernel has ONE defect. The emulator `emu` passes it; `race` does not. Find it with
 // `race` (README, "What each backend can catch"), say why `emu` cannot see it, and fix it.
+// It calls your warpRowDots on its chunk, so it computes nothing until TODO 1 is done.
 //
 // Warp g of the grid takes output column j = g / splits and chunk s = g % splits of `in`.
 // The `splits` warps that add into one output are therefore consecutive: with
@@ -87,29 +105,13 @@ __global__ void gemvSplitKKernel(const float* X, const float* W, float* Y, int b
     if (k0 >= in) {
         return;   // an empty chunk (splits does not divide `in`, or splits > in): nothing to add
     }
-    const float* w = W + (size_t)j * in;
-
-    float sum[MAX_BATCH];
-    #pragma unroll
-    for (int b = 0; b < MAX_BATCH; ++b) {
-        sum[b] = 0.0f;
-    }
-    for (int k = k0 + lane; k < k1; k += warpSize) {
-        const float wk = w[k];
+    float total[MAX_BATCH];
+    warpRowDots(X, W + (size_t)j * in, batch, in, k0, k1, lane, total);   // chunk s of row j only
+    if (lane == 0) {
         #pragma unroll
         for (int b = 0; b < MAX_BATCH; ++b) {
             if (b < batch) {
-                sum[b] += X[(size_t)b * in + k] * wk;
-            }
-        }
-    }
-
-    #pragma unroll
-    for (int b = 0; b < MAX_BATCH; ++b) {
-        if (b < batch) {
-            const float total = warpSum(sum[b]);
-            if (lane == 0) {
-                Y[(size_t)b * out + j] += total;
+                Y[(size_t)b * out + j] += total[b];
             }
         }
     }

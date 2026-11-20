@@ -199,21 +199,17 @@ export function SA0() {
         division adds. <b>Stability</b> is a property of an algorithm: whether it finds a solution for every input that
         has one (section <a href={href('appA', 'A.7')}>A.7</a>).
       </p>
-      <Source pages="583, 594" />
+      <Source pages="583, 593–594" />
       <p>
         The book also notes why this matters more now than it did: demand from LLM training and inference has pushed GPUs
         to raise their floating-point throughput dramatically. Section A.5 adds that recent GPUs compute in 16-, 8- and
         4-bit floating point.
       </p>
-      <Source pages="583, 593" />
       <Today checked={`2026-11-20 (${FACTS}, A1, A4)`}>
         <p>
-          The footnote's OCP MX formats (cited as v1.0) are now the "OCP MicroXcaling (MX) Specification" v1.1 (October
-          9, 2026), with E8M0 renamed UE8M0. All three vendors use them: NVIDIA's PTX <code>.kind::mxf8f6f4</code> and{' '}
-          <code>.kind::mxf4</code> and cuBLAS VEC32_UE8M0, AMD gfx950's <code>__amd_scale_t</code>, Metal 4.1's{' '}
-          <code>tensor_blockwise</code>.
+          The book cites OCP MX v1.0; v1.1 (October 2026) renamed E8M0 to UE8M0, and NVIDIA, AMD and Metal all support
+          it (§A.5). IEEE 754-2019 is still the active standard.
         </p>
-        <p>IEEE 754-2019 is still the active standard; P754 (a revision) and P3109 (ML formats) are open projects.</p>
       </Today>
 
       <h2>The map</h2>

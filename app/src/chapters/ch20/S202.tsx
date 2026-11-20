@@ -363,8 +363,11 @@ export function S202() {
       </p>
       <Source section="20.2" pages="482" />
       <p>
-        The labs index heads the way PyTorch&rsquo;s attention call does: batch first, then heads, then tokens, then the
-        head width, <code>[batch, heads, N, d]</code>. One head of one sequence is then a contiguous N × d matrix.
+        The prefill labs (20.1 and 20.2) index heads the way PyTorch&rsquo;s attention call does: batch first, then
+        heads, then tokens, then the head width, <code>[batch, heads, N, d]</code>. One head of one sequence is then a
+        contiguous N × d matrix. The decode labs (20.4 and 20.5) keep the cache as{' '}
+        <code>[batch, max_seq, h_kv, d]</code> instead, tokens before heads, which is Meta&rsquo;s reference layout
+        (section <a href={href('ch20', '20.4')}>20.4</a>).
       </p>
 
       <h2>Every matrix of one head</h2>

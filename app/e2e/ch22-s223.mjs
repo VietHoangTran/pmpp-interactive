@@ -246,7 +246,9 @@ const answerChoice = async (needle, idx) => {
   await pause(120);
   return qText(qq);
 };
-check('q-hip-queues: 4 is correct', (await answerNum('At most how many hardware queues', 4)).includes('Correct.'));
+const rq = sim({ mode: 'streams', f: 0.1, L: 0, queues: t.HIP_DEFAULT_QUEUES });
+check(`q-hip-queues: the model gives ${rq.total} d on 4 queues and ${sim({ mode: 'streams', f: 0.1, L: 0 }).total} d on a queue per stream`, rq.total === 2 && sim({ mode: 'streams', f: 0.1, L: 0 }).total === 1);
+check('q-hip-queues: 2 is correct', (await answerNum('How long until all 8 have finished', 2)).includes('Correct.'));
 check('q-decode-kernels: 2.5 is correct', (await answerNum('By what factor do tokens per second rise', 2.5)).includes('Correct.'));
 check('q-host-share: 5 is correct', (await answerNum('largest share of the original run time', 5)).includes('Correct.'));
 check('q-when-concurrent: the idle-device option is correct', (await answerChoice('When does that make the step shorter', 0)).includes('Correct.'));

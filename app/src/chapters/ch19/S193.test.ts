@@ -142,8 +142,9 @@ describe('every numeric answer is the model\'s number', () => {
     expect(num('ch19/19.3/q-phases')).toBe(r.terms - r.termsUsed);
     expect(num('ch19/19.3/q-loads')).toBe(2 * phasesOf(c3, CORRECTED));
   });
-  it('q-vit 1, q-ex4 2', () => {
-    expect(num('ch19/19.3/q-vit')).toBe(expansion({ C: 3, H: 224, W: 224, K: 16, M: 1, N: 1, stride: 16 }));
+  it('q-vit 3.72 (stride 8; stride 16 gives 1), q-ex4 2', () => {
+    expect(expansion({ C: 3, H: 224, W: 224, K: 16, M: 1, N: 1, stride: 16 })).toBe(1);
+    expect(num('ch19/19.3/q-vit')).toBeCloseTo(559872 / 150528, 2);
     expect(num('ch19/19.3/q-ex4')).toBe(warpView(huntShape('c3').shape, 0, 0, 0, 0).xRunsByTy[0].runs.length);
   });
 });

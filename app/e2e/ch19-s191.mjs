@@ -5,7 +5,7 @@
 import { open, goto } from './browser.mjs';
 import { BOOK_F, BOOK_LAYER, BOOK_X, batchTraffic, changedByFlip, forward, lenetLayer, perInputMap, shapes, terms } from '../src/sim/cnnlayer.ts';
 
-const out = process.argv[2];
+const out = process.argv.slice(2).find((a) => !a.startsWith('--')); // a screenshot prefix; flags are ignored
 const { browser, page, errors } = await open({ width: 1440, height: 1000 });
 // Leave no trace in the real progress file.
 await page.setRequestInterception(true);

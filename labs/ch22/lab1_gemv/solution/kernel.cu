@@ -53,15 +53,14 @@ static int deviceWarpSize() {
     return width;
 }
 
-// ---------------------------------------------------------------- (a) gather
-__global__ void gemvGatherKernel(const float* X, const float* W, float* Y, int batch, int in, int out) {
-    const int lane = threadIdx.x % warpSize;
-    const int j = blockIdx.x * (blockDim.x / warpSize) + threadIdx.x / warpSize;   // this warp's output
-    if (j >= out) {
-        return;   // j is the same for every lane, so the whole warp leaves together
-    }
-    const float* w = W + (size_t)j * in;   // row j of W, contiguous
-
+// ---------------------------------------------------------------- one warp, one row of W
+// The work both kernels share: one warp's dot products of a stretch [k0, k1) of row w of
+// W with every batch row of X. Every lane of the warp calls it with the same arguments
+// (and its own lane). On return lane 0's total[b] holds, for every b < batch,
+//     the sum over k in [k0, k1) of X[b][k] * w[k];
+// the other lanes' totals are not used.
+__device__ void warpRowDots(const float* X, const float* w, int batch, int in, int k0, int k1, int lane,
+                            float total[MAX_BATCH]) {
     // One running sum per batch row, in registers. MAX_BATCH is a constant and every
     // index below is too once the loops are unrolled, so the array need not live in
     // memory; `b < batch` switches the unused ones off.
@@ -71,10 +70,10 @@ __global__ void gemvGatherKernel(const float* X, const float* W, float* Y, int b
         sum[b] = 0.0f;
     }
 
-    // The lanes stride along `in` together: each step reads warpSize consecutive floats
-    // of row j of W, and of each row of X. Each W element is read once and used for
-    // every batch row.
-    for (int k = lane; k < in; k += warpSize) {
+    // The lanes stride along [k0, k1) together: each step reads warpSize consecutive
+    // floats of w, and of each row of X. Each W element is read once and used for every
+    // batch row.
+    for (int k = k0 + lane; k < k1; k += warpSize) {
         const float wk = w[k];
         #pragma unroll
         for (int b = 0; b < MAX_BATCH; ++b) {
@@ -86,10 +85,25 @@ __global__ void gemvGatherKernel(const float* X, const float* W, float* Y, int b
 
     #pragma unroll
     for (int b = 0; b < MAX_BATCH; ++b) {
-        if (b < batch) {   // the same for every lane, so every lane reaches the shuffles
-            const float total = warpSum(sum[b]);
-            if (lane == 0) {
-                Y[(size_t)b * out + j] = total;
+        // `b < batch` is the same for every lane, so every lane reaches the shuffles.
+        total[b] = (b < batch) ? warpSum(sum[b]) : 0.0f;
+    }
+}
+
+// ---------------------------------------------------------------- (a) gather
+__global__ void gemvGatherKernel(const float* X, const float* W, float* Y, int batch, int in, int out) {
+    const int lane = threadIdx.x % warpSize;
+    const int j = blockIdx.x * (blockDim.x / warpSize) + threadIdx.x / warpSize;   // this warp's output
+    if (j >= out) {
+        return;   // j is the same for every lane, so the whole warp leaves together
+    }
+    float total[MAX_BATCH];
+    warpRowDots(X, W + (size_t)j * in, batch, in, 0, in, lane, total);   // the whole of row j
+    if (lane == 0) {
+        #pragma unroll
+        for (int b = 0; b < MAX_BATCH; ++b) {
+            if (b < batch) {
+                Y[(size_t)b * out + j] = total[b];   // nobody else writes this element
             }
         }
     }
@@ -135,31 +149,15 @@ __global__ void gemvSplitKKernel(const float* X, const float* W, float* Y, int b
     if (k0 >= in) {
         return;   // an empty chunk (splits does not divide `in`, or splits > in): nothing to add
     }
-    const float* w = W + (size_t)j * in;
-
-    float sum[MAX_BATCH];
-    #pragma unroll
-    for (int b = 0; b < MAX_BATCH; ++b) {
-        sum[b] = 0.0f;
-    }
-    for (int k = k0 + lane; k < k1; k += warpSize) {
-        const float wk = w[k];
+    float total[MAX_BATCH];
+    warpRowDots(X, W + (size_t)j * in, batch, in, k0, k1, lane, total);   // chunk s of row j only
+    if (lane == 0) {
         #pragma unroll
         for (int b = 0; b < MAX_BATCH; ++b) {
             if (b < batch) {
-                sum[b] += X[(size_t)b * in + k] * wk;
-            }
-        }
-    }
-
-    #pragma unroll
-    for (int b = 0; b < MAX_BATCH; ++b) {
-        if (b < batch) {
-            const float total = warpSum(sum[b]);
-            if (lane == 0) {
                 // `splits` warps add into this element, so the read-modify-write must be
                 // one indivisible operation. Relaxed and device-wide (infra-facts A1, B1).
-                atomicAdd(&Y[(size_t)b * out + j], total);
+                atomicAdd(&Y[(size_t)b * out + j], total[b]);
             }
         }
     }

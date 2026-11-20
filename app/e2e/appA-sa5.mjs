@@ -274,8 +274,10 @@ const answerChoice = async (needle, idx) => {
   await pause(150);
   return (await qq.evaluate((e) => e.textContent)).includes('Correct.');
 };
-check('q-ceiling: 3.76 is accepted', await answerNum('batch-1 decode ceiling rise', 3.76));
-check('q-mxfp4-bits: 4.25 is accepted', await answerNum('bits per weight does MXFP4 take', 4.25));
+check('q-ceiling: 3.2 (16 over 4 + 32/32 bits) is accepted', await answerNum('batch-1 decode ceiling rise', 3.2));
+check('q-mxfp4-bits: 4.125 (blocks of 64) is accepted', await answerNum('across 64 weights instead of 32', 4.125));
+check('neither answer is printed on the page before its question',
+  await page.evaluate(() => { const t = document.querySelector('.prose')?.textContent ?? ''; return !t.slice(0, t.indexOf('decode ceiling rise')).includes('3.2 ×') && !t.slice(0, t.indexOf('across 64 weights')).includes('4.125'); }));
 check('q-outlier: 0 is right', await answerChoice('one weight of 100 and 31 weights near 0.3', 0));
 check('q-h100: TF32 with sparsity is right', await answerChoice('What is the 989', 1));
 check('q-fnuz: halve, NaN at 0x80, 240 is right', await answerChoice('FNUZ E4M3. What happens', 0));

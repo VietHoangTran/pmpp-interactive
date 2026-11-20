@@ -1,0 +1,1 @@
+After round ten, row zero's words are exactly Random123's published answer for a zero counter and a zero key. That match is the test every backend must pass. Word zero becomes the row's u: keep its top twenty-four bits, then scale them into the interval from zero to one.

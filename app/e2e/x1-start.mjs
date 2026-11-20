@@ -71,7 +71,7 @@ const drawLinks = await page.$$eval('ol[data-part="chain-map"] li[data-stage="dr
 check('the draw box links lab X1.3, and greedy links lab 10.3',
   JSON.stringify(drawLinks) === JSON.stringify([[M.draw[0], `#/${M.draw[1]}/labs`], [M.greedy[0], `#/${M.greedy[1]}/labs`]]), JSON.stringify(drawLinks));
 const allLabHrefs = await page.$$eval('ol[data-part="chain-map"] a', (as) => as.map((a) => a.getAttribute('href')));
-check('every map link goes to a chapter's labs page', allLabHrefs.every((h) => /^#\/(ch09|ch10|ch11|ch12|ch14|x1)\/labs$/.test(h)), allLabHrefs.join(' '));
+check("every map link goes to a chapter's labs page", allLabHrefs.every((h) => /^#\/(ch09|ch10|ch11|ch12|ch14|x1)\/labs$/.test(h)), allLabHrefs.join(' '));
 if (out) await page.screenshot({ path: out + '-map.png' });
 
 // ---------------------------------------------------------------- the Predict

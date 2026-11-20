@@ -1,0 +1,1 @@
+Every row of the batch does this at the same time, with no thread waiting for any other. [short pause] Give the same seed, stream and step, and you get the same bits on CUDA, on HIP, on Metal and on the CPU, as long as each one passes the known answers.

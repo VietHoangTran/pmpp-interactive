@@ -100,6 +100,10 @@ describe("M5's mapping and cuRAND's init (ours, A3)", () => {
 });
 
 describe("PyTorch's Metal Philox as transcribed (D6, E3)", () => {
+  it('for seed 0 and index 0 the MPS words are round 9 of the all-zero 10-round trace (the lesson says so)', () => {
+    expect(philoxTrace([0, 0, 0, 0], [0, 0])[8].out.map(hex)).toEqual(['7028b1c8', 'd6594c40', '4f2051bb', '76d6628e']);
+    expect(philoxTrace([0, 0, 0, 0], [0, 0])[8].out).toEqual(E3[0].mps);
+  });
   it('nine rounds, high-low word order: reproduces both of E3\'s vectors', () => {
     expect(MPS_ROUNDS).toBe(9);
     for (const e of E3) {
@@ -189,7 +193,10 @@ describe('bits to u (A2, B2, E2)', () => {
         add(xf, hi - lo + 1);
       }
     }
-    add(2 ** 32, 2 ** 32 - (2 ** 32 - 2 ** 7)); // x in [2^32 - 128, 2^32) round to 2^32
+    // x in [2^32 - 128, 2^32) round to 2^32 as a float32; 0xFFFFFF80 stands for them (2^32
+    // itself would wrap to 0 as a 32-bit word)
+    expect(Math.fround(FIRST_ONE)).toBe(2 ** 32);
+    add(FIRST_ONE, 128);
     expect(all).toBe(2 ** 32);
     expect(differ).toBe(2 ** 24);
     expect(ones).toBe(128);

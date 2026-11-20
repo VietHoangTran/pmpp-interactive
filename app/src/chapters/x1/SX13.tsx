@@ -22,6 +22,7 @@ import {
   countTokens,
   f32,
   mappingAccess,
+  penaltyEffects,
   segmentFor,
   softmaxDouble,
   type Mapping,
@@ -119,7 +120,8 @@ export const questionsSX13: Record<string, Question> = {
     explain: (
       <p>
         Each pass moves 4 + 4 + 4 = 12 bytes per logit, so two passes move 24. Fused into one pass, 12: half the traffic
-        of a kernel that does almost no arithmetic.
+        of a kernel that does almost no arithmetic. Lab X1.3 keeps the two passes (and a copy before them), so that
+        saving is left for you to take.
       </p>
     ),
     source: 'ours',
@@ -173,6 +175,8 @@ export const questionsSX13: Record<string, Question> = {
 };
 
 // ---------------------------------------------------------------- explorer 1: penalties
+const BEFORE = PEN_LOGITS.map(f32);
+const P_BEFORE = softmaxDouble(BEFORE);
 function PenaltyExplorer() {
   const [context, setContext] = useState<number[]>([...PEN_CONTEXT]);
   const [repeat, setRepeat] = useState(1.25);
@@ -181,9 +185,9 @@ function PenaltyExplorer() {
   const [rule, setRule] = useState<RepRule>('llama');
   const [order, setOrder] = useState<PenaltyOrder>('repeat-first');
   const counts = useMemo(() => countTokens(context, PEN_VOCAB), [context]);
-  const before = PEN_LOGITS.map(f32);
-  const after = useMemo(() => applyPenalties(before, counts, { repeat, freq, presence, rule, order, float32: true }), [before, counts, repeat, freq, presence, rule, order]);
-  const pB = softmaxDouble(before);
+  const before = BEFORE;
+  const after = useMemo(() => applyPenalties(BEFORE, counts, { repeat, freq, presence, rule, order, float32: true }), [counts, repeat, freq, presence, rule, order]);
+  const pB = P_BEFORE;
   const pA = softmaxDouble(after);
   const add = (t: number) => setContext((c) => [...c, t]);
   const next = argmaxLowest(after);
@@ -196,7 +200,9 @@ function PenaltyExplorer() {
   const PB = 236;
   const PS = 100;
   const pMax = Math.max(...pA, ...pB);
-  const rose = pA.map((p, i) => p > pB[i] + 1e-12 && counts[i] > 0);
+  const { raised, gained } = useMemo(() => penaltyEffects(BEFORE, after, counts), [after, counts]);
+  const up = PEN_LOGITS.map((_, i) => raised.includes(i));
+  const plural = (a: number[], one: string, many: string) => (a.length > 1 ? many : one);
 
   return (
     <Bench
@@ -204,8 +210,9 @@ function PenaltyExplorer() {
       task="Set a penalty, change the sign rule, and add tokens to the context by clicking a column."
       foot={
         <>
-          Top: logits before (dashed outline) and after (filled). Bottom: probabilities after a softmax, before (dashed) and
-          after (filled). Every penalty operation is rounded to float32 in the order chosen.
+          Top: logits before (dashed outline) and after (filled); ×n is the token's count. Bottom: probabilities after a
+          softmax, before (dashed) and after (filled), darker where a penalty raised the logit. Every penalty operation is
+          rounded to float32 in the order chosen.
         </>
       }
     >
@@ -273,7 +280,7 @@ function PenaltyExplorer() {
                 {counts[i] > 0 ? `×${counts[i]}` : ''}
               </text>
               <rect x={x} y={PB - (pA[i] / pMax) * PS} width={w} height={Math.max(1, (pA[i] / pMax) * PS)} rx="1.5"
-                fill={rose[i] ? 'var(--ink)' : 'var(--ink-3)'} fillOpacity={rose[i] ? 0.85 : 0.5} />
+                fill={up[i] ? 'var(--ink)' : 'var(--ink-3)'} fillOpacity={up[i] ? 0.85 : 0.5} />
               <rect x={x} y={PB - (pB[i] / pMax) * PS} width={w} height={Math.max(1, (pB[i] / pMax) * PS)} rx="1.5" fill="none" stroke="var(--ink-2)" strokeDasharray="3 2" />
               <text x={x + w / 2} y={PB + 13} fontSize="10.5" textAnchor="middle" style={{ fill: 'var(--ink-2)' }}>{i}</text>
             </g>
@@ -293,16 +300,21 @@ function PenaltyExplorer() {
           </tbody>
         </table>
       </div>
-      <p style={{ margin: '0.5rem 0 0' }} data-readout="pen" data-rose={rose.flatMap((r, i) => (r ? [i] : [])).join(' ')}>
-        {rose.some(Boolean) ? (
+      <p style={{ margin: '0.5rem 0 0' }} data-readout="pen" data-raised={raised.join(' ')} data-gained={gained.join(' ')}>
+        {raised.length ? (
           <>
-            Under this rule, repeated token{rose.filter(Boolean).length > 1 ? 's' : ''}{' '}
-            <b>{rose.flatMap((r, i) => (r ? [i] : [])).join(', ')}</b> became <b>more</b> likely: the penalty pushed{' '}
-            {rose.filter(Boolean).length > 1 ? 'their' : 'its'} negative logit towards 0.
+            Under this rule, repeated {plural(raised, 'token', 'tokens')} <b>{raised.join(', ')}</b> got a <b>higher</b>{' '}
+            logit: dividing a negative logit by θ moves it towards 0, so the penalty rewards the repeat.
           </>
         ) : (
-          <>Every repeated token is now at most as likely as before.</>
+          <>No repeated token's logit went up.</>
         )}{' '}
+        {gained.length ? (
+          <>
+            {plural(gained, 'Token', 'Tokens')} {gained.join(', ')} {plural(gained, 'was', 'were')} penalised and still gained
+            probability: the softmax renormalises, and tokens used more often lost more.{' '}
+          </>
+        ) : null}
         The most likely token is {next}.
       </p>
     </Bench>
@@ -485,7 +497,7 @@ export function SX13() {
         </p>
       </Beyond>
       <Source section="9.2" pages="203–209" />
-      <Source section="9.4" pages="211–214" />
+      <Source section="9.4" pages="211–213" />
 
       <h2>Where the counts come from</h2>
       <p>
@@ -570,19 +582,24 @@ export function SX13() {
       </Simplification>
       <PenaltyExplorer />
       <p>
-        Three things to find. Under CTRL's rule a repeated token with a negative logit becomes more likely, and the more
-        you raise θ, the more likely it gets. Presence moves every repeated token by the same amount, once; frequency moves
-        a token used five times five times as far. And with all three penalties on, swapping the order changes every
-        repeated positive logit.
+        Four things to find. Under CTRL's rule a repeated token with a negative logit becomes more likely, and the more
+        you raise θ, the more likely it gets. Under the other two rules no logit goes up, yet some penalised tokens still
+        gain probability: a penalty is relative, and the softmax hands the mass a heavily repeated token loses to the
+        rest. Presence moves every repeated token by the same amount, once; frequency moves
+        a token used five times five times as far. And with the repetition penalty and either subtraction on, swapping the
+        order changes every repeated logit.
       </p>
 
       <h2>The kernel: one coalesced pass</h2>
       <p>
         The penalty is elementwise: logit i needs count i and nothing else. So the kernel treats the{' '}
         <code>[rows × vocab]</code> logits and counts as two flat arrays and gives one thread to one element, exactly as
-        lab 9.3's <code>applyPenalties</code> does. The repetition penalty belongs in the same pass: one read of the logit,
-        one read of the count, one write, 12 bytes per logit, instead of 24 for two separate kernels. In lab X1.3 you write
-        the repetition penalty into that pass.
+        lab 9.3's <code>applyPenalties</code> does. The repetition penalty is elementwise in the same way, so it could
+        share that pass: one read of the logit, one read of the count, one write, 12 bytes per logit, instead of 24 for
+        two separate kernels. Lab X1.3 keeps them separate so it can reuse lab 9.3's kernel unchanged. You write the
+        repetition penalty as its own kernel, after a copy of the logits into the workspace, and lab 9.3's subtraction
+        runs after it: three passes of about 8, 12 and 12 bytes per logit. Fusing the repetition penalty into the copy, or
+        into lab 9.3's pass, is an exercise the lab's benchmark lets you measure.
       </p>
       <PenaltyListing />
       <Ask q={q['x1/X1.3/q-bytes']} />

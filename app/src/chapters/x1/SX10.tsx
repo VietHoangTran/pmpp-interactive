@@ -116,7 +116,7 @@ export const questionsSX10: Record<string, Question> = {
         no shared-memory private copy.
       </p>
     ),
-    source: 'ch. 9 §9.4, pp. 211–214; notes/today/ch09-facts.md D7',
+    source: 'ch. 9 §9.4, pp. 211–213, and Fig. 9.10, p. 214; notes/today/ch09-facts.md D7',
   },
   'x1/start/q-msd-bin': {
     kind: 'numeric',

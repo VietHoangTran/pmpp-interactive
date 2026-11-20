@@ -49,6 +49,7 @@ function Lines({
   lo,
   hi,
   probe,
+  showProbe,
   label,
 }: {
   fmts: Record<Subnormals, Format>;
@@ -56,6 +57,8 @@ function Lines({
   lo: number;
   hi: number;
   probe: number;
+  /** False until the prediction above is committed: the rings would give its answer away. */
+  showProbe: boolean;
   label: string;
 }) {
   const [ref, W] = useWidth();
@@ -74,7 +77,7 @@ function Lines({
   ticks.sort((p, q) => p - q);
   const shown: number[] = [];
   for (const t of ticks) if (!shown.length || X(t) - X(shown[shown.length - 1]) >= 30) shown.push(t);
-  const probeIn = probe >= lo && probe <= hi;
+  const probeIn = showProbe && probe >= lo && probe <= hi;
   return (
     <div ref={ref}>
       <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} role="img" aria-label={label} style={{ maxWidth: '100%', height: 'auto', display: 'block' }}>
@@ -218,13 +221,13 @@ function NumberLineBench() {
         </label>
       </div>
 
-      <Lines fmts={fmts} conv={conv} lo={0} hi={xmax} probe={probe} label="Positive representable values under the three conventions" />
+      <Lines fmts={fmts} conv={conv} lo={0} hi={xmax} probe={probe} showProbe={revealed} label="Positive representable values under the three conventions" />
       {zoom ? (
         <>
           <div className="mx-label" style={{ margin: '0.6rem 0 0.2rem' }}>
             Near 0, magnified: 0 to {show(zoomHi)}
           </div>
-          <Lines fmts={fmts} conv={conv} lo={0} hi={zoomHi} probe={probe} label="The region near 0, magnified" />
+          <Lines fmts={fmts} conv={conv} lo={0} hi={zoomHi} probe={probe} showProbe={revealed} label="The region near 0, magnified" />
         </>
       ) : null}
 
@@ -280,7 +283,7 @@ function NumberLineBench() {
             </table>
           ) : (
             <p className="muted" style={{ margin: 0 }} data-part="locked">
-              Commit your prediction above to see the rounding errors.
+              Commit your prediction above to see the probe on the number line and its rounding errors.
             </p>
           )}
         </div>
@@ -558,18 +561,19 @@ export const questionsSA2: Record<string, Question> = {
     kind: 'choice',
     id: 'appA/A.2/q-range-vs-bits',
     fixedOrder: true,
-    prompt: <>Which format keeps both an activation of 70,000 and the difference between 1 and 1.001?</>,
+    prompt: <>Which format keeps both a value of 100,000 and the difference between 1000 and 1001?</>,
     options: [
-      { label: 'FP16', why: 'FP16 keeps 1.001 (as 1.0009766), but its largest value is 65504: 70,000 becomes infinity.' },
-      { label: 'BF16', why: 'BF16 has FP32\'s range, so 70,000 survives (as 70,144). But its spacing near 1 is 2^-7, and 1.001 rounds to 1.' },
+      { label: 'FP16', why: 'Near 1000 FP16 values are 0.5 apart, so 1001 is exact; but its largest value is 65504, and 100,000 becomes infinity.' },
+      { label: 'BF16', why: "BF16 has FP32's range, so 100,000 survives (as 99,840). But near 1000 its values are 4 apart, and 1001 rounds to 1000." },
       { label: 'Both', why: 'Each loses one of the two: FP16 the range, BF16 the resolution.' },
       { label: 'FP32 only', correct: true },
     ],
     explain: (
       <p>
-        FP16 spends its bits on resolution: spacing 2<sup>−10</sup> near 1, but nothing above 65504. BF16 spends them on
-        range: up to about 3.4 × 10<sup>38</sup>, but spacing 2<sup>−7</sup> near 1. Only FP32 has both. The explorer
-        above shows each case in one click.
+        Between 512 and 1024 a format's values are 2<sup>9</sup> × 2<sup>−m</sup> apart: 2<sup>−1</sup> for FP16 (m =
+        10), 2<sup>2</sup> = 4 for BF16 (m = 7). FP16 spends its bits on resolution and stops at 65504; BF16 spends them
+        on range, up to about 3.4 × 10<sup>38</sup>. Only FP32 has both. Type each value into the explorer above to
+        check.
       </p>
     ),
     source: '§A.2 (range from exponent bits, precision from mantissa bits); NVIDIA Table 51 for the limits (appA-facts A2)',
@@ -654,15 +658,10 @@ export function SA2() {
       </Predict>
       <NumberLineBench />
       <p>
-        The book's own drawing of these values is not to scale near 0; the explorer is, which is why the empty stretch next
-        to 0 looks as large as it is.
+        The book's own drawing of these values, Fig. A.5, is not to scale near 0: it draws the stretch from 0 to 1 shorter
+        than the one from 1 to 2, so 0.5 to 0.875 are not where they belong (the values themselves are clear from Fig.
+        A.4). The explorer is to scale, which is why the empty stretch next to 0 looks as large as it is.
       </p>
-      <Aside>
-        <p>
-          <b>In the PDF.</b> Fig. A.5 draws the stretch from 0 to 1 shorter than the one from 1 to 2, so 0.5 to 0.875 are
-          not where they belong. The values themselves are clear from Fig. A.4.
-        </p>
-      </Aside>
       <Simplification>
         <p>
           Book-style formats only: the top exponent code is reserved and there is no infinity, so a probe beyond the largest
@@ -724,11 +723,11 @@ export function SA2() {
         patterns with E = 00 now spread evenly over [0, 1) at the same spacing as [1, 2): 0, 0.25, 0.5, 0.75. The gap is
         gone, and the explorer's ratio drops to 1.
       </p>
+      <Source section="A.2" pages="589" figs="Fig. A.4 (right columns), Fig. A.7" />
       <p>
         For an n-bit exponent field, a pattern with E = 0 means 0.M × 2<sup>−2<sup>n−1</sup> + 2</sup>. NVIDIA writes the same
         thing as 0.M × 2<sup>1 − bias</sup>; with bias = 2<sup>n−1</sup> − 1 the two exponents are equal.
       </p>
-      <Source section="A.2" pages="589" figs="Fig. A.4 (right columns), Fig. A.7" />
       <Aside>
         <p>
           <b>In the PDF.</b> p. 589 points to Fig. A.6 for denormals; Fig. A.7 is meant. Its "previous interval" means the
@@ -742,9 +741,13 @@ export function SA2() {
         The price is in the hardware: a unit has to notice that a value is in the denormal range and switch representation.
         The book says implementations with moderate hardware can spend thousands of clock cycles each time a denormal is
         produced or consumed, which is why early CUDA devices left them out, and that virtually all recent CUDA devices
-        support them. It adds that an nvcc flag turns them on or off.
+        support them.
       </p>
       <Source section="A.2" pages="589" />
+      <p>
+        It adds that an nvcc compiler flag switches denormals, and writes the setting as "ftz = true (on) or ftz = false
+        (off)". Check which way round that is before you rely on it.
+      </p>
       <Today checked="2026-11-20 against the nvcc 13.5 and CUDA guide, Clang, MSL 4.1 and PyTorch 2.15 docs (appA-facts A6, B3, C2, D1; ch10 facts A6)">
         <p>
           The book's "ftz = true (on)" reads backwards: <code>--ftz=true</code> turns flushing on and denormals off. NVIDIA
@@ -815,8 +818,9 @@ export function SA2() {
         </p>
       </Beyond>
       <SpacingBench />
+      <Ask q={questionsSA2['appA/A.2/q-range-vs-bits']} />
       <p>
-        Two values make the trade concrete. An activation of 70,000 becomes infinity in FP16 and survives in BF16. The
+        Two more values make the trade concrete. An activation of 70,000 becomes infinity in FP16 and survives in BF16. The
         difference between 1 and 1.001 survives in FP16 and vanishes in BF16. Neither format is more accurate than the other
         in general; they spend 16 bits differently, and FP16 runs out of range long before BF16 runs out of bits.
       </p>
@@ -826,7 +830,6 @@ export function SA2() {
           also flush inputs, and vendors document different modes. Every conversion here rounds to nearest even.
         </p>
       </Simplification>
-      <Ask q={questionsSA2['appA/A.2/q-range-vs-bits']} />
       <Ask q={questionsSA2['appA/A.2/q-int-half']} />
     </>
   );

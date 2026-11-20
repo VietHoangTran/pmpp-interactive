@@ -807,10 +807,13 @@ export function SA6() {
       <p>
         The tree is chapter 10's reduction tree, which is only allowed because addition is assumed associative. A GPU
         reduction and a CPU loop over the same floats therefore return different numbers, and in general neither is the
-        exact sum. Both are legitimate floating-point results; the difference is not a bug in either. What a test should
-        check is that both are within a tolerance of a more accurate reference, scaled to the sum of |x|.
+        exact sum.
       </p>
       <Source section="A.6" pages="593" />
+      <p>
+        Both are legitimate floating-point results; the difference is not a bug in either. What a test should check is
+        that both are within a tolerance of a more accurate reference, scaled to the sum of |x|.
+      </p>
       <Today checked="2026-11-20 (notes/today/ch10-facts.md, A9)">
         <p>
           NVIDIA's guide makes the same point with its own three-value and dot-product examples, and adds: "The presence
@@ -828,9 +831,12 @@ export function SA6() {
       <Source pages="600" figs="Exercise 4; ch. 10 Fig. 10.8, p. 233" />
       <p>
         In that kernel thread i owns element i and adds element i + stride to it, with the stride starting at half the
-        array. On sorted data the first level adds each value of the smaller half to one of the larger half. Step through it in FP16 on the
-        preset data (eight 1s, five 8s, three 2048s), then switch the pairing to neighbours, chapter 10's first kernel
-        (Fig. 10.6), and run it again.
+        array and halving at each level. Before you step through it, work out what that pairing does to sorted data.
+      </p>
+      <Ask q={questionsSA6['appA/A.6/q-ex4']} />
+      <p>
+        Now check your answer. Step through the kernel in FP16 on the preset data (eight 1s, five 8s, three 2048s), then
+        switch the pairing to neighbours, chapter 10's first kernel (Fig. 10.6), and run it again.
       </p>
       <Simplification>
         <p>
@@ -841,16 +847,18 @@ export function SA6() {
         </p>
       </Simplification>
       <ThreadToData />
-      <Ask q={questionsSA6['appA/A.6/q-ex4']} />
 
       <h2>Sort first, by magnitude</h2>
       <p>
         The book's remedy is to sort the data ascending before reducing it. Then elements next to each other have
         similar magnitudes, so a tree that combines neighbours adds like with like at every level. Where each thread
-        first sums its own group sequentially, ascending order helps that loop as well. With values of both signs, sort
-        by magnitude. The book gives this as one reason sorting is so common in massively parallel numerical code.
+        first sums its own group sequentially, ascending order helps that loop as well.
       </p>
       <Source section="A.6" pages="594" />
+      <p>
+        The book gives this as one reason sorting is so common in massively parallel numerical code, and adds that the
+        signs of the values have to be taken into account.
+      </p>
       <Beyond title="Not in the book: the same effect without sorting">
         <p>
           PyTorch's CPU sum is a cascade, "chunking the sum into groups of 16 or more elements" and summing those sums
@@ -880,6 +888,7 @@ export function SA6() {
       >
         {(v) => <HalfLoopReveal v={v} />}
       </Predict>
+      <Ask q={questionsSA6['appA/A.6/q-half-tree']} />
       <p>
         Now explore. Start with uniform data, FP32, the sequential loop, then switch the accumulator; then try the tree
         and the two Kahan methods, and each data set.
@@ -932,7 +941,6 @@ export function SA6() {
           </li>
         </ul>
       </Today>
-      <Ask q={questionsSA6['appA/A.6/q-half-tree']} />
 
       <h2>Compensated summation</h2>
       <p>

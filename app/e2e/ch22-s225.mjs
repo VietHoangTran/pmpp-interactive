@@ -232,7 +232,7 @@ check('q-plateau: tile padding, not proof of bandwidth', (await answer('flat fro
 check('q-half-bytes: about half', (await answer('from float32 to 16-bit', 0)).startsWith('Correct.'));
 check('q-batched-gemm: no, one GEMM against one shared weight', (await answer('runs many GEMMs in one call', 0)).startsWith('Correct.'));
 check('q-continuous, q-cpu-gpu and q-scaling answer correctly', (await answer('continuous (iteration-level) batching matter', 0)).startsWith('Correct.')
-  && (await answer('same trade-off as CPU against GPU', 0)).startsWith('Correct.') && (await answer('weak scaling', 0)).startsWith('Correct.'));
+  && (await answer('Path B always runs a step of', 0)).startsWith('Correct.') && (await answer('weak scaling', 0)).startsWith('Correct.'));
 check('all eight questions are on the page', (await page.$$eval('.q .prompt', (ps) => ps.length)) === 10);
 
 // ---- light theme and a narrow screen

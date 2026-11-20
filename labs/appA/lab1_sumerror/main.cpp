@@ -537,6 +537,17 @@ static bool ranOrSkip(const Outcome& o, const std::string& label) {
     return false;
 }
 
+// Keeps the device busy for a quarter of a second with untimed float tree sums, so the first
+// kernel timed afterwards does not also pay for the device waking up (as lab 10.1 does).
+static void warmUp(DeviceProblem& d, int n, int block) {
+    double busy = 0;
+    for (int i = 0; i < 10000 && busy < 0.25; ++i) {
+        Outcome o = runSum(MTree, AccFloat, d.X, d.P, d.O, n, 16, block);
+        if (o.kind != Outcome::Ran) break;
+        busy += o.time.wall_s;
+    }
+}
+
 static int bench(const pmpp::Args& a) {
     const Probe pr = probe();
     std::printf("probe (this device, default compiler settings): rounding %s, FP32 denormals %s, a*b+c %s\n",
@@ -598,10 +609,13 @@ static int bench(const pmpp::Args& a) {
         const std::vector<float> x = makeData(Set::Uniform, n, AccFloat);
         const Ref ref = reference(x);
         d.put(x);
-        std::printf("\ncoarse: FP32, %d uniform floats, block %d, best of %d runs\n", n, block, a.reps);
+        std::printf("\ncoarse: FP32, %d uniform floats, block %d, best of %d runs, after a quarter of a second of\n"
+                    "untimed work; tree and Kahan alternate so that neither is timed on a cooler device\n",
+                    n, block, a.reps);
         std::printf("  %-6s %6s %11s %9s %11s %9s\n", "method", "coarse", "time ms", "GB/s", "rel err", "ulps");
-        for (Method m : {MTree, MKahan})
-            for (int coarse : {1, 4, 16, 64, 256, 1024, 4096}) {
+        warmUp(d, n, block);
+        for (int coarse : {1, 4, 16, 64, 256, 1024, 4096})
+            for (Method m : {MTree, MKahan}) {
                 Outcome first = runSum(m, AccFloat, d.X, d.P, d.O, n, coarse, block);
                 if (!ranOrSkip(first, std::string(methodName(m)) + " coarse " + std::to_string(coarse))) continue;
                 const double s = pmpp::time_it(a.reps, [&] { return runSum(m, AccFloat, d.X, d.P, d.O, n, coarse, block).time; }).min_s;
@@ -623,12 +637,14 @@ static int bench(const pmpp::Args& a) {
         while (mem > 0 && n > (1 << 20) && 4.0 * n > mem / 8) n /= 2;   // stay well inside the device's memory
         const int nSerial = std::min(n, 1 << 20), coarse = 16;
         DeviceProblem d(n, block);
-        std::printf("\ntime: uniform data, coarse %d, block %d, best of %d runs; GB/s = 4 bytes per input float / time\n",
+        std::printf("\ntime: uniform data, coarse %d, block %d, best of %d runs after a quarter of a second of untimed\n"
+                    "work; GB/s = 4 bytes per input float / time\n",
                     coarse, block, a.reps);
         std::printf("  %-6s %-7s %9s %11s %9s\n", "method", "acc", "n", "time ms", "GB/s");
         for (Acc acc : accs) {
             const std::vector<float> x = makeData(Set::Uniform, n, acc);   // serial uses the first nSerial
             d.put(x);
+            if (acc == accs.front()) warmUp(d, n, block);
             for (Method m : {MSerial, MTree, MKahan}) {
                 const int nn = m == MSerial ? nSerial : n;
                 Outcome first = runSum(m, acc, d.X, d.P, d.O, nn, coarse, block);

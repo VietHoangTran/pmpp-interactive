@@ -123,10 +123,14 @@ export const TOY5: Format = {
   id: 'toy5', name: "The book's 5-bit format (1-2-2)", e: 2, m: 2, bias: 1, signed: true, specials: 'reserved', subnormals: 'denorm',
   source: 'book §A.2, p. 586, Fig. A.4 (denorm columns)',
 };
-/** The book's 6-bit format of §A.1 (1-3-2, excess-3). */
+/**
+ * The book's 6-bit format of §A.1 (1-3-2, excess-3). §A.1 reads every pattern with Eq. (A.1),
+ * E = 000 included, so this is the no-zero convention: denormals arrive only in §A.2, and only
+ * for the 5-bit format. Smallest positive value 1/8, as in Exercise 2's answer.
+ */
 export const TOY6: Format = {
-  id: 'toy6', name: "The book's 6-bit format (1-3-2)", e: 3, m: 2, bias: 3, signed: true, specials: 'reserved', subnormals: 'denorm',
-  source: 'book §A.1, pp. 584–586',
+  id: 'toy6', name: "The book's 6-bit format (1-3-2)", e: 3, m: 2, bias: 3, signed: true, specials: 'reserved', subnormals: 'nozero',
+  source: 'book §A.1, pp. 584–586 (Eq. A.1 for every pattern, so no zero)',
 };
 
 export const PRESETS: Format[] = [TOY6, TOY5, FP32, FP16, BF16, E4M3, E5M2, E2M1, E2M3, E3M2, UE8M0, E4M3FNUZ];

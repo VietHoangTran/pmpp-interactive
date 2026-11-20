@@ -1,0 +1,1 @@
+One block owns the row. It walks the row a chunk at a time, sixteen survivors per chunk here, and adds each chunk's total to a running aggregate. The first chunk ends below the target, so it is skipped. No thread scans it.

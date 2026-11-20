@@ -376,7 +376,7 @@ export function S200() {
                 : v < 1
                   ? 'You guessed lower. Each token keeps a key and a value of 4,096 numbers in each of 32 layers: 262,144 numbers, every one of them kept for the rest of the conversation.'
                   : 'You guessed higher than the book\'s figure.'}{' '}
-              One conversation&rsquo;s cache is about a sixth of the 14 GB the book gives for the model&rsquo;s weights,
+              One conversation&rsquo;s cache is about a seventh of the 14 GB the book gives for the model&rsquo;s weights (2 GiB is 2.15 GB),
               and it grows with every token. Section <a href={href('ch20', '20.6')}>20.6</a> lets you vary each factor.
             </p>
             <p className="muted">

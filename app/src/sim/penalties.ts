@@ -127,6 +127,26 @@ export function softmaxDouble(logits: readonly number[]): number[] {
   return e.map((x) => x / s);
 }
 
+/**
+ * What the penalties explorer reports. `raised`: repeated tokens whose logit went up, which
+ * only CTRL's rule does (a negative logit divided by theta moves towards 0). `gained`:
+ * repeated tokens whose logit did not go up but whose probability still rose, because the
+ * softmax renormalises and other repeated tokens lost more. The two are different effects
+ * and the explorer names them separately.
+ */
+export function penaltyEffects(before: readonly number[], after: readonly number[], counts: readonly number[]): { raised: number[]; gained: number[] } {
+  const pB = softmaxDouble(before);
+  const pA = softmaxDouble(after);
+  const raised: number[] = [];
+  const gained: number[] = [];
+  for (let i = 0; i < before.length; i++) {
+    if (!(counts[i] > 0)) continue;
+    if (after[i] > before[i]) raised.push(i);
+    else if (pA[i] > pB[i] * (1 + 1e-12)) gained.push(i);
+  }
+  return { raised, gained };
+}
+
 // ---------------------------------------------------------------- the X1.3 explorer's row
 /** Twelve logits on both sides of zero; the context repeats some of each sign. */
 export const PEN_LOGITS: readonly number[] = [1.6, -2.0, 0.4, 2.3, -0.6, 0.9, -1.3, 1.1, 0.0, -0.2, 1.9, -1.0];

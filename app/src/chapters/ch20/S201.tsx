@@ -9,6 +9,7 @@ import {
   PRIMITIVES,
   PRIMITIVE_LABEL,
   crossover,
+  decodeBytes,
   judge,
   layerFlops,
   type FfnKind,
@@ -262,6 +263,10 @@ const fmtFlops = (x: number) => {
   if (x >= 1e6) return (x / 1e6).toPrecision(3) + ' MFLOP';
   return x.toPrecision(3) + ' FLOP';
 };
+const fmtMiB = (x: number) => {
+  const m = x / 2 ** 20;
+  return (m >= 10 ? Math.round(m).toLocaleString('en-US') : m.toPrecision(2)) + ' MiB';
+};
 const pct = (x: number) => (100 * x).toFixed(x < 0.01 ? 2 : 1) + '%';
 const MAX_LOG = 17; // 131,072 tokens
 
@@ -276,6 +281,7 @@ function Explorer() {
   const shape: LayerShape = { dModel, ffRatio: ratio, ffn, causalSkip: skip };
   const f = layerFlops(n, shape, phase);
   const cross = crossover(shape, phase);
+  const bytes = decodeBytes(n, shape, 1, 2);
   const curve = useMemo(
     () =>
       Array.from({ length: MAX_LOG * 8 + 1 }, (_, i) => {
@@ -365,6 +371,14 @@ function Explorer() {
         <b data-ratio={f.attnOverLinear.toFixed(4)}>{f.attnOverLinear < 10 ? f.attnOverLinear.toPrecision(3) : Math.round(f.attnOverLinear)}</b> times the
         linear layers; they draw level at N = <b data-cross={Math.round(cross)}>{Math.round(cross).toLocaleString('en-US')}</b>.
       </p>
+      {phase === 'decode' ? (
+        <p style={{ margin: '0 0 0.8rem' }} data-bytes>
+          Bytes this token reads per layer, 16-bit, one sequence: weights <b data-wbytes={bytes.weights}>{fmtMiB(bytes.weights)}</b>, its K
+          and V cache <b data-cbytes={bytes.cache}>{fmtMiB(bytes.cache)}</b>. A batch of b sequences reads the weights once and
+          b caches, so the cache read is the larger once b × N passes{' '}
+          <b data-bcross={Math.round(bytes.crossBatchN)}>{Math.round(bytes.crossBatchN).toLocaleString('en-US')}</b>.
+        </p>
+      ) : null}
 
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Attention products as a share of the layer's FLOPs, against context length">
         {[0, 0.25, 0.5, 0.75, 1].map((y) => (
@@ -463,8 +477,9 @@ export function S201() {
       <h2>Where the arithmetic goes</h2>
       <p>
         The book calls the attention heads the most expensive part of the layer and spends the chapter on them. In
-        bytes that is right. In arithmetic, at the context lengths you usually run, it is not: the linear layers
-        dominate. Find the crossover yourself.
+        arithmetic, at the context lengths you usually run, they are not: the linear layers dominate. In bytes it
+        depends on how the work is run, and the reasons are what the rest of the chapter is about. Find the crossover
+        yourself.
       </p>
       <Source section="20.1" pages="481–482" />
       <p>
@@ -482,14 +497,17 @@ export function S201() {
         Per token, the four projections and the ReLU feed-forward cost 24 d_model² FLOPs, and the two attention
         products 4 N d_model. Their ratio is N / (6 d_model): at d_model = 4096 the products draw level only past 24,000
         tokens, and skipping the masked half pushes that to about 49,000. Decode has the same ratio, because one token
-        meets N keys. So attention&rsquo;s problem at ordinary lengths is not FLOPs. It is <b>bytes</b>: the N × N
-        matrices S and P that the unfused pipeline writes and reads (section 20.3), and a full read of the KV cache for
-        every decoded token (section 20.4).
+        meets N keys. So attention&rsquo;s problem at ordinary lengths is not FLOPs. Where it is a problem, it is{' '}
+        <b>bytes</b>, in two places. In unfused prefill, the N × N matrices S and P that the pipeline writes and reads
+        (section 20.3) dominate the traffic. In decode, one sequence reads 2 N d_model cache elements per layer against
+        12 d_model² weights: the same N / (6 d_model), so for one sequence at ordinary lengths the weights still
+        dominate. But a batch shares the weights and not the caches, so the cache read wins once b × N passes 6
+        d_model, which batching (section 20.6) reaches quickly. Switch the explorer to one decode token to see both.
       </p>
       <Beyond>
         <p>
-          The book gives no FLOP counts. These are ours, from its shapes: four d_model × d_model projections, d_ff = 4
-          d_model, 2 FLOPs per multiply-add.
+          The book gives no FLOP or byte counts. These are ours, from its shapes: four d_model × d_model projections,
+          d_ff = 4 d_model, 2 FLOPs per multiply-add, each weight and cache element read once.
         </p>
       </Beyond>
       <Ask q={questionsS201['ch20/20.1/q-flops-share']} label="Work it out" />

@@ -297,18 +297,19 @@ export const questionsSA7: Record<string, Question> = {
     id: 'appA/A.7/q-idle',
     prompt: (
       <>
-        1,024 equations, one thread per row, the book's design. Over the divide and subtract steps of the elimination,
-        what percentage of thread slots does useful work?
+        8 equations, one thread per row, the book's design. Over the divide and subtract steps of the elimination, what
+        percentage of thread slots does useful work?
       </>
     ),
-    answer: 50,
-    tol: 0.05,
+    answer: 53.33,
+    tol: 0.01,
     unit: '%',
     explain: (
       <p>
-        Divide step k keeps n − k threads working and subtract step k keeps n − k − 1, so the n + (n − 1) steps hold n²
-        busy slots out of n(2n − 1): 1,024 / 2,047, just over 50%. Half the threads you launched are waiting at any
-        moment, on average. The same shrinking-work shape is why chapter 10's reduction tree gets coarsened.
+        Divide step k keeps n − k threads working and subtract step k keeps n − k − 1, so the n + (n − 1) = 15 steps of 8
+        slots hold 8 + 7 + 7 + 6 + ... + 1 = 64 = n² busy slots out of 120: 53.3%. In general the share is n / (2n − 1),
+        which falls toward a half as n grows: 1,024 equations give 1,024 / 2,047. Every shrinking-work algorithm in this
+        book has this shape, and it is why chapter 10's reduction tree gets coarsened.
       </p>
     ),
     source: 'book §A.7, p. 597 (the design); our count',
@@ -463,9 +464,8 @@ export function SA7() {
         init={{ sys: 'book1', pivot: false, arith: 'exact', eps: 8 }}
       />
       <p>
-        Count the cells in the timeline. On three rows, 9 of the 15 thread slots in the divide and subtract steps do work;
-        as the system grows the share falls toward a half, because step k keeps n − k rows busy. That is the shape of
-        every shrinking-work algorithm in this book, and the reduction tree of chapter 10 has it too.
+        Count the cells in the timeline. On three rows, 9 of the 15 thread slots in the divide and subtract steps do work.
+        Count how many rows each step keeps busy, then work out what that share becomes on a large system.
       </p>
       <Ask q={questionsSA7['appA/A.7/q-idle']} />
 

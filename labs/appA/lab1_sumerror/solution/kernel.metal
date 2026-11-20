@@ -17,7 +17,9 @@ using namespace metal;
 // default math mode, which the lab runtime uses (default MTLCompileOptions), allows
 // reassociation in both of its documented candidates, fast and relaxed; only `safe` forbids
 // it (notes/today/appA-facts.md C3, ch05-facts C7). On the machine this lab was built on, the
-// compensated kernel without this line returned the plain sum. It applies to the whole file.
+// compensated kernel without this line failed the big-small test (6.5 ULPs off at n = 1000,
+// coarse 64, the same bits a plain loop gives): the compensation was gone. At file scope it
+// covers every kernel here.
 #pragma METAL fp math_mode(safe)
 
 #define MAX_BLOCK 1024   // the largest threadgroup these kernels accept

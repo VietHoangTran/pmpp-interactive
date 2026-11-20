@@ -1,0 +1,1 @@
+pmpp_add_lab(x1/lab1_topk VARIANTS work solution RACE SHARED_CU ${CMAKE_CURRENT_SOURCE_DIR}/../shared-g11/sortrows_g11.cu SHARED_MM ${CMAKE_CURRENT_SOURCE_DIR}/../../ch14/lab3_sortrows/solution/launch.mm)

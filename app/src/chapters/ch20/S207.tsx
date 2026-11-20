@@ -320,18 +320,16 @@ export const questionsS207: Record<string, Question> = {
     id: 'ch20/20.7/q-mla-ai',
     prompt: <>Why is MLA’s decode intensity about 2 h_q, twice MQA’s?</>,
     options: [
-      {
-        label: 'At inference the up-projections are absorbed into W_Q and W_O, attention runs directly on the single latent, and each loaded latent serves as both key and value. K and V are never formed.',
-        correct: true,
-      },
-      { label: 'Because the latent is half the size of a head.', why: 'DeepSeek-V2’s latent is 4.5 heads wide, and size does not set the ratio; reuse does.' },
+      { label: 'Each loaded latent element serves as both key and value.', correct: true },
+      { label: 'Because the latent is half the size of an attention head.', why: 'DeepSeek-V2’s latent is 4.5 heads wide, and size does not set the ratio; reuse does.' },
       { label: 'Because MLA decompresses K and V on chip just before use.', why: 'That is the book’s account, and it would not give this figure: decompressed K and V would each be read once, as in MQA.' },
-      { label: 'Because it caches only K.', why: 'It caches one latent that plays both parts.' },
+      { label: 'Because it caches only K and recomputes V from it.', why: 'It caches one latent that plays both parts.' },
     ],
     explain: (
       <p>
-        MQA loads a K element and a V element, each used by h_q queries: about h_q operations per element. MLA loads one
-        latent element and uses it for the scores and for the weighted sum, by all h_q heads: about 2 h_q. The cited source
+        At inference the up-projections are absorbed into W_Q and W_O, so attention runs directly on the single latent
+        and K and V are never formed. MQA loads a K element and a V element, each used by h_q queries: about h_q
+        operations per element. MLA loads one latent element and uses it for the scores and for the weighted sum, by all h_q heads: about 2 h_q. The cited source
         says the latent “serves both the key and the value”.
       </p>
     ),
@@ -342,15 +340,19 @@ export const questionsS207: Record<string, Question> = {
     id: 'ch20/20.7/q-paged',
     prompt: <>During normal decoding, where are PagedAttention’s KV blocks, and what does the block table buy?</>,
     options: [
-      {
-        label: 'In GPU memory, anywhere. The table maps each sequence’s logical blocks to physical ones, so memory is taken one block at a time and the waste is at most one partly filled block per sequence. Host memory is only vLLM’s fallback for evicted sequences.',
-        correct: true,
-      },
+      { label: 'Anywhere in GPU memory; memory is taken one block at a time.', correct: true },
       { label: 'In host memory, copied into the GPU when they are needed.', why: 'That is the book’s account. The paper uses host memory only when it runs out of GPU blocks and must evict a sequence.' },
       { label: 'In one contiguous buffer per sequence, sized for its maximum length.', why: 'That is what paging replaces.' },
-      { label: 'On disk, with the table as an index.', why: 'Nothing in the design goes to disk.' },
+      { label: 'On disk, with the block table as an index into the file.', why: 'Nothing in the design goes to disk.' },
     ],
-    explain: <p>The vLLM paper: PagedAttention “allows storing continuous keys and values in non-contiguous memory space”, block by block, and swaps evicted sequences’ blocks to CPU memory only when free GPU blocks run out.</p>,
+    explain: (
+      <p>
+        The table maps each sequence&rsquo;s logical blocks to physical ones, so the waste is at most one partly filled
+        block per sequence. The vLLM paper: PagedAttention &ldquo;allows storing continuous keys and values in
+        non-contiguous memory space&rdquo;, block by block, and swaps evicted sequences&rsquo; blocks to CPU memory only
+        when free GPU blocks run out.
+      </p>
+    ),
     source: 'notes/today/ch20-facts.md E6; book p. 509',
   },
   'ch20/20.7/q-moe': {
@@ -358,12 +360,12 @@ export const questionsS207: Record<string, Question> = {
     id: 'ch20/20.7/q-moe',
     prompt: <>Mixtral has 47B parameters but uses 13B of them per token. Which cost does a mixture of experts cut, and which not?</>,
     options: [
-      { label: 'The compute per token falls; the memory to hold the weights does not, since every expert must be resident.', correct: true },
-      { label: 'Both compute and memory fall.', why: 'Any token may be routed to any expert, so all of them must be loaded.' },
-      { label: 'Only the memory falls.', why: 'It is the other way round.' },
-      { label: 'Neither.', why: 'Each token runs 2 of the 8 experts, so its compute does fall.' },
+      { label: 'Compute per token falls; weight memory does not.', correct: true },
+      { label: 'Both the compute and the memory fall.', why: 'Any token may be routed to any expert, so all of them must be loaded.' },
+      { label: 'Only the weight memory falls.', why: 'It is the other way round.' },
+      { label: 'Neither: the router costs as much as it saves.', why: 'Each token runs 2 of the 8 experts, so its compute does fall.' },
     ],
-    explain: <p>Each layer has 8 feed-forward experts and a router picks 2 per token. The weights still all live in memory, and the KV cache is unchanged: Mixtral’s attention is Mistral 7B’s.</p>,
+    explain: <p>Each layer has 8 feed-forward experts and a router picks 2 per token, so the compute falls. Every expert must still be resident, so the weights all live in memory, and the KV cache is unchanged: Mixtral’s attention is Mistral 7B’s.</p>,
     source: 'ch. 20 §20.7, p. 510; notes/today/ch20-facts.md E7',
   },
 };
@@ -383,13 +385,16 @@ export function S207() {
       <h2>Multi-query attention</h2>
       <p>
         Multi-query attention (MQA) lets all the query heads share a single K head and a single V head. The cache shrinks by
-        the number of heads, to b × N × 2 × l × d × p (Eq. 20.10). And each loaded K or V element now meets all h_q
-        queries, so the decode intensity becomes N h_q / (h_q + N), about h_q (Eq. 20.11).
+        the number of heads, to b × N × 2 × l × d × p (Eq. 20.10).
       </p>
-      <Source section="20.7" pages="508" figs="Eqs. 20.10–20.11" />
       <Today checked="2026-11-20 (ch20-facts E7)">
         <p>The book does not cite MQA’s source: Shazeer 2019, whose abstract names this very problem, “the memory-bandwidth cost of repeatedly loading the large ‘keys’ and ‘values’ tensors”.</p>
       </Today>
+      <p>
+        And each loaded K or V element now meets all h_q queries, so the decode intensity becomes N h_q / (h_q + N), about
+        h_q (Eq. 20.11). The bytes went down and the arithmetic stayed: that is the whole trick.
+      </p>
+      <Source section="20.7" pages="508" figs="Eqs. 20.10–20.11" />
 
       <h2>Grouped-query attention, and what g_q means</h2>
       <p>
@@ -409,13 +414,16 @@ export function S207() {
       </Today>
       <HeadsBench />
       <p>
-        That mapping, consecutive query heads sharing one K/V head, is what the decode kernels you will read implement. A
-        good GQA kernel loads each K/V row once and uses it for all g_q query heads of its group, which is what lab 20.5
-        asks you to write and measure.
+        That mapping, consecutive query heads sharing one K/V head, is what the decode kernels you will read implement:
+        query head h reads K/V head h / g_q, and K and V are not copied once per query head to make the shapes match.
       </p>
       <Today checked="2026-11-20 (ch20-facts D1, A8, D4)">
         <p>llama.cpp computes <code>gqa_ratio = Q-&gt;ne[2] / K-&gt;ne[2]</code> and processes several Q heads per loaded K/V head. FlashAttention’s <code>flash_attn_with_kvcache</code>: with 6 Q heads and 2 K/V heads, Q heads 0, 1, 2 read K/V head 0. MLX asks that k and v not be pre-tiled to match q.</p>
       </Today>
+      <p>
+        A good GQA kernel loads each K/V row once and uses it for all g_q query heads of its group, which is what lab 20.5
+        asks you to write and measure.
+      </p>
       <Beyond>
         <p>Lab 20.5 is ours; see the <a href={href('ch20', 'labs')}>labs page</a>.</p>
       </Beyond>
@@ -483,10 +491,13 @@ export function S207() {
       <p>
         The last technique is orthogonal to the cache. A mixture of experts gives each layer several specialised
         feed-forward sub-networks and a gate that picks a few of them for each token, so the parameter count can be huge
-        while the arithmetic per token stays small. What it does not shrink is the memory: any token may be routed to any
-        expert, so all of them must be loaded. Nor does it touch the KV cache.
+        while the arithmetic per token stays small.
       </p>
       <Source section="20.7" pages="510" />
+      <p>
+        What it does not shrink is the memory: any token may be routed to any expert, so all of them must be loaded. Nor
+        does it touch the KV cache.
+      </p>
       <Today checked="2026-11-20 (ch20-facts E7)">
         <p>Mixtral: Mistral 7B’s architecture with 8 feed-forward experts per layer, 2 chosen per token; “each token has access to 47B parameters, but only uses 13B active parameters during inference.”</p>
       </Today>

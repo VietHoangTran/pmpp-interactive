@@ -144,7 +144,8 @@ inline void fillHead(int recipe, int n, float scale, uint32_t seed, float* q, fl
 //   A  = max over visible c of scale * sum_x |q_x k_cx|   (size of the dot products)
 //   X  = max over visible c of m - s_c                    (range of the exponents)
 //   T  = number of tiles of B_c columns the row spans
-//   e  = 2 (d + 2) u A + u X + 2u (3 + 2X) + (B_c + 2T + 8) u
+//   e  = 2 (d + 2) u A + u X + 2u (3 + 2X) + 2u (3T + 2X) + (B_c + 2T + 8) u
+//        (scores; s - m; exp of P; the rescale factors, one per tile; the sums)
 //   |O_got - O_ref| <= 2 e * sum_c p_c |v_c| + 1e-7  for each column of O
 //   |L_got - L_ref| <= 2 e + 1e-5 + 2^-22 |L_ref|
 struct RowRef {
@@ -179,7 +180,7 @@ inline void refRow(const float* q, const float* k, const float* v, int r, int n,
   for (int x = 0; x < kD; ++x) { out.o[x] /= D; out.omag[x] /= D; }
   out.L = m + std::log(D);
   const int T = (vis + bc - 1) / bc;
-  out.e = 2 * (kD + 2) * u * A + u * X + 2 * u * (3 + 2 * X) + (bc + 2 * T + 8) * u;
+  out.e = 2 * (kD + 2) * u * A + u * X + 2 * u * (3 + 2 * X) + 2 * u * (3 * T + 2 * X) + (bc + 2 * T + 8) * u;
 }
 
 // ---------------------------------------------------------------- one launch, checked
@@ -268,15 +269,16 @@ struct Case { int batch, heads, n; std::vector<int> recipes; };   // empty recip
 // On a real device n runs through multiples and non-multiples of B_r = 32 and of B_c, with
 // every recipe. The emulators are slow for this kernel (each thread meets about 280 warp
 // rendezvous per tile, and emu runs each case three times): `emu` gets an explicit short
-// list that still has one token, a second panel that needs two tiles, three panels with a
-// partial last tile, two heads in one launch, and the late-max, +90 and distinct-V data.
+// list that still has one token, a second panel that needs two tiles, two full panels and
+// tiles (n a multiple of both), three panels with a partial last tile, two heads in one
+// launch, and the late-max, +90 and distinct-V data.
 inline std::vector<Case> cases() {
   const std::string b = pmpp::backend();
   std::vector<Case> c;
   if (b == "race") {
     for (int n : {33, 40}) c.push_back({1, 1, n, {}});
   } else if (b == "emu") {
-    c = {{1, 1, 1, {Offset}}, {1, 2, 33, {LateMax, DistinctV}}, {1, 1, 70, {LateMax}}};
+    c = {{1, 1, 1, {Offset}}, {1, 2, 33, {LateMax, DistinctV}}, {1, 1, 64, {Uniform}}, {1, 1, 70, {LateMax}}};
   } else {
     for (int n : {1, 2, 31, 32, 33, 63, 64, 65, 100, 257, 1000, 2048})
       for (auto bh : {std::pair<int, int>{1, 1}, std::pair<int, int>{2, 3}}) c.push_back({bh.first, bh.second, n, {}});

@@ -9,8 +9,8 @@
 //
 // Where this file differs from the page (notes/ch19.md, "Unclear in the PDF"):
 //   1. The phase count rounds up: (C*K*K + TILE_WIDTH - 1) / TILE_WIDTH. The page's
-//      (C*K*K) / TILE_WIDTH truncates, so with LeNet C1's C*K*K = 25 it runs one phase
-//      and drops 9 of the 25 terms of every output.
+//      (C*K*K) / TILE_WIDTH truncates, so whenever C*K*K is not a multiple of TILE_WIDTH
+//      the terms of the partial last phase are never added.
 //   2. Bounds checks, which the book leaves as an exercise (p. 470): the F tile load
 //      checks Row < M and its column < C*K*K, the X gather checks u < C*K*K and
 //      v < H_out*W_out, and both store 0 when out of range, so the product loop can run

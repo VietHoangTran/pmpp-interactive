@@ -232,8 +232,12 @@ static int bench(const pmpp::Args& a) {
         }
     }
 
-    // The append alone: one token per sequence, a few hundred kilobytes at most.
-    std::printf("KV append, h_kv %d, HEAD_DIM %d (time per call, launch included)\n", hKv, HEAD_DIM);
+    // The append alone: one token per sequence, a few hundred kilobytes at most. Metal
+    // reports the command buffer's GPU time; CUDA and HIP report host wall-clock time around
+    // the launch and the wait, so there the launch is included.
+    std::printf("KV append, h_kv %d, HEAD_DIM %d (best of %d calls; %s)\n", hKv, HEAD_DIM, a.reps,
+                std::string(pmpp::backend()) == "metal" ? "GPU time of the command buffer"
+                                                        : "host time around launch and wait");
     for (int batch : {1, 8}) {
         const int maxSeq = 2048;
         const size_t rowBytes = (size_t)batch * hKv * HEAD_DIM * 4;

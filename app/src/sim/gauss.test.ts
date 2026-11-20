@@ -196,7 +196,13 @@ describe('thread utilisation (p. 597): one more thread idle after each subtracti
   it('a dense 24 × 24 system matches the formula', () => {
     expect(busyFraction(trace(dense(24), { pivot: false, arith: 'fp32' }))).toBeCloseTo(elimBusyFraction(24), 12);
   });
-  it('q-idle: 1,024 equations: about 50% busy, tending to 1/2', () => {
+  it('q-idle: 8 equations: 64 of 120 slots, 53.33% busy', () => {
+    expect(elimBusyFraction(8)).toBe(64 / 120);
+    expect(Math.abs(elimBusyFraction(8) * 100 - 53.33)).toBeLessThan(53.33 * 0.01);
+    expect(Math.abs(50 - 53.33)).toBeGreaterThan(53.33 * 0.01); // "about half" is not accepted
+    expect(busyFraction(trace(dense(8), { pivot: false, arith: 'fp32' }))).toBeCloseTo(elimBusyFraction(8), 12);
+  });
+  it('1,024 equations: about 50% busy, tending to 1/2', () => {
     expect(elimBusyFraction(1024)).toBeCloseTo(0.5, 3);
     expect(Math.abs(elimBusyFraction(1024) * 100 - 50)).toBeLessThan(50 * 0.05);
   });

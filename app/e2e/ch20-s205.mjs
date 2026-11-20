@@ -123,7 +123,12 @@ const fp = await page.evaluate(async () => {
   check('online-merge: captions option exists and is off by default', capBox === false);
   const script1 = fs.readFileSync(path.join(repo, 'content/ch20/narration/online-merge-1.txt'), 'utf8').trim();
   await pause(300);
-  check('online-merge: with no audio the part 1 script is shown', (await text(S + ' .caption')) === script1.replace(/\s+/g, ' '));
+  // A beat with audio hides its script until captions are on; one without audio shows it anyway.
+  if (!(await page.$(S + ' .caption'))) {
+    await page.$eval(S, (e) => [...e.querySelectorAll('label.check')].find((l) => l.textContent.includes('captions')).querySelector('input').click());
+    await pause(150);
+  }
+  check('online-merge: part 1 shows its script (captions on, or no audio)', (await text(S + ' .caption')) === script1.replace(/\s+/g, ' '));
   await page.evaluate((sel) => [...document.querySelectorAll(sel + ' .seg button')][2].click(), S);
   await pause(120);
   await page.$eval(S + ' input[type=range]', (el) => {
@@ -370,16 +375,16 @@ if (missingLab.length) {
   const shown = await page.$eval('figure.code pre', (e) => e.textContent);
   check('the CUDA tab is lab 20.2’s file', shown.trim() === cuText.replace(/\n$/, '').trim());
 }
-check('the corrections table has nine rows', (await page.$$('[data-corrections] tbody tr')).length === 9);
+check('the corrections table has eleven rows, tile skipping and HEAD_DIM among them', (await page.$$('[data-corrections] tbody tr')).length === 11 && (await page.$eval('[data-corrections]', (t) => t.textContent)).includes('lastTile') && (await page.$eval('[data-corrections]', (t) => t.textContent)).includes('HEAD_DIM'));
 check('the llama.cpp quote is shown with its status', (await page.$$eval('figure.code .status', (s) => s.map((x) => x.textContent))).some((t) => t.includes('quoted from llama.cpp')));
 
 // ---------------------------------------------------------------- questions
 {
-  const q = await page.evaluateHandle(() => [...document.querySelectorAll('.q')].find((e) => e.textContent.includes('Which lane holds element dd = 77')));
-  await (await q.$('input[type=number]')).type('13');
+  const q = await page.evaluateHandle(() => [...document.querySelectorAll('.q')].find((e) => e.textContent.includes('which lane holds element dd = 201')));
+  await (await q.$('input[type=number]')).type('9');
   await (await q.$('button.primary')).click();
   await pause(100);
-  check('numeric question: lane 13 is accepted', (await q.evaluate((e) => e.textContent)).includes('Correct.'));
+  check('numeric question: lane 9 (d = 256, dd = 201) is accepted', (await q.evaluate((e) => e.textContent)).includes('Correct.'));
   const c = await page.evaluateHandle(() => [...document.querySelectorAll('.q')].find((e) => e.textContent.includes('needs one warp barrier it does not have')));
   await c.evaluate((e) => e.querySelectorAll('input[type=radio]')[0].click());
   await (await c.$('button.primary')).click();

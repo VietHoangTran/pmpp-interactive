@@ -13,7 +13,7 @@ import { open, goto, BASE } from './browser.mjs';
 import { BOOK_F, BOOK_LAYER, BOOK_X, directTrace, readsOfThread } from '../src/sim/cnnlayer.ts';
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const out = process.argv[2];
+const out = process.argv.slice(2).find((a) => !a.startsWith('--')); // a screenshot prefix; flags are ignored
 const { browser, page, errors } = await open({ width: 1440, height: 1000 });
 // Leave no trace in the real progress file.
 await page.setRequestInterception(true);
@@ -92,6 +92,10 @@ async function answerNumber(text, value) {
   const q = await question(text);
   const input = await q.$('input[type=number]');
   await input.click({ clickCount: 3 });
+  await input.evaluate((el) => { // clear any earlier answer: a triple click does not select a number input's text
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, '');
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  });
   await input.type(String(value));
   await (await q.$('button.primary')).click();
   await pause(120);
@@ -100,6 +104,27 @@ async function answerNumber(text, value) {
 
 await goto(page, 'ch19/19.2');
 await page.waitForSelector(GM);
+
+// ---- page structure
+const misplaced = await page.$$eval('.prose > aside.note', (notes) =>
+  notes.filter((n) => {
+    const p = n.previousElementSibling;
+    return p && (p.matches('section.bench, section.scene, figure.code, .wide') || p.classList.contains('q'));
+  }).length,
+);
+check('every margin note follows a paragraph, never a bench, scene, code block or question', misplaced === 0, `${misplaced} misplaced`);
+const sortFirst = await page.evaluate((sel) => {
+  const sort = document.querySelector(sel);
+  const p = [...document.querySelectorAll('.prose > p')].find((x) => x.textContent.includes('The four outer loops, n, m, h and w'));
+  return !!sort && !!p && !!(sort.compareDocumentPosition(p) & Node.DOCUMENT_POSITION_FOLLOWING);
+}, LOOPS);
+check('the loop sort comes before the paragraph that gives its answer', sortFirst);
+const sceneNote = await page.evaluate((sc) => {
+  const s = document.querySelector(sc);
+  const n = s?.previousElementSibling;
+  return !!n && n.matches('aside.note') && n.textContent.includes('No caches, no coalescing, no timing');
+}, SC);
+check('the narrated scene states what it simplifies', sceneNote);
 
 // ---- which loops can be split
 check('seven loop cards, outermost first', (await page.$$eval(LOOPS + ' [data-loop]', (c) => c.map((x) => x.dataset.loop).join(''))) === 'nmhwcpq');
@@ -117,8 +142,10 @@ await pause(80);
 await press(LOOPS, 'Check');
 check('all seven right after fixing c', (await data(LOOPS + ' [data-out="loops"]')).text === 'all 7 right');
 check('the feedback names the read-modify-write on Y[n, m, h, w]', (await data(LOOPS + ' [data-out="loops-why"]')).text.includes('Y[n, m, h, w]'));
-let r = await answerChoice('can be split across threads with no atomics', 'n, m, h and w');
-check('q-loops: n, m, h and w is correct', r.found && r.text.includes('Correct.'));
+let r = await answerChoice('What can Y[i] hold when all six are done', 'Always the full sum');
+check('q-loops: "always the full sum" is marked wrong, with the reason', r.found && r.text.includes('Not quite.') && r.text.includes('two threads can load the same old value'), r.text.slice(0, 200));
+r = await answerChoice('What can Y[i] hold when all six are done', 'The full sum, or the sum of only some');
+check('q-loops: a lost update is the answer', r.found && r.text.includes('Correct.'));
 
 // ---- the prediction, then the explorer
 const pq = await page.evaluateHandle(() => [...document.querySelectorAll('.q')].find((e) => e.textContent.includes('How many of the 784 pixels')));
@@ -180,7 +207,10 @@ await swapBox(false);
 
 // reverse mode
 await press(GM, 'reverse: pick a pixel');
-const box = await page.$eval(GM + ' svg[data-map="0"]', (e) => { const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; });
+// The click below is in viewport coordinates, so bring the map into view first.
+await page.$eval(GM + ' svg[data-map="0"]', (e) => e.scrollIntoView({ block: 'center' }));
+await pause(100);
+const box =await page.$eval(GM + ' svg[data-map="0"]', (e) => { const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; });
 await page.mouse.click(box.x + (40.5 / 64) * box.w, box.y + (20.5 / 32) * box.h);
 await pause(120);
 check('clicking a pixel asks for its thread', (await data(GM + ' [data-out="reverse"]')).text.includes('Y[0, 0, 20, 40]'));
@@ -232,8 +262,10 @@ r = await answerChoice('computes which (n, m, h, w)', '(1, 3, 25, 5)');
 check('q-mapping: (1, 3, 25, 5) is correct', r.found && r.text.includes('Correct.'));
 r = await answerChoice('tests on 64 × 64 outputs all pass', 'With a square grid of tiles');
 check('q-swap: the square tile grid is the reason', r.found && r.text.includes('Correct.') && r.text.includes('Tile columns 2 and 3'));
-let n = await answerNumber("C3 (C = 6, K = 5)", 0.25);
-check('q-ratio: 0.25 FLOP/B is correct', n.includes('Correct.'));
+let n = await answerNumber('each with its own F weight', 0.25);
+check('q-ratio: 0.25, the one-map ratio worked in the text, is not the answer', !n.includes('Correct.'));
+n = await answerNumber('each with its own F weight', 0.333);
+check('q-ratio: two maps per thread give 0.333 FLOP/B', n.includes('Correct.') && n.includes('600 / 1800'), n.slice(0, 200));
 
 // ---- the narrated animation
 const tr = directTrace(BOOK_LAYER, BOOK_X, BOOK_F, 2);
@@ -357,8 +389,21 @@ await page.setViewport({ width: 390, height: 900, deviceScaleFactor: 1 });
 await pause(400);
 const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 check('at 390 px the page does not scroll sideways', over <= 1, `overflow ${over}px`);
+// The limits table at its widest (N = M = 256 at 256 × 256: a ten-digit thread count) fits the bench: nothing clipped, nothing to scroll.
+for (const [k, v] of [['H_out', 256], ['W_out', 256], ['M (output maps)', 256], ['N (samples)', 256]]) await setValue(GM + ` input[aria-label="${k}"]`, v);
+check('at 390 px the limits table shows the widest case', (await data(GM + ' [data-out="limits"]')).text.includes('4,294,967,296'));
+const lw = await page.$eval(GM + ' [data-out="limits-wrap"]', (w) => {
+  const edge = w.getBoundingClientRect().right;
+  const t = w.querySelector('table');
+  const past = [...t.querySelectorAll('*')].filter((e) => e.getBoundingClientRect().right > edge + 1).map((e) => e.textContent.slice(0, 20));
+  const cells = [...t.querySelectorAll('td, th')].filter((c) => c.scrollWidth > c.clientWidth + 1).map((c) => c.textContent.slice(0, 20));
+  return { sw: w.scrollWidth, cw: w.clientWidth, tsw: t.scrollWidth, past, cells };
+});
+check('at 390 px the limits table fits its bench: no scrolling, no cell or value cut off',
+  lw.sw <= lw.cw + 1 && lw.tsw <= lw.cw + 1 && lw.past.length === 0 && lw.cells.length === 0, JSON.stringify(lw));
 if (out) await page.$eval(LOOPS, (e) => e.scrollIntoView({ block: 'start' })), await page.screenshot({ path: out + '-narrow-loops.png' });
 if (out) await page.$eval(GM, (e) => e.scrollIntoView({ block: 'start' })), await page.screenshot({ path: out + '-narrow-grid.png' });
+if (out) await page.$eval(GM + ' [data-out="limits-wrap"]', (e) => e.scrollIntoView({ block: 'center' })), await page.screenshot({ path: out + '-narrow-limits.png' });
 if (out) await page.$eval(WR, (e) => e.scrollIntoView({ block: 'start' })), await page.screenshot({ path: out + '-narrow-warp.png' });
 
 const expected404 = (u) => /\/content\/ch19\/narration\/(manifest\.json|direct-reads-\d\.mp3)$/.test(u);

@@ -1,6 +1,6 @@
 import { useMemo, useState, type KeyboardEvent } from 'react';
 import { Ask, type Question } from '../../components/Ask';
-import { Aside, Beyond, Bench, Simplification, Source, Today } from '../../components/notes';
+import { Beyond, Bench, Simplification, Source, Today } from '../../components/notes';
 import { benchRows, fmt, num, realBackends, useReports, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import {
@@ -439,18 +439,16 @@ export const questionsS204: Record<string, Question> = {
     id: 'ch20/20.4/q-unchanged',
     prompt: <>When token N joins, why do rows 0 to N − 1 of P stay exactly the same, down to the last bit?</>,
     options: [
-      {
-        label: 'Each of those rows gains one entry, and it is masked: exp(−∞) = 0 adds nothing to the denominator and nothing to the numerators, so no probability is diluted.',
-        correct: true,
-      },
+      { label: 'Each of those rows gains one entry, and it is masked, so it adds 0 to every sum.', correct: true },
       { label: 'They change slightly; the KV cache is an approximation that ignores the change.', why: 'The reveal compared them unrounded: identical. The cache is exact.' },
-      { label: 'They change, but O does not, because P V cancels the change.', why: 'P does not change in the first place, and O’s old rows do not either.' },
-      { label: 'Subtracting the row maximum cancels the new entry.', why: 'The maximum stays the same because the new entry is −∞; the reason is the mask, not the subtraction.' },
+      { label: 'They change, but O does not, because multiplying by V cancels the change.', why: 'P does not change in the first place, and O’s old rows do not either.' },
+      { label: 'Subtracting the row maximum cancels the new entry before the sum is taken.', why: 'The maximum stays the same because the new entry is −∞; the reason is the mask, not the subtraction.' },
     ],
     explain: (
       <p>
         Row r of S + M gains column N, and N &gt; r puts it above the diagonal, where M holds −∞. The row’s maximum is
-        unchanged and its sum of exponentials gains e<sup>−∞</sup> = 0, so every p in the row keeps its value. The book’s
+        unchanged and its sum of exponentials gains e<sup>−∞</sup> = 0, which adds nothing to the denominator and nothing to
+        the numerators, so every p in the row keeps its value. The book’s
         words: the masked elements “do not dilute any of the probabilities”.
       </p>
     ),
@@ -500,15 +498,15 @@ export const questionsS204: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Only key 0: PyTorch aligns the causal mask to the upper left when the query is shorter than the keys.', correct: true },
-      { label: 'All N keys, as a decode step should.', why: 'That is what you want, and what FlashAttention (2.1 and later) and MLX do, but not what PyTorch’s flag does for a non-square mask.' },
-      { label: 'Only the last key.', why: 'Upper-left alignment keeps the first column of the first row, not the last.' },
-      { label: 'PyTorch raises an error for a non-square causal mask.', why: 'It does not: it documents the upper-left alignment.' },
+      { label: 'Only key 0: PyTorch aligns the causal mask to the upper left.', correct: true },
+      { label: 'All N keys, as a decode step should, since nothing comes after it.', why: 'That is what you want, and what FlashAttention (2.1 and later) and MLX do, but not what PyTorch’s flag does for a non-square mask.' },
+      { label: 'Only the last key, the one that was just appended to the cache.', why: 'Upper-left alignment keeps the first column of the first row, not the last.' },
+      { label: 'None: PyTorch raises an error for a non-square causal mask.', why: 'It does not: it documents the upper-left alignment.' },
     ],
     explain: (
       <p>
-        PyTorch documents <code>is_causal</code> as an upper-left causal bias for non-square shapes: row 0 keeps column 0
-        only. For one query, pass no mask at all (the Llama reference builds a mask only when more than one token is
+        PyTorch documents <code>is_causal</code> as an upper-left causal bias when the query is shorter than the keys:
+        row 0 keeps column 0 only. For one query, pass no mask at all (the Llama reference builds a mask only when more than one token is
         processed) or a lower-right causal bias.
       </p>
     ),
@@ -519,18 +517,16 @@ export const questionsS204: Record<string, Question> = {
     id: 'ch20/20.4/q-prefill-bound',
     prompt: <>Prefill of a 2,000-token prompt and one decode step both compute q Kᵀ. Why is the first usually compute-bound and the second bandwidth-bound?</>,
     options: [
-      {
-        label: 'In prefill each loaded K row meets 2,000 query rows: a GEMM whose intensity grows with N towards about 2d/p FLOP/B. In decode it meets one: a GEMV near 2/p, whatever N.',
-        correct: true,
-      },
-      { label: 'Prefill uses tensor cores and decode does not.', why: 'Hardware choice follows from the shape, not the other way round; a GEMV gives tensor cores nothing to reuse.' },
-      { label: 'Decode has a softmax and prefill does not.', why: 'Both have one, and the book’s count ignores it in both.' },
-      { label: 'Prefill’s data fits in cache and decode’s does not.', why: 'The argument needs no cache at all: it is about how many times each loaded byte is used.' },
+      { label: 'Each loaded K row meets 2,000 queries in prefill and one in decode.', correct: true },
+      { label: 'Prefill runs on the tensor cores and decode on the ordinary cores.', why: 'Hardware choice follows from the shape, not the other way round; a GEMV gives tensor cores nothing to reuse.' },
+      { label: 'Decode runs a softmax every step; prefill runs it once at the end.', why: 'Both run one over their scores, and the book’s count ignores it in both.' },
+      { label: 'Prefill’s working set fits in cache, and decode’s KV cache does not.', why: 'The argument needs no cache at all: it is about how many times each loaded byte is used.' },
     ],
     explain: (
       <p>
         Chapter 5’s lesson in a new place. A loaded key row costs the same bytes in both phases; what differs is how many
-        multiply-adds it feeds. The roofline explorer shows the prefill point sliding right with N while the decode point
+        multiply-adds it feeds. Prefill is a GEMM whose intensity grows with N towards about 2d/p FLOP/B; decode is a GEMV
+        near 2/p, whatever N. The roofline explorer shows the prefill point sliding right with N while the decode point
         stays where it is.
       </p>
     ),
@@ -541,18 +537,15 @@ export const questionsS204: Record<string, Question> = {
     id: 'ch20/20.4/q-per-layer',
     prompt: <>Fig. 20.7 hands K and V from each layer to the same layer of the next iteration. Why can’t one cache serve every layer?</>,
     options: [
-      {
-        label: 'Each layer computes its own K and V from its own input with its own weights; a token’s K in layer l depends on everything the layers before l did to it.',
-        correct: true,
-      },
-      { label: 'It could; one cache per layer is only a bookkeeping choice.', why: 'The values differ from layer to layer, so they must be stored separately.' },
-      { label: 'Layers have different head widths.', why: 'In the models here they do not; the reason is that the values differ.' },
-      { label: 'The mask differs from layer to layer.', why: 'The causal mask is the same in every layer.' },
+      { label: 'Each layer computes K and V from its own input with its own weights.', correct: true },
+      { label: 'It could; one cache per layer is only a bookkeeping choice in the code.', why: 'The values differ from layer to layer, so they must be stored separately.' },
+      { label: 'The layers have different head widths, so the rows would not line up.', why: 'In the models here they do not; the reason is that the values differ.' },
+      { label: 'The causal mask differs from layer to layer, so the keys would not match.', why: 'The causal mask is the same in every layer.' },
     ],
     explain: (
       <p>
-        X for layer 1 is the embeddings; X for layer 2 is layer 1’s output, and so on. So K = X W_K is a different matrix
-        in every layer, and the cache grows with the number of layers as well as with N (Eq. 20.7 has the factor l).
+        X for layer 1 is the embeddings; X for layer 2 is layer 1’s output, and so on: a token’s K in layer l depends on
+        everything the layers before l did to it. So K = X W_K is a different matrix in every layer, and the cache grows with the number of layers as well as with N (Eq. 20.7 has the factor l).
       </p>
     ),
     source: 'ch. 20 §20.4, p. 491, Fig. 20.7',
@@ -602,12 +595,10 @@ export function S204() {
         So a decode step takes one new row of X into an attention head and must produce one new row of O. It still needs
         all of K and V: every earlier key to score the new query against, and every earlier value to mix. Those were
         computed in earlier steps and do not change, so store them instead of recomputing them. That store is the{' '}
-        <b>KV cache</b>.
+        <b>KV cache</b>. (The book&rsquo;s footnote 6 adds that &ldquo;KV&rdquo; here is not a key-value store, though
+        the idea is close: the output is a sum of values, weighted by how near the query is to each value&rsquo;s key.)
       </p>
-      <Source section="20.4" pages="490" />
-      <Aside>
-        <p>The book’s footnote 6: “KV” here is not a key-value store, though the idea is close. The output is a sum of values, weighted by how near the query is to each value’s key.</p>
-      </Aside>
+      <Source section="20.4" pages="490" figs="footnote 6" />
 
       <h2>One token’s work</h2>
       <p>With a cache, one step of one head is five small operations (Fig. 20.6):</p>
@@ -620,10 +611,14 @@ export function S204() {
       </ol>
       <p>
         There is no mask. The newest token may attend to every cached token, and no later token exists yet for it to be
-        kept from. Meta’s reference Llama code agrees: it builds a causal mask only when more than one token goes through
-        at once.
+        kept from.
       </p>
       <Source section="20.4" pages="490–491" figs="Fig. 20.6" />
+      <p>
+        Meta’s reference Llama code agrees: it builds a causal mask only when more than one token goes through at once,
+        that is, in prefill. A decode kernel can skip the mask entirely, which is one comparison per score saved and one
+        source of bugs gone.
+      </p>
       <Today checked="2026-11-20 (ch20-facts D3)">
         <p>In <code>llama/model.py</code> the mask is <code>None</code> unless <code>seqlen &gt; 1</code>; then it is a <code>torch.triu</code> mask with zeros prepended for the cached positions.</p>
       </Today>
@@ -676,6 +671,13 @@ export function S204() {
         decode points stay near 2/p however long the cache is: 1 FLOP per byte in 16-bit, 0.5 in fp32. Watch a whole
         decode step stream through memory.
       </p>
+      <Simplification>
+        <p>
+          One layer of a Llama 2 7B shape (32 heads of 128) at 4,096 tokens, 16-bit. Each byte is counted once: no cache
+          reuse, no overlap. Only the Q, K and V projections and the two attention products; no output projection, no
+          feed-forward.
+        </p>
+      </Simplification>
       <DecodeStreamScene />
       <Ask q={questionsS204['ch20/20.4/q-fp32-ai']} label="Work it out" />
       <Ask q={questionsS204['ch20/20.4/q-prefill-bound']} />
@@ -683,12 +685,17 @@ export function S204() {
       <h2>How the cache is laid out in code you will read</h2>
       <p>
         The book stops at the algebra: it shows no data structure for the cache, no append and no decode kernel. Three
-        code bases you are likely to read store it three ways. Lab 20.4 uses the first layout, one cache per layer of
-        shape [batch, max_seq, kv_heads, head_dim], and asks you to write the append and the single-token decode step.
+        code bases you are likely to read store it three ways: Meta&rsquo;s preallocated array, llama.cpp&rsquo;s ring of
+        token slots, and mlx-lm&rsquo;s cache that grows in steps.
       </p>
       <Today checked="2026-11-20 (ch20-facts D3)">
         <p>Meta’s Llama reference preallocates <code>cache_k</code> as [max_batch, max_seq, kv_heads, head_dim] and writes <code>cache_k[:bsz, start_pos : start_pos + seqlen]</code>. llama.cpp keeps one K and one V tensor per layer, a ring of token slots written by index with <code>ggml_set_rows</code>; it has no block table. mlx-lm grows its cache in steps of 256 tokens.</p>
       </Today>
+      <p>
+        Lab 20.4 uses the first layout, one cache per layer of shape [batch, max_seq, kv_heads, head_dim], and asks you to
+        write the append and the single-token decode step. Tokens come before heads, so appending one token writes
+        one contiguous run of kv_heads × head_dim values.
+      </p>
       <Beyond>
         <p>Lab 20.4 is ours: the book has no cache or decode code. See the <a href={href('ch20', 'labs')}>labs page</a>.</p>
       </Beyond>

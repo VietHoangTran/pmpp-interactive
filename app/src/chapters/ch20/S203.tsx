@@ -29,16 +29,17 @@ export const questionsS203: Record<string, Question> = {
     id: 'ch20/20.3/q-cols',
     prompt: (
       <>
-        Fig. 20.4 with <code>BLOCK_SIZE = 4</code> and N = 8. In block 5 (row 5), how many columns does thread 1 read in
-        the max loop?
+        Fig. 20.4 with <code>BLOCK_SIZE = 4</code> and N = 4096, too large for the stepper. In block 1000 (row 1000),
+        how many columns does thread 3 read in the max loop?
       </>
     ),
-    answer: 2,
+    answer: 250,
     unit: 'columns',
     explain: (
       <p>
-        <code>idx</code> starts at <code>threadIdx.x</code> = 1 and steps by 4: 1, 5, then 9 fails{' '}
-        <code>idx &lt;= blockIdx.x</code> = 5. Columns 1 and 5. Set the stepper to N = 8, row 5 and watch thread 1.
+        <code>idx</code> starts at <code>threadIdx.x</code> = 3 and steps by 4: 3, 7, …, 999, then 1003 fails{' '}
+        <code>idx &lt;= blockIdx.x</code> = 1000. That is 3 + 4k ≤ 1000 for k = 0 to 249, so 250 columns. Check the rule
+        on a small case in the stepper: N = 8, row 5, thread 1 reads columns 1 and 5.
       </p>
     ),
     source: 'ch. 20 Fig. 20.4, pp. 487–488',

@@ -419,30 +419,37 @@ export const questionsS224: Record<string, Question> = {
   'ch22/22.4/q-why-domain': {
     kind: 'choice',
     id: 'ch22/22.4/q-why-domain',
-    prompt: <>Why does the book say problem formulation needs domain insight as well as computer-science skill?</>,
+    prompt: (
+      <>
+        Three proposals to speed up decoding at long context. Which one is a reformulation in the book&rsquo;s sense:
+        a change whose safety only knowledge of the domain can judge, as cutoff summation needed physics?
+      </>
+    ),
     options: [
       {
-        label: 'Which accuracy can go is a physics judgement, and the binning that makes it fast is a computing technique: neither alone gets there.',
+        label: 'Attend only to the most recent 4,096 tokens. Whether the outputs survive is a question about the trained model; skipping the older keys is then a kernel job.',
         correct: true,
       },
       {
-        label: 'Because in practice the domain scientists write the kernels, and the programmer only tunes what they wrote.',
-        why: 'The book argues the opposite: the programmer can work with domain scientists to transform the problem itself (p. 529).',
+        label: 'Split each attention row over more thread blocks and combine their partial softmaxes at the end. It changes how the work is cut, so it needs a judgement about the model.',
+        why: 'The combined result is the same attention up to rounding. That is a decomposition, which section 22.2’s criteria judge without knowing anything about the model.',
       },
       {
-        label: 'Because GPUs cannot run generic numerical methods, so every method must be rewritten for the domain.',
-        why: 'They can; the book says that route tends to give high complexity or limited parallelism, not that it fails to run (p. 538).',
+        label: 'Store the KV cache in a layout whose reads coalesce. Reading keys in a different order changes what the model sees, so it needs a judgement about the model.',
+        why: 'The same values reach the same arithmetic; only where the bytes sit changes. Chapter 6’s rules decide this one.',
       },
     ],
     explain: (
       <p>
         Cutoff binning needs both halves. Knowing that far atoms contribute little, and that their effect can be handled
         collectively, is physics. Turning the remaining computation into a grid-centric kernel that knows which atoms to
-        scan is a decomposition and a data structure. The KV cache has the same shape: knowing that earlier keys never
-        change is a fact about the causal model, and a cache is a computing technique.
+        scan is a decomposition and a data structure. A window over the keys has the same shape: it drops work the exact
+        formulation does, and only the model&rsquo;s behaviour, measured on its outputs, can say whether that is
+        acceptable. The other two proposals compute the same thing and need no domain judgement at all. The window is
+        our example, not the book&rsquo;s.
       </p>
     ),
-    source: 'ch. 22 §22.4, p. 538',
+    source: 'ch. 22 §22.4, p. 538; the attention example is ours',
   },
 };
 

@@ -90,7 +90,8 @@ export const STAGES: Stage[] = [
     id: 'penalties', label: 'penalties', kind: 'reshape', modelled: true,
     kernels: [
       { what: 'count the tokens of each row', lab: LAB.counts },
-      { what: 'repetition, frequency and presence in one pass', lab: LAB.m5 },
+      { what: 'repetition, sign-aware', lab: LAB.m5 },
+      { what: 'frequency and presence', lab: LAB.counts },
     ],
   },
   { id: 'dry', label: 'DRY', kind: 'reshape', modelled: false, kernels: [] },

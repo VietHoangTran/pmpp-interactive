@@ -2,7 +2,7 @@
 // FLOP explorer, both against app/src/sim/llmflops.ts, plus questions.
 // Usage: node e2e/ch20-s201.mjs [screenshot-prefix]
 import { open, goto } from './browser.mjs';
-import { BLOCKS, BOOK_SHAPE, crossover, judge, layerFlops } from '../src/sim/llmflops.ts';
+import { BLOCKS, BOOK_SHAPE, crossover, decodeBytes, judge, layerFlops } from '../src/sim/llmflops.ts';
 
 const out = process.argv[2];
 const { browser, page, errors } = await open({ width: 1440, height: 1000 });
@@ -136,6 +136,14 @@ await clickText(EX, 'one decode token');
 r = await readout();
 const skipDisabled = await page.$eval(EX + ' label.check input', (el) => el.disabled);
 check('one decode token: same crossover as prefill without skipping, skipping disabled', agrees(r, 65536, { ...swi, causalSkip: true }, 'decode') && r.cross === 29696 && skipDisabled, JSON.stringify(r));
+{
+  const b = await page.$eval(EX + ' [data-bytes]', (e) => ({ w: Number(e.querySelector('[data-wbytes]').dataset.wbytes), c: Number(e.querySelector('[data-cbytes]').dataset.cbytes), x: Number(e.querySelector('[data-bcross]').dataset.bcross) })).catch(() => null);
+  const want = decodeBytes(65536, { ...swi, causalSkip: true }, 1, 2);
+  check('decode shows weight and cache bytes from the model, crossing at b × N = the FLOP crossover', b && b.w === want.weights && b.c === want.cache && b.x === Math.round(want.crossBatchN) && b.x === 29696, JSON.stringify(b));
+}
+await clickText(EX, 'prefill of N tokens');
+check('prefill hides the decode bytes readout', (await page.$(EX + ' [data-bytes]')) === null);
+await clickText(EX, 'one decode token');
 await setSelect(EX + ' select[aria-label="d_model"]', 512);
 await setRange(EX + ' input[aria-label="context length (log scale)"]', 0);
 r = await readout();
