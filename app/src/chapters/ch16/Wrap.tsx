@@ -240,8 +240,9 @@ export function Wrap() {
           anti-diagonal one. Check the stride, and on Metal, measure.
         </li>
         <li>
-          In inference code the wavefronts are recurrences along the sequence (CTC, RWKV, Mamba, the gated delta rule),
-          run with a block barrier per step, a SIMD-group or warp per chain, or chunks joined by launches.
+          In inference code the wavefronts are recurrences along the sequence (RWKV and Mamba state, the gated delta
+          rule), and PyTorch's CTC loss, a training objective, is one too. They run with a block barrier per step, a
+          SIMD-group or warp per chain, or chunks joined by launches.
         </li>
       </ul>
       <Source section="16.9" pages="399" />
@@ -249,7 +250,7 @@ export function Wrap() {
       <h2>A mixed check</h2>
       <p>
         These draw on the whole chapter and on situations the pages did not show.
-        {asked ? ` So far in this chapter you have answered ${right} of ${asked} questions correctly on the first recorded try.` : ''}
+        {asked ? ` So far in this chapter you have answered ${right} of ${asked} questions correctly, counting your latest answer to each.` : ''}
       </p>
       <Beyond>
         <p>

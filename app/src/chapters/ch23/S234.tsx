@@ -208,17 +208,59 @@ interface Row {
 const blank = (): Record<EdgeId, Row> =>
   Object.fromEntries(edges('streams').map((e) => [e.id, { pick: '', checked: null }])) as Record<EdgeId, Row>;
 
-type Compare = 'none' | 'nccl' | 'nvshmem';
+// The one comparison with the libraries' loops the page keeps: a table, from the model's edges.
+const LIBS: Version[] = ['nccl', 'nvshmem'];
+
+function CompareTable() {
+  const book = edges('streams');
+  const lib = Object.fromEntries(LIBS.map((v) => [v, edges(v)])) as Record<Version, ReturnType<typeof edges>>;
+  const changed = Object.fromEntries(LIBS.map((v) => [v, changedEdges('streams', v)])) as Record<Version, EdgeId[]>;
+  const where = (lines: string) => (
+    <span className="muted"> ({/^\d/.test(lines) ? (linesOf(lines).length > 1 ? 'lines ' : 'line ') : ''}{lines})</span>
+  );
+  return (
+    <div style={{ overflowX: 'auto', marginTop: '0.8rem' }}>
+      <table className="data" data-compare-table style={{ margin: 0 }}>
+        <thead>
+          <tr>
+            <th>Ordering</th>
+            <th>{VERSIONS.streams.fig}</th>
+            {LIBS.map((v) => (
+              <th key={v} data-compare-count={changed[v].length} data-version={v}>
+                {VERSIONS[v].label} ({VERSIONS[v].fig}): {changed[v].length} changed
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {book.map((e) => (
+            <tr key={e.id} data-compare-row={e.id}>
+              <td style={{ whiteSpace: 'normal' }}>{e.first} <span className="muted">before</span> {e.then}</td>
+              <td style={{ whiteSpace: 'normal' }}>{MECH[e.mechanism]}</td>
+              {LIBS.map((v) => {
+                const o = lib[v].find((x) => x.id === e.id)!;
+                const isChanged = changed[v].includes(e.id);
+                return (
+                  <td key={v} style={{ whiteSpace: 'normal' }} data-version={v} data-mechanism={o.mechanism} data-changed={isChanged ? 'true' : 'false'}>
+                    {isChanged ? <b>{MECH[o.mechanism]}</b> : MECH[o.mechanism]}
+                    {where(o.lines)}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 function DependencyPuzzle() {
   const book = edges('streams');
   const [rows, setRows] = useState<Record<EdgeId, Row>>(blank);
   const [focus, setFocus] = useState<EdgeId | null>(null);
-  const [compare, setCompare] = useState<Compare>('none');
   const solved = book.filter((e) => rows[e.id].checked === e.mechanism);
   const all = solved.length === book.length;
-  const other = compare === 'none' ? null : edges(compare);
-  const changed = compare === 'none' ? [] : changedEdges('streams', compare);
   const hl = focus ? linesOf(book.find((e) => e.id === focus)!.lines) : [];
   return (
     <Bench
@@ -250,8 +292,6 @@ function DependencyPuzzle() {
           {book.map((e, n) => {
             const s = rows[e.id];
             const done = s.checked === e.mechanism;
-            const o = other?.find((x) => x.id === e.id);
-            const isChanged = changed.includes(e.id);
             return (
               <div key={e.id} data-edge={e.id} data-solved={done ? 'true' : 'false'}
                 style={{ padding: '0.6rem 0', borderTop: n ? '1px solid var(--rule-soft)' : undefined }}>
@@ -292,63 +332,38 @@ function DependencyPuzzle() {
                     )}
                   </p>
                 ) : null}
-                {o ? (
-                  <p data-compare-row={e.id} data-mechanism={o.mechanism} data-changed={isChanged ? 'true' : 'false'} style={{ margin: '0.4rem 0 0' }}>
-                    <span className="muted">{VERSIONS[compare as Version].fig}:</span> {MECH[o.mechanism]}{' '}
-                    <span className="muted">({/^\d/.test(o.lines) ? 'lines ' : ''}{o.lines})</span>{' '}
-                    {isChanged ? <span className="chip ok">changed</span> : null}
-                  </p>
-                ) : null}
               </div>
             );
           })}
         </div>
         <div className="row" style={{ marginTop: '0.8rem', justifyContent: 'space-between' }}>
-          <div className="row" style={{ gap: '0.5rem' }}>
-            <span className="ui muted">Compare with</span>
-            <span className="seg" role="group" aria-label="Compare with">
-              {(['none', 'nccl', 'nvshmem'] as Compare[]).map((c) => (
-                <button key={c} aria-pressed={compare === c} disabled={!all && c !== 'none'} onClick={() => setCompare(c)}>
-                  {c === 'none' ? 'Fig. 23.14 only' : `${VERSIONS[c].label} (${VERSIONS[c].fig})`}
-                </button>
-              ))}
-            </span>
-          </div>
-          <button className="quiet" onClick={() => { setRows(blank()); setFocus(null); setCompare('none'); }}>
+          <span className="ui muted">
+            {all ? null : 'Place all ten to see the same orderings in the NCCL and NVSHMEM loops.'}
+          </span>
+          <button className="quiet" onClick={() => { setRows(blank()); setFocus(null); }}>
             Start again
           </button>
         </div>
-        {!all ? (
-          <p className="ui muted" style={{ margin: '0.6rem 0 0' }}>Place all ten to compare them with the NCCL and NVSHMEM loops.</p>
-        ) : compare === 'none' ? (
-          <p className="panel" style={{ margin: '0.8rem 0 0' }} data-puzzle-done>
-            <b>All ten placed.</b> Count the mechanisms: four kinds, and the last one is the host waiting in disguise. Now
-            switch the comparison on and watch which answers move.
-          </p>
-        ) : (
-          <p className="panel" style={{ margin: '0.8rem 0 0' }} data-compare-summary>
-            {compare === 'nccl' ? (
-              <>
-                <b>{changed.length} answers changed.</b> The exchanges moved into the boundary streams, so their kernels
-                now precede them by stream order, and the edge to the next iteration became an event wait (lines 43–44).
-                Every host wait left except the one before <code>MPI_Allreduce</code>.
-              </>
-            ) : (
-              <>
-                <b>{changed.length} answers changed.</b> One kernel in one stream makes most orderings stream order. The puts
-                leave from inside the kernel, after the values are computed, and a barrier on the stream (line 18)
-                replaces the blocking exchange.
-              </>
-            )}
-          </p>
-        )}
+        {all ? (
+          <div data-puzzle-done>
+            <p className="panel" style={{ margin: '0.8rem 0 0' }}>
+              <b>All ten placed.</b> Count the mechanisms: four kinds, and the last one is the host waiting in disguise.
+              The table puts the same ten orderings in the book&rsquo;s NCCL and NVSHMEM loops; the changed ones are in
+              bold. In NCCL&rsquo;s the exchanges are queued in the boundary streams, so stream order and event waits
+              replace the host&rsquo;s. In NVSHMEM&rsquo;s one kernel puts the rows itself, and a barrier queued in the
+              stream replaces the blocking exchange.
+            </p>
+            <CompareTable />
+          </div>
+        ) : null}
       </div>
     </Bench>
   );
 }
 
 // ---------------------------------------------------------------- who waits
-const ALL_VERSIONS: Version[] = ['mpi', 'streams', 'nccl', 'nvshmem'];
+// The explorer models the book's two MPI loops only; NCCL and NVSHMEM are the comparison table's.
+const ALL_VERSIONS: Version[] = ['mpi', 'streams'];
 const SLIDERS: { key: keyof Durations; label: string; min: number; max: number; step: number }[] = [
   { key: 'internal', label: 'internal kernel', min: 2, max: 12, step: 0.5 },
   { key: 'boundary', label: 'boundary kernels', min: 0.5, max: 4, step: 0.25 },
@@ -359,16 +374,14 @@ const SLIDERS: { key: keyof Durations; label: string; min: number; max: number; 
 // Where to look when a removed ordering did not fire: the model's own findings.
 const QUIET: Record<Exclude<Defect, 'none'>, Partial<Record<Version, ReactNode>>> = {
   'reset-waits': {
-    streams: <>In this loop the reset always wins the race in the model: line 37 has just emptied <code>internalStream</code>, and the memset is the first thing in it. The bug is still there. Try the NCCL loop with one exchange much longer than the other.</>,
-    nccl: <>Make one exchange much longer than the other, and longer than the internal kernel.</>,
+    streams: <>In this loop the reset always wins the race in the model: line 37 has just emptied <code>internalStream</code>, and the memset is the first thing in it. The bug is still there: nothing in the code makes the reset come first, and a host or a GPU that schedules differently can lose it.</>,
   },
   'compute-waits': {
     streams: <>Make a boundary kernel outlast the internal one, or issue the internal kernel first with equal priority.</>,
-    nccl: <>Make a boundary kernel outlast the internal one, or issue the internal kernel first with equal priority.</>,
   },
   'sync-top': {},
-  'exchange-waits': { nccl: <>Make an exchange longer than the internal kernel.</> },
-  barrier: { nvshmem: <>Make an exchange longer than the kernel.</> },
+  'exchange-waits': {},
+  barrier: {},
   pageable: {},
 };
 
@@ -523,9 +536,14 @@ function WhoWaits() {
   );
 }
 
-// The longest exchange NCCL still hides at the defaults: from the model, for the prediction.
-const NCCL_DEF = simulate({ ...DEFAULTS, exTop: 0.5, exBottom: 0.5, version: 'nccl' }).iters[0];
-const WINDOW = NCCL_DEF.internal.end - Math.max(NCCL_DEF.top.end, NCCL_DEF.bottom.end);
+// The longest exchange each loop still hides at the defaults, both exchanges equal: from the
+// model, for the prediction. In Fig. 23.14 the two run one after the other, so the slack after
+// two short exchanges is shared between them; in the NCCL loop each starts when its kernel ends.
+const SHORT = 0.5;
+const STREAMS_SHORT = simulate({ ...DEFAULTS, exTop: SHORT, exBottom: SHORT, version: 'streams' }).iters[0];
+export const WINDOW_STREAMS = SHORT + (STREAMS_SHORT.internal.end - STREAMS_SHORT.exBottom.end) / 2;
+const NCCL_SHORT = simulate({ ...DEFAULTS, exTop: SHORT, exBottom: SHORT, version: 'nccl' }).iters[0];
+export const WINDOW_NCCL = NCCL_SHORT.internal.end - Math.max(NCCL_SHORT.top.end, NCCL_SHORT.bottom.end);
 const STREAMS_DEF = simulate({ ...DEFAULTS, version: 'streams' });
 
 // ---------------------------------------------------------------- questions
@@ -562,7 +580,7 @@ export const questionsS234: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'As blocks of the internal kernel finish: a priority preempts nothing, it gives pending kernels first claim on slots that free up.',
+        label: 'As blocks of the internal kernel finish: a priority preempts nothing; it gives pending kernels the freed slots first.',
         correct: true,
       },
       {
@@ -600,7 +618,7 @@ export const questionsS234: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'No: by default the runtime treats every stream as normal priority (DEBUG_HIP_IGNORE_STREAM_PRIORITY is true), whatever it reports.',
+        label: 'No: a runtime switch, on by default, treats every stream as normal priority, whatever the device reports.',
         correct: true,
       },
       {
@@ -639,7 +657,7 @@ export const questionsS234: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Return without waiting, but queue the reset in the legacy default stream, which waits for every blocking stream and holds them all.',
+        label: 'Return at once, but queue the reset in the legacy default stream, which joins every blocking stream.',
         correct: true,
       },
       {
@@ -677,7 +695,7 @@ export const questionsS234: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'An event recorded in topStream after the kernel, and a wait for it queued in internalStream: call order only orders work within one stream.',
+        label: 'An event recorded in topStream after the kernel and waited for in internalStream: call order only holds within a stream.',
         correct: true,
       },
       {
@@ -715,7 +733,7 @@ export const questionsS234: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'No: an event’s value only increases to a given number, so two producers cannot combine signals; use one event each, or two values in a known order.',
+        label: 'No: an event holds one value that only grows, so two producers cannot combine signals; use one event each.',
         correct: true,
       },
       {
@@ -735,7 +753,7 @@ export const questionsS234: Record<string, Question> = {
       <p>
         A Metal event is a 64-bit value that only grows, and a wait passes once the value reaches the number it waits
         for. If two passes signal the same event, the waiter cannot tell whether one or both have done so. Apple&rsquo;s
-        advice is one event per producing workload. A CUDA event is different again, a snapshot of one stream, so Fig.
+        advice is one event per producing workload; two values signalled in a known order also work. A CUDA event is different again, a snapshot of one stream, so Fig.
         23.14 also needs two of them, for a different reason: the producers are in two streams.
       </p>
     ),
@@ -752,7 +770,7 @@ export const questionsS234: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'A boundary kernel may add to the norm before the memset zeroes it, losing its part; the emulator runs streams synchronously, in call order.',
+        label: 'A boundary kernel may add to the norm before the memset zeroes it; the emulator runs streams one call at a time.',
         correct: true,
       },
       {
@@ -773,88 +791,13 @@ export const questionsS234: Record<string, Question> = {
         Without the waits nothing orders the reset in <code>internalStream</code> against the kernels in the other two
         streams. If a boundary block finishes and does its <code>atomicAdd</code> before the memset runs, the memset wipes
         that contribution, the norm comes out too small, and the loop can stop before it has converged. Whether it
-        happens is a matter of timing. In the explorer it never fires in Fig. 23.14, where the host has just emptied{' '}
-        <code>internalStream</code>, and it does fire in the NCCL loop, where that stream is still waiting on the
-        exchanges. The emulator runs streams one call at a time, so the race cannot occur there at all.
+        happens is a matter of timing. In the explorer it never fires, because the host has just emptied{' '}
+        <code>internalStream</code> and the memset is the first thing in it; in the book&rsquo;s NCCL loop, where that
+        stream can still be waiting on an exchange, the same model makes it fire. The emulator runs streams one call at
+        a time, so the race cannot occur there at all.
       </p>
     ),
     source: 'pp. 559–560; labs/README.md (emulator streams are synchronous); this page’s model',
-  },
-  'ch23/23.4/q-nccl-waits': {
-    kind: 'choice',
-    id: 'ch23/23.4/q-nccl-waits',
-    prompt: (
-      <>
-        In the NCCL loop (Fig. 23.20) the two waits on <code>exchangeTop</code> and <code>exchangeBottom</code> (lines
-        43–44) are removed. What can happen?
-      </>
-    ),
-    options: [
-      {
-        label: 'ncclGroupEnd only queued the exchanges, so the next iteration’s kernels may start before the halos arrive and read stale values.',
-        correct: true,
-      },
-      {
-        label: 'Nothing: ncclGroupEnd returns only when both the send and the receive of its group have completed on the GPU.',
-        why: 'NCCL: the primitives “have been enqueued to the provided streams, but are not necessarily complete” (A12).',
-      },
-      {
-        label: 'The next memset waits forever, because without lines 43–44 the events exchangeTop and exchangeBottom are never recorded.',
-        why: 'Lines 31 and 36 record the events. Lines 43–44 only wait for them.',
-      },
-      {
-        label: 'Each exchange runs twice, because exchangeTop and exchangeBottom are recorded again at the end of the next iteration.',
-        why: 'Re-recording an event replaces its snapshot; it repeats no work (A5).',
-      },
-    ],
-    explain: (
-      <p>
-        The group call does not block: after <code>ncclGroupEnd</code> the only guarantee is that the send and the
-        receive are in the stream. Lines 43–44 queue waits in <code>internalStream</code>; the next memset and{' '}
-        <code>resetL2</code> come after them, and both boundary kernels wait on <code>resetL2</code>, so nothing of the
-        next iteration starts until both exchanges are complete. Without them, the next top kernel waits only for its
-        own stream, which holds the top exchange, while the top halo it reads arrives with the bottom exchange.
-      </p>
-    ),
-    source: 'pp. 567, 573; NCCL 2.32 API reference (notes/today/ch23-facts.md, A12); the chain through resetL2 is our reading of the code (notes/ch23.md)',
-  },
-  'ch23/23.4/q-nvshmem-barrier': {
-    kind: 'choice',
-    id: 'ch23/23.4/q-nvshmem-barrier',
-    prompt: (
-      <>
-        In the NVSHMEM loop (Fig. 23.25) the host already synchronises the stream at line 14, before{' '}
-        <code>MPI_Allreduce</code>. Why is <code>nvshmemx_barrier_all_on_stream</code> still needed at line 18?
-      </>
-    ),
-    options: [
-      {
-        label: 'The sync proves only that this kernel finished computing and issuing puts; puts may land later, and the neighbours’ puts may be in flight.',
-        correct: true,
-      },
-      {
-        label: 'To reset the norm for the next iteration: the barrier zeroes the symmetric buffers on every processing element.',
-        why: 'The memset at line 04 resets the norm. A barrier moves no data.',
-      },
-      {
-        label: 'To release the symmetric heap, which nvshmem_malloc locks for as long as a kernel that writes to it runs.',
-        why: 'Nothing is locked. The heap is freed once, with nvshmem_free, after the loop.',
-      },
-      {
-        label: 'It is not needed: synchronising the stream also waits until every remote put the kernel made has been delivered.',
-        why: 'The book says the opposite (p. 573), and so does NVSHMEM: a put “may return before the data is delivered” (A14).',
-      },
-    ],
-    explain: (
-      <p>
-        <code>nvshmem_float_p</code> starts a remote store and may return before the data reaches the other PE. When the
-        kernel ends, its puts can still be travelling, and so can the puts the neighbours aimed at this GPU&rsquo;s
-        halos. The barrier on the stream makes every PE wait until all memory operations from the kernels before it in
-        the stream have completed, and the next memset and kernel are queued behind it. Drop it, and once an exchange
-        outlasts the rest of the iteration, the next kernel reads halos that have not arrived.
-      </p>
-    ),
-    source: 'pp. 573–574; NVSHMEM documentation, checked 2026-11-20 (notes/today/ch23-facts.md, A14)',
   },
   'ch23/23.4/q-tp': {
     kind: 'choice',
@@ -868,7 +811,7 @@ export const questionsS234: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Tensor parallelism: every layer ends in an all-reduce that all GPUs wait for, so it wants the fastest link and hides poorly.',
+        label: 'Tensor parallelism: every layer ends in an all-reduce all GPUs wait for, so it wants the fastest link.',
         correct: true,
       },
       {
@@ -940,11 +883,8 @@ export function S234() {
         first and the greatest second, so the book&rsquo;s <code>low, high</code> is right as printed. The range itself
         belongs to the device; read it, do not assume it.
       </p>
-      <Today checked="2026-11-20 against the CUDA 13.5 runtime reference (notes/today/ch23-facts.md, A1)">
-        <p>
-          &ldquo;Stream priorities follow a convention where lower numbers imply greater priorities.&rdquo; Both outputs
-          are 0 on a device without priorities. NVIDIA&rsquo;s own version of this code does what the book does.
-        </p>
+      <Today checked="2026-11-20, CUDA 13.5 (ch23-facts A1)">
+        <p>&ldquo;Lower numbers imply greater priorities.&rdquo; Both are 0 without priorities.</p>
       </Today>
       <p>
         The second is what a priority does. NVIDIA calls it a hint: it applies to kernels still waiting to start, it
@@ -954,11 +894,8 @@ export function S234() {
         finish. So keep both of the book&rsquo;s measures, the launch order and the priority, and then measure: neither
         is a guarantee.
       </p>
-      <Today checked="2026-11-20 against the CUDA 13.5 runtime reference and programming guide (notes/today/ch23-facts.md, A2)">
-        <p>
-          Priorities &ldquo;do not preempt already-running work or provide any other functional guarantee on execution
-          order&rdquo;, and &ldquo;have no effect on host-to-device and device-to-host memory operations&rdquo;.
-        </p>
+      <Today checked="2026-11-20, CUDA 13.5 (ch23-facts A2)">
+        <p>Priorities &ldquo;do not preempt already-running work&rdquo; and do not apply to copies.</p>
       </Today>
       <Ask q={questionsS234['ch23/23.4/q-prio']} />
       <p>
@@ -1024,8 +961,8 @@ export function S234() {
       <p>
         Now take the loop apart. One iteration needs the ten orderings below. For each, pick what enforces it in Fig.
         23.14: the two operations being in the same stream, an event and a stream wait, the host waiting for a stream,
-        or a call that returns only when its work is done. The feedback cites the line. Once all ten are placed, compare
-        them with the NCCL and NVSHMEM loops.
+        or a call that returns only when its work is done. The feedback cites the line. Once all ten are placed, a table
+        shows the same orderings in the book&rsquo;s NCCL and NVSHMEM loops.
       </p>
       <DependencyPuzzle />
       <p>
@@ -1096,52 +1033,52 @@ export function S234() {
         id="ch23/23.4/p-window"
         prompt={
           <>
-            In the NCCL loop, with an internal kernel of {DEFAULTS.internal} and boundary kernels of {DEFAULTS.boundary},
-            how long can each exchange be and still hide behind the internal kernel?
+            In the loop with streams (Fig. 23.14), with an internal kernel of {DEFAULTS.internal}, boundary kernels of{' '}
+            {DEFAULTS.boundary} and two exchanges of the same length: how long can each exchange be and still hide behind
+            the internal kernel?
           </>
         }
         unit="units"
       >
         {(c) => (
-          <p style={{ margin: 0 }} data-window={r2(WINDOW)}>
-            The model says <b>{r2(WINDOW)}</b>{Math.abs(c - WINDOW) < 0.5 ? ', close to your number' : ''}. Each exchange starts
-            when its boundary kernel ends, at about {r2(NCCL_DEF.bottom.end)}, and the internal kernel, which shared the
-            GPU with the boundary kernels at first, ends at {r2(NCCL_DEF.internal.end)}. Check it: set both exchanges to{' '}
-            {r2(WINDOW)} and then a little more, and watch &ldquo;exchanges hidden&rdquo;. In the MPI loop the two exchanges
-            run one after the other, so each can be only about half as long.
+          <p style={{ margin: 0 }} data-window={r2(WINDOW_STREAMS)} data-window-nccl={r2(WINDOW_NCCL)}>
+            The model says <b>{r2(WINDOW_STREAMS)}</b>{Math.abs(c - WINDOW_STREAMS) < 0.5 ? ', close to your number' : ''}.
+            The top exchange starts once the host has seen the top kernel end, at about {r2(STREAMS_SHORT.exTop.start)}, and
+            the bottom one only when the top one has returned. Both must fit before the internal kernel, which shared the
+            GPU with the boundary kernels at first, ends at {r2(STREAMS_SHORT.internal.end)}. Check it: set both exchanges
+            to 2.5, then 3, and watch &ldquo;exchanges hidden&rdquo;. In MPI with no overlap (Fig. 23.7) no exchange hides
+            at any length. In the NCCL loop, where the two run side by side, the same model gives {r2(WINDOW_NCCL)}: about
+            twice as long.
           </p>
         )}
       </Predict>
       <p>
-        Then try three things. Switch between MPI with streams and NCCL and watch the bottom exchange&rsquo;s lane.
-        Lengthen both exchanges past the internal kernel and see which versions still hide them. Choose &ldquo;internal
-        kernel first&rdquo; and switch the priority between equal and higher: when do the boundary kernels start? Finally,
-        remove one ordering at a time and find durations at which it breaks something.
+        Then try three things. Switch between the two MPI loops and watch the bottom exchange&rsquo;s lane. Make the top
+        exchange short and the bottom one long, then the other way round, and see when the bottom rows wait. Choose
+        &ldquo;internal kernel first&rdquo; and switch the priority between equal and higher: when do the boundary kernels
+        start? Finally, remove one ordering at a time and find durations at which it breaks something.
       </p>
       <Simplification>
         <p>
-          One rank whose neighbours behave exactly like it. A GPU of 8 block slots; a kernel is equal-length blocks,
-          nothing is preempted, and a one-kernel version runs its boundary rows&rsquo; blocks first. Each exchange has
-          its own link. MPI calls hold the host until their exchange ends;
-          NCCL&rsquo;s own kernels take no slots. A pageable copy is fully synchronous. Every API call costs the same small
-          time. Times are unitless.
+          One rank whose neighbours behave exactly like it. A GPU of 8 block slots; a kernel is equal-length blocks and
+          nothing is preempted. Each exchange has its own link. MPI calls hold the host until their exchange ends. A
+          pageable copy is fully synchronous. Every API call costs the same small time. Times are unitless.
         </p>
       </Simplification>
       <WhoWaits />
       <p>
-        Three things to take from it. In the MPI loop the bottom exchange waits for the blocking top exchange even when
-        the bottom kernel finished long before, which is the overhead of p. 562; in the NCCL loop it does not, and the
-        two exchanges run side by side. An exchange longer than the internal kernel cannot be hidden by any of the
-        versions, which is the condition the book sets on p. 554: enough internal rows. And with the internal kernel
-        issued first, a higher priority only gets the boundary kernels the first slots that free up, so the exchanges
-        start late; with equal priority the boundary kernels wait for the internal kernel&rsquo;s last blocks, and the
-        exchanges no longer overlap it at all.
+        Three things to take from it. In the loop with streams the bottom exchange waits for the blocking top exchange
+        even when the bottom kernel finished long before, which is the overhead of p. 562. Exchanges that together
+        outlast the internal kernel cannot be hidden, which is the condition the book sets on p. 554: enough internal
+        rows. And with the internal kernel issued first, a higher priority only gets the boundary kernels the first slots
+        that free up, so the exchanges start late; with equal priority the boundary kernels wait for the internal
+        kernel&rsquo;s last blocks, and the exchanges no longer overlap it at all.
       </p>
       <Source section="23.3" pages="554, 558, 562" />
       <p>
-        The bug hunt has a second lesson. Most removed orderings break nothing at the default durations, and some break
-        nothing in one loop and something in another: they are races between streams, decided by timing, not certain
-        failures. The course&rsquo;s emulators run every stream synchronously, in call order, so none of these races can
+        The bug hunt has a second lesson. Most removed orderings break nothing at the default durations, and the reset
+        waits break nothing at any duration in this model: they are races between streams, decided by timing, not
+        certain failures. The course&rsquo;s emulators run every stream synchronously, in call order, so none of these races can
         happen there. A test that passes on the emulator says nothing about them; only reasoning about the orderings
         does.
       </p>
@@ -1152,8 +1089,6 @@ export function S234() {
         </p>
       </Beyond>
       <Ask q={questionsS234['ch23/23.4/q-drop-reset']} />
-      <Ask q={questionsS234['ch23/23.4/q-nccl-waits']} />
-      <Ask q={questionsS234['ch23/23.4/q-nvshmem-barrier']} />
 
       <h2>Three libraries, three places to wait</h2>
       <p>
@@ -1222,10 +1157,9 @@ export function S234() {
       </p>
       <Source section="23.5" pages="568–574" figs="Figs. 23.22–23.25" />
       <p>
-        The book adds that one put per grid point, as in Fig. 23.23, suits GPUs connected by NVLink, and that over slower
-        links fewer, larger puts are better, for example <code>nvshmemx_float_put_block</code>, where a whole block
-        cooperates on one put. That advice is the book&rsquo;s; no NVSHMEM page we found states it, so treat it as
-        unverified.
+        The book adds that one put per grid point suits GPUs joined by NVLink, and that slower links want fewer, larger
+        puts, such as <code>nvshmemx_float_put_block</code>, where a whole block makes one put. No NVSHMEM page we found
+        says so: treat it as the book&rsquo;s advice, unverified.
       </p>
       <Today checked="2026-11-20 against the NVSHMEM documentation and GitHub, ROCm 10.2 and PyTorch 2.15 (notes/today/ch23-facts.md, A14, A15, B6, D5)">
         <p>
@@ -1235,7 +1169,8 @@ export function S234() {
         </p>
       </Today>
       <p>
-        The book&rsquo;s summary draws the line between host-initiated and device-initiated communication.
+        The book&rsquo;s summary (§23.6, pp. 574–575) draws the line between host-initiated and device-initiated
+        communication.
         Host-initiated, as with NCCL here, suits data that is coarse-grained and can be determined independently of the
         computation it overlaps, like a boundary row computed by its own kernel. Device-initiated, as with NVSHMEM, suits
         fine-grained data determined as part of that computation. The book adds that the APIs are converging. They have
@@ -1243,18 +1178,15 @@ export function S234() {
         API, and has one-sided <code>ncclPutSignal</code> and <code>ncclWaitSignal</code>, so &ldquo;may add one-sided
         communication soon&rdquo; is out of date.
       </p>
-      <Source section="23.6" pages="574–575" />
-      <Today checked="2026-11-20 against the NCCL 2.32 documentation (notes/today/ch23-facts.md, A13)">
-        <p>
-          Window registration since 2.27, the device API since 2.28, <code>ncclPutSignal</code> since 2.29.
-        </p>
+      <Today checked="2026-11-20, NCCL 2.32 (ch23-facts A13)">
+        <p>Windows since 2.27, the device API 2.28, <code>ncclPutSignal</code> 2.29.</p>
       </Today>
       <p>
         Metal has none of the three. On a Mac, work across several devices is a framework feature that spans machines,
         not a Metal API: MLX&rsquo;s distributed layer, for one, runs over MPI, a TCP ring, or RDMA over Thunderbolt.
       </p>
-      <Today checked="2026-11-20 (notes/today/ch23-facts.md, C6; ch24-facts C4)">
-        <p>No collective or one-sided API is documented in Metal.</p>
+      <Today checked="2026-11-20 (ch23-facts C6; ch24-facts C4)">
+        <p>Metal documents no collective or one-sided API.</p>
       </Today>
 
       <h2>Where this sits in a model server</h2>

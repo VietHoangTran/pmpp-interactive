@@ -118,12 +118,13 @@ export const questionsS170: Record<string, Question> = {
       { label: '1, 7 or 8.', correct: true },
       { label: 'Only 8: each += is one instruction.', why: 'It is a load, an add and a store. The other thread can run between them.' },
       { label: '8, or 0 when the two collide.', why: 'Each thread stores a sum it computed, 1, 7 or 8. A collision loses one of them, not both.' },
-      { label: 'Any value: a race is undefined.', why: 'Each store writes a whole float the thread computed. Nothing produces values other than 1, 7 and 8.' },
+      { label: 'Any value: a race is undefined.', why: 'Formally, in C++ and CUDA, a data race is undefined behaviour. On the hardware, each store writes a whole float its thread computed, so what you observe is 1, 7 or 8.' },
     ],
     explain: (
       <p>
         Each thread reads <code>y[0]</code>, adds, and writes back. If both read 0 before either writes, the later write
-        wins and leaves 1 or 7; if one finishes before the other reads, 8. These are row 0's two non-zeros of the matrix
+        wins and leaves 1 or 7; if one finishes before the other reads, 8. That is what the hardware does; the language
+        promises nothing, since a data race is undefined behaviour in C++ and in CUDA's memory model. These are row 0's two non-zeros of the matrix
         above, multiplied by an <code>x</code> of ones. One thread per non-zero (COO) puts both on <code>y[0]</code>, so
         the book's COO kernel adds with an atomic (Fig. 17.5); one thread per row (CSR) owns <code>y[0]</code> and needs
         none (page <a href={href('ch17', '17.2')}>17.2</a>).
@@ -414,8 +415,9 @@ export function S170() {
         The book ends the chapter with the same warning from the other side. A dense matrix has implicit indices and is
         easy to tile for the memory hierarchy; a sparse format stores explicit indices that must be read, and is hard to
         tile. So a sparse format pays off only when the matrix is very sparse. The book's rule of thumb for real
-        matrices, tens to hundreds of non-zeros in rows that are thousands to millions long, is a density far below what
-        pruning a model leaves.
+        matrices is thousands to millions of rows with tens to hundreds of non-zeros each (p. 409). For a square matrix
+        that is a density of at most 10%, at the small end, and well below 1% once there are tens of thousands of rows:
+        sparser than pruned models usually are.
       </p>
       <Source section="17.3, 17.8" pages="409, 422" />
       <p>
@@ -430,7 +432,10 @@ export function S170() {
         rest of the chapter is about whether a kernel can turn those bytes into speed.
       </p>
       <Beyond>
-        <p>The bridge to pruned and quantised weights, and the arithmetic of the hook, are ours.</p>
+        <p>
+          The bridge to pruned and quantised weights, the arithmetic of the hook, and the density read from the book's rule
+          of thumb (it assumes a square matrix) are ours.
+        </p>
       </Beyond>
 
       <h2>Before you start</h2>
@@ -464,8 +469,8 @@ export function S170() {
       </p>
       <Today checked="2026-11-20 (ch17-facts B1, C1)">
         <p>
-          HIP compiles the per-row kernels unchanged; in Metal, <code>[[thread_position_in_grid]]</code> gives the row
-          directly.
+          The per-row kernels need no HIP-specific spelling (B1); unverified on HIP. In Metal,{' '}
+          <code>[[thread_position_in_grid]]</code> gives the row directly.
         </p>
       </Today>
     </>

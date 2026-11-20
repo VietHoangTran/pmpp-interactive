@@ -59,6 +59,17 @@
 #define cudaStreamNonBlocking     hipStreamNonBlocking
 #define cudaMemcpyAsync           hipMemcpyAsync
 #define cudaMemcpyDefault         hipMemcpyDefault
+// One-for-one names in HIPIFY's CUDA runtime API table (ROCm/HIPIFY amd-staging,
+// read 2026-11-20), used by lab 23.1 and appendix C's lab.
+#define cudaMemsetAsync                  hipMemsetAsync
+#define cudaStreamPerThread              hipStreamPerThread
+#define cudaStreamCreateWithPriority     hipStreamCreateWithPriority
+#define cudaStreamGetPriority            hipStreamGetPriority
+#define cudaDeviceGetStreamPriorityRange hipDeviceGetStreamPriorityRange
+#define cudaHostRegister                 hipHostRegister
+#define cudaHostUnregister               hipHostUnregister
+#define cudaHostRegisterDefault          hipHostRegisterDefault
+#define cudaHostGetDevicePointer         hipHostGetDevicePointer
 
 // infra-facts.md B8 (pinned host memory). Not a plain prefix swap: HIP's own
 // hipMallocHost is deprecated. A two-argument cudaMallocHost(&p, n) relies on

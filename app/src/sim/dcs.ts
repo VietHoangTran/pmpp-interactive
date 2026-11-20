@@ -183,7 +183,10 @@ export interface MapConfig {
   F: number;
   /** Scatter only: true for atomicAdd as the listing has it, false for a plain +=. */
   atomic?: boolean;
-  /** Lanes per warp, for the lost-update model and the constant-address count. Default 32. */
+  /**
+   * Lanes per warp, for the lost-update model and the constant-address count. Default 32,
+   * NVIDIA's warp width and the book's assumption (ch05-facts B5: 64 on AMD Instinct).
+   */
   warpWidth?: number;
 }
 

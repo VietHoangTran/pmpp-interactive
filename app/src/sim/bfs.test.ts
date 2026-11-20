@@ -238,15 +238,19 @@ describe('work efficiency (pp. 438-439)', () => {
   it('a W × W grid searched from a corner has 2(W − 1) levels', () => {
     for (const W of [2, 3, 4, 6]) expect(depth(levels(grid(W), 0))).toBe(2 * (W - 1));
   });
-  it('a hub with 1,000 out-edges that is never in the frontier is read 10 times by push and 10,000 by edge-centric in 10 levels', () => {
-    // A chain of 11 vertices gives 10 labelling calls; vertex 11 is the hub, unreachable from the chain.
-    const hub = 11;
+  it('a hub with 1,000 out-edges that is never in the frontier is read 10 times by push and 10,000 by edge-centric over 10 kernel calls', () => {
+    // A chain of 10 vertices: 9 levels after the root, so the host makes 10 calls, the last
+    // one labelling nothing. Vertex 10 is the hub, unreachable from the chain. Every call counts.
+    const hub = 10;
     const edges: [number, number][] = [];
-    for (let i = 0; i < 10; i++) edges.push([i, i + 1]);
-    for (let k = 0; k < 1000; k++) edges.push([hub, 12 + k]);
-    const g = { id: 'hub', name: 'hub', n: 1012, edges, pos: [], root: 0 };
-    const readsOf = (v: Variant) =>
-      run(g, v, 0, 64, 32).calls.slice(0, 10).reduce((s, c) => s + c.threads.reduce((s2, t) => s2 + t.reads.filter((x) => x.array === 'level' && x.index === hub).length, 0), 0);
+    for (let i = 0; i < 9; i++) edges.push([i, i + 1]);
+    for (let k = 0; k < 1000; k++) edges.push([hub, 11 + k]);
+    const g = { id: 'hub', name: 'hub', n: 1011, edges, pos: [], root: 0 };
+    const readsOf = (v: Variant) => {
+      const calls = run(g, v, 0, 64, 32).calls;
+      expect(calls.length).toBe(10);
+      return calls.reduce((s, c) => s + c.threads.reduce((s2, t) => s2 + t.reads.filter((x) => x.array === 'level' && x.index === hub).length, 0), 0);
+    };
     expect(readsOf('push')).toBe(10);
     expect(readsOf('edge')).toBe(10000);
   });

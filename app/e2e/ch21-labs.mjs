@@ -83,6 +83,10 @@ check('the emulator is described with AddressSanitizer and three thread orders',
 check('the CUDA/HIP caveat and how to help are stated', text0.includes('front-end-checked') && text0.includes('bring back the report'));
 check('the page says its numbers are measurements, not expected values', text0.includes('None is an expected value'));
 check('the lab is called optional and adds no milestone', text0.includes('It is optional') && text0.includes('nothing to the through-line project'));
+check('the differences heading claims no blanket testing; tested items say how', text0.includes('Where the lab differs from the printed listings:') && !text0.includes('each difference tested') &&
+  text0.includes('runs the printed line and shows it failing') && text0.includes('Tested: the slice offset'));
+check('the group width is offered under "Apple", not as "yours"; AMD\'s documented lines are named in the strided reading',
+  text0.includes('offer Metal\'s recorded width under "Apple"') && !text0.includes('offers it as yours'));
 check('the differences from the printed listings are named (line 05, int k, bounds, cudaMemcpyToSymbol, legacy atomic)',
   text0.includes("Fig. 21.8's line 05 adds an unscaled") && text0.includes('int k') && text0.includes('Fig. 21.5 has no atom count') &&
   text0.includes('it is cudaMemcpyToSymbol') && text0.includes('cuda::atomic_ref'));
@@ -185,6 +189,8 @@ for (const p of predictions) {
   const t = (await body()).replace(/\s+/g, ' ');
   check('the strided reading calls the shrinking gap our own unverified prediction, and says Apple documents no coalescing rule',
     t.includes('our own prediction, unverified') && t.includes('Apple documents no coalescing rule'));
+  check('the strided reading names AMD\'s documented lines (B3, E2) instead of saying no document predicts HIP',
+    t.includes('AMD documents grouping into 64- or 128-byte lines') && !t.includes('On Metal and HIP no document predicts'));
 }
 await pause(600);
 const ans = saved.length ? JSON.parse(saved.at(-1)).answers ?? {} : {};

@@ -210,10 +210,10 @@ if (out) await page.screenshot({ path: out + '-part3-light.png' });
 await page.evaluate(() => { document.documentElement.dataset.theme = 'dark'; });
 if (out) await page.screenshot({ path: out + '-part3-dark.png' });
 await setBox('captions', false);
-await page.setViewport({ width: 400, height: 900, deviceScaleFactor: 1 });
+await page.setViewport({ width: 390, height: 900, deviceScaleFactor: 1 });
 await pause(300);
 const narrow = await page.evaluate((S) => ({ page: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1, scene: document.querySelector(S).getBoundingClientRect().width <= document.documentElement.clientWidth }), S);
-check('at a narrow width the scene fits the page', narrow.page && narrow.scene, JSON.stringify(narrow));
+check('at 390 px the scene fits the page', narrow.page && narrow.scene, JSON.stringify(narrow));
 if (out) {
   await page.$eval(S, (e) => e.scrollIntoView({ block: 'start' }));
   await page.screenshot({ path: out + '-narrow.png' });

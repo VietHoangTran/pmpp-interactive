@@ -1,0 +1,105 @@
+{
+ "model": "eleven_v4",
+ "voice": "tnSpp4vdxKPjI9w0GnoV",
+ "clips": {
+  "one-launch-1": {
+   "file": "one-launch-1.mp3",
+   "sha256": "9a739675b5422a94a17507f6e44e848bbcd0c2065ab4dbc9b1411cd3b1832254",
+   "duration": 20.56,
+   "bytes": 347356,
+   "generated": "2026-11-20",
+   "model": "eleven_v4",
+   "take": 1
+  },
+  "one-launch-2": {
+   "file": "one-launch-2.mp3",
+   "sha256": "3be38c64eb24959040fcb4f2b95b5d39e7125e2be570cad913065deb6e136f51",
+   "duration": 20.72,
+   "bytes": 349864,
+   "generated": "2026-11-20",
+   "model": "eleven_v4",
+   "take": 1
+  },
+  "one-launch-3": {
+   "file": "one-launch-3.mp3",
+   "sha256": "490da078266188b1378dce5c3cc8e5efb3a0585bed5ddaf52adfd3949c8b4f04",
+   "duration": 21.6,
+   "bytes": 363657,
+   "generated": "2026-11-20",
+   "model": "eleven_v4",
+   "take": 1
+  },
+  "one-launch-4": {
+   "file": "one-launch-4.mp3",
+   "sha256": "87d18c4441c7f6120ae69507769ebd2e41cb60567bc5503ab1d12252381e495b",
+   "duration": 21.68,
+   "bytes": 364911,
+   "generated": "2026-11-20",
+   "model": "eleven_v4",
+   "take": 1
+  },
+  "one-launch-5": {
+   "file": "one-launch-5.mp3",
+   "sha256": "26429b7079eb5d6786bbc6bf1b8297f1b73a65f2c7255873fdb71486083442ac",
+   "duration": 22.24,
+   "bytes": 374106,
+   "generated": "2026-11-20",
+   "model": "eleven_v4",
+   "take": 1
+  },
+  "one-launch-6": {
+   "file": "one-launch-6.mp3",
+   "sha256": "b89a67f42eeadbec07c6b83b54ff98c25984149ca332185df6eda014cf5e5dd5",
+   "duration": 21.28,
+   "bytes": 358641,
+   "generated": "2026-11-20",
+   "model": "eleven_v4",
+   "take": 1
+  },
+  "wavefront-1": {
+   "file": "wavefront-1.mp3",
+   "sha256": "8165980ecc8ed61353ac0fc119d70767846db4eb9502bb3100751b4c7f32d16d",
+   "duration": 19.2,
+   "bytes": 325204,
+   "generated": "2026-11-20",
+   "model": "eleven_v4",
+   "take": 1
+  },
+  "wavefront-2": {
+   "file": "wavefront-2.mp3",
+   "sha256": "f099f2d33a7f59e17005c53a1a9ec7d988d75ba78be290a076faafa131264da5",
+   "duration": 20.4,
+   "bytes": 344431,
+   "generated": "2026-11-20",
+   "model": "eleven_v4",
+   "take": 1
+  },
+  "wavefront-3": {
+   "file": "wavefront-3.mp3",
+   "sha256": "61820df34e45cad3b752c5dffff655d602388212c812ab486b9a95d1c16d0583",
+   "duration": 24.48,
+   "bytes": 410050,
+   "generated": "2026-11-20",
+   "model": "eleven_v4",
+   "take": 1
+  },
+  "wavefront-4": {
+   "file": "wavefront-4.mp3",
+   "sha256": "dc5646b94e20241d82fb64ffb9a5607126a6ab4527069720aedd0f16727f98d8",
+   "duration": 18.64,
+   "bytes": 316427,
+   "generated": "2026-11-20",
+   "model": "eleven_v4",
+   "take": 1
+  },
+  "wavefront-5": {
+   "file": "wavefront-5.mp3",
+   "sha256": "532348c89cdedefe2b1d55bfaa29c715754cbaf03f01160f164d1669be1658ee",
+   "duration": 20.4,
+   "bytes": 344431,
+   "generated": "2026-11-20",
+   "model": "eleven_v4",
+   "take": 1
+  }
+ }
+}

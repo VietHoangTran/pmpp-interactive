@@ -22,6 +22,13 @@
 #include <cstring>
 #include <vector>
 
+// The tests append this file to ../s186_coop_swap.cu and define PMPP_SNIPPET_APPENDED first. The
+// course's CUDA front-end check (labs/pmpp.py) parses this file on its own, so it includes
+// the snippet itself.
+#ifndef PMPP_SNIPPET_APPENDED
+#include "../s186_coop_swap.cu"
+#endif
+
 typedef void (*CoopKernel)(CSRGraph, unsigned int*, unsigned int*, unsigned int*, unsigned int,
                            unsigned int*);
 struct Entry {

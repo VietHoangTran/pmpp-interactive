@@ -4,7 +4,9 @@ import { DEFAULTS, simulate, type Lane, type LoopResult, type Seg, type Version 
 
 // The timeline drawing shared by the narrated scene "One iteration with three streams" and the
 // explorer "Who waits" in section 23.4. Everything it draws comes from src/sim/haloloop.ts.
-// The scene's seven beats (content/ch23/narration/loop-N.txt) draw the model at DEFAULTS.
+// The scene's five beats (content/ch23/narration/loop-N.txt) draw the model at DEFAULTS: four
+// on Fig. 23.14, and one that sets its totals beside the NCCL and NVSHMEM loops'. The chapter is
+// condensed, so those two loops get no beat of their own.
 
 export const X0 = 124;
 export const X1 = 748;
@@ -345,7 +347,6 @@ function Frame({ beat, headline, sub, children, h }: { beat: number; headline: s
 
 const Y = 56;
 const H6 = Y + timelineHeight(6, true) + 4;
-const H4 = Y + timelineHeight(4, true) + 4;
 const SUB = `MPI with streams (Fig. 23.14), iteration 1: internal kernel ${DEFAULTS.internal}, boundary kernels ${DEFAULTS.boundary}, exchanges ${DEFAULTS.exTop} each (units)`;
 
 function Totals({ p }: { p: number }) {
@@ -357,7 +358,7 @@ function Totals({ p }: { p: number }) {
   const max = 10;
   const w = (v: number) => (v / max) * 420 * ramp(p, 0.05, 0.5);
   return (
-    <Frame beat={7} headline="Only who waits has changed" sub="time per iteration and host time spent blocked, from the model at the same durations" h={H6}>
+    <Frame beat={5} headline="The book's three loops: only who waits has changed" sub="time per iteration and host time spent blocked, from the model at the same durations" h={H6}>
       {rows.map(([name, r], k) => {
         const y = 70 + k * 74;
         return (
@@ -435,39 +436,7 @@ const beats: Beat[] = [
       );
     },
   },
-  {
-    clip: 'loop-5',
-    label: 'NCCL',
-    draw: (p) => {
-      const r = SCENE_RUNS.nccl;
-      const it = r.iters[0];
-      const cur = ramp(p, 0.04, 0.9) * it.hostEnd;
-      return (
-        <Frame beat={5} h={H6} headline={`NCCL: each exchange starts as its rows are done; bottom gap ${r2(it.bottomGap)}`}
-          sub="Fig. 23.20, iteration 1, same durations: the exchanges are queued in the boundary streams">
-          <Timeline r={r} y={Y} t1={T1} cursor={cur} iters={[1]} slots gap />
-        </Frame>
-      );
-    },
-  },
-  {
-    clip: 'loop-6',
-    label: 'NVSHMEM',
-    draw: (p) => {
-      const r = SCENE_RUNS.nvshmem;
-      const it = r.iters[0];
-      const barrier = r.segs.find((s) => s.iter === 1 && s.kind === 'barrier');
-      const endT = barrier ? barrier.end : it.hostEnd;
-      const cur = ramp(p, 0.04, 0.9) * endT;
-      return (
-        <Frame beat={6} h={H4} headline={cur < it.exTop.end ? `NVSHMEM: puts leave at ${r2(it.top.end)}, while the other blocks compute` : `Every put has landed by ${r2(Math.max(it.exTop.end, it.exBottom.end))}; the barrier passes at ${r2(endT)}`}
-          sub="Fig. 23.25, iteration 1, same durations: one kernel, one stream, puts from inside the kernel">
-          <Timeline r={r} y={Y} t1={T1} cursor={cur} iters={[1]} slots />
-        </Frame>
-      );
-    },
-  },
-  { clip: 'loop-7', label: 'Totals', draw: (p) => <Totals p={p} /> },
+  { clip: 'loop-5', label: 'Totals', draw: (p) => <Totals p={p} /> },
 ];
 
 export function LoopScene() {

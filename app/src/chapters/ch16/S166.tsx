@@ -367,8 +367,7 @@ function describeTick(g: Geometry, tk: Tick, seqs: { a: string; b: string }): Re
   );
 }
 
-function TileStepper({ title, task, initial }: { title: string; task: string; initial: Scheme }) {
-  const [scheme, setScheme] = useState<Scheme>(initial);
+function TileStepper({ title, task, scheme }: { title: string; task: string; scheme: Scheme }) {
   const [W, setW] = useState(4);
   const [where, setWhere] = useState<'interior' | 'edge'>('interior');
   const [order, setOrder] = useState<Order>('lockstep');
@@ -457,11 +456,6 @@ function TileStepper({ title, task, initial }: { title: string; task: string; in
       }
     >
       <div className="row" style={{ marginBottom: '0.7rem' }}>
-        <span className="seg" role="group" aria-label="Tiles">
-          {(['square', 'sheared'] as Scheme[]).map((s) => (
-            <button key={s} aria-pressed={scheme === s} onClick={() => setScheme(s)}>{s}</button>
-          ))}
-        </span>
         <label className="field">
           W
           <select value={W} aria-label="tile width" onChange={(e) => setW(+e.target.value)}>
@@ -645,7 +639,16 @@ function TileStepper({ title, task, initial }: { title: string; task: string; in
       </div>
       <Code tabs={[{ label: scheme === 'square' ? 'square loads' : 'sheared loads', code: scheme === 'square' ? SQUARE_LOADS : SHEARED_LOADS, tiers: SW_TIERS }]}
         highlight={cell.active ? loads.filter((ld) => ld.from === 'tile').map((ld) => LOAD_LINE[scheme][ld.name]) : []}
-        caption={<>Highlighted: the loads thread {sel} serves from the tile at this step; the others go to global memory.</>} />
+        caption={
+          scheme === 'sheared' ? (
+            <>
+              Lab 16.1's solution for these three helpers: answer the question above and try the lab before you read it.
+              Highlighted: the loads thread {sel} serves from the tile at this step; the others go to global memory.
+            </>
+          ) : (
+            <>Highlighted: the loads thread {sel} serves from the tile at this step; the others go to global memory.</>
+          )
+        } />
       {at >= total ? (
         <p style={{ margin: '0.6rem 0 0' }} data-verdict={run.correct ? 'correct' : 'wrong'}>
           {run.correct ? (
@@ -693,7 +696,7 @@ function BankExplorer() {
   return (
     <Bench
       title="Which bank does each thread hit?"
-      task="Find a width where the sheared tile is conflict-free unpadded. Then pad the square kernel and watch what happens."
+      task="Is there a width where the sheared tile is conflict-free unpadded on 32 banks? Then pad it, and pad the square kernel, and watch what happens."
       foot={
         <>
           One full interior tile; lanes are consecutive threads of a block of W. Bank = word mod {B}; distinct words in one bank are
@@ -745,7 +748,8 @@ function BankExplorer() {
       </div>
 
       <div className="mx-label">Lanes by bank ({part.length} of {use.lanes.length} lanes use the tile; a column with more than one word is a conflict)</div>
-      <svg viewBox={`0 0 660 ${chipH * maxStack + 34}`} style={{ width: '100%', maxWidth: 660, display: 'block' }} role="img" aria-label="Lanes grouped by bank" data-banks>
+      <div style={{ overflowX: 'auto' }}>
+      <svg viewBox={`0 0 660 ${chipH * maxStack + 34}`} style={{ width: '100%', minWidth: 660, maxWidth: 660, display: 'block' }} role="img" aria-label="Lanes grouped by bank" data-banks>
         {use.result.perBank.map((b) => {
           const bad = b.words.length > 1;
           return (
@@ -757,7 +761,7 @@ function BankExplorer() {
                 const wordIdx = b.words.indexOf(l.word!);
                 const dark = !bad || wordIdx % 2 === 1;
                 return (
-                  <g key={lane}>
+                  <g key={lane} data-thread={l.thread} data-word={l.word ?? ''}>
                     <rect x={11 + b.bank * colW} y={16 + j * chipH} width={colW - 3} height={chipH - 1} rx="1"
                       fill={bad ? (wordIdx % 2 ? 'var(--fail)' : 'var(--fail-wash)') : 'var(--shared)'} stroke={bad ? 'var(--fail)' : 'var(--shared)'} strokeWidth="0.5">
                       <title>{`thread ${l.thread}: slot (${l.slot![0]}, ${l.slot![1]}), word ${l.word}, bank ${l.bank}`}</title>
@@ -773,22 +777,9 @@ function BankExplorer() {
           );
         })}
       </svg>
-      <div className="cols" style={{ marginTop: '0.8rem', gridTemplateColumns: 'minmax(0, 5fr) minmax(0, 6fr)' }}>
-        <div style={{ maxHeight: '16rem', overflowY: 'auto' }}>
-          <table className="threads" aria-label="Each lane's word and bank" data-lanes>
-            <thead><tr><th>thread</th><th>slot</th><th>word</th><th>bank</th></tr></thead>
-            <tbody>
-              {use.lanes.map((l) => (
-                <tr key={l.lane} data-thread={l.thread} data-word={l.word ?? ''} data-bankof={l.bank ?? ''}>
-                  <td>{l.thread}</td>
-                  <td>{l.slot ? `(${l.slot[0]}, ${l.slot[1]})` : <span className="muted">{(['n', 'w', 'nw'] as BankAccess[]).includes(access) && slotOrIdle(kernel, W, kk, l.thread)}</span>}</td>
-                  <td>{l.word ?? ''}</td>
-                  <td>{l.bank ?? ''}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      </div>
+      <p className="muted" style={{ fontSize: '0.75rem', margin: '0.3rem 0 0' }}>Each chip is a thread, labelled with its number; hover one for its slot, word and bank. On a narrow screen the chart scrolls sideways.</p>
+      <div style={{ marginTop: '0.8rem', maxWidth: '30rem' }}>
         <div>
           <div className="mx-label">Worst over every step and warp, this kernel, layout and W</div>
           <table className="data" style={{ margin: '0 0 0.8rem' }} data-worst>
@@ -832,12 +823,6 @@ function BankExplorer() {
       </div>
     </Bench>
   );
-}
-
-/** Why a lane has no slot in a load: idle at this step, or its load goes to global memory. */
-function slotOrIdle(kernel: BankKernel, W: number, k: number, t: number): string {
-  const idle = kernel === 'square' && (k - t < 0 || k - t >= W);
-  return idle ? 'idle' : 'global';
 }
 
 // ---------------------------------------------------------------- questions
@@ -1232,17 +1217,18 @@ export function S166() {
       <Beyond title="Corrected, not the book's">
         <p>The unsigned-conversion point is ch16-facts A3; the rest are the course's choices for the lab.</p>
       </Beyond>
-      <Today checked="2026-11-20 (notes/today/ch16-facts.md E3, C3, C4; ch05-facts.md A3, C1, C8)">
+      <p>
+        On Metal the tile is sized at launch: a <code>[[threadgroup(0)]]</code> pointer in the kernel, and{' '}
+        <code>setThreadgroupMemoryLength</code> on the encoder, in multiples of 16 bytes. Helpers cannot declare threadgroup
+        memory, so the kernel declares the tile and passes it in. Its barrier needs only <code>mem_threadgroup</code>: the
+        edge inputs in device memory were written by earlier dispatches, and one dispatch per front in one serial compute
+        encoder is the global barrier. A W × W tile of <code>int</code> is 4W² bytes, so W sets how much shared memory a
+        block asks for.
+      </p>
+      <Today checked="2026-11-20 (ch16-facts E3, C3, C4; ch05-facts A3, C1, C8)">
         <p>
-          A W × W tile of <code>int</code> is 4W² bytes: 4 KiB at W = 32, 16 KiB at 64, 64 KiB at 128. CUDA needs an explicit
-          opt-in above 48 KB per block, so W = 128 would need it; Metal's documented ceiling for threadgroup memory is 32 KB on
-          Apple4 and later, so it does not fit there.
-        </p>
-        <p>
-          Metal sizes the tile at launch with a <code>[[threadgroup(0)]]</code> pointer and <code>setThreadgroupMemoryLength</code>,
-          in multiples of 16 bytes. The tile must be declared in the kernel and passed to helpers, which cannot declare one. Its
-          barrier needs only <code>mem_threadgroup</code>, because the edge inputs in device memory were written by earlier
-          dispatches; one dispatch per front in one serial compute encoder is the global barrier.
+          CUDA needs an explicit opt-in above 48 KB per block (W = 128 is 64 KiB). Metal's documented threadgroup ceiling is
+          32 KB on Apple4 and later.
         </p>
       </Today>
 
@@ -1270,10 +1256,11 @@ export function S166() {
       <Simplification>
         <p>
           A thread moves one whole step at a time (three reads, then its write). "Lockstep" is an idealised single warp in which
-          every lane reads before any lane writes. There is no timing.
+          every lane reads before any lane writes. Without the barrier, one thread runs all its steps before the next starts:
+          one of the orders a GPU may produce, chosen to make the missing barrier visible. There is no timing.
         </p>
       </Simplification>
-      <TileStepper title="Inside one tile" task="Find a step where most threads skip; then break the barrier and find the first bad read." initial="square" />
+      <TileStepper title="Inside one tile" task="Find a step where most threads skip; then break the barrier and find the first bad read." scheme="square" />
       <Ask q={questionsS166['ch16/16.6/q-idle']} label="Work it out" />
       <Ask q={questionsS166['ch16/16.6/q-store']} />
 
@@ -1307,6 +1294,15 @@ export function S166() {
           </p>
         )}
       </Predict>
+      <p>
+        The animation takes tile (1, 1) of that 9 × 9 interior, square and then sheared, and ends on the whole table.
+      </p>
+      <Simplification>
+        <p>
+          One step costs one unit, there is no cache, and every tile of a launch runs at the same time. The cells, steps and
+          inputs drawn are computed by the same model as the explorer.
+        </p>
+      </Simplification>
       <ShearScene />
       <p>
         In the code the shear is one term. With shear factor −1 the table column becomes{' '}
@@ -1330,7 +1326,7 @@ export function S166() {
       </p>
       <Source section="16.7" pages="394" figs="Fig. 16.17" />
       <Ask q={questionsS166['ch16/16.6/q-nw-offset']} label="Before you look" />
-      <TileStepper title="Inside one sheared tile" task="Step the left-edge tile; find the reads that land outside the table, then untick the zeroing." initial="sheared" />
+      <TileStepper title="Inside one sheared tile" task="Step the left-edge tile; find the reads that land outside the table, then untick the zeroing." scheme="sheared" />
       <p>
         Pick the left-edge tile. Its lower rows slide out of the table, so some threads have no cell at some steps. Yet a cell in
         column 1 still reads its west and north-west inputs from tile slots, and those slots stand for column 0, which no thread
@@ -1360,28 +1356,31 @@ export function S166() {
         shares no factor with the bank count, and the conflicts are gone.
       </p>
       <Source section="16.7" pages="395–396" figs="Fig. 16.20" />
+      <Ask q={questionsS166['ch16/16.6/q-banks16']} label="Work it out" />
       <p>
         The square kernel is the other way round. Its anti-diagonal walk touches word t·(W − 1) + d_tile: stride W − 1, conflict-free
         unpadded. Pad it and the stride becomes W. And the book's <code>pad()</code> macro is not one gap per row: it adds one gap
         per bank-count words, which leaves a 2-way conflict for a 64-wide sheared tile on 32 banks. The printed listings never
         apply it.
       </p>
-      <Beyond>
+      <Today checked="2026-11-20 (ch16-facts E1, B3; infra-facts A10, B10, C13)">
         <p>
-          The conflict counts here are our arithmetic on NVIDIA's documented bank rule (ch16-facts E1), not figures from the book,
-          which gives none.
-        </p>
-      </Beyond>
-      <Today checked="2026-11-20 (notes/today/ch16-facts.md E1, B3; infra-facts.md A10, B10, C13)">
-        <p>
-          NVIDIA documents 32 banks of 4 bytes. AMD documents 32 or 64 by architecture, so the book's LOG_NUM_BANKS is 5 or 6
-          there, and how a 64-lane access is split for conflicts is not documented: the 64-bank figures are a model. Apple
-          documents no bank structure, so nothing is claimed for Metal; lab 16.1 measures the padded and unpadded tiles instead.
+          NVIDIA: 32 banks of 4 bytes. AMD: 32 or 64 by architecture; how a 64-lane access splits is undocumented. Apple
+          documents no banks, so lab 16.1 measures instead.
         </p>
       </Today>
+      <Ask q={questionsS166['ch16/16.6/q-pad-square']} label="Before you look" />
+      <p>
+        The explorer computes every access of one tile for both kernels, three layouts and four widths, so you can check both
+        answers. The conflict counts are our arithmetic on NVIDIA's documented bank rule (ch16-facts E1); the book gives none.
+      </p>
+      <Simplification>
+        <p>
+          One full interior tile. NVIDIA's rule is applied per warp of consecutive threads; lanes whose input lies on the
+          tile's edge go to global memory and are left out. No timing. The 64-bank view is a model.
+        </p>
+      </Simplification>
       <BankExplorer />
-      <Ask q={questionsS166['ch16/16.6/q-banks16']} label="Work it out" />
-      <Ask q={questionsS166['ch16/16.6/q-pad-square']} />
 
       <h2>One instruction for max4</h2>
       <p>

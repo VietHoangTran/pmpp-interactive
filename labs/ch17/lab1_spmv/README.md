@@ -123,8 +123,7 @@ What each backend can catch:
 - **Metal** gets no NaN guard before `x`: its default fast math makes NaN propagation
   unreliable, and the encode functions take whole buffers, so there is no checked way to
   hand the kernel `x + 1`. A kernel that reads `x[-1]` reads whatever lies before the
-  buffer. On the machine this lab was built on, that showed in 5 of 104 Metal cases; do not
-  count on it, run `emu`. With `dispatchThreads` there are no threads past the last row,
+  buffer, which may or may not show as a failure: do not count on it, run `emu`. With `dispatchThreads` there are no threads past the last row,
   so the row check is only exercised if you dispatch whole threadgroups. In the
   `numRows = 0` tests the driver puts a counter in place of the encoder: any dispatch is
   counted, not run, and fails the test.

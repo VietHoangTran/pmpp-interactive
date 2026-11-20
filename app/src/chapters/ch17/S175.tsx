@@ -188,8 +188,8 @@ export const questionsS175: Record<string, Question> = {
         ELL's iteration <code>t</code> starts at element <code>t*numRows</code>. Make <code>numRows</code> a multiple of 8
         and, with 4-byte values and an aligned base, every start falls on a 32-byte boundary (a multiple of 16 or 32 for
         AMD's 64- or 128-byte lines). JDS's starts are sums of row counts, arbitrary numbers, and only padding could align
-        them, which is what JDS exists to avoid. The book's alignment unit was 64 bytes on older GPUs; NVIDIA's unit today
-        is the 32-byte sector.
+        them, which is what JDS exists to avoid. The book's example unit, "such as 64-bytes" for unnamed older GPUs, is in
+        no NVIDIA document read today (ch17-facts A3). NVIDIA's unit today is the 32-byte sector.
       </p>
     ),
     source: 'ch. 17 pp. 413, 417; ch17-facts A3, E1',
@@ -751,14 +751,16 @@ export function S175() {
       </p>
       <Beyond title="Our arithmetic">
         <p>
-          The 19.05 and the conflict are ours (ch17-facts E1); the book prints "20×" and "fewer than 10" on pp. 412–413.
+          The 19.05 is ours, checked in ch17-facts E1; the book prints "20×". The conflict is our arithmetic on the book's
+          figures, 999 × 9 + 200 = 9,191; the book prints "fewer than 10" (pp. 412–413).
         </p>
       </Beyond>
       <p>
         The explorer stores the same rows six ways and runs a per-row kernel over them. Start on the book's example, then
         change one control at a time. Watch three things: ELL's size follows the longest row, not the mean; a hybrid width
         K near the typical row removes almost all the padding for a handful of COO entries; and sorting the rows, alone
-        or with small slices, raises the share of lane time that does work.
+        or with small slices, raises the share of lane time that does work. On the book's example the single row of 200
+        hides that last effect: switch to the "Spread, 1 to 31" preset to see what the sort does to lane time.
       </p>
       <Simplification>
         <p>
@@ -832,8 +834,8 @@ export function S175() {
         column-major with no padding: iteration <code>t</code> holds the <code>t</code>-th element of every row that has
         one, and because the rows are sorted, those are the first rows. An <code>iterPtr</code> array records where each
         iteration starts, and a <code>row</code> array records which original row each sorted row was. Neighbouring threads
-        now get rows of similar length, so the threads of a warp finish together. The book calls this Jagged Diagonal
-        Storage.
+        now get rows of similar length, so the threads of a warp have similar trip counts and divergence is much reduced.
+        The book calls this Jagged Diagonal Storage.
       </p>
       <Source section="17.6" pages="416–417" figs="Figs. 17.14, 17.15" />
       <p>
@@ -860,14 +862,12 @@ export function S175() {
       </p>
       <Source section="17.6" pages="417" />
       <p>
-        Both vendor libraries ship this idea in some form, and neither ships JDS itself.
+        Both vendor libraries ship this idea in some form, and neither ships JDS itself. NVIDIA's Sliced ELL is the
+        sectioned variant without the sort. AMD's LRB algorithm does the sort as bucketing: it bins rows by length.
       </p>
       <Today checked="2026-11-20 (ch17-facts A6, B4)">
         <p>
-          cuSPARSE's Sliced ELL is the sectioned variant without the sort: slices of consecutive rows, each padded to its
-          own longest row and stored column-major, pads marked -1, and a deterministic SpMV (<code>SELL_ALG1</code>).
-          rocSPARSE's LRB algorithm bins rows into 32 length classes by powers of two, the sort done as bucketing. That
-          detail is read from AMD's source code, and the acronym is not expanded there.
+          Sliced ELL pads with column −1. LRB's bins are powers of two; that is read from AMD's source code.
         </p>
       </Today>
 
@@ -878,12 +878,14 @@ export function S175() {
         <code>x</code> and <code>y</code> changing, so the cost is spread over all of them.
       </p>
       <Source section="17.5, 17.6" pages="414–415, 417" />
-      <p>Both vendor libraries build this argument into their APIs.</p>
+      <p>
+        Both vendor libraries build this argument into their APIs: a preprocessing call or stage that runs once per matrix
+        and speeds up the later products that share its sparsity pattern.
+      </p>
       <Today checked="2026-11-20 (ch17-facts A8)">
         <p>
-          cuSPARSE's <code>cusparseSpMV_preprocess</code> "may accelerate subsequent calls" with the same sparsity
-          pattern. rocSPARSE runs a preprocess stage once per matrix; its adaptive CSR algorithm "needs to be amortized
-          over many subsequent sparse vector products", and its nnzsplit algorithm is for fewer than a hundred.
+          cuSPARSE's <code>cusparseSpMV_preprocess</code> "may accelerate subsequent calls"; rocSPARSE's adaptive CSR
+          "needs to be amortized over many subsequent sparse vector products".
         </p>
       </Today>
       <Ask q={questionsS175['ch17/17.5/q-amortise']} />
@@ -897,14 +899,14 @@ export function S175() {
 
       <h2>Performance that depends on the data</h2>
       <p>
-        Every earlier kernel in the book ran the same way whatever the numbers in its input. These do not. How much padding
-        ELL stores, how many lanes idle in CSR and how well JDS's iterations line up all depend on where the non-zeros
-        fall. The book calls sparse computation its simplest example of data-dependent performance.
+        Most earlier kernels in the book ran the same way whatever the numbers in their input. These do not. How much
+        padding ELL stores, how many lanes idle in CSR and how well JDS's iterations line up all depend on where the
+        non-zeros fall. The book calls sparse computation a simple example of data-dependent performance (pp. 421–422).
       </p>
       <Source section="17.8" pages="421–422" />
       <p>
-        It adds that sparse code reaches far fewer FLOPS than dense code, on CPUs and GPUs, because the indices must be
-        read and the data is hard to tile.
+        It adds that sparse code reaches far fewer FLOPS than dense code on CPUs and GPUs; on the same page it notes that
+        sparse formats must read explicit indices and are hard to tile.
       </p>
       <Source section="17.8" pages="422" />
       <p>

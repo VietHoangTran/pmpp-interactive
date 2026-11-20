@@ -1,8 +1,8 @@
-// Browser check for section 23.4, "Events, priorities, and who waits": the dependency puzzle
-// (every ordering of Fig. 23.14, the feedback, the NCCL and NVSHMEM comparison), the two code
-// listings with the book's line numbers, the "Who waits" explorer and its bug hunt (every
-// read-out and every drawn exchange checked against src/sim/haloloop.ts, imported directly),
-// the prediction, the questions, a narrow screen. The narrated scene has its own check
+// Browser check for section 23.4 (shown as 23.3–23.5), "Events, priorities, and who waits": the
+// dependency puzzle (every ordering of Fig. 23.14, the feedback, the one table comparing the NCCL
+// and NVSHMEM loops), the two code listings with the book's line numbers, the "Who waits"
+// explorer on the two MPI loops and its bug hunt (every read-out and every drawn exchange checked
+// against src/sim/haloloop.ts, imported directly), the prediction, the questions, a narrow screen. The narrated scene has its own check
 // (ch23-scene-loop.mjs). Passes with or without narration audio.
 // Usage: node e2e/ch23-s234.mjs [screenshot-prefix]
 import { open, goto } from './browser.mjs';
@@ -54,8 +54,7 @@ check('Fig. 23.20 lines 27–44 keep the book\'s numbers', ncclFirst.first === 2
 const book = edges('streams');
 const rowIds = await page.$$eval(P + ' [data-edge]', (rs) => rs.map((r) => r.dataset.edge));
 check('ten orderings, in the model\'s order', JSON.stringify(rowIds) === JSON.stringify(book.map((e) => e.id)), rowIds.join(' '));
-const compareDisabled = await page.$$eval(P + ' [aria-label="Compare with"] button', (bs) => bs.map((b) => b.disabled));
-check('the comparison is locked until all ten are placed', JSON.stringify(compareDisabled) === '[false,true,true]', JSON.stringify(compareDisabled));
+check('the comparison table is hidden until all ten are placed', (await page.$(P + ' [data-compare-table]')) === null && (await page.$$(P + ' [aria-label="Compare with"]')).length === 0);
 const pickAndCheck = async (id, mech) => {
   await page.select(`${P} select[aria-label="Mechanism for ${id}"]`, mech);
   await pause(40);
@@ -81,16 +80,18 @@ for (const e of book) {
 }
 check('the score reaches 10 of 10', (await page.$eval(P + ' [data-puzzle-score]', (e) => e.textContent.trim())) === '10 of 10 placed');
 check('with all ten placed, a summary appears', !!(await page.$(P + ' [data-puzzle-done]')));
+check('with all ten placed, one comparison table appears', (await page.$$(P + ' [data-compare-table]')).length === 1);
 for (const v of ['nccl', 'nvshmem']) {
-  await page.evaluate((P, v) => [...document.querySelectorAll(P + ' [aria-label="Compare with"] button')][v === 'nccl' ? 1 : 2].click(), P, v);
-  await pause(120);
-  const rows = await page.$$eval(P + ' [data-compare-row]', (rs) => rs.map((r) => ({ id: r.dataset.compareRow, m: r.dataset.mechanism, changed: r.dataset.changed === 'true' })));
+  const rows = await page.$$eval(P + ' [data-compare-row]', (rs, v) => rs.map((r) => {
+    const c = r.querySelector(`td[data-version="${v}"]`);
+    return { id: r.dataset.compareRow, m: c.dataset.mechanism, changed: c.dataset.changed === 'true' };
+  }), v);
   const want = edges(v);
   const ch = changedEdges('streams', v);
-  check(`compare with ${v}: every row shows the model's mechanism`, rows.length === 10 && rows.every((r, k) => r.id === want[k].id && r.m === want[k].mechanism), JSON.stringify(rows));
-  check(`compare with ${v}: exactly the changed rows are marked (${ch.length})`, JSON.stringify(rows.filter((r) => r.changed).map((r) => r.id)) === JSON.stringify(ch));
-  const sum = await page.$eval(P + ' [data-compare-summary]', (e) => e.textContent);
-  check(`compare with ${v}: the summary counts ${ch.length} changes`, sum.includes(`${ch.length} answers changed`), sum);
+  check(`table, ${v}: every row shows the model's mechanism`, rows.length === 10 && rows.every((r, k) => r.id === want[k].id && r.m === want[k].mechanism), JSON.stringify(rows));
+  check(`table, ${v}: exactly the changed rows are marked (${ch.length})`, JSON.stringify(rows.filter((r) => r.changed).map((r) => r.id)) === JSON.stringify(ch));
+  const head = await page.$eval(`${P} th[data-version="${v}"]`, (e) => [e.dataset.compareCount, e.textContent]);
+  check(`table, ${v}: its heading counts ${ch.length} changed`, head[0] === String(ch.length) && head[1].includes(`${ch.length} changed`), JSON.stringify(head));
 }
 if (out) {
   await page.$eval(P, (e) => e.scrollIntoView({ block: 'start' }));
@@ -105,7 +106,9 @@ const clickSeg = async (group, nth) => {
   await page.evaluate((W, group, nth) => [...document.querySelectorAll(`${W} [aria-label="${group}"] button`)][nth].click(), W, group, nth);
   await pause(120);
 };
-const VERS = ['mpi', 'streams', 'nccl', 'nvshmem'];
+const VERS = ['mpi', 'streams'];
+const versionButtons = await page.$$eval(W + ' [aria-label="Version"] button', (bs) => bs.map((b) => b.textContent.trim()));
+check('the explorer offers the two MPI loops only', JSON.stringify(versionButtons) === JSON.stringify(['MPI, no overlap (Fig. 23.7)', 'MPI with streams (Fig. 23.14)']), JSON.stringify(versionButtons));
 const version = (v) => clickSeg('Version', VERS.indexOf(v));
 const slide = async (label, v) => {
   await page.$eval(`${W} input[aria-label="${label}"]`, (el, v) => {
@@ -129,34 +132,29 @@ for (const v of VERS) {
   check(`${v}: the bottom exchanges are drawn where the model puts them`,
     same(ex, m.iters.map((it) => [String(it.iter), r2(it.exBottom.start), r2(it.exBottom.end)])), JSON.stringify(ex));
   const times = await page.$$eval(W + ' [data-version-time]', (ss) => ss.map((s) => s.dataset.value));
-  check(`${v}: the comparison line lists all four versions' times`, same(times, VERS.map((x) => r2(simulate({ ...DEFAULTS, version: x }).iterTime))), JSON.stringify(times));
+  check(`${v}: the comparison line lists both versions' times`, same(times, VERS.map((x) => r2(simulate({ ...DEFAULTS, version: x }).iterTime))), JSON.stringify(times));
 }
 await version('streams');
 const gapMark = await page.$$eval(W + ' svg [data-gap]', (gs) => gs.map((g) => g.dataset.gap));
 check('Fig. 23.14: the bottom rows wait 4.02 for the top exchange, in both iterations (p. 562)', same(gapMark, ['4.02', '4.02']), JSON.stringify(gapMark));
-await version('nccl');
-check('NCCL: no gap is drawn', (await page.$$(W + ' svg [data-gap]')).length === 0);
-const ncclTopStream = await drawn('top', 'exchange');
-check('NCCL: the exchanges sit in the boundary streams', ncclTopStream.length === 2);
 if (out) {
   await page.$eval(W, (e) => e.scrollIntoView({ block: 'start' }));
-  await page.screenshot({ path: out + '-nccl.png' });
+  await page.screenshot({ path: out + '-streams.png' });
 }
 
-// Fig. 23.13: hidden as long as the exchange fits behind the internal kernel.
-await slide('top exchange', 6);
-await slide('bottom exchange', 6);
-let m = simulate({ ...DEFAULTS, exTop: 6, exBottom: 6, version: 'nccl' });
-check('NCCL, exchanges of 6: still hidden', (await readouts()).hidden === 'yes' && m.hidden && same(await readouts(), want(m)));
-await slide('top exchange', 9);
-await slide('bottom exchange', 9);
-m = simulate({ ...DEFAULTS, exTop: 9, exBottom: 9, version: 'nccl' });
-check('NCCL, exchanges of 9: not hidden, and the iteration grows', (await readouts()).hidden === 'no' && same(await readouts(), want(m)) && m.iterTime > 9, JSON.stringify(await readouts()));
-await version('streams');
+// Fig. 23.13: hidden as long as both exchanges, one after the other, fit behind the internal kernel.
+await slide('top exchange', 2.5);
+await slide('bottom exchange', 2.5);
+let m = simulate({ ...DEFAULTS, exTop: 2.5, exBottom: 2.5, version: 'streams' });
+check('Fig. 23.14, exchanges of 2.5: still hidden', (await readouts()).hidden === 'yes' && m.hidden && same(await readouts(), want(m)));
 await slide('top exchange', 3);
 await slide('bottom exchange', 3);
 m = simulate({ ...DEFAULTS, exTop: 3, exBottom: 3, version: 'streams' });
 check('Fig. 23.14, exchanges of 3: one after the other they no longer fit', (await readouts()).hidden === 'no' && same(await readouts(), want(m)));
+await slide('top exchange', 0.5);
+await slide('bottom exchange', 8);
+m = simulate({ ...DEFAULTS, exTop: 0.5, exBottom: 8, version: 'streams' });
+check('Fig. 23.14, a short top exchange: the bottom rows wait only as long as it', same(await readouts(), want(m)) && m.iters[0].bottomGap < 1, JSON.stringify(await readouts()));
 await defaults();
 
 // Priorities: internal kernel first.
@@ -197,34 +195,13 @@ await defect('pageable');
 m = simulate({ ...DEFAULTS, version: 'streams', defect: 'pageable' });
 check('pageable l2norm_h: the host stalls at line 21 and the iteration grows', (await page.$eval(W + ' [data-problems]', (e) => e.textContent)).includes('No wrong result, but the host stalls')
   && same(await readouts(), want(m)) && m.iterTime > simulate({ ...DEFAULTS, version: 'streams' }).iterTime + 5);
-await version('nccl');
-check('switching to NCCL keeps an ordering that exists there (pageable)', (await page.$eval(`${W} select[aria-label="Remove one ordering"]`, (s) => s.value)) === 'pageable');
-await defect('reset-waits');
-await slide('top exchange', 2);
-await slide('bottom exchange', 10);
-m = simulate({ ...DEFAULTS, exTop: 2, exBottom: 10, version: 'nccl', defect: 'reset-waits' });
-probs = await problems();
-check('NCCL without lines 06–07, exchanges 2 and 10: a stale halo and a lost part of the norm', same(probs, m.violations.map((v) => [v.kind, v.text])) && probs.some(([k]) => k === 'reset') && probs.some(([k]) => k === 'halo'), JSON.stringify(probs.map((p) => p[0])));
-await defect('none');
-check('the same durations with the book\'s code: nothing broken', (await page.$(W + ' [data-no-problems]')) !== null);
-await defect('exchange-waits');
-probs = await problems();
-check('NCCL without lines 43–44: the next top kernel reads its halo early', probs.length === 1 && probs[0][0] === 'halo' && probs[0][1].includes('top halo'), JSON.stringify(probs));
 if (out) {
   await page.$eval(W, (e) => e.scrollIntoView({ block: 'start' }));
   await page.screenshot({ path: out + '-bug.png' });
 }
-await version('streams');
-check('switching to Fig. 23.14 drops an ordering it does not have', (await page.$eval(`${W} select[aria-label="Remove one ordering"]`, (s) => s.value)) === 'none');
 await defaults();
-await version('nvshmem');
-await defect('barrier');
-check('NVSHMEM without the barrier, at the defaults: nothing fires yet', (await page.$(W + ' [data-no-problems]')) !== null);
-await slide('bottom exchange', 10);
-probs = await problems();
-m = simulate({ ...DEFAULTS, exBottom: 10, version: 'nvshmem', defect: 'barrier' });
-check('NVSHMEM without the barrier, a long exchange: the next kernel reads a halo still in flight', same(probs, m.violations.map((v) => [v.kind, v.text])) && probs[0][0] === 'halo');
-await defaults();
+const streamOpts = await page.$eval(`${W} select[aria-label="Remove one ordering"]`, (s) => [...s.options].map((o) => o.value));
+check('Fig. 23.14 offers exactly its own orderings to remove', same(streamOpts, ['none', 'reset-waits', 'compute-waits', 'sync-top', 'pageable']), JSON.stringify(streamOpts));
 await version('mpi');
 const mpiState = await page.evaluate((W) => ({
   prio: [...document.querySelectorAll(`${W} [aria-label="Boundary streams' priority"] button`)].every((b) => b.disabled),
@@ -238,10 +215,15 @@ const pq = await page.evaluateHandle(() => [...document.querySelectorAll('.q')].
 await (await pq.$('input[type=number]')).type('5');
 await (await pq.$('button.primary')).click();
 await pause(200);
+const s0 = simulate({ ...DEFAULTS, exTop: 0.5, exBottom: 0.5, version: 'streams' }).iters[0];
+const win = 0.5 + (s0.internal.end - s0.exBottom.end) / 2;
 const nccl0 = simulate({ ...DEFAULTS, exTop: 0.5, exBottom: 0.5, version: 'nccl' }).iters[0];
-const win = nccl0.internal.end - Math.max(nccl0.top.end, nccl0.bottom.end);
-const shown = await pq.evaluate((e) => e.querySelector('[data-window]')?.dataset.window ?? '');
-check(`the prediction reveals the model's window, ${r2(win)}`, shown === r2(win) && r2(win) === '6.00', shown);
+const winNccl = nccl0.internal.end - Math.max(nccl0.top.end, nccl0.bottom.end);
+const shown = await pq.evaluate((e) => { const w = e.querySelector('[data-window]'); return w ? [w.dataset.window, w.dataset.windowNccl, w.textContent] : ['', '', '']; });
+check(`the prediction reveals Fig. 23.14's window, ${r2(win)}, hidden just below and not just above`,
+  shown[0] === r2(win) && r2(win) === '2.99' && simulate({ ...DEFAULTS, exTop: win - 0.01, exBottom: win - 0.01, version: 'streams' }).hidden
+  && !simulate({ ...DEFAULTS, exTop: win + 0.01, exBottom: win + 0.01, version: 'streams' }).hidden, JSON.stringify(shown));
+check(`and says Fig. 23.7 hides none, NCCL about twice as much (${r2(winNccl)})`, shown[1] === r2(winNccl) && shown[2].includes('Fig. 23.7') && shown[2].includes(r2(winNccl)), JSON.stringify(shown));
 
 // ------------------------------------------------------------ questions
 const question = (needle) => page.evaluateHandle((n) => [...document.querySelectorAll('.q')].find((e) => e.textContent.includes(n)), needle);
@@ -266,7 +248,8 @@ check('q-prio: a wrong pick (preemption) is marked wrong', (await answerChoice('
 check('q-prio: first claim on freed slots', (await answerChoice('When do they start?', 0)).includes('Correct.'));
 check('q-memset: the legacy default stream', (await answerChoice('actually do at line 04', 0)).includes('Correct.'));
 check('q-mechanism: an event and a stream wait', (await answerChoice('why is the order of the host', 0)).includes('Correct.'));
-check('q-nvshmem-barrier: puts may land later', (await answerChoice('still needed at line 18', 0)).includes('Correct.'));
+check('q-drop-reset: the memset may wipe a part; the emulator runs streams in call order', (await answerChoice('Someone deletes the two', 0)).includes('Correct.'));
+check('no NCCL or NVSHMEM question is asked on the page', (await page.$$eval('.q', (qs) => qs.filter((q) => /Fig\. 23\.(20|25)/.test(q.querySelector('.prompt')?.textContent ?? '')).length)) === 0);
 await pause(600);
 check('answers are written to the progress file', puts.some((p) => p.answers?.['ch23/23.4/q-threerows']?.correct === true && p.answers?.['ch23/23.4/p-window']));
 

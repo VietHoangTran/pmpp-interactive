@@ -74,6 +74,13 @@ const KERNEL_SHORT: Record<KernelId, string> = {
   strided: 'coarsened, stride (21.10)',
 };
 
+/**
+ * The mapping view splits threads into warps of 32 lanes: NVIDIA's warp width, which the
+ * book assumes throughout (ch05-facts B5 gives 64 on AMD Instinct, 32 on Radeon). It affects
+ * only the warp and lane labels and the constant-address count; the S212 Simplification says so.
+ */
+const BOOK_WARP = 32;
+
 const threadName = (t: ThreadInfo) => `block (${t.bx}, ${t.by}), thread (${t.tx}, ${t.ty})`;
 
 /** The thread's index arithmetic, with its numbers. */
@@ -102,7 +109,7 @@ function indexText(r: MapResult, t: ThreadInfo): string {
   }
 }
 
-function MappingView({ initialKernel }: { initialKernel: KernelId }) {
+function MappingView({ initialKernel, kernels }: { initialKernel: KernelId; kernels: KernelId[] }) {
   const hatch = useId();
   const svgRef = useRef<SVGSVGElement>(null);
   const [kernel, setKernel] = useState<KernelId>(initialKernel);
@@ -120,7 +127,7 @@ function MappingView({ initialKernel }: { initialKernel: KernelId }) {
   const [drag, setDrag] = useState<{ k: number; moved: boolean } | null>(null);
 
   const atoms = useMemo(() => seededAtoms(nAtoms, W, H, seed).map((a, k) => moved[k] ?? a), [nAtoms, W, H, seed, moved]);
-  const res = useMemo(() => mapKernel({ kernel, W, H, atoms, blockX, blockY, F, atomic }), [kernel, W, H, atoms, blockX, blockY, F, atomic]);
+  const res = useMemo(() => mapKernel({ kernel, W, H, atoms, blockX, blockY, F, atomic, warpWidth: BOOK_WARP }), [kernel, W, H, atoms, blockX, blockY, F, atomic]);
   const info = KERNELS[kernel];
   const p = Math.min(point, W * H - 1);
   const writers = res.writers[p];
@@ -173,7 +180,7 @@ function MappingView({ initialKernel }: { initialKernel: KernelId }) {
       data-correct={res.correct ? 'yes' : 'no'}>
       <div className="row" style={{ marginBottom: '0.7rem' }}>
         <span className="seg" role="group" aria-label="Kernel" style={{ flexWrap: 'wrap', rowGap: 4 }}>
-          {KERNEL_ORDER.map((k) => (
+          {kernels.map((k) => (
             <button key={k} aria-pressed={k === kernel} onClick={() => { setKernel(k); setThread(null); }} title={`${KERNELS[k].label} (${KERNELS[k].fig})`}>
               {KERNEL_SHORT[k]}
             </button>
@@ -291,7 +298,7 @@ function MappingView({ initialKernel }: { initialKernel: KernelId }) {
             <tbody>
               <tr><td style={WRAP}>launch</td><td style={WRAP}>{res.launch.gridX} × {res.launch.gridY} blocks of {res.launch.blockX} × {res.launch.blockY}: {plural(res.launch.threads, 'thread')}{res.idle ? `, ${res.idle} with nothing to do` : ''}</td></tr>
               <tr><td style={WRAP}>writers per point</td><td style={WRAP} data-readout="writers">{minW === maxW ? minW : `${minW} to ${maxW}`}</td></tr>
-              <tr><td style={WRAP}>constant addresses per warp instruction</td><td style={WRAP} data-readout="const">{res.constAddrsPerWarp} {kernel === 'scatter' ? '(one per lane: each thread reads its own atom)' : '(every lane reads the same atom)'}</td></tr>
+              <tr><td style={WRAP}>constant addresses per instruction of a {BOOK_WARP}-lane warp</td><td style={WRAP} data-readout="const">{res.constAddrsPerWarp} {kernel === 'scatter' ? '(one per lane: each thread reads its own atom)' : '(every lane reads the same atom)'}</td></tr>
               <tr><td style={WRAP}>pairs per busy thread</td><td style={WRAP}>{thousands(res.pairsPerThread)}</td></tr>
             </tbody>
           </table>
@@ -607,6 +614,13 @@ function CutoffView() {
   const [prev, setPrev] = useState<{ points: number; atoms: number; direct: number; tests: number; perPoint: number } | null>(null);
   const [c3, setC3] = useState(12);
   const [b3, setB3] = useState(4);
+  const { reports } = useReports();
+  const apple = appleWidth(reports);
+  const [group, setGroup] = useState<Group>('32');
+  const [appleChoice, setAppleChoice] = useState(32);
+  /** Lanes per warp, wavefront or SIMD-group: the reader's choice, never a fixed 32. */
+  const width = group === 'apple' ? (apple?.width ?? appleChoice) : Number(group);
+  const groupName = group === '64' ? 'wavefront' : group === 'apple' ? 'SIMD-group' : 'warp';
 
   const nAtoms = Math.round(density * bins * bins);
   const world = useMemo(() => makeWorld(bins, bins, side, nAtoms, seed), [bins, side, nAtoms, seed]);
@@ -627,14 +641,26 @@ function CutoffView() {
   const inBox = walk.list.filter((e) => e.inBox);
   const auto = useMemo(() => {
     for (const x of walk.list)
-      for (let k = 0; k < x.slots.length; k++) if (x.slots[k] >= 0 && acceptMasks(x, k, 32).some(diverges)) return { entry: x.k, slot: k };
+      for (let k = 0; k < x.slots.length; k++) if (x.slots[k] >= 0 && acceptMasks(x, k, width).some(diverges)) return { entry: x.k, slot: k };
     const first = walk.list.find((x) => x.inBox);
     return { entry: first ? first.k : 0, slot: 0 };
-  }, [walk]);
+  }, [walk, width]);
+  /** Over the whole list of this block: staged real atoms, and how many of them split at least one group. */
+  const split = useMemo(() => {
+    let real = 0;
+    let splitting = 0;
+    for (const x of walk.list)
+      for (let k = 0; k < x.slots.length; k++) {
+        if (x.slots[k] < 0) continue;
+        real++;
+        if (acceptMasks(x, k, width).some(diverges)) splitting++;
+      }
+    return { real, splitting };
+  }, [walk, width]);
   const chosen = pick ?? auto;
   const e = walk.list[Math.min(chosen.entry, walk.list.length - 1)];
   const sl = Math.min(chosen.slot, Math.max(0, e.slots.length - 1));
-  const masks = e.slots.length ? acceptMasks(e, sl, 32) : [];
+  const masks = e.slots.length ? acceptMasks(e, sl, width) : [];
   const threadStats = walk.list.reduce((s, x) => {
     for (const row of x.outcome) {
       const o = row[t];
@@ -793,8 +819,24 @@ function CutoffView() {
       </div>
 
       <div className="cols" style={{ marginTop: '0.9rem' }}>
-        <div className="panel" data-mask="">
-          <b className="ui">One staged atom, across the block's warps</b>
+        <div className="panel" data-mask="" data-group-width={width} data-split={split.splitting} data-real={split.real}>
+          <b className="ui">One staged atom, across the block's lanes</b>
+          <div className="row" style={{ margin: '0.4rem 0', alignItems: 'flex-end' }}>
+            <Field label="Group width">
+              <select value={group} onChange={(ev) => setGroup(ev.target.value as Group)}>
+                <option value="32">32 lanes (NVIDIA; AMD Radeon)</option>
+                <option value="64">64 lanes (AMD Instinct)</option>
+                <option value="apple">Apple: {apple ? `${apple.width} lanes, from ${apple.source}` : 'not recorded here yet'}</option>
+              </select>
+            </Field>
+            {group === 'apple' && !apple ? (
+              <Field label="SIMD width (your choice)">
+                <select value={appleChoice} onChange={(ev) => setAppleChoice(+ev.target.value)}>
+                  {[16, 32, 64].map((w) => <option key={w} value={w}>{w}</option>)}
+                </select>
+              </Field>
+            ) : null}
+          </div>
           <p className="ui muted" style={{ margin: '0.3rem 0 0.4rem', fontSize: '0.8rem' }}>
             Entry ({e.rel.dx}, {e.rel.dy}) of the list, bin ({e.bx}, {e.by}). Pick a slot: every thread tests the atom in it
             against the cutoff around its own point.
@@ -808,7 +850,7 @@ function CutoffView() {
           </div>
           {masks.map((mk, w) => (
             <div key={w} className="row" style={{ gap: 2, marginBottom: 4 }} data-warp={w} data-diverges={diverges(mk) ? 'yes' : 'no'}>
-              <span className="muted" style={{ width: '3.6rem', fontSize: '0.78rem' }}>warp {w}</span>
+              <span className="muted" style={{ width: '5.4rem', fontSize: '0.78rem' }}>{groupName} {w}</span>
               {mk.map((on, l) => (
                 <svg key={l} width="11" height="14" aria-hidden="true">
                   <rect x="0.5" y="0.5" width="10" height="13" rx="1.5"
@@ -822,6 +864,10 @@ function CutoffView() {
               </span>
             </div>
           ))}
+          <p className="ui" style={{ margin: '0.5rem 0 0', fontSize: '0.84rem' }} data-readout="split">
+            Over this block's whole list: {split.splitting} of {plural(split.real, 'staged real atom')} split at least one{' '}
+            {groupName} of {width} lanes; the others are accepted or rejected by every lane alike.
+          </p>
         </div>
         <div className="panel" data-capacity-panel="">
           <b className="ui">Bin capacity</b>
@@ -871,12 +917,15 @@ export function PairsExplorer({
   task,
   views,
   initialKernel = 'scatter',
+  kernels = KERNEL_ORDER,
   foot,
 }: {
   title: string;
   task?: ReactNode;
   views: ExplorerView[];
   initialKernel?: KernelId;
+  /** The kernels the mapping view offers (all five by default). */
+  kernels?: KernelId[];
   foot?: ReactNode;
 }) {
   const [view, setView] = useState<ExplorerView>(views[0]);
@@ -889,7 +938,7 @@ export function PairsExplorer({
           </span>
         </div>
       ) : null}
-      {view === 'mapping' ? <MappingView initialKernel={initialKernel} /> : view === 'writes' ? <WritesView /> : <CutoffView />}
+      {view === 'mapping' ? <MappingView initialKernel={initialKernel} kernels={kernels} /> :view === 'writes' ? <WritesView /> : <CutoffView />}
     </Bench>
   );
 }

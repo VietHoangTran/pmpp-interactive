@@ -341,7 +341,7 @@ export function Wrap() {
       <h2>A mixed check</h2>
       <p>
         These draw on the whole chapter and on situations the sections did not show.
-        {asked ? ` So far in this chapter you have answered ${right} of ${asked} questions correctly on the first recorded try.` : ''}
+        {asked ? ` So far in this chapter you have answered ${right} of ${asked} questions correctly, counting your latest answer to each.` : ''}
       </p>
       <Code
         tabs={[

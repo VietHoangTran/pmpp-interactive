@@ -101,7 +101,7 @@ function Parts() {
           Reload results
         </button>
       }
-      foot="From this machine's recorded lab runs: each part over the whole array, timed before any pipeline runs. On Metal the kernel is GPU time of one command buffer; the fill and the drain are CPU time."
+      foot="From this machine's recorded lab runs: each part over the whole array, timed before any pipeline runs. On Metal the kernel is the GPU time of the serial path's one command buffer; the fill and the drain are CPU time."
     >
       {sets.length ? (
         <div className="panel" style={{ overflowX: 'auto' }}>
@@ -375,6 +375,14 @@ export function Labs() {
         <code>encodePoly</code> in a command buffer of its own; add a completion handler that only signals the semaphore;
         commit. After the last chunk, wait for the slots still in flight, oldest first, and drain them.
       </p>
+      <p>
+        Know what to expect before you measure. One CPU thread does both the fill and the drain, one after the other, so a
+        Mac has two lanes, not three: the CPU&rsquo;s, fill + drain, and the GPU&rsquo;s. The stepper&rsquo;s Metal view
+        gives the bound: a run takes at least n · max(fill + drain, kernel) per chunk. Unless the kernel is long, the
+        CPU&rsquo;s lane is the longer one, since it moves the data twice. The driver sets the kernel to about fill + drain,
+        the best case, and even then overlap can at most halve the serial time. Per-chunk costs, the waits for a free slot
+        and the CPU and GPU sharing one memory all eat into that; how much is what your rows measure.
+      </p>
       <Today checked="2026-11-20 (notes/today/ch23-facts.md C4, C5; infra-facts.md C12)">
         <p>
           Apple: &ldquo;finalize all CPU writes to one buffer instance before you commit a command buffer that references
@@ -537,7 +545,9 @@ export function Labs() {
           <>
             With one buffer the CPU waits for each command buffer before it can fill the next chunk, so fills, kernels and
             drains take turns. With three, the CPU fills one while the GPU computes another. The &ldquo;Overlap seen&rdquo;
-            column below says whether that happened in each row.
+            column below says whether that happened in each row. Then compare the 3-buffer row with the serial row: with
+            the CPU&rsquo;s lane, fill + drain, as long as the kernel, overlap can at most halve the serial time, and
+            anything that lengthens either lane takes from that.
           </>
         }
       />
@@ -558,7 +568,9 @@ export function Labs() {
         The benchmark first times each part alone over the whole array. It picks the array size from the memory the device
         reports: as many floats as fit in a sixteenth of it, up to 64 Mi floats per array. The cap is a parameter of this lab,
         there to keep a run short, not a fact about any device. Then it calibrates: it times the kernel at degrees 1, 2, 4
-        and so on, and keeps the degree whose kernel time is closest to the copy in (on Metal, to the fill).
+        and so on, and keeps the degree whose kernel time is closest to the copy in. On Metal it is closest to fill +
+        drain, the CPU&rsquo;s whole lane, and the kernel is timed inside the provided serial path, exactly as the serial
+        row is.
       </p>
       <Parts />
       <p>
@@ -570,9 +582,10 @@ export function Labs() {
       </p>
       <OverlapResults />
       <p>
-        If the kernel&rsquo;s calibration times do not grow with the degree, something else was using the GPU, or on a Mac
-        the CPU, during the run. Run again before you compare anything, and run twice before you trust a small difference
-        between two rows.
+        At low degrees the kernel&rsquo;s calibration time may stay flat, because moving the array, not the arithmetic,
+        sets it: chapter 5&rsquo;s ratio of operations to bytes. If it never grows, or a low degree takes longer than a
+        high one, something else was using the GPU, or on a Mac the CPU, during the run. Run again before you compare
+        anything, and run twice before you trust a small difference between two rows.
       </p>
       <p>The guess you did not record, from the same rows: breadth-first time over depth-first time, pinned, 16 chunks.</p>
       <OrderTable />

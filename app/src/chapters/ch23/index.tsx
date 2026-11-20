@@ -1,8 +1,10 @@
 import type { Chapter } from '../types';
 
 // Condensed (PLAN.md): the book's section 23.3 (streams, asynchronous copies, pinned memory,
-// events) is kept and taught on one GPU; MPI, NCCL and NVSHMEM get a paragraph each on page
-// 23.4. One file per section, each loaded on demand and exporting its component and questions.
+// events) is kept and taught on one GPU, its first half on page 23.3 and its second half on page
+// 23.4. MPI, NCCL and NVSHMEM (§23.2, §23.4, §23.5) get a paragraph each and one comparison
+// table on page 23.4, whose displayed number says so; its id stays '23.4' because progress
+// keys use it. One file per section, each loaded on demand and exporting its component and questions.
 export const chapter: Chapter = {
   id: 'ch23',
   num: '23',
@@ -11,7 +13,7 @@ export const chapter: Chapter = {
   sections: [
     {
       id: 'start', num: '', title: 'Before you start', pages: '541–549',
-      lede: "Say what this chapter gives you on one GPU, read the book's running example (a stencil split by rows across GPUs, with halo rows refreshed every step), and check the ideas from chapters 2, 8, 10, 22 and appendix C that it builds on.",
+      lede: "Say what this chapter gives you on one GPU, read the book's running example (a stencil split by rows across GPUs, with halo rows refreshed every step), and check the ideas from chapters 2, 4, 8, 10 and 22 and appendix C that it builds on.",
       load: () => import('./S230').then((m) => ({ Component: m.S230, questions: m.questionsS230 })),
     },
     {
@@ -20,8 +22,8 @@ export const chapter: Chapter = {
       load: () => import('./S233').then((m) => ({ Component: m.S233, questions: m.questionsS233 })),
     },
     {
-      id: '23.4', num: '23.4', title: 'Events, priorities, and who waits', pages: '556–575',
-      lede: 'Order work across streams with events, say what a stream priority can and cannot promise, and trace how MPI, NCCL and NVSHMEM move the waiting from the host into the stream and then into the kernel.',
+      id: '23.4', num: '23.3–23.5', title: 'Events, priorities, and who waits', pages: '556–575',
+      lede: "The second half of the book's section 23.3: order work across streams with events, say what a stream priority can and cannot promise, and find who waits in the book's loop; then, in brief, where NCCL and NVSHMEM (§23.4, §23.5) move that waiting.",
       load: () => import('./S234').then((m) => ({ Component: m.S234, questions: m.questionsS234 })),
     },
     {

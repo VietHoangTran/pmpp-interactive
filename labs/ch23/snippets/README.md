@@ -45,3 +45,14 @@ run on CUDA or HIP hardware.
 Both files need MPI (and NCCL) and one GPU per rank, which the course does not assume, so they
 are parsed and never built or run. `check.py` does not touch them; the vitest file above runs
 clang itself, with the same flags as `labs/pmpp.py`, and is skipped when no clang++ is found.
+
+## Summary page: one question's code (front-end-checked only, never run)
+
+| File | Shown in | Status | Test in `app/src/chapters/ch23/` |
+|---|---|---|---|
+| `rerecord.cu` | the summary page, question `ch23/wrap/q-rerecord`: region `[shown]`, one event recorded twice in stream `s1` with a wait in `s2` between the two records | front-end-checked | `Wrap.snippets.test.ts`: the page's copy equals the region; the front-end check passes |
+
+Ours, not the book's. What the question asks (a wait takes the event as it was recorded when the
+wait was issued, `notes/today/ch23-facts.md` A5) cannot be shown on the course's emulator, which
+runs every stream call synchronously, so the file is parsed and never run. `rerecordFixed` in
+the same file is the order the question's explanation gives.

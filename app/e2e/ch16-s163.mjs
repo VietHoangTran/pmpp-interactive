@@ -96,8 +96,8 @@ check('the bar chart is the model\'s cells per step', JSON.stringify(bars) === J
 // Select a cell: its inputs are drawn and named.
 await page.$eval(P + ' g[data-cell="2,5"]', (g) => g.dispatchEvent(new MouseEvent('click', { bubbles: true })));
 await pause(100);
-let arrows = await page.$$eval(P + ' line[data-input]', (l) => l.map((x) => x.dataset.input).sort());
-check('clicking cell (2, 5) draws arrows from its three inputs', JSON.stringify(arrows) === JSON.stringify(inputsOf(f, 2, 5).map(([r, c]) => `${r},${c}`).sort()), JSON.stringify(arrows));
+let arrows = await page.$$eval(P + ' rect[data-input]', (l) => l.map((x) => x.dataset.input).sort());
+check('clicking cell (2, 5) outlines its three inputs', JSON.stringify(arrows) === JSON.stringify(inputsOf(f, 2, 5).map(([r, c]) => `${r},${c}`).sort()), JSON.stringify(arrows));
 check('and says when it runs and how many share its step', (await text(P + ' [data-selected]')).startsWith('Cell (2, 5) runs at step 7.') && (await text(P + ' [data-selected]')).includes(`${f.sizes[7]} cells share its step`), await text(P + ' [data-selected]'));
 if (out) await page.screenshot({ path: out + '-explorer-sw.png', clip: await page.$eval(P, (e) => { const r = e.getBoundingClientRect(); return { x: r.x, y: r.y + window.scrollY, width: r.width, height: r.height }; }) });
 
@@ -182,19 +182,13 @@ await press(F, 'Run the step');
 ch = await chips();
 check('both checks fail: row/column c changed, in place differs from two buffers', ch['row-col'] === 'fail' && ch.same === 'fail' && JSON.stringify(neg.after) !== JSON.stringify(negTwo.after), JSON.stringify(ch));
 check('the table is the model\'s in-place result', JSON.stringify(await tableVals()) === JSON.stringify(modelVals(neg.after)));
-await select(F, 'Block order', 'bottom-first');
-await press(F, 'Run the step');
-const negB = stepTrace(runSteps(FIG_16_5, 2), 2, { diag: -1, order: 'bottom-first' });
-check('bottom row first gives a different table again: a race', JSON.stringify(await tableVals()) === JSON.stringify(modelVals(negB.after)) && JSON.stringify(negB.after) !== JSON.stringify(neg.after));
-await select(F, 'Table', 'two-buffers');
-await press(F, 'Run the step');
-check('two buffers gives the model\'s two-buffer table', JSON.stringify(await tableVals()) === JSON.stringify(modelVals(negTwo.after)));
+check('the stepper has no order or buffer switches', !(await page.$(F + ' select[aria-label="Block order"]')) && !(await page.$(F + ' select[aria-label="Table"]')));
 if (out) await page.screenshot({ path: out + '-stepper-race.png', clip: await page.$eval(F, (e) => { const r = e.getBoundingClientRect(); return { x: r.x, y: r.y + window.scrollY, width: r.width, height: r.height }; }) });
 await page.$eval(F + ' input[data-neg]', (e) => e.click());
 await pause(100);
 await press(F, 'Run the step');
 ch = await chips();
-check('dist[c][c] back to 0: with two buffers, both checks pass again', ch['row-col'] === 'ok' && ch.same === 'ok', JSON.stringify(ch));
+check('dist[c][c] back to 0: both checks pass again', ch['row-col'] === 'ok' && ch.same === 'ok', JSON.stringify(ch));
 await press(F, 'Next k');
 check('Next k moves to d with the table after c', JSON.stringify(await tableVals()) === JSON.stringify(modelVals(runSteps(FIG_16_5, 3))) && (await text(F + ' [data-narrate]')).startsWith('Step k = d'));
 
@@ -271,7 +265,7 @@ await press(W, 'flags, tiles from a counter');
 check(`3 SMs, 8 x 8: flags ${schedule(8, 3, 'counter').makespan} steps against ${frontMakespan(8, 3)}`,
   (await wout('front')) === `${frontMakespan(8, 3)} steps` && (await wout('counter')) === `${schedule(8, 3, 'counter').makespan} steps`);
 
-t = await answerNumeric('The same 4 × 4 tiles on 4 SMs', 0);
+t = await answerNumeric('grid of tiles on 16 SMs', 0);
 check('q-enough-sms: nothing saved', t.includes('Correct.') && t.includes('2T − 1'), t.slice(0, 300));
 t = await answerChoice('one row of tiles by blockIdx.x', 2);
 check('q-row-owner: "blocks start in blockIdx order" is wrong', t.includes('Not quite.') && t.includes('any order'), t.slice(0, 300));
@@ -279,6 +273,16 @@ t = await answerChoice('one row of tiles by blockIdx.x', 0);
 check('q-row-owner: nothing promises the row above has started; HIP unverified, Metal relaunch', t.includes('Correct.') && t.includes('unverified') && t.includes('the relaunch stays'), t.slice(0, 600));
 t = await answerChoice('CTC loss gives each block whole sequences', 0);
 check('q-ctc: the dependency stays inside one block', t.includes('Correct.') && t.includes('dependency order'), t.slice(0, 400));
+
+// The schedule model's note comes before the scene, and q-enough-sms before the explorer.
+const placed = await page.evaluate((W) => {
+  const all = [...document.querySelectorAll('.prose > *')];
+  const scene = all.findIndex((e) => e.matches('section.scene') || e.querySelector?.('section.scene'));
+  const simp = all.findIndex((e, i) => i < scene && i > scene - 5 && e.matches('aside.note') && e.textContent.startsWith('What this model leaves out') && e.textContent.includes('Every tile takes one step'));
+  const q = all.findIndex((e) => e.classList.contains('q') && e.textContent.includes('grid of tiles on 16 SMs'));
+  return { scene, simp, q, explorer: all.findIndex((e) => e.matches(W)) };
+}, W);
+check('the schedule model is stated before the scene, and q-enough-sms comes before the explorer', placed.simp >= 0 && placed.simp < placed.scene && placed.q > placed.scene && placed.q < placed.explorer, JSON.stringify(placed));
 
 // ================================================================ notes, rungs table, saving
 const notes = await page.$$eval('aside.note', (a) => a.map((x) => x.textContent));

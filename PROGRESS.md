@@ -41,13 +41,23 @@ pages, and commits. Per-chapter hints given to the designers are in the wave's `
       (their integration and review not run). Resume with the same script and args:
       Workflow({scriptPath: <session>/workflows/scripts/build-chapters-v3.js,
       resumeFromRunId: 'wf_ccca9f22-a5f', args: scratchpad wave4-args.json}).
-- [ ] Wave 5a (run wf_63d11bbd-bd6, STOPPED by the same limit): 24 of 36 done. ch17 integrated
-      (review not run); ch16, ch21, ch23 built (integration and review not run); ch18 not built.
-      Resume with resumeFromRunId 'wf_63d11bbd-bd6' and wave5a-args.json.
+- [ ] Wave 5a (run wf_63d11bbd-bd6, resumed after the limit reset and finished on Opus 5.5):
+      ch16, ch17, ch18, ch21, ch23 (Condensed: start, one or two pages, labs, wrap; one lab
+      each; two narrated scenes each). Every review's must-fix items fixed; all checks pass.
+      Metal benchmarks for 16.1, 21.1 and 23.1 were recorded on a loaded machine: rerun them
+      on a quiet one. Lab 18.1 part B (grid-wide barrier) is CUDA-family only.
 - [ ] Wave 5b (after wave 4; briefs in the session scratchpad, ports 6700+): x2 quantised
       kernels (Deep), x3 reading real backends (Standard). M10 must not download anything:
       a deterministic toy model generated in the repo; a real checkpoint only by the reader.
 - [ ] Final pass to-do list (collected along the way):
+      wave 5a requests: e2e helpers in browser.mjs (answerQuestion, setRange through the
+      native value setter, empty GET /api/progress), a `.threads.wrap` modifier, CUDA math
+      functions and stream priorities in cuda_stub.h, asyncEngineCount and concurrentKernels
+      in device_props and doctor, `pmpp.py run --bench --reps`, benchRow matching string
+      fields, a shared RaceStatus in LabKit, scenes declaring a narrow layout; the race
+      backend once hung after a SEGV in a cooperative launch under heavy load (not
+      reproduced: six runs of the same defect exited in about 8 s with the report);
+      wave 4's Wrap pages still say "first recorded try" (fixed elsewhere: latest answer);
       lab 5.5's prediction compares GFLOP/s at different matrix widths (2048 vs lab 5.2's
       adaptive width): make the two benchmarks use the same width or reword the prompt;
       deferred wave 1 requests (optional): a shared lab-status helper in lib/reports.ts,

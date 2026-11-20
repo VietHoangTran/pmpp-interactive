@@ -38,11 +38,7 @@ export const questionsS230: Record<string, Question> = {
     ),
     options: [
       {
-        label: (
-          <>
-            Only the time to queue the launch. The kernel may not have started yet; <code>t2 − t0</code> includes it.
-          </>
-        ),
+        label: 'Only the time to queue the launch; the kernel may not even have started.',
         correct: true,
       },
       {
@@ -106,11 +102,11 @@ export const questionsS230: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'The block reduction contains barriers that every thread of the block must reach; a thread with no point adds 0.',
+        label: 'Its barriers must be reached by every thread of the block; a thread with no point brings 0.',
         correct: true,
       },
       {
-        label: 'So that each thread can make its own atomicAdd to the norm once the reduction is done.',
+        label: 'So that each thread can make its own atomicAdd to the norm, once the block’s reduction is done.',
         why: 'Only thread (0,0) adds, once per block. Reducing first is what saves the other atomics.',
       },
       {
@@ -167,11 +163,11 @@ export const questionsS230: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'The GPU reaches it over the interconnect while a kernel runs, so the system must not page it out or move it.',
+        label: 'A kernel reaches it over the interconnect at any moment, so the system must not move it.',
         correct: true,
       },
       {
-        label: 'Pinned memory is faster to read, and a kernel cannot afford slow reads from the host.',
+        label: 'Pinned memory is faster to read, and a kernel cannot afford slow reads from host memory at all.',
         why: 'Speed is not the reason. Zero-copy reads are slow whatever you do, limited by the interconnect (p. 625).',
       },
       {
@@ -922,9 +918,13 @@ export function S230() {
         </p>
       </Aside>
       <p>
-        That is the book&rsquo;s section 23.3, taught here on pages <a href={href('ch23', '23.3')}>23.3</a> and{' '}
-        <a href={href('ch23', '23.4')}>23.4</a>. MPI, NCCL and NVSHMEM get one paragraph each on page 23.4, with their
-        pages in the book for when you need them. The chapter has no project milestone. Its one lab,{' '}
+        That is the book&rsquo;s section 23.3, split over two pages here. Page <a href={href('ch23', '23.3')}>23.3</a>{' '}
+        covers its first half (overlap, streams, asynchronous copies, pinned memory, pp. 553–556 and 560–563); page{' '}
+        <a href={href('ch23', '23.4')}>23.3–23.5</a> covers its second half (the three launches, priorities, events, pp.
+        556–562). MPI, NCCL and NVSHMEM, the book&rsquo;s sections 23.2, 23.4 and 23.5, get one paragraph each on that
+        page and a single table that compares where their loops wait, with their pages in the book for when you need them.
+        The explorers model only the two MPI loops, and no question on NCCL or NVSHMEM enters your review. The chapter has
+        no project milestone. Its one lab,{' '}
         <a href={href('ch23', 'labs')}>Hide the copies behind the kernel</a>, measures the overlap on your own GPU.
       </p>
       <Source section="23.3" pages="553–563" />

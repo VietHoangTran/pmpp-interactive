@@ -1,1 +1,1 @@
-Each boundary stream records an event as its kernel ends. The internal stream holds the copy of the norm behind two waits on those events, and behind its own kernel. So the copy runs at about 7, once all three parts of the norm are in. No host thread waited for any of this.
+Each boundary stream records an event as its kernel ends. The internal stream holds the copy of the norm until both of those events have fired, and until its own kernel ends. So the copy runs at about 7, once all three parts of the norm are in. No host thread waited for any of this.

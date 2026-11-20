@@ -64,7 +64,7 @@ check(`the widest step (${front}) is outlined: ${FIG.widest} cells`, outlined ==
 const arrows = await page.$$eval('figure svg line[data-input]', (l) => l.map((x) => x.dataset.input).sort());
 check('the arrows are the three inputs of cell (3, 4)', JSON.stringify(arrows) === JSON.stringify(inputsOf(FIG, 3, 4).map(([r, c]) => `${r},${c}`).sort()), JSON.stringify(arrows));
 const figText = await page.$eval('figure', (f) => f.textContent);
-check('the legend gives the model\'s numbers', figText.includes(`step ${front},`) && figText.includes(`${FIG.widest} cells that need`) && figText.includes(`${FIG.steps} steps in all`), figText.slice(0, 300));
+check('the legend gives the model\'s numbers', figText.includes(`step ${front},`) && figText.includes(`${FIG.widest} cells that need`) && figText.includes(`${FIG.steps} steps in this`) && figText.includes(`${FIG.rows} × ${FIG.cols} corner`) && !figText.includes('steps in all'), figText.slice(0, 300));
 
 // ---------------------------------------------------------------- margin notes, labels, links
 const notes = await page.$$eval('aside.note', (a) => a.map((x) => x.textContent));

@@ -1,1 +1,0 @@
-Side by side, at these durations: an iteration takes about 9 and a half units with MPI and streams, and about 7 and a half with NCCL or NVSHMEM, where both exchanges hide behind the internal kernel. The host is blocked for most of every iteration in all three. What changed is who waits for whom.

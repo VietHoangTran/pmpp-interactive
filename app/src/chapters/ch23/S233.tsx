@@ -417,16 +417,24 @@ function Stepper({ cfg, setCfg, devices }: { cfg: PipeConfig; setCfg: (c: PipeCo
 }
 
 // ---------------------------------------------------------------- questions
+/** q-twostreams: three equal stages, 12 chunks, from the stepper's model. */
+export const TWO_STREAMS = (streams: number) => simulate({ ...DEFAULTS, a: 12, b: 12, c: 12, n: 12, streams });
+const X1 = (v: number) => v.toFixed(1);
+/** The false dependency: the "equal stages" preset with 16 chunks in 16 streams, breadth first. */
+export const FALSE_DEP: PipeConfig = { ...PRESETS.find((p) => p.id === 'equal')!.cfg, n: 16, streams: 16, order: 'breadth', queues: CUDA_QUEUES };
+export const FALSE_DEP_FREE = simulate({ ...FALSE_DEP, queues: Infinity }).total;
+export const FALSE_DEP_8 = simulate(FALSE_DEP).total;
+
 export const questionsS233: Record<string, Question> = {
   'ch23/23.3/q-onestream': {
     kind: 'choice',
     id: 'ch23/23.3/q-onestream',
     prompt: <>You split a job into 8 chunks but queue all of them in one stream, on a GPU with two copy engines. What speed-up over the unsplit job should you expect?</>,
     options: [
-      { label: 'None: about 1×, a little worse once each chunk\'s fixed cost counts.', correct: true },
-      { label: 'About 3×.', why: 'That is what three busy lanes could give; one stream never lets two of its operations run at once.' },
-      { label: 'About 8×.', why: 'Cutting the work does not make any operation faster. Only overlap can, and one stream has none.' },
-      { label: "It depends on the kernel's occupancy.", why: 'Occupancy decides how fast each kernel runs, not whether a copy can run under it. In one stream it cannot.' },
+      { label: "About 1×, or a little worse once each chunk's fixed cost counts.", correct: true },
+      { label: 'About 3×: one lane each for the copy-in, the kernel and the copy-out.', why: 'That is what three busy lanes could give; one stream never lets two of its operations run at once.' },
+      { label: 'About 8×: each chunk is an eighth of the work, so each finishes sooner.', why: 'Cutting the work does not make the whole faster. Only overlap can, and one stream has none.' },
+      { label: "It depends on the kernel's occupancy, which sets how much copying fits beside it.", why: 'Occupancy decides how fast each kernel runs, not whether a copy can run under it. In one stream it cannot.' },
     ],
     explain: (
       <p>
@@ -448,18 +456,19 @@ export const questionsS233: Record<string, Question> = {
     ),
     options: [
       {
-        label: <>The host buffers came from <code>malloc</code>. An async copy from pageable memory is legal but synchronous and overlaps nothing: allocate them with <code>cudaMallocHost</code> (<code>hipHostMalloc</code> on HIP).</>,
+        label: <>The host buffers came from <code>malloc</code>, so each copy ran synchronously. Allocate them with <code>cudaMallocHost</code>.</>,
         correct: true,
       },
-      { label: <>The streams were created with <code>cudaStreamNonBlocking</code>.</>, why: 'That flag only stops a stream from synchronising with the legacy default stream. It helps overlap, if anything.' },
-      { label: <><code>cudaMemcpyAsync</code> needs <code>cudaMemcpyDefault</code>.</>, why: 'The direction argument has nothing to do with when the call returns.' },
-      { label: 'The kernel launch needs a fourth parameter of 1.', why: 'The fourth parameter is a stream, not a number, and the symptom is in the copies.' },
+      { label: <>The streams were created with <code>cudaStreamNonBlocking</code>, which makes each of their copies wait for the host.</>, why: 'That flag only stops a stream from synchronising with the legacy default stream. It helps overlap, if anything.' },
+      { label: <><code>cudaMemcpyAsync</code> needs <code>cudaMemcpyDefault</code> as its direction, or it falls back to a synchronous copy.</>, why: 'The direction argument has nothing to do with when the call returns.' },
+      { label: 'The kernel launch needs a fourth parameter of 1, or the copies around it go to the default stream.', why: 'The fourth parameter is a stream, not a number, and the symptom is in the copies.' },
     ],
     explain: (
       <p>
         From pageable memory the runtime stages the copy through a pinned buffer, and the host has to take part (pp. 562–563).
         NVIDIA's reference: such a copy "will revert to a synchronous behavior which will not overlap with other work" (A6).
-        AMD's header: "the memory copy will be performed synchronously" (B4). The stepper's pageable switch shows the result.
+        AMD's header: "the memory copy will be performed synchronously" (B4); there the pinned allocation is{' '}
+        <code>hipHostMalloc</code>. The stepper's pageable switch shows the result.
       </p>
     ),
     source: 'ch. 23 §23.3, pp. 562–563; notes/today/ch23-facts.md A6, B4',
@@ -489,23 +498,24 @@ export const questionsS233: Record<string, Question> = {
     id: 'ch23/23.3/q-twostreams',
     prompt: (
       <>
-        Three equal stages, 12 chunks. The stepper gives about 2× with 2 streams and about 3× with 3. Why is a second stream not
-        enough to keep all three lanes busy?
+        Three equal stages, 12 chunks. The stepper gives about {X1(TWO_STREAMS(2).speedup)}× with 2 streams and about{' '}
+        {X1(TWO_STREAMS(3).speedup)}× with 3, the most any stream count gives here. Why is a second stream not enough to keep
+        all three lanes busy?
       </>
     ),
     options: [
       {
-        label: "A stream runs in order, so chunk i + 2's copy-in waits for chunk i's copy-out. Keeping three stages busy takes three chunks in flight, one per stream.",
+        label: "Chunk i + 2 shares a stream with chunk i, so its copy-in waits for chunk i's copy-out.",
         correct: true,
       },
-      { label: 'The GPU runs at most two streams at once.', why: 'Nothing limits it to two. The hardware-queue limits are 8 and 4, and they bind only with more streams.' },
-      { label: "The second stream shares the first one's copy engine.", why: 'Every stream shares the engines; with two engines, each direction has its own.' },
-      { label: 'A stream can hold only one kernel.', why: 'A stream holds any number of operations, in order.' },
+      { label: 'The GPU runs at most two streams at once, so a third stream would wait for a free slot.', why: 'Nothing limits it to two. The hardware-queue limits are 8 and 4, and they bind only with more streams.' },
+      { label: "The second stream shares the first one's copy engine, so their copy-ins take turns.", why: 'Every stream shares the engines; with two engines, each direction has its own.' },
+      { label: 'A stream can hold only one kernel at a time, so each kernel waits for the one before.', why: 'A stream holds any number of operations, in order.' },
     ],
     explain: (
       <p>
-        With 2 streams, chunk 2 sits in stream 0 behind chunk 0's copy-out, so it cannot start until chunk 0 is all the way
-        through. Each pair of chunks then takes 3 units: 19 for 12 chunks, against 36 in one piece and 14 with 3 streams. The
+        A stream runs in order. With 2 streams, chunk 2 sits in stream 0 behind chunk 0's copy-out, so it cannot start until
+        chunk 0 is all the way through; keeping three stages busy takes three chunks in flight, one per stream. Each pair of chunks then takes 3 units: 19 for 12 chunks, against 36 in one piece and 14 with 3 streams. The
         rule of thumb we use: S × the slowest per-chunk stage must cover a whole chunk's a + b + c, here 3 × 1 ≥ 3.
       </p>
     ),
@@ -517,18 +527,18 @@ export const questionsS233: Record<string, Question> = {
     prompt: <>Going from 16 to 256 chunks made your staged job slower. What is the most likely reason?</>,
     options: [
       {
-        label: 'Every chunk adds a fixed cost to each copy and each kernel, and the bubble it shrinks was already small, so the added cost wins. More active streams than hardware work queues can also serialise unrelated streams.',
+        label: 'Each chunk adds a fixed cost to every copy and kernel, and the bubble it shrinks was small.',
         correct: true,
       },
-      { label: 'Small copies move more bytes per second than large ones.', why: 'The model needs no such effect to slow down, and nothing here suggests it.' },
-      { label: "256 chunks exceed a stream's limit of 64 operations.", why: 'No such limit appears in the documentation checked for this chapter. The 64 you may remember is Metal\'s default for uncompleted command buffers on one queue (C1).' },
-      { label: 'Smaller kernels always have higher occupancy.', why: 'A small grid may not even fill the GPU; occupancy does not rise because a kernel is shorter.' },
+      { label: 'Smaller copies reach a higher share of the link, which starves the kernels of memory bandwidth.', why: 'Nothing in the documentation checked here says so, and the model slows down without any such effect.' },
+      { label: "256 chunks exceed a stream's documented limit of 64 queued operations, so the host waits for room.", why: 'No such limit appears in the documentation checked for this chapter. The 64 you may remember is Metal\'s default for uncompleted command buffers on one queue (C1).' },
+      { label: 'Smaller kernels always have higher occupancy, which slows the copies running beside them.', why: 'A small grid may not even fill the GPU; occupancy does not rise because a kernel is shorter.' },
     ],
     explain: (
       <p>
         With fixed totals the bubble shrinks as 1/n, while the fixed cost per operation grows as n (E3: no vendor publishes
-        it). In the stepper, set a cost and watch the "fastest chunk count" read-out. And CUDA maps streams onto 8 work queues by
-        default; when unrelated streams share one, "a false dependency is created" (A8).
+        it). In the stepper, set a cost and watch the "fastest chunk count" read-out. A second cause can add to it: CUDA maps
+        streams onto 8 work queues by default, and when unrelated streams share one, "a false dependency is created" (A8).
       </p>
     ),
     source: 'notes/today/ch23-facts.md E3, A8; the stepper',
@@ -538,10 +548,10 @@ export const questionsS233: Record<string, Question> = {
     id: 'ch23/23.3/q-hip-engines',
     prompt: <>On ROCm 10.2 your program reads <code>asyncEngineCount</code> = 8. What does that tell you about copies in both directions overlapping?</>,
     options: [
-      { label: 'Nothing. ROCm fills the field with the runtime constant 8 on every device; it counts no copy engines. Measure instead.', correct: true },
-      { label: 'Eight copies can run at once.', why: 'The value is the same on every AMD device, whatever its hardware.' },
-      { label: 'Copies overlap in both directions, as on CUDA with 2.', why: "That reading is CUDA's (A7). On ROCm the field is a constant (B3)." },
-      { label: 'The GPU has eight DMA engines per direction.', why: 'Nothing in the field says so; it is set from a constant in the runtime.' },
+      { label: 'Nothing: ROCm sets it to a runtime constant, 8, on every device. Measure instead.', correct: true },
+      { label: 'Eight copies can run at once, four in each direction, if they are in different streams.', why: 'The value is the same on every AMD device, whatever its hardware.' },
+      { label: 'Copies overlap in both directions, as they do on CUDA when the field reads 2.', why: "That reading is CUDA's (A7). On ROCm the field is a constant (B3)." },
+      { label: 'The GPU has eight DMA engines, and each stream gets one of them for its copies.', why: 'Nothing in the field says so; it is set from a constant in the runtime.' },
     ],
     explain: (
       <p>
@@ -557,18 +567,19 @@ export const questionsS233: Record<string, Question> = {
     prompt: <>Porting the staged loop to Metal on Apple silicon, what plays the role of the copy-in?</>,
     options: [
       {
-        label: 'The CPU writing chunk i + 1 into one of K shared buffers while the GPU computes chunk i. With K = 1 nothing overlaps, and writing into a buffer whose command buffer has not completed is a race.',
+        label: 'The CPU writing chunk i + 1 into one of K shared buffers while the GPU computes chunk i.',
         correct: true,
       },
-      { label: 'A blit pass on a dedicated copy engine.', why: 'Apple documents a blit as a kind of pass, not as separate copy hardware (C4), and with shared memory there is nothing to copy.' },
-      { label: 'cudaMemcpyAsync through a Metal compatibility layer.', why: 'There is no such layer.' },
-      { label: 'A private buffer filled by the GPU.', why: 'Something still has to put the input there. A shared buffer the CPU writes needs no copy at all (C4).' },
+      { label: 'A blit pass on a dedicated copy engine, which runs beside the compute pass like a CUDA copy.', why: 'Apple documents a blit as a kind of pass, not as separate copy hardware (C4), and with shared memory there is nothing to copy.' },
+      { label: 'cudaMemcpyAsync, through a compatibility layer that maps CUDA calls onto Metal.', why: 'There is no such layer.' },
+      { label: 'A private buffer that the GPU fills from host memory before each compute pass.', why: 'Something still has to put the input there. A shared buffer the CPU writes needs no copy at all (C4).' },
     ],
     explain: (
       <p>
         A shared buffer is the GPU's memory (C4). Apple's documented overlap is several buffer instances in flight, with the rule
-        to "finalize all CPU writes to one buffer instance before you commit a command buffer that references it" (C5). In the
-        stepper's Metal view, set K to 1, then 2.
+        to "finalize all CPU writes to one buffer instance before you commit a command buffer that references it" (C5). With K
+        = 1 nothing overlaps, and writing into a buffer whose command buffer has not completed is a race. In the stepper's
+        Metal view, set K to 1, then 2.
       </p>
     ),
     source: 'notes/today/ch23-facts.md C4, C5',
@@ -837,8 +848,10 @@ export function S233() {
       <p>
         Streams are not free either. CUDA maps them onto hardware work queues, 8 by default (<code>CUDA_DEVICE_MAX_CONNECTIONS</code>,
         1 to 32). When two unrelated streams land in one queue, "a false dependency is created which can lead to GPU work
-        serialization". HIP uses at most 4 hardware queues per device by default and shares them round-robin. Try 16 chunks and
-        16 streams, issued breadth first, with the queue setting at 8.
+        serialization". HIP uses at most 4 hardware queues per device by default and shares them round-robin. To see it,
+        load "equal stages", set 16 chunks and 16 streams, issue all copy-ins first, and switch the queues from unlimited
+        to 8. Which copy-in waits now, and for what?{' '}
+        <button className="quiet" onClick={() => load(FALSE_DEP)} data-load="false-dep">Load that case</button>
       </p>
       <Today checked={`${CHECKED} (ch23-facts A8; ch22-facts B1)`}>
         <p>Neither limit is in the book. CUDA's is an environment variable; HIP's is <code>GPU_MAX_HW_QUEUES</code>.</p>
@@ -883,9 +896,16 @@ export function S233() {
       </p>
       <p>
         Switch the stepper to its Metal view. The lanes become "CPU: drain, then fill" and "GPU", and S becomes K, the buffers
-        in flight. With K = 1 nothing overlaps; with 2 the CPU's fills and drains run under the GPU's kernels. Our Metal file
-        waits for a buffer's last command buffer with <code>waitUntilCompleted</code> instead of Apple's semaphore and
+        in flight. With K = 1 nothing overlaps; with 2 the CPU's fills and drains can run under the GPU's kernels. Our Metal
+        file waits for a buffer's last command buffer with <code>waitUntilCompleted</code> instead of Apple's semaphore and
         completion handler; either way the CPU blocks only when the buffer it needs is still in use.
+      </p>
+      <p>
+        Notice what the Metal view has lost: a lane. One CPU thread does every fill and every drain, so the most overlap can
+        do is hide the shorter of two lanes, fill + drain on the CPU and the kernel on the GPU. The read-out gives the bound,
+        n · max(fill + drain, kernel) per chunk. Unless the kernel is long, the CPU&rsquo;s lane is the longer one: it moves
+        the data twice. With the two equal, the best case, overlap at most halves the serial time; lab 23.1 measures how close
+        a Mac gets.
       </p>
       <Today checked={`${CHECKED} (ch23-facts C1, C4)`}>
         <p>

@@ -113,7 +113,7 @@ await typeAnswer(q, intensity / 2);
 check(`intensity: ${intensity / 2} is wrong and the answer ${intensity} is given`, (await qText(q)).includes(`Not quite. The answer is ${intensity} operations per byte.`), await qText(q));
 await typeAnswer(q, intensity);
 check(`intensity: ${intensity} is right, ${n((1024 * ops) / 8)} at chunk 1,024, and the book's example threshold is labelled`,
-  (await qText(q)).includes('Correct.') && (await qText(q)).includes(n((1024 * ops) / 8)) && (await qText(q)).includes("the book's example, p. 97"));
+  (await qText(q)).includes('Correct.') && (await qText(q)).includes(n((1024 * ops) / 8)) && (await qText(q)).includes("the book's H100") && (await qText(q)).includes('(p. 94)'));
 
 const { adj8, str, adj4 } = M;
 q = await question('how many 32-byte sectors do the');
@@ -178,8 +178,10 @@ const rows = await page.$$eval('table[data-table="exercises"] tbody tr', (trs) =
 check('the exercise table covers all five exercises', rows.map((r) => r.ex).join(' | ') === '1 | 2 | 3 | 4 | 5', rows.map((r) => r.ex).join(' | '));
 const sectionOf = { 1: '#/ch21/labs', 2: '#/ch21/21.2', 3: '#/ch21/21.2', 4: '#/ch21/21.2', 5: '#/ch21/21.5' };
 check('each exercise points at the page that works it', rows.every((r) => r.links.includes(sectionOf[r.ex])), JSON.stringify(rows.map((r) => [r.ex, r.links])));
+const row3 = await page.$eval('table[data-table="exercises"] tbody tr:nth-child(3)', (tr) => tr.textContent.replace(/\s+/g, ' '));
+check('exercise 3: the coalescing cost is worked by the 21.2 section and its stepper', row3.includes('Coalescing: who owns which four') && row3.includes('write-statement stepper'), row3);
 // The questions those rows point at exist on those pages.
-for (const [route, needles] of [['21.2', ['Exercise 2.', 'Exercise 3, made concrete', 'Exercise 4.']], ['21.5', ['Exercise 5.']], ['labs', ['launchDcsGather', 'exercise 1']]]) {
+for (const [route, needles] of [['21.2', ['Exercise 2.', 'Exercise 3, made concrete', 'Exercise 4.', 'Coalescing: who owns which four']], ['21.5', ['Exercise 5.']], ['labs', ['launchDcsGather', 'exercise 1']]]) {
   await goto(page, 'ch21/' + route);
   const t = await page.$eval('.prose', (e) => e.textContent.replace(/\s+/g, ' '));
   check(`page ${route} has what the table names (${needles.join(', ')})`, needles.every((x) => t.includes(x)));

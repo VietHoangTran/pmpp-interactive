@@ -259,7 +259,7 @@ describe.skipIf(!clang)('the CUDA front-end check (clang, stub headers, as labs/
   it('parses the snippet, and the snippet with its driver', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ch18-priv-fe-'));
     const both = path.join(dir, 'both.cu');
-    fs.writeFileSync(both, source + '\n' + fs.readFileSync(DRIVER, 'utf8'));
+    fs.writeFileSync(both, source + '\n#define PMPP_SNIPPET_APPENDED\n' + fs.readFileSync(DRIVER, 'utf8'));
     for (const f of [SNIPPET, both]) {
       const r = spawnSync(clang!, ['-x', 'cuda', '--cuda-host-only', '-nocudainc', '-nocudalib', '-fsyntax-only', '-std=c++17',
         '-I', inc, '-I', path.join(inc, 'pmpp/emu/shim'), '-include', 'pmpp/check/cuda_stub.h', f], { encoding: 'utf8' });
@@ -279,7 +279,7 @@ describe.skipIf(!compiler)('the snippets on the emulator agree with the model', 
   };
   let raceBuilt = false;
   it('builds', () => {
-    const cu = '#line 1 "s186_privatised_variants.cu"\n' + source + '\n#line 1 "check/s186_privatised_check.cu"\n' + fs.readFileSync(DRIVER, 'utf8');
+    const cu = '#line 1 "s186_privatised_variants.cu"\n' + source + '\n#define PMPP_SNIPPET_APPENDED\n#line 1 "check/s186_privatised_check.cu"\n' + fs.readFileSync(DRIVER, 'utf8');
     fs.writeFileSync(path.join(dir, 'all.cu'), cu);
     const t = spawnSync('python3', [path.join(repo, 'labs/tools/cu2emu.py'), path.join(dir, 'all.cu'), path.join(dir, 'all.cpp')], { encoding: 'utf8' });
     expect(t.status, t.stdout + t.stderr).toBe(0);

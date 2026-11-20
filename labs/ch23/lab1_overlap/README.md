@@ -101,6 +101,11 @@ what Apple's sample does there: give the token back (C5).
 - **No copies on Metal.** On Apple silicon a shared buffer is the CPU's and the GPU's memory
   at once, and no copy engine is documented (C4). The work left to hide is the CPU's: the
   fill (writing a chunk's input into a shared buffer) and the drain (reading its output).
+  One CPU thread does both, so the pipeline has two lanes, not three: the CPU's, fill +
+  drain, and the GPU's. However well the buffers overlap, a run takes at least the longer
+  lane (the stepper's bound, n times max(fill + drain, kernel) per chunk). The best case,
+  lanes of equal length, is half the serial time; per-chunk costs, the wait for each slot
+  and the two sides sharing one memory eat into that; the `inflight` rows measure how much.
 
 ## What the tests do
 
@@ -160,8 +165,9 @@ untouched starter returns -1 from `runStaged` and `runInFlight`, so every case f
 
 ## Before you benchmark, predict
 
-Use the stepper in the lesson's section 23.3. The driver makes the kernel take about as long
-as the copy in, so start from its "equal stages" preset. Write these down first; the lesson
+Use the stepper in the lesson's section 23.3. On CUDA and HIP the driver makes the kernel
+take about as long as the copy in, so start from its "equal stages" preset. On Metal it makes
+the kernel take about as long as fill + drain together. Write these down first; the lesson
 asks for the first three under the ids in brackets.
 
 1. CUDA or HIP: serial time divided by staged time at 4 streams, 16 chunks, depth-first,
@@ -170,7 +176,9 @@ asks for the first three under the ids in brackets.
    On HIP that number means nothing (B3).
 2. The same ratio with pageable host buffers (`ch23/labs/p-pageable`).
 3. Metal: in-flight time with 1 buffer divided by in-flight time with 3 buffers, at 16
-   chunks, with the stepper's Metal view (`ch23/labs/p-metal`).
+   chunks, with the stepper's Metal view, a kernel equal to fill + drain
+   (`ch23/labs/p-metal`). Then, unrecorded: how close will 3 buffers come to half the
+   serial time?
 4. Not recorded: will breadth-first differ from depth-first on your GPU? The stepper says it
    might, with one copy engine, if that engine serves copies in the order they were issued
    (E2). NVIDIA documents neither that order nor how its copy queues change it (A7, A8).
@@ -192,13 +200,17 @@ lines print the size chosen and why.
 - **Calibration.** The copy in of the whole array is timed (pinned, events, best of
   several), then the kernel at degrees 1, 2, 4, ... until it takes twice as long, then one
   degree between the last two. The degree whose kernel time is closest to the copy in is
-  used for every row and printed. On Metal the kernel is matched to the fill instead. If the
-  kernel's times do not grow with the degree, something else was using the GPU (or, on
-  Metal, the CPU) during the run; on the machine this lab was built on, that happened while
-  other programs were busy. Run again before you compare anything.
+  used for every row and printed. On Metal the kernel is matched to fill + drain instead:
+  the CPU does both, one after the other on one thread, so that sum is its lane, and the
+  kernel is timed inside the provided `runSerialMetal`, exactly as the `serial` row is. At low
+  degrees the kernel's time may stay flat: reading and writing the array, not the arithmetic,
+  sets it (chapter 5's ratio). If the time never grows, or a low degree takes longer than a
+  high one, something else was using the GPU (or, on Metal, the CPU) during the run; on the
+  machine this lab was built on, that happened while other programs were busy. Run again
+  before you compare anything.
 - **`parts`**: each part alone over the whole array. CUDA and HIP: `h2d_s`, `kernel_s`,
   `d2h_s`, plus `async_engines` and `concurrent_kernels`. Metal: `fill_s`, `kernel_s`
-  (GPU time of one command buffer), `drain_s`.
+  (GPU time of the serial path's one command buffer), `drain_s`.
 - **`firsttouch`** (Metal): making a shared buffer of the array's size, and its first fill,
   against a fill of a buffer already used. On the machine this lab was built on, the first
   fill took several times as long, almost all of it in the first write to each page. That is
@@ -244,7 +256,7 @@ with `cudaStreamNonBlocking` (ch23-facts D3).
 
 ## Go further
 
-- Give `runStaged` a fourth order: copy in chunk j + 1 before launching chunk j. Where does
+- Give `runStaged` a third order: copy in chunk j + 1 before launching chunk j. Where does
   it land between depth and breadth on your GPU?
 - Time the 8-stream rows again with `CUDA_DEVICE_MAX_CONNECTIONS=4` and with `=16` (A8).
 - On Metal, move the drain into the completion handler, and say what you would need to know

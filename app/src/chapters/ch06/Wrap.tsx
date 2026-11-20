@@ -306,7 +306,7 @@ export function Wrap() {
       <h2>A mixed check</h2>
       <p>
         These use the whole chapter on situations the sections did not show, most of them from inference kernels.
-        {asked ? ` So far in this chapter you have answered ${right} of ${asked} questions correctly on the first recorded try.` : ''}
+        {asked ? ` So far in this chapter you have answered ${right} of ${asked} questions correctly, counting your latest answer to each.` : ''}
       </p>
       <Beyond>
         <p>

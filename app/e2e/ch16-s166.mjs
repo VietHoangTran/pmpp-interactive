@@ -211,12 +211,15 @@ for (let i = 0; i < 10; i++) await clickText(S2, 'Run to the end of the step');
 check('and the tile ends wrong', (await page.$eval(`${B(S2)} [data-verdict]`, (e) => e.dataset.verdict)) === 'wrong');
 const hl2 = await page.$$eval(`${B(S2)} .code .ln`, (ls) => ls.map((l) => l.textContent).join('\n'));
 check('the sheared stepper shows hyLoadN, hyLoadW and hyLoadNW', hl2.includes('hyLoadN(') && hl2.includes('hyLoadNW(') && hl2.includes('(q_tile - 2)'));
+check('and captions them as the lab\'s solution', (await text(`${B(S2)} figure.code`)).includes('Lab 16.1\'s solution for these three helpers'));
+const s1code = await page.$$eval(`${B(S1)} .code .ln`, (ls) => ls.map((l) => l.textContent).join('\n'));
+check('the square stepper has no scheme switch and never shows the sheared loads', !s1code.includes('hyLoad') && !(await page.$(`${B(S1)} .seg[aria-label="Tiles"]`)), s1code.slice(0, 80));
 if (out) await page.$eval(B(S2), (e) => e.scrollIntoView({ block: 'start' }));
 if (out) await page.screenshot({ path: out + '-stepper-sheared.png' });
 
 // ---------------------------------------------------------------- banks
 const deg = () => page.$eval(`${B(K)} [data-degree]`, (e) => Number(e.dataset.degree));
-const words = () => page.$$eval(`${B(K)} tr[data-thread]`, (rs) => rs.map((r) => r.dataset.word));
+const words = () => page.$$eval(`${B(K)} svg[data-banks] g[data-thread]`, (gs) => gs.map((g) => [Number(g.dataset.thread), g.dataset.word]).sort((a, b) => a[0] - b[0]).map((x) => x[1]));
 check('default: sheared W = 16 unpadded, step 5 write is 8-way', (await deg()) === 8);
 check('lane t writes word 16t + 5', (await words()).join(',') === Array.from({ length: 16 }, (_, t) => 16 * t + 5).join(','));
 await setSelect(K, 'layout', 'rowgap');
@@ -246,6 +249,20 @@ const worstPad = await page.$$eval(`${B(K)} tr[data-access]`, (rs) => rs.map((r)
 check('the book\'s pad() at W = 64 leaves 2-way conflicts', worstPad === '2,2,2,2', worstPad);
 if (out) await page.$eval(B(K), (e) => e.scrollIntoView({ block: 'start' }));
 if (out) await page.screenshot({ path: out + '-banks.png' });
+
+// ---------------------------------------------------------------- order: questions before the tools that answer them
+const order = await page.evaluate((sels) => {
+  const all = [...document.querySelectorAll('.prose > *')];
+  const at = (pred) => all.findIndex(pred);
+  const q = (needle) => at((e) => e.classList.contains('q') && e.textContent.includes(needle));
+  const bench = (t) => at((e) => e.matches(t));
+  const simp = (i) => all[i - 1]?.matches('aside.note') && all[i - 1].textContent.startsWith('What this model leaves out');
+  const scene = at((e) => e.querySelector?.('section.scene[aria-label="Shearing a tile"]') || e.matches('section.scene[aria-label="Shearing a tile"]'));
+  return { nw: q('In which stored column of row r_tile − 1'), s2: bench(sels.S2), banks16: q('How many passes does the bank hardware need'), pad: q('same one-gap-per-row padding'), k: bench(sels.K), kSimp: simp(bench(sels.K)), scene, sceneSimp: simp(scene) };
+}, { S2: B(S2), K: B(K) });
+check('q-nw-offset comes before the sheared stepper', order.nw >= 0 && order.nw < order.s2, JSON.stringify(order));
+check('q-banks16 and q-pad-square come before the bank explorer', order.banks16 >= 0 && order.pad >= 0 && order.banks16 < order.k && order.pad < order.k, JSON.stringify(order));
+check('a Simplification note sits just before the bank explorer and the shear scene', order.kSimp && order.sceneSimp, JSON.stringify(order));
 
 // ---------------------------------------------------------------- the prediction
 const pq = await page.evaluateHandle(() => [...document.querySelectorAll('.q')].find((e) => e.textContent.includes('Sheared, how many launches?')));
@@ -292,10 +309,14 @@ check('a wrong choice says why', wrong.startsWith('Not quite.') && wrong.include
 check('eleven questions on the page, one prediction', (await page.$$eval('.q', (qs) => qs.length)) === 12);
 
 // ---------------------------------------------------------------- narrow screen and themes
-await page.setViewport({ width: 400, height: 900, deviceScaleFactor: 1 });
+await page.setViewport({ width: 390, height: 900, deviceScaleFactor: 1 });
 await pause(400);
 const narrow = await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1);
-check('at 400 px the page does not scroll sideways', narrow);
+check('at 390 px the page does not scroll sideways', narrow);
+const fits = await page.evaluate((sels) => sels.map((s) => document.querySelector(s).getBoundingClientRect().right <= window.innerWidth + 1), [F, S1, S2, K].map(B));
+check('every interactive fits the screen at 390 px', fits.every(Boolean), JSON.stringify(fits));
+const chart = await page.$eval(`${B(K)} svg[data-banks]`, (s) => ({ w: s.getBoundingClientRect().width, scroll: s.parentElement.scrollWidth > s.parentElement.clientWidth }));
+check('at 390 px the bank chart keeps a readable width and scrolls inside its box', chart.w >= 659 && chart.scroll, JSON.stringify(chart));
 if (out) {
   for (const t of [F, S1, K]) {
     await page.$eval(B(t), (e) => e.scrollIntoView({ block: 'start' }));

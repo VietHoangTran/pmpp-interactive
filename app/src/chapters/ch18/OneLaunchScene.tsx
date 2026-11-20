@@ -101,13 +101,14 @@ function RoadGrid({ x, y, level }: { x: number; y: number; level: number }) {
 
 function hostBeat(p: number): ReactNode {
   const upto = ramp(p, 0.05, 0.95);
-  const kernelsShown = ROAD_STRIP.parts.filter((q) => q.kind === 'kernel' && q.from < upto * ROAD_STRIP.total);
+  const kernelsShown = ROAD_STRIP.parts.filter((q) => q.kind === 'kernel' && q.from <= upto * ROAD_STRIP.total);
   const level = Math.max(0, kernelsShown.length - 1);
+  const size = ROAD.sizes[level];
   return (
     <Svg label="The per-level host loop on a road-like grid">
       <RoadGrid x={X0} y={28} level={level} />
       <T x={190} y={44} size={13} weight={600}>Host loop, one launch per level</T>
-      <T x={190} y={68}>{`launch ${kernelsShown.length} of ${ROAD.launches}: a frontier of ${ROAD.sizes[level]} vertices`}</T>
+      <T x={190} y={68}>{`launch ${kernelsShown.length} of ${ROAD.launches}: a frontier of ${size} ${size === 1 ? 'vertex' : 'vertices'}`}</T>
       <T x={190} y={88} muted>{`launches ${kernelsShown.length}, read-backs of the size ${kernelsShown.length}`}</T>
       <T x={190} y={112} muted>{`a ${ROAD_W} × ${ROAD_W} grid from a corner: ${ROAD.levels} levels, never more than ${ROAD.maxFrontier} vertices in one`}</T>
       <Strip y={196} strip={ROAD_STRIP} upto={upto} label="each bar a launch, as long as its frontier; each dashed box a round trip" />
@@ -237,7 +238,8 @@ function swapBeat(p: number): ReactNode {
           </g>
         );
       })}
-      <T x={X0} y={278} size={11} muted>{`In a run of the model (4 × 4 grid, 4 threads), level ${SWAP_LEVEL}: ${appends} appends, then ${reads} reads, then the reset.`}</T>
+      <T x={X0} y={284} size={11} muted>In a run of the model (4 × 4 grid, 4 threads),</T>
+      <T x={X0} y={300} size={11} muted>{`level ${SWAP_LEVEL}: ${appends} appends, then ${reads} reads, then the reset.`}</T>
       <g opacity={ex3}>
         <rect x={430} y={226} width={266} height={96} rx={4} fill="var(--page)" stroke="var(--ink-2)" />
         <T x={442} y={246} size={12} weight={600}>Exercise 3: a counter per level</T>

@@ -14,7 +14,7 @@ import {
   type NeighbourId,
   type PresetId,
 } from '../../sim/wavefront';
-import { FIG_16_5, INF, VERTICES, runSteps, stateAfter, stepTrace, type BlockEvent, type Mode, type Order } from '../../sim/floydwarshall';
+import { FIG_16_5, INF, VERTICES, runSteps, stateAfter, stepTrace, type BlockEvent } from '../../sim/floydwarshall';
 import { flagsAfter, frontMakespan, numbering, schedule, slotAt, type Rule, type StartOrder } from '../../sim/wavesched';
 import { NeighboursScene, SCENE } from './NeighboursScene';
 
@@ -74,8 +74,11 @@ const cellText = (c: { i: number; j: number; to: number }) => `${VERTICES[c.i]} 
 const listAnd = (xs: string[]) => (xs.length < 2 ? xs.join('') : xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1]);
 const F2 = SCENE.front2.makespan!;
 const C2 = SCENE.counter2.makespan!;
-const F4 = SCENE.front4.makespan!;
-const C4 = SCENE.counter4.makespan!;
+// q-enough-sms asks about a grid the explorer cannot show (it stops at T = 8 and S = 8).
+const BIG_T = 10;
+const BIG_S = 16;
+const F_BIG = frontMakespan(BIG_T, BIG_S);
+const C_BIG = schedule(BIG_T, BIG_S, 'counter').makespan!;
 
 export const questionsS163: Record<string, Question> = {
   'ch16/16.3/q-topdown': {
@@ -110,8 +113,8 @@ export const questionsS163: Record<string, Question> = {
       <p>
         Bottom up replaces both problems. A thread computes the address of its cell from its index, so neighbouring
         threads read neighbouring cells, and the order of the steps is fixed before the kernel starts. The book's first
-        reason, that GPUs handle deep chains of calls poorly, is about cost: vendors document a stack per thread
-        (NVIDIA) or per warp (AMD) and warn about its size, but do not forbid recursion in device functions.
+        reason, that GPUs handle deep chains of calls poorly, is about cost: NVIDIA documents a stack per thread and AMD
+        one per warp; AMD and Apple warn about its size; none forbids recursion in device functions.
       </p>
     ),
     source: 'ch. 16 §16.2, pp. 374–376; ch16-facts A1, B1, C1',
@@ -290,17 +293,17 @@ export const questionsS163: Record<string, Question> = {
     id: 'ch16/16.3/q-enough-sms',
     prompt: (
       <>
-        The same 4 × 4 tiles on 4 SMs. How many time steps does starting each tile on its two flags save over a relaunch
-        per front?
+        A {BIG_T} × {BIG_T} grid of tiles on {BIG_S} SMs, each tile taking one time step. How many time steps does
+        starting each tile on its two flags save over a relaunch per front?
       </>
     ),
-    answer: F4 - C4,
+    answer: F_BIG - C_BIG,
     unit: 'steps',
     explain: (
       <p>
-        None. Every front has at most 4 tiles, so with 4 SMs each front runs in one step and a relaunch per front takes{' '}
-        {F4} steps, 2T − 1. Flags take {C4} as well, because no schedule can beat the chain of tiles from the corner to
-        the corner, also 2T − 1 long. Flags pay off only between the extremes: when the machine is narrower than the
+        None. Every front has at most {BIG_T} tiles, so with {BIG_S} SMs each front runs in one step and a relaunch per
+        front takes {F_BIG} steps, 2T − 1. Flags take {C_BIG} as well, because no schedule can beat the chain of tiles
+        from the corner to the corner, also 2T − 1 long. Flags pay off only between the extremes: when the machine is narrower than the
         widest front, but not so narrow that every step is full anyway (with one SM both take T² steps).
       </p>
     ),
@@ -449,7 +452,7 @@ function PatternExplorer() {
     <Bench
       title="Which cells can run together"
       task="Pick a pattern or build one, then click a cell to see what it waits for."
-      foot={<>Each number is the step at which the cell can run: one more than the latest step among the cells it reads. Darker means later.</>}
+      foot={<>Each number is the step at which the cell can run: one more than the latest step among the cells it reads. Darker means later. Thick outline: the selected cell; dashed outline: the cells it reads; thin outline: the cells that share its step.</>}
     >
       <div className="row" style={{ marginBottom: '0.7rem' }}>
         <span className="seg" role="group" aria-label="Pattern" style={WRAP}>
@@ -493,11 +496,6 @@ function PatternExplorer() {
             data-grid={`${rows}x${cols}`}
             style={{ width: '100%', maxWidth: Math.max(160, gw * 1.15), display: 'block' }}
           >
-            <defs>
-              <marker id="s163-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-                <path d="M0,0 L10,5 L0,10 z" fill="var(--ink)" />
-              </marker>
-            </defs>
             {f.step.map((s, i) => {
               const r = Math.floor(i / cols);
               const c = i % cols;
@@ -521,16 +519,19 @@ function PatternExplorer() {
               );
             })}
             {ins.map(([r, c]) => (
-              <line
+              <rect
                 key={`${r},${c}`}
                 data-input={`${r},${c}`}
-                x1={cx(c) + Math.sign(c0 - c) * 9}
-                y1={cy(r) + Math.sign(r0 - r) * 9}
-                x2={cx(c0) - Math.sign(c0 - c) * 10}
-                y2={cy(r0) - Math.sign(r0 - r) * 10}
+                x={P + c * C + 3.5}
+                y={P + r * C + 3.5}
+                width={C - 7}
+                height={C - 7}
+                rx="2"
+                fill="var(--ink)"
+                fillOpacity={0.14}
                 stroke="var(--ink)"
-                strokeWidth="1.6"
-                markerEnd="url(#s163-arrow)"
+                strokeWidth="2"
+                strokeDasharray="4 2.5"
                 pointerEvents="none"
               />
             ))}
@@ -567,7 +568,7 @@ function PatternExplorer() {
 const N = VERTICES.length;
 const HEAD = { background: 'transparent', border: 0, fontWeight: 650, color: 'var(--ink-2)' } as const;
 
-function describeBlock(b: BlockEvent, k: number, before: number[][], mode: Mode): { text: string; stale: boolean } {
+function describeBlock(b: BlockEvent, k: number, before: number[][]): { text: string; stale: boolean } {
   const v = VERTICES[b.row];
   const kv = VERTICES[k];
   const head = `Block for row ${v} (blockIdx.y = ${b.row}): thread 0 reads dist[${v}][${kv}] into the shared dist_k_col`;
@@ -576,8 +577,7 @@ function describeBlock(b: BlockEvent, k: number, before: number[][], mode: Mode)
       text: `${head}. It is FW_INF: there is no path from ${v} to ${kv}, so nothing in this row can improve. After the barrier the whole block returns.`,
       stale: false,
     };
-  const stale =
-    mode === 'in-place' && (b.distKCol !== before[b.row][k] || b.rowK.some((x, col) => x !== before[k][col]));
+  const stale = b.distKCol !== before[b.row][k] || b.rowK.some((x, col) => x !== before[k][col]);
   const reads = b.rowK.flatMap((x, col) => (x === INF ? [] : [`${VERTICES[col]} = ${x}`]));
   const writes = b.writes.map((w) => `${v} to ${VERTICES[w.col]}: ${w.from === INF ? 'no path' : w.from} becomes ${w.to}`);
   return {
@@ -591,15 +591,14 @@ function describeBlock(b: BlockEvent, k: number, before: number[][], mode: Mode)
 function FloydStepper() {
   const [k, setK] = useState(0);
   const [m, setM] = useState(0);
-  const [mode, setMode] = useState<Mode>('in-place');
-  const [order, setOrder] = useState<Order>('top-first');
   const [neg, setNeg] = useState(false);
   const diag = neg ? -1 : undefined;
   const base = useMemo(() => runSteps(FIG_16_5, k), [k]);
-  const trace = useMemo(() => stepTrace(base, k, { mode, order, diag }), [base, k, mode, order, diag]);
-  const inPlace = useMemo(() => stepTrace(base, k, { mode: 'in-place', order, diag }), [base, k, order, diag]);
-  const two = useMemo(() => stepTrace(base, k, { mode: 'two-buffers', order, diag }), [base, k, order, diag]);
-  useEffect(() => setM(0), [k, mode, order, neg]);
+  // The book's kernel: one table, updated in place, blocks run top row first. The two-buffer
+  // run is computed only to compare against.
+  const trace = useMemo(() => stepTrace(base, k, { mode: 'in-place', diag }), [base, k, diag]);
+  const two = useMemo(() => stepTrace(base, k, { mode: 'two-buffers', diag }), [base, k, diag]);
+  useEffect(() => setM(0), [k, neg]);
 
   const table = stateAfter(trace, m);
   const cur = m > 0 ? trace.blocks[m - 1] : undefined;
@@ -607,20 +606,20 @@ function FloydStepper() {
   const retiredSoFar = new Set(done.filter((b) => b.retired).map((b) => b.row));
   const changedSoFar = table.flatMap((row, i) => row.flatMap((x, j) => (x !== trace.before[i][j] ? [[i, j]] : [])));
   const complete = m >= N;
-  const desc = cur ? describeBlock(cur, k, trace.before, mode) : null;
+  const desc = cur ? describeBlock(cur, k, trace.before) : null;
   const hl = cur ? [cur.retired ? FW_LINES.retire : cur.writes.length ? FW_LINES.write : FW_LINES.compare] : [];
   const kv = VERTICES[k];
-  const kStill = !inPlace.rowKChanged && !inPlace.colKChanged;
-  const same = JSON.stringify(inPlace.after) === JSON.stringify(two.after);
+  const kStill = !trace.rowKChanged && !trace.colKChanged;
+  const same = JSON.stringify(trace.after) === JSON.stringify(two.after);
 
   return (
     <Bench
       title="One Floyd-Warshall step"
-      task="Step through the blocks of one k, then change the order, the buffers or dist[k][k]."
+      task="Step through the blocks of one k, then set dist[k][k] to −1 and watch the blocks that run after block k."
       foot={
         <>
-          Fig. 16.5's table as printed; a blank cell is FW_INF, no path. Row k and column k are tinted: every block reads
-          them. A filled cell changed during this step. <TierLegend tiers={['reg', 'shared', 'global']} />
+          Fig. 16.5's table as printed; a blank cell is FW_INF, no path. One table, updated in place, blocks run top row
+          first. Row k and column k are tinted: every block reads them. A filled cell changed during this step. <TierLegend tiers={['reg', 'shared', 'global']} />
         </>
       }
     >
@@ -631,20 +630,6 @@ function FloydStepper() {
             <button key={w} aria-pressed={k === i} onClick={() => setK(i)}>{w}</button>
           ))}
         </span>
-        <label className="field">
-          Table
-          <select value={mode} onChange={(e) => setMode(e.target.value as Mode)} aria-label="Table">
-            <option value="in-place">one table, in place (the book)</option>
-            <option value="two-buffers">two buffers: read old, write new</option>
-          </select>
-        </label>
-        <label className="field">
-          Block order
-          <select value={order} onChange={(e) => setOrder(e.target.value as Order)} aria-label="Block order">
-            <option value="top-first">top row first</option>
-            <option value="bottom-first">bottom row first</option>
-          </select>
-        </label>
         <label className="check">
           <input type="checkbox" checked={neg} onChange={(e) => setNeg(e.target.checked)} data-neg /> set dist[k][k] to −1 for this step
         </label>
@@ -949,13 +934,16 @@ export function S163() {
         threads of a warp reach into the hash table at scattered places, which do not coalesce.
       </p>
       <Source section="16.2" pages="376" />
+      <p>
+        The first reason is about cost, not a rule: every backend allows a recursive device function, and what it costs
+        is stack memory reserved for every thread or warp. A top-down solver recurses as deep as its longest chain of
+        sub-problems, so the stack each thread or warp needs grows with the problem, and AMD's guide points out that the
+        GPU's parallelism multiplies it.
+      </p>
       <Today checked="2026-11-20 (ch16-facts A1, B1, C1)">
         <p>
-          CUDA: a kernel may not recurse; a <code>__device__</code> function may, and each thread's stack has a size you
-          set (<code>cudaLimitStackSize</code>). HIP allows it too (<code>hipLimitStackSize</code>) and keeps one stack per
-          warp, not per thread. Metal allows recursion in kernels from Metal 2.4, and Apple advises keeping{' '}
-          <code>maxCallStackDepth</code> small because a large stack is reserved. NVIDIA's current guide was searched for
-          a statement that device functions are inlined by default, or that recursion is slow, and has neither.
+          CUDA: <code>__device__</code> functions may recurse, kernels may not (<code>cudaLimitStackSize</code>). HIP: a
+          stack per warp (<code>hipLimitStackSize</code>). Metal: from 2.4; Apple advises a small <code>maxCallStackDepth</code>.
         </p>
       </Today>
       <p>
@@ -1113,12 +1101,12 @@ export function S163() {
       <p>
         The stepper runs one step of the corrected kernel on the book's eight-vertex example, one block per row. Step
         through k = a first and count the blocks that retire. Then run a and b, and find the cells that step c changes.
-        Last, tick dist[k][k] = −1 and run step c in both block orders.
+        Last, tick dist[k][k] = −1 and step through c again, watching the blocks that run after block c.
       </p>
       <Simplification>
         <p>
-          Blocks run one after another, in the chosen order, each to completion; on a GPU they interleave in ways you do
-          not choose. That is enough to show a result that depends on the order. The table is Fig. 16.5's as printed,
+          Blocks run one after another, top row first, each to completion; on a GPU they interleave in ways you do not
+          choose. That is one of the orders a GPU may produce, enough to show a result that depends on the order. The table is Fig. 16.5's as printed,
           where b to f is 9; the graph beside it says 6.
         </p>
       </Simplification>
@@ -1126,8 +1114,8 @@ export function S163() {
       <p>
         At k = a, {FW_A.retired.length} of the 8 blocks retire at once: only a has a path to a. At k = c, after a and b,{' '}
         {FW_C.retired.length} retire. With dist[k][k] = −1, row k and column k change during their own step, every block
-        that runs after block k reads the new values, and the two orders give two different tables: a race, which two
-        buffers would remove.
+        that runs after block k reads the new values, and the table differs from the one two buffers give. What a block
+        reads depends on whether block k ran before it: a race, which two buffers would remove.
       </p>
       <Ask q={questionsS163['ch16/16.3/q-fw-changes']} label="Work it out" />
       <Ask q={questionsS163['ch16/16.3/q-fw-inplace']} />
@@ -1158,6 +1146,16 @@ export function S163() {
         </li>
       </ol>
       <Source section="16.6, 16.8" pages="384, 398" />
+      <p>
+        The animation and the explorer after it run on one model of tiles and SMs, which counts steps and nothing else.
+      </p>
+      <Simplification>
+        <p>
+          Every tile takes one step, launches and barriers cost nothing, and a waiting block costs its SM and nothing else.
+          S is how many tiles run at once, not a device's SM count. The stuck outcome is one schedule that the missing
+          ordering guarantee allows, not a model of any GPU's scheduler.
+        </p>
+      </Simplification>
       <Predict
         id="ch16/16.3/p-flags-2sm"
         prompt={
@@ -1177,20 +1175,13 @@ export function S163() {
         )}
       </Predict>
       <NeighboursScene />
+      <Ask q={questionsS163['ch16/16.3/q-enough-sms']} label="Work it out" />
       <p>
         In the explorer, a relaunch per front leaves SMs idle wherever a front has fewer tiles than there are SMs, or a
         number that does not divide evenly. With flags, a free SM takes the next tile in front order and waits only for
         that tile's two neighbours, so a later front can start in the gap. Try one SM, then as many SMs as tiles per side.
       </p>
-      <Simplification>
-        <p>
-          Every tile takes one step, launches and barriers cost nothing, and a waiting block costs its SM and nothing else.
-          S is how many tiles run at once, not a device's SM count. The stuck outcome is one schedule that the missing
-          ordering guarantee allows, not a model of any GPU's scheduler.
-        </p>
-      </Simplification>
       <WaitExplorer />
-      <Ask q={questionsS163['ch16/16.3/q-enough-sms']} label="Work it out" />
       <p>
         The book's own flag design gives each persistent block a whole row of tiles, by its <code>blockIdx.x</code>, so a
         block checks only the flag of the tile above. Set the explorer to one block per row, start the blocks in reverse,

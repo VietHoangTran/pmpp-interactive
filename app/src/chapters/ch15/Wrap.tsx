@@ -305,7 +305,7 @@ export function Wrap() {
       <h2>A mixed check</h2>
       <p>
         These use the whole chapter on situations the sections did not show.
-        {asked ? ` So far in this chapter you have answered ${right} of ${asked} questions correctly on the first recorded try.` : ''}
+        {asked ? ` So far in this chapter you have answered ${right} of ${asked} questions correctly, counting your latest answer to each.` : ''}
       </p>
       <Beyond>
         <p>The settings, the toy kernel and the profile in these questions are ours, picked for the questions.</p>

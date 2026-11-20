@@ -226,6 +226,22 @@ await seg('engines', '2');
 await totalIs({ ...ONE_ENGINE, order: 'breadth', engines: 2 }, 'two engines: 10 either way');
 await seg('engines', '1');
 
+// ---- the false dependency: from "equal stages", 16 chunks in 16 streams, breadth first, 8 queues
+const fd = { ...PRESETS.find((p) => p.id === 'equal').cfg, n: 16, streams: 16, order: 'breadth', queues: 8 };
+await page.$eval('[data-load="false-dep"]', (b) => b.click());
+await pause(150);
+await totalIs(fd, `false dependency, 8 queues: ${simulate(fd).total}`);
+check('the loaded case shows 8 queues, breadth first', (await page.$eval(`${S} [data-seg="queues"] [aria-pressed="true"]`, (b) => b.dataset.v)) === '8'
+  && (await page.$eval(`${S} [data-seg="order"] [aria-pressed="true"]`, (b) => b.dataset.v)) === 'breadth');
+await seg('queues', 'inf');
+await totalIs({ ...fd, queues: Infinity }, `and with unlimited queues: ${simulate({ ...fd, queues: Infinity }).total}, faster`);
+check('the queue limit is what slows it in the model', simulate(fd).total > simulate({ ...fd, queues: Infinity }).total);
+
+// ---- q-twostreams quotes the model
+const twoX = (s) => simulate({ ...DEFAULTS, a: 12, b: 12, c: 12, n: 12, streams: s }).speedup.toFixed(1);
+const tsq = await page.evaluate(() => [...document.querySelectorAll('.q .prompt')].map((e) => e.textContent).find((t) => t.includes('Three equal stages, 12 chunks')) ?? '');
+check(`q-twostreams quotes ${twoX(2)}× and ${twoX(3)}× from the model`, tsq.includes(`about ${twoX(2)}× with 2 streams`) && tsq.includes(`about ${twoX(3)}× with 3`), tsq);
+
 // ---- pageable
 await page.$eval(`${S} [data-preset="equal"]`, (b) => b.click());
 await pause(100);

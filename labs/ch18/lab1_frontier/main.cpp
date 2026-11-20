@@ -501,7 +501,10 @@ static std::vector<Case> buildCases() {
   add(std::make_shared<const Graph>(rootWithoutOutEdges()), 0, "a root with no out-edges");
   add(std::make_shared<const Graph>(twoComponents()), 0, "two components, root in the first");
   add(std::make_shared<const Graph>(selfLoopsAndRepeats()), 0, "self-loops and repeated edges");
-  add(std::make_shared<const Graph>(chain(300)), 0, "a 300-vertex chain");
+  // 300 on a device. On the emulators every level of the cooperative search is 1,024 emulated
+  // threads crossing six barriers, one context switch each, so the chain is 100 there.
+  const unsigned chainLength = emu ? 100 : 300;
+  add(std::make_shared<const Graph>(chain(chainLength)), 0, "a " + std::to_string(chainLength) + "-vertex chain");
   const unsigned side = emu ? 24 : 1024;
   add(std::make_shared<const Graph>(grid2d(side)), 0,
       "grid " + std::to_string(side) + " x " + std::to_string(side) + ", 4 neighbours, root at a corner");

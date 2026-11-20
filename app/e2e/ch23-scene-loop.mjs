@@ -1,5 +1,6 @@
 // Browser check for the narrated animation "One iteration with three streams" in section 23.4:
-// seven parts, captions are an option (off by default, remembered), parts advance by
+// five parts (four on Fig. 23.14, one setting its totals beside the NCCL and NVSHMEM loops'; the
+// chapter is condensed, so those loops get no part of their own), captions are an option (off by default, remembered), parts advance by
 // themselves, it runs with the sound off, every part's drawing agrees with the model
 // (src/sim/haloloop.ts at DEFAULTS, imported directly), and the numbers the scripts say are
 // the model's. It passes with or without content/ch23/narration/manifest.json.
@@ -28,8 +29,8 @@ const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 const strip = (s) => s.replace(/\[[^\]]*\]\s*/g, '').replace(/\s+/g, ' ').trim();
 const r2 = (x) => (Math.round(x * 100) / 100).toFixed(2);
 const S = 'section.scene[aria-label="One iteration with three streams"]';
-const N = 7;
-const LABELS = ['Insertion', 'Execution', 'Events join', 'The host waits', 'NCCL', 'NVSHMEM', 'Totals'];
+const N = 5;
+const LABELS = ['Insertion', 'Execution', 'Events join', 'The host waits', 'Totals'];
 
 // ---- the model
 const streams = simulate({ ...DEFAULTS, version: 'streams' });
@@ -89,7 +90,7 @@ await pause(400);
 
 // ---- scripts
 const words = scripts.map((s) => s.split(' ').length);
-check('seven scripts exist, each 35 to 60 words', scripts.length === N && words.every((w) => w >= 35 && w <= 60), words.join(' '));
+check('five scripts exist, each 35 to 60 words', scripts.length === N && words.every((w) => w >= 35 && w <= 60), words.join(' '));
 check('scripts are written for the ear: no symbols read aloud', scripts.every((s) => !/[<>=×%/_(){}#*]/.test(s)), scripts.find((s) => /[<>=×%/_(){}#*]/.test(s)));
 const about = (x) => Math.round(x);
 check(`script 1: the host queues ${queued.length} operations in about a quarter of a unit (${r2(firstWait)})`,
@@ -99,12 +100,8 @@ check(`script 2: boundary kernels end at about ${about(s1.bottom.end)}, the inte
 check(`script 3: the copy runs at about ${about(s1.copy.start)}`, scripts[2].includes(`copy runs at about ${about(s1.copy.start)}`));
 check(`script 4: the top exchange ends at about ${about(s1.exTop.end)}; the bottom one starts ${about(s1.bottomGap)} units late and outlasts the internal kernel`,
   scripts[3].includes(`until about ${about(s1.exTop.end)}`) && scripts[3].includes(`finished at about ${about(s1.bottom.end)}`) && scripts[3].includes(`starts ${about(s1.bottomGap)} units late`) && s1.exBottom.end > s1.internal.end);
-check(`script 5: NCCL's exchanges start at about ${about(nccl.iters[0].exTop.start)}, side by side`,
-  scripts[4].includes(`at about ${about(nccl.iters[0].exTop.start)}`) && about(nccl.iters[0].exBottom.start) === about(nccl.iters[0].exTop.start) && nccl.bottomGap === 0);
-check(`script 6: NVSHMEM's puts land by about ${about(Math.max(nvshmem.iters[0].exTop.end, nvshmem.iters[0].exBottom.end))}, inside the kernel`,
-  scripts[5].includes(`land by about ${about(nvshmem.iters[0].exBottom.end)}`) && nvshmem.iters[0].exBottom.end < nvshmem.iters[0].internal.end);
-check(`script 7: about 9 and a half (${r2(streams.iterTime)}) and about 7 and a half (${r2(nccl.iterTime)}, ${r2(nvshmem.iterTime)}); the host blocked most of each`,
-  scripts[6].includes('about 9 and a half') && scripts[6].includes('about 7 and a half') && Math.abs(streams.iterTime - 9.5) < 0.1
+check(`script 5: about 9 and a half (${r2(streams.iterTime)}) and about 7 and a half (${r2(nccl.iterTime)}, ${r2(nvshmem.iterTime)}); the host blocked most of each`,
+  scripts[4].includes('about 9 and a half') && scripts[4].includes('about 7 and a half') && Math.abs(streams.iterTime - 9.5) < 0.1
   && Math.abs(nccl.iterTime - 7.5) < 0.1 && Math.abs(nvshmem.iterTime - 7.5) < 0.1 && nccl.hidden && nvshmem.hidden && !streams.hidden
   && [streams, nccl, nvshmem].every((r) => r.hostBlocked / r.iterTime > 0.9));
 if (manifest) {
@@ -115,7 +112,7 @@ if (manifest) {
 
 // ---- parts and captions
 const labels = await page.$$eval(S + ' .seg button', (bs) => bs.map((b) => b.textContent.trim()));
-check('seven parts are offered, with their names', labels.length === N && LABELS.every((l, i) => labels[i] === `${i + 1}. ${l}`), labels.join(' | '));
+check('five parts are offered, with their names', labels.length === N && LABELS.every((l, i) => labels[i] === `${i + 1}. ${l}`), labels.join(' | '));
 check('there is a captions switch, off by default', !(await (await box('captions')).evaluate((e) => e.checked)));
 const audible = !!manifest?.clips?.['loop-1'];
 if (audible) check('with audio and captions off, no caption is shown', !(await hasCaption()));
@@ -189,35 +186,13 @@ check(`part 4: the host waits in lines 27, 28–30, 31, 32–34, 37, 38; the bot
   JSON.stringify({ blocked, gaps: d.gaps, h: d.headline }));
 if (out) await page.screenshot({ path: out + '-part4.png' });
 
-await press('5. NCCL');
+await press('5. Totals');
 await seek(1000);
 d = await drawn();
-const n1 = nccl.iters[0];
-check(`part 5: NCCL's exchanges start as their kernels end (${r2(n1.exTop.start)}, ${r2(n1.exBottom.start)}), in the boundary streams; no gap; the host waits only at lines 39 and 40`,
-  k('linkTop', 'exchange')?.start === r2(n1.exTop.start) && k('linkBottom', 'exchange')?.start === r2(n1.exBottom.start)
-  && k('top', 'exchange')?.start === r2(n1.exTop.start) && d.gaps.length === 0
-  && JSON.stringify(d.segs.filter((s) => s.lane === 'host' && s.kind === 'blocked').map((s) => s.line)) === '["39","40"]' && d.headline.includes('bottom gap 0.00'),
-  JSON.stringify(d.segs.filter((s) => s.kind === 'exchange')));
-if (out) await page.screenshot({ path: out + '-part5.png' });
-
-await press('6. NVSHMEM');
-await seek(1000);
-d = await drawn();
-const v1 = nvshmem.iters[0];
-const barrier = nvshmem.segs.find((s) => s.iter === 1 && s.kind === 'barrier');
-check(`part 6: one stream; puts leave at ${r2(v1.top.end)} and land by ${r2(v1.exBottom.end)}; the barrier passes at ${r2(barrier.end)}`,
-  !d.lanes.includes('top stream') && d.lanes.includes('stream') && k('linkTop', 'exchange')?.start === r2(v1.top.end) && k('linkBottom', 'exchange')?.end === r2(v1.exBottom.end)
-  && k('internal', 'barrier')?.end === r2(barrier.end) && d.headline.includes(r2(barrier.end)),
-  JSON.stringify({ lanes: d.lanes, h: d.headline }));
-if (out) await page.screenshot({ path: out + '-part6.png' });
-
-await press('7. Totals');
-await seek(1000);
-d = await drawn();
-check('part 7: the three versions\' iteration and host-blocked times are the model\'s',
+check('part 5: the three versions\' iteration and host-blocked times are the model\'s',
   JSON.stringify(d.totals) === JSON.stringify([streams, nccl, nvshmem].map((r) => [r.input.version, r2(r.iterTime), r2(r.hostBlocked)])),
   JSON.stringify(d.totals));
-if (out) await page.screenshot({ path: out + '-part7.png' });
+if (out) await page.screenshot({ path: out + '-part5.png' });
 
 // ---- the end
 await seek(975);

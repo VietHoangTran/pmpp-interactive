@@ -1,7 +1,7 @@
 // Browser check for section 17.2 "Formats decide the kernel": the format explorer (every tab,
 // stepping, the ELL loop and stride switches, the hybrid's K, the COO order, editing the matrix,
 // hovering), the "Two threads, one y[0]" stepper, the CSR prediction, the "open in the explorer"
-// buttons, the four snippets, the comparison table, the narrated scene "Pad, turn, flatten"
+// buttons, the three snippets, the comparison table, the narrated scene "Pad, turn, flatten"
 // and some questions. Expected values come from the model, src/sim/sparse.ts, imported inside the
 // page through the app's own module server (it imports its neighbours without file extensions,
 // which Node cannot resolve on its own). Passes with or without narration audio.
@@ -215,7 +215,7 @@ if (out) await page.screenshot({ path: out + '-stepper.png' });
 // ---------------------------------------------------------------- code
 const codes = await page.$$eval('.code', (els) => els.map((e) => ({ tab: e.querySelector('.tabs button')?.textContent, status: e.querySelector('.status')?.textContent ?? '', hl: [...e.querySelectorAll('.ln.hl')].map((l) => l.textContent.trim()), text: e.querySelector('pre').textContent })));
 const byTab = Object.fromEntries(codes.map((c) => [c.tab, c]));
-check('four snippets are shown, each with its verification status', ['spmv_coo.cu', 'spmv_csr.cu', 'spmv_ell.cu', 'spmv_csc.cu'].every((t) => byTab[t]?.status.includes('emulator-checked and front-end-checked')), JSON.stringify(Object.keys(byTab)));
+check('three snippets are shown (CSC is named in the prose, not shown), each with its verification status', ['spmv_coo.cu', 'spmv_csr.cu', 'spmv_ell.cu'].every((t) => byTab[t]?.status.includes('emulator-checked and front-end-checked')) && !byTab['spmv_csc.cu'], JSON.stringify(Object.keys(byTab)));
 check('the shown files are the snippets, without their header comments', codes.every((c) => !c.text.trim().startsWith('//')) && byTab['spmv_ell.cu'].text.includes('spmv_ell_full_kernel'));
 const ellHl = byTab['spmv_ell.cu'].hl;
 check('ELL highlights the index line, the accumulate and the pad test', ellHl.filter((l) => l === 'unsigned int i = t*ellMatrix.stride + row;').length === 2

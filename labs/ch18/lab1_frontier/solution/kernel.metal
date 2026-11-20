@@ -19,6 +19,7 @@
 //     atomic_store_explicit: the data race of the page's line 29 cannot be written here (C4).
 //   - The sentinel is numeric_limits<uint>::max(), the same value as UINT_MAX (C5).
 //   - 256 private slots are 1 KB of threadgroup memory.
+//   - `vertex` is a reserved word in MSL (it marks a vertex shader), so the vertex is vertexId.
 #include <metal_stdlib>
 using namespace metal;
 
@@ -33,9 +34,9 @@ constant uint UNVISITED = numeric_limits<uint>::max();
 
 // region: visit
 // Fig. 18.14. True for exactly one of the threads that try to visit the same vertex.
-bool visit_vertex(device atomic_uint* level, uint vertex, uint currLevel) {
+bool visit_vertex(device atomic_uint* level, uint vertexId, uint currLevel) {
     uint expected = UNVISITED;   // fresh on every call: a real failure writes the winner's level here
-    while (!atomic_compare_exchange_weak_explicit(&level[vertex], &expected, currLevel,
+    while (!atomic_compare_exchange_weak_explicit(&level[vertexId], &expected, currLevel,
                                                   memory_order_relaxed, memory_order_relaxed)) {
         if (expected != UNVISITED) {
             return false;        // another thread visited it first
@@ -69,8 +70,8 @@ kernel void bfs_privatised(device const uint*  srcPtrs         [[buffer(0)]],
 
     // Perform BFS
     if (i < numPrevFrontier) {
-        uint vertex = prevFrontier[i];
-        for (uint edge = srcPtrs[vertex]; edge < srcPtrs[vertex + 1]; ++edge) {
+        uint vertexId = prevFrontier[i];
+        for (uint edge = srcPtrs[vertexId]; edge < srcPtrs[vertexId + 1]; ++edge) {
             uint neighbor = dst[edge];
             if (visit_vertex(level, neighbor, currLevel)) {
                 uint currFrontierIdx_s = atomic_fetch_add_explicit(&numCurrFrontier_s, 1u, memory_order_relaxed);

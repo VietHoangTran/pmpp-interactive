@@ -1,1 +1,0 @@
-With NVSHMEM there is one kernel in one stream. Threads that compute a boundary value put it straight into the neighbour's halo, while the other blocks keep computing. The puts land by about 5, well inside the kernel's run. A barrier on the stream then makes sure every put has arrived before the next iteration.

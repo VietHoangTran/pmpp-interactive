@@ -77,15 +77,15 @@ export function VisitStepper() {
       }
     >
       <div className="row" style={{ marginBottom: '0.7rem' }}>
-        <label className="field">
+        <label className="field" style={{ maxWidth: '100%' }}>
           Scenario
-          <select value={scId} onChange={(e) => { setScId(e.target.value as 'book' | 'trap'); restart(); }} aria-label="Scenario">
+          <select value={scId} onChange={(e) => { setScId(e.target.value as 'book' | 'trap'); restart(); }} aria-label="Scenario" style={{ maxWidth: '100%' }}>
             {Object.values(SCENARIOS).map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
           </select>
         </label>
-        <label className="field">
+        <label className="field" style={{ maxWidth: '100%' }}>
           Visit code
-          <select value={formId} onChange={(e) => { setFormId(e.target.value as FormId); restart(); }} aria-label="Visit code">
+          <select value={formId} onChange={(e) => { setFormId(e.target.value as FormId); restart(); }} aria-label="Visit code" style={{ maxWidth: '100%' }}>
             {FORM_IDS.map((id) => <option key={id} value={id}>{FORMS[id].label}</option>)}
           </select>
         </label>
@@ -110,9 +110,14 @@ export function VisitStepper() {
         ) : null}
       </div>
 
+      {/* The listing takes the bench's full width, so its longest lines (the signature, the loop
+          header) show whole and the stepped line is never the part cut off. */}
+      <div data-visit-code>
+        <Code tabs={[{ label: form.region, code: form.code.join('\n'), tiers: BFS_TIERS, status: 'emulator-checked in forward and reverse order' }]} highlight={last ? [last.line + 1] : []} />
+      </div>
       <div className="cols" style={{ gridTemplateColumns: 'minmax(0, 6fr) minmax(0, 5fr)' }}>
         <div style={{ minWidth: 0 }}>
-          <Code tabs={[{ label: form.region, code: form.code.join('\n'), tiers: BFS_TIERS, status: 'emulator-checked in forward and reverse order' }]} highlight={last ? [last.line + 1] : []} />
+          <div style={{ overflowX: 'auto' }}>
           <table className="threads" aria-label="Threads">
             <thead>
               <tr><th>thread on</th><th>neighbours</th><th>now at</th><th>e</th><th /></tr>
@@ -144,6 +149,7 @@ export function VisitStepper() {
               })}
             </tbody>
           </table>
+          </div>
         </div>
         <div style={{ minWidth: 0 }}>
           <BfsGraph

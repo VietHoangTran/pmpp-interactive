@@ -1,5 +1,5 @@
 import { Ask, Predict, type Question } from '../../components/Ask';
-import { Aside, Beyond, Simplification, Source, Today } from '../../components/notes';
+import { Beyond, Simplification, Source, Today } from '../../components/notes';
 import { useReports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import { BinnedBlockScene } from './BinnedBlockScene';
@@ -42,24 +42,24 @@ export const questionsS215: Record<string, Question> = {
     id: 'ch21/21.5/q-fully',
     prompt: (
       <>
-        Super circle of radius 2b on square bins of side b, centred on the middle bin. Of the 21 bins in the list, how many
-        lie entirely inside the circle?
+        Square bins of side b, and a super circle of radius 2.4 b centred on the middle bin. How many bins does the list
+        hold, and how many of them lie entirely inside the circle?
       </>
     ),
     fixedOrder: true,
     options: [
-      { label: '5: the centre bin and its four edge neighbours.', correct: true },
-      { label: '9: the whole 3 × 3 block around the centre, as Fig. 21.14 says.', why: 'The diagonal neighbours reach 2.12 b from the centre, past a radius of 2 b.' },
-      { label: '13: the 3 × 3 block and the four bins two steps out along the axes.', why: 'The bins two steps out reach 2.55 b; they are only partly inside.' },
-      { label: '21: every bin in the list is inside the circle.', why: 'In the list means touched, not covered.' },
+      { label: '21, of which 9 are fully inside, as Fig. 21.14 labels its list.', why: 'The corner bins of the 5 × 5 square start to touch at about 2.12 b, the same radius at which the 3 × 3 block becomes fully covered. Past it the list holds 25.' },
+      { label: '25, of which 5 are fully inside: the centre bin and its four edge neighbours.', why: 'The diagonal neighbours\' farthest corners are about 2.12 b from the centre, inside 2.4 b, so they are fully inside too.' },
+      { label: '25, of which 9 are fully inside: the whole 5 × 5 square touches, and the 3 × 3 block is covered.', correct: true },
+      { label: '29, of which 9 are fully inside: the bins three steps out along the axes join the list.', why: 'Their nearest point is 2.5 b from the centre, just outside the circle.' },
     ],
     explain: (
       <p>
-        A bin is fully inside when its farthest corner is: √(1.5² + 0.5²) ≈ 1.58 for an edge neighbour, √(1.5² + 1.5²) ≈
-        2.12 for a diagonal one. So at R = 2b only five bins are fully inside, although 21 are touched. The figure's "9 fully
-        covered + 12 partially covered" holds only at R ≈ 2.12 b, which is also the radius at which the four corner bins
-        start to touch. The total of 21 is the number that matters for the kernel. Set the explorer to R = 2 bin widths and
-        read its counts.
+        A bin is in the list when its nearest point is inside the circle, and fully inside when its farthest corner is. The
+        corner bins of the 5 × 5 square start at √(1.5² + 1.5²) ≈ 2.12 b, so they are in; three steps out along an axis
+        starts at 2.5 b, so that is out: 25 bins. A diagonal neighbour ends at 2.12 b, fully inside; a bin two steps out
+        along an axis ends at √(2.5² + 0.5²) ≈ 2.55 b, only partly: 9 fully inside. Set the cutoff to 1.70 bin widths (R ≈
+        2.41) to check. At R = 2 b the counts are 21 and 5, so the figure's 21 with 9 fully inside mixes the two cases.
       </p>
     ),
     source: 'ch. 21 Fig. 21.14, p. 526; notes/today/ch21-facts.md E4',
@@ -80,8 +80,10 @@ export const questionsS215: Record<string, Question> = {
     explain: (
       <p>
         Every thread scans the same staged atoms but tests each against the cutoff around its own point, and the list was
-        built to cover the block's farthest point. In the book's 3D case only about a quarter of the tests pass, so most
-        bins split most warps. The explorer's mask panel shows one staged atom across the block's lanes.
+        built to cover the block's farthest point. An atom near the edge of some points' cutoffs is accepted by some lanes
+        and rejected by others. In the book's 3D case only about a quarter of the tests pass (ch21-facts E4); how many
+        staged atoms actually split a warp depends on where they sit, and the mask panel counts them for the chosen block
+        and group width.
       </p>
     ),
     source: 'ch. 21 Exercise 5, p. 528; pp. 524–526; notes/today/ch21-facts.md E4',
@@ -165,9 +167,9 @@ function ThreadgroupMemory() {
   const { reports } = useReports();
   const v = Number(reports.metal?.device?.maxThreadgroupMemoryLength);
   return Number.isFinite(v) && v > 0 ? (
-    <>your Mac reports {v.toLocaleString('en-US')} bytes per threadgroup (<code>maxThreadgroupMemoryLength</code>)</>
+    <>your Mac reports {v.toLocaleString('en-US')} bytes per threadgroup</>
   ) : (
-    <>run <code>python3 labs/pmpp.py doctor</code> to see what your Mac allows per threadgroup</>
+    <><code>python3 labs/pmpp.py doctor</code> shows your size</>
   );
 }
 
@@ -201,24 +203,20 @@ export function S215() {
         result. If a slight change in the result is acceptable, more aggressive options open up. <b>Cutoff summation</b> is
         one: a contribution falls off with distance, so only the atoms within a fixed radius of a grid point are summed
         directly, and the many distant, small contributions are handled together by a separate, cheaper method. The work
-        then grows linearly with the volume.
+        then grows linearly with the volume. The book leaves that cheaper method undescribed; VMD's own GPU page names
+        one, multilevel summation (ch21-facts A1).
       </p>
       <Source section="21.5" pages="523–524" figs="Fig. 21.11" />
-      <Beyond>
-        <p>
-          The book leaves that far-field method undescribed. VMD's own GPU page names multilevel summation, whose work grows
-          with atoms plus grid points rather than their product (ch21-facts A1). The explorer below simply drops the far
-          field and shows how much that is.
-        </p>
-      </Beyond>
       <p>
         Sequentially, the cutoff is easy: take one atom at a time and visit only the grid points within the radius of it.
-        Grid points live in an array indexed by coordinate, so finding them is a little arithmetic. But that loop is
-        atom-centric. It is the scatter of section 21.2 again, and it does not parallelise well. The parallel kernel has to
-        be grid-centric: one thread per grid point, finding the atoms that matter to it.
+        Grid points live in an array indexed by coordinate, so finding them is a little arithmetic.
       </p>
       <Source section="21.5" pages="524" />
       <Ask q={questionsS215['ch21/21.5/q-atom-centric']} />
+      <p>
+        That loop is atom-centric, and it does not parallelise well. The parallel kernel has to be grid-centric: one thread
+        per grid point, finding the atoms that matter to it.
+      </p>
 
       <h2>Bins and neighbourhoods</h2>
       <p>
@@ -250,11 +248,14 @@ export function S215() {
           </p>
         )}
       </Predict>
+      <p>
+        Check your count in the explorer: press "R = 2 bin widths". Then click other bins and points, pick staged atoms in
+        the mask panel and change its group width, double the box, and drag the bin capacity.
+      </p>
       <Simplification>
         <p>
-          2D: points and atoms in one plane (the atoms sit a fixed height above it only so that no distance is zero), uniform
-          random atoms, the block's points exactly one bin. The far field is dropped, not computed. Neighbour bins outside the
-          box are skipped. Tests and pairs are counted, not timed.
+          2D, uniform random atoms a fixed height above the plane, the block's points exactly one bin. The far field is
+          dropped. Bins outside the box are skipped. Lanes are grouped by the width you choose. Counted, not timed.
         </p>
       </Simplification>
       <PairsExplorer
@@ -263,23 +264,18 @@ export function S215() {
         views={['cutoff']}
         foot="Model: src/sim/cutoff.ts. Atoms (amber) live in global memory; the shaded bins are the ones this block stages in shared memory."
       />
+      <Ask q={questionsS215['ch21/21.5/q-fully']} label="Check the figure" />
       <p>
         Two of the figures need care. Fig. 21.14 says 9 bins are fully covered and 12 partly, 21 in all. The 21 is right
         over a whole range of radii, but in that range only 5 bins are fully inside; 9 holds at a single radius, about 2.12
         bin widths. And Fig. 21.13 labels its radius "cutoff distance + length of bin diagonal", the whole diagonal, where
         the text and Fig. 21.14 say half; the explorer offers both. The figure itself is a sketch, not drawn to scale. Look
         at the far-field row as well: with charges of both signs at random positions, what the cutoff drops at a point is
-        not small, which is why the book hands the far field to a separate method instead of ignoring it.
+        not small, which is why the book hands the far field to a separate method instead of ignoring it. For the book's
+        own 3D case (p. 525), 4 Å bins and a 12 Å cutoff, the explorer's 3D readout computes the list: 461 bins, 667 with
+        Fig. 21.13's radius (ch21-facts E4).
       </p>
       <Source section="21.5" pages="525–526" figs="Figs. 21.13, 21.14" />
-      <Aside>
-        <p>
-          The book's worked case (p. 525): 0.5 Å spacing and 8 × 8 × 8 blocks give 4 Å bins, with a 12 Å cutoff. Computed
-          here, the 3D list has 461 bins (147 fully inside), 667 with Fig. 21.13's radius, and about 25 % of the tested atoms
-          pass (ch21-facts E4). See the 3D readout in the explorer.
-        </p>
-      </Aside>
-      <Ask q={questionsS215['ch21/21.5/q-fully']} label="Check the figure" />
 
       <h2>The kernel</h2>
       <p>
@@ -289,15 +285,20 @@ export function S215() {
         warps diverge: some lanes accept an atom that others reject.
       </p>
       <Source section="21.5" pages="524, 526" />
-      <Aside>
+      <p>
+        The book's outline goes from "load together" straight to "each thread checks". A shared copy needs the two
+        barriers of chapter 5's tiled kernel (<a href={href('ch05', '5.4')}>section 5.4</a>): one after the load, one
+        before the next bin overwrites it. The animation shows them; they are ours, not the book's.
+      </p>
+      <Today checked="2026-11-20 (notes/today/ch05-facts.md A1, A7, B4, C1, C2; ch21-facts C1)">
         <p>
-          The book's outline goes from "load together" straight to "each thread checks". A shared copy needs the two
-          barriers of chapter 5's tiled kernel (<a href={href('ch05', '5.4')}>section 5.4</a>): one after the load, one
-          before the next bin overwrites it. The animation shows them; they are ours, not the page's.
+          Metal: <code>threadgroup</code> memory, <code>threadgroup_barrier</code>; <ThreadgroupMemory />. Atoms as{' '}
+          <code>const device float4*</code>: Apple advises <code>device</code> for variable-size data.
         </p>
-      </Aside>
+      </Today>
       <BinnedBlockScene />
       <Ask q={questionsS215['ch21/21.5/q-ex5']} label="Book exercise" />
+      <Ask q={questionsS215['ch21/21.5/q-global']} />
       <p>
         Notice where the atoms live now. In direct summation every thread read every atom of a chunk, so one small chunk in
         constant memory served the whole grid. Here each thread examines far fewer atoms, and different blocks need different
@@ -305,15 +306,6 @@ export function S215() {
         block loads a bin into shared memory once and lets all its threads read it there.
       </p>
       <Source section="21.5" pages="526–527" />
-      <Ask q={questionsS215['ch21/21.5/q-global']} />
-      <Today checked="2026-11-20 (notes/today/ch05-facts.md A1, A7, B4, C1, C2; ch21-facts C1)">
-        <p>
-          CUDA and HIP: <code>__shared__</code> and <code>__syncthreads()</code>, same spelling. Metal:{' '}
-          <code>threadgroup</code> memory and <code>threadgroup_barrier(mem_flags::mem_threadgroup)</code>; <ThreadgroupMemory />.
-          For a variable amount of data Apple advises the <code>device</code> address space over <code>constant</code>, so a
-          Metal binned kernel takes its atoms as <code>const device float4*</code>.
-        </p>
-      </Today>
 
       <h2>Bins of one size, and an overflow list</h2>
       <p>
@@ -324,15 +316,10 @@ export function S215() {
         goes on an <b>overflow list</b>. After the kernel the grid is copied back and the host runs a sequential cutoff sum
         over the overflow atoms. With under 3 % of atoms on the list, that typically takes less time than the device run, and
         if each launch handles a sub-volume, the host can process one sub-volume's overflow while the device works on the
-        next.
+        next. That works on every backend: CUDA and HIP launches, and Metal's <code>commit</code>, return before the work
+        finishes (ch02-facts A5, B3, C4).
       </p>
       <Source section="21.5" pages="527" />
-      <Today checked="2026-11-20 (notes/today/ch02-facts.md A5, B3, C4)">
-        <p>
-          That overlap rests on asynchronous launches: a CUDA or HIP kernel launch returns to the host before the kernel
-          finishes, and Metal's <code>commit</code> returns before the command buffer completes.
-        </p>
-      </Today>
       <Ask q={questionsS215['ch21/21.5/q-capacity']} />
 
       <h2>The same idea in an LLM</h2>

@@ -158,7 +158,8 @@ function Ratios() {
         <p key={s.backend} data-sorted={s.backend} data-sorted-ratio={fmt(secs(spread)! / secs(sorted)!)}>
           On {s.device} ({s.backend}), with {whose(s)}, the unchanged CSR kernel took <b>{ms(sorted)}</b> on{' '}
           <code>spread_sorted</code> against <b>{ms(spread)}</b> on <code>spread</code>: CSR time on spread over CSR time
-          on spread_sorted is {fmt(secs(spread)! / secs(sorted)!)}. Above 1, sorting the rows made CSR faster.
+          on spread_sorted is {fmt(secs(spread)! / secs(sorted)!)}. Above 1, sorting the rows made CSR faster. Below 1
+          is consistent with the cost of the sort: neighbouring threads now read <code>x</code> far apart.
         </p>
       ))}
     </>
@@ -198,6 +199,55 @@ function RaceStatus() {
         </>
       )}
     </p>
+  );
+}
+
+/** What each backend calls the pieces of the chapter's kernels (notes/today/ch17-facts.md, "Where the backends really differ"). */
+function BackendsTable() {
+  return (
+    <table className="data wide" style={{ maxWidth: '58rem' }}>
+      <thead>
+        <tr><th>For these kernels</th><th>CUDA</th><th>HIP</th><th>Metal</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>One thread per row (CSR, ELL)</td>
+          <td><code>blockIdx.x*blockDim.x + threadIdx.x</code> and a bounds check</td>
+          <td>the same source</td>
+          <td><code>[[thread_position_in_grid]]</code>; with <code>dispatchThreads</code> no thread falls outside the grid</td>
+        </tr>
+        <tr>
+          <td>Float atomic add (COO, CSC)</td>
+          <td><code>cuda::atomic_ref&lt;float, cuda::thread_scope_device&gt;</code>, <code>fetch_add(v, cuda::memory_order_relaxed)</code>; or the legacy <code>atomicAdd</code></td>
+          <td>the same spelling through libhipcxx (ROCm 10.1 and later); or <code>atomicAdd</code>, done safely, possibly as a compare-and-swap loop, unless built with <code>-munsafe-fp-atomics</code></td>
+          <td><code>atomic_fetch_add_explicit</code> on a <code>device atomic_float*</code> buffer, <code>memory_order_relaxed</code> only; Metal 3 and Apple7 or later</td>
+        </tr>
+        <tr>
+          <td>Order of float atomic adds</td>
+          <td>undefined</td>
+          <td>undefined</td>
+          <td>not documented</td>
+        </tr>
+        <tr>
+          <td>Unit that coalescing is counted in</td>
+          <td>32-byte sectors</td>
+          <td>64- or 128-byte cache lines</td>
+          <td>not documented</td>
+        </tr>
+        <tr>
+          <td>Divergence (CSR's uneven loops)</td>
+          <td>documented: masked passes per warp</td>
+          <td>documented: the EXEC mask, per wavefront</td>
+          <td>not documented</td>
+        </tr>
+        <tr>
+          <td>The book's struct of device pointers as an argument</td>
+          <td>by value; all parameters together at most 32,764 bytes</td>
+          <td>the same syntax; no size limit found</td>
+          <td>an argument buffer (Metal 2 and later)</td>
+        </tr>
+      </tbody>
+    </table>
   );
 }
 
@@ -301,6 +351,19 @@ export function Labs() {
         </p>
       </Today>
 
+      <h3>The same kernels on other backends</h3>
+      <p>
+        Your two kernels need nothing beyond a thread index. The hybrid's COO kernel, like the book's COO and CSC kernels,
+        needs a float atomic add, and that is where the backends part ways.
+      </p>
+      <Beyond>
+        <p>
+          The book uses CUDA only. Everything in this table about HIP and Metal is from notes/today/ch17-facts.md, "Where the
+          backends really differ", checked 2026-11-20.
+        </p>
+      </Beyond>
+      <BackendsTable />
+
       <h3>What the tests check</h3>
       <p>
         Run <code>python3 labs/pmpp.py run 17.1 --backend emu</code> first. Every format is built on the host from one
@@ -363,7 +426,8 @@ export function Labs() {
         Do this once your kernels pass, and before you run <code>--bench</code>. The benchmark builds four matrices with the
         same number of rows and about 16 entries per row on average, columns within ±2048 of the diagonal.{' '}
         <code>uniform</code>: every row 16 long. <code>spread</code>: lengths uniform on 1 to 31, in random order.{' '}
-        <code>spread_sorted</code>: the same rows, longest first, the sort of JDS. <code>skewed</code>: rows of 16 and one
+        <code>spread_sorted</code>: the same rows, longest first, the sort of JDS. Each row keeps its columns, so after the
+        sort neighbouring threads no longer read neighbouring parts of <code>x</code>. <code>skewed</code>: rows of 16 and one
         row in 512 of length 256. It times <code>csr</code>, <code>ell</code> (stride = <code>numRows</code>),{' '}
         <code>ell_aligned</code> (stride rounded up to a multiple of 32 floats) and, on <code>spread</code> and{' '}
         <code>skewed</code>, <code>hybrid</code> at K = 16 with its COO pass timed in.

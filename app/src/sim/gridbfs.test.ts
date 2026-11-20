@@ -205,6 +205,17 @@ describe('three barriers, three jobs', () => {
     expect(kinds.filter((k) => k === 'read')).toHaveLength(4);
     expect(kinds[kinds.length - 1]).toBe('reset');
   });
+  it('each counter event names the step that makes it, so the stepper can show the history so far', () => {
+    for (const sh of [CORRECT, { ...CORRECT, sync2: false }, EX3]) {
+      const t = run(sh, 'reverse');
+      for (const e of t.history) {
+        const s = t.steps[e.step];
+        expect(s.rank, JSON.stringify(e)).toBe(e.rank);
+        expect(s.op).toBe(e.kind === 'append' ? 'work' : e.kind);
+        expect(s.level).toBe(e.level);
+      }
+    }
+  });
   it('the stride: on the tree, level 2 has 16 elements and each of 4 threads takes 4', () => {
     const t = run(CORRECT, 'forward', TREE);
     const work2 = t.steps.filter((s) => s.op === 'work' && s.level === 3);
@@ -239,7 +250,7 @@ describe.skipIf(!clang)('the CUDA front-end check (clang, stub headers, as labs/
     }
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ch18-coop-fe-'));
     const both = path.join(dir, 'both.cu');
-    fs.writeFileSync(both, source + '\n' + fs.readFileSync(DRIVER, 'utf8'));
+    fs.writeFileSync(both, source + '\n#define PMPP_SNIPPET_APPENDED\n' + fs.readFileSync(DRIVER, 'utf8'));
     const r = spawnSync(clang!, ['-x', 'cuda', '--cuda-host-only', '-nocudainc', '-nocudalib', '-fsyntax-only', '-std=c++17',
       '-I', inc, '-I', path.join(inc, 'pmpp/emu/shim'), '-include', 'pmpp/check/cuda_stub.h', both], { encoding: 'utf8' });
     expect(r.status, r.stderr).toBe(0);
@@ -251,7 +262,7 @@ describe.skipIf(!compiler)('the snippet on the emulator agrees with the model', 
   const exe = path.join(dir, 'emu');
   const env = { ...process.env, ASAN_OPTIONS: 'detect_leaks=0' };
   it('builds', () => {
-    const cu = '#line 1 "s186_coop_swap.cu"\n' + source + '\n#line 1 "check/s186_coop_check.cu"\n' + fs.readFileSync(DRIVER, 'utf8');
+    const cu = '#line 1 "s186_coop_swap.cu"\n' + source + '\n#define PMPP_SNIPPET_APPENDED\n#line 1 "check/s186_coop_check.cu"\n' + fs.readFileSync(DRIVER, 'utf8');
     fs.writeFileSync(path.join(dir, 'all.cu'), cu);
     const t = spawnSync('python3', [path.join(repo, 'labs/tools/cu2emu.py'), path.join(dir, 'all.cu'), path.join(dir, 'all.cpp')], { encoding: 'utf8' });
     expect(t.status, t.stdout + t.stderr).toBe(0);

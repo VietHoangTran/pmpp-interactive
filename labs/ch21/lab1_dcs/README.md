@@ -152,10 +152,11 @@ Write these down first; the labs page records them.
    the four write statements of the adjacent kernel touch 64 sectors, those of the
    strided kernel 16 (ch21-facts A8, E2). But each launch reads and writes each point
    once, while the atom loop runs `chunk` times per point (E3). Our prediction, which is
-   ours and unverified, is that the gap shrinks as the chunk grows. On Metal and HIP no
-   document predicts either number: Apple documents no coalescing rule and no cost for
-   its atomics (C2, C4), and on AMD the wavefront can be 64 lanes wide and the float
-   atomics depend on a compiler flag (B1).
+   ours and unverified, is that the gap shrinks as the chunk grows. AMD documents grouping
+   a wavefront's addresses into 64- or 128-byte lines (B3, E2), which predicts the line
+   counts but not the time; there the wavefront can be 64 lanes wide and the float atomics
+   depend on a compiler flag (B1). Apple documents no coalescing rule and no cost for its
+   atomics (C2, C4).
 
 ## The benchmark
 
@@ -175,8 +176,9 @@ a rebinding.
 Each row reports the kernel (`scatter`, `gather`, `coarse_adjacent`, `coarse_strided`),
 `nx`, `ny`, the atoms, the chunk, seconds per slice, atom-point pairs per second, and the
 group width: `warpSize` on CUDA and HIP, the `dcs_coarsened` pipeline's
-`threadExecutionWidth` on Metal. The explorer on the lesson's page 21.2 offers that width
-as "yours". The numbers are measurements of your machine, not properties of the kernels.
+`threadExecutionWidth` on Metal. The explorers on the lesson's pages 21.2 and 21.5 offer
+Metal's recorded width under "Apple". The numbers are measurements of your machine, not
+properties of the kernels.
 
 ## Optional, on CUDA: see the sectors
 

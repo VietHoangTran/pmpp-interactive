@@ -51,8 +51,9 @@ export const questionsS160: Record<string, Question> = {
         two anti-diagonals before them are done. The computed cells have r and q from 1 to 1,000, so r + q runs from 2 to
         2,000: {HOOK.steps.toLocaleString('en-GB')} steps, the widest {HOOK.widest.toLocaleString('en-GB')} cells. On
         average a step has only about {Math.round(HOOK.mean)} cells, half the widest, because the anti-diagonals grow
-        and then shrink. That waste is what page <a href={href('ch16', '16.6')}>16.6</a> removes. The set of cells that
-        can run together is a <b>wavefront</b>.
+        and then shrink. Page <a href={href('ch16', '16.6')}>16.6</a> removes that waste inside each tile of a tiled
+        kernel. The fronts of tiles still grow and shrink, and shearing makes them shallower. The set of cells that can
+        run together is a <b>wavefront</b>.
       </p>
     ),
     source:
@@ -295,7 +296,8 @@ function SmallTable() {
           <tspan x={X0 + FIG.cols * CELL + 12} dy="16">nothing from each other</tspan>
           <tspan x={X0 + FIG.cols * CELL + 12} dy="28">arrows: the three inputs</tspan>
           <tspan x={X0 + FIG.cols * CELL + 12} dy="16">of the cell at step {stepAt(FIG, ...FIG_CELL)}</tspan>
-          <tspan x={X0 + FIG.cols * CELL + 12} dy="28">{FIG.steps} steps in all</tspan>
+          <tspan x={X0 + FIG.cols * CELL + 12} dy="28">{FIG.steps} steps in this</tspan>
+          <tspan x={X0 + FIG.cols * CELL + 12} dy="16">{FIG.rows} × {FIG.cols} corner</tspan>
         </text>
       </svg>
       <figcaption className="muted" style={{ fontFamily: 'var(--sans)', fontSize: '0.8rem' }}>
@@ -350,27 +352,21 @@ export function S160() {
         The chapter's two case studies, Floyd-Warshall's shortest paths and Smith-Waterman's sequence alignment, are not
         inference operations, and you will not write either one for a language model. The reason to read it is a kind of
         loop you will meet in inference code: a recurrence along the sequence, where step t needs step t − 1. The
-        recurrent state of an RWKV or Mamba layer, the gated delta rule of linear-attention models and the CTC loss are
-        all of this kind. Each is a wavefront computation, and each project picks a different way to wait between steps.
-        This chapter gives you the words to read those choices.
+        recurrent state of an RWKV or Mamba layer and the gated delta rule of linear-attention models are of this kind,
+        and so is PyTorch's CTC loss, a training objective.
       </p>
       <Beyond>
-        <p>
-          The book does not mention recurrent layers, linear attention or CTC. The link, and the code read for it, are
-          ours (ch16-facts, group D).
-        </p>
+        <p>The book mentions none of these. The link, and the code read for it, are ours (ch16-facts, group D).</p>
       </Beyond>
+      <p>
+        Each is a wavefront computation, and each project picks a different way to wait between steps: a block barrier
+        per step, one warp or SIMD-group per chain, or chunks joined by launches. This chapter gives you the words to read
+        those choices.
+      </p>
       <Today checked="2026-11-20 in the projects' source (ch16-facts D1 to D3)">
         <p>
-          PyTorch, CTC loss: <code>LossCTC.cu</code> on CUDA and <code>LossOps.metal</code> on MPS, a barrier per time
-          step.
-        </p>
-        <p>
-          llama.cpp: <code>wkv.cu</code> and <code>wkv.metal</code> (RWKV), <code>ssm-scan.cu</code> (Mamba; a warp per
-          chain in one path, chunks joined by launches in another).
-        </p>
-        <p>
-          mlx-lm: <code>kernels/gated_delta.py</code>, a SIMD-group per chain with no threadgroup barrier in the loop.
+          llama.cpp <code>wkv.cu</code>, <code>wkv.metal</code>, <code>ssm-scan.cu</code>; mlx-lm{' '}
+          <code>gated_delta.py</code>; PyTorch's CTC loss in <code>LossCTC.cu</code> and <code>LossOps.metal</code>.
         </p>
       </Today>
 

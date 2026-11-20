@@ -76,10 +76,11 @@ const model = (fn, arg) => page.evaluate(async (src, arg) => {
 await goto(page, 'ch21/21.2');
 await page.waitForSelector(E1);
 
-// ---- listings
-const tabs = await page.$$eval('.code .tabs button', (b) => b.map((x) => x.textContent.trim()));
-check('five listings: scatter, gather, Fig. 21.8 as printed, corrected, Fig. 21.10',
-  ['scatter (Fig. 21.5)', 'gather (Fig. 21.6)', 'Fig. 21.8 as printed: do not use', 'Fig. 21.8, corrected', 'blockDim.x stride (Fig. 21.10)'].every((t) => tabs.includes(t)), tabs.join(' | '));
+// ---- listings (the corrected Fig. 21.8 waits behind the erratum question)
+let tabs = await page.$$eval('.code .tabs button', (b) => b.map((x) => x.textContent.trim()));
+check('four listings before the erratum question: scatter, gather, Fig. 21.8 as printed, Fig. 21.10; the corrected one held back',
+  ['scatter (Fig. 21.5)', 'gather (Fig. 21.6)', 'Fig. 21.8 as printed: do not use', 'blockDim.x stride (Fig. 21.10)'].every((t) => tabs.includes(t)) && !tabs.includes('Fig. 21.8, corrected'), tabs.join(' | '));
+check('the fix paragraph is held back too', !(await page.$eval('.prose', (e) => e.textContent)).includes('The fix is one multiplication'));
 const listings = await page.$$eval('.code pre', (p) => p.map((x) => x.textContent));
 check('the scatter listing keeps the atomicAdd and adds the bound', listings.some((l) => l.includes('atomicAdd(&energygrid[row + i]') && l.includes('if (n >= numatoms * 4) return;')));
 check('the printed listing has 34 numbered lines with line 05 and 30 to 33 marked',
@@ -89,8 +90,8 @@ check('the printed listing has 34 numbered lines with line 05 and 30 to 33 marke
     const hl = lines.filter((l) => l.classList.contains('hl')).map((l) => Number(l.dataset.n));
     return lines.length === 34 && JSON.stringify(hl) === JSON.stringify([5, 30, 31, 32, 33]) && lines[4].textContent.includes('blockDim.x*COARSEN_FACTOR + threadIdx.x');
   }));
-check('every corrected listing carries the verification status',
-  (await page.$$eval('.code .tabs .status', (s) => s.map((x) => x.textContent))).filter((s) => s.startsWith('front-end-checked; emulator-checked (python3 labs/ch21/snippets/check.py)')).length === 4);
+const statusCount = async () => (await page.$$eval('.code .tabs .status', (s) => s.map((x) => x.textContent))).filter((s) => s.startsWith('front-end-checked; emulator-checked (python3 labs/ch21/snippets/check.py)')).length;
+check('every corrected listing shown carries the verification status (3 before the gate)', (await statusCount()) === 3);
 
 // ---- predict: lockstep
 let t = await predict('how many distinct grid addresses', 1);
@@ -112,6 +113,9 @@ const exp = await model((m) => {
     wide: { result: m.f32text(wide.potentials[21]) },
   };
 });
+const kernels1 = await page.$$eval(M1 + ' [aria-label="Kernel"] button', (b) => b.map((x) => x.textContent.trim()));
+check('the first explorer offers scatter and gather only, so it does not give the erratum away', kernels1.join(' | ') === 'scatter (21.5) | gather (21.6)', kernels1.join(' | '));
+check('the constant-address row names its 32-lane warp', (await text(M1 + ' table.threads')).includes('constant addresses per instruction of a 32-lane warp'));
 let d = await data(M1);
 check('scatter: atomicAdd needed, every point has as many writers as atoms (5), 4 constant addresses (one per lane)',
   d.kernel === 'scatter' && d.verdict === exp.sc.verdict && d.verdict === 'atomic' && Number(d.writersMax) === 5 && Number(d.writersMin) === 5 && Number(d.const) === exp.sc.const && exp.sc.const === 4, JSON.stringify(d));
@@ -164,7 +168,7 @@ check('q-why-no-atomic: the right option is accepted', t.includes('Correct.'));
 t = await answerChoice('Why accept that?', 1);
 check('q-dilemma: a wrong option is marked and explained', t.includes('Not quite.') && t.includes('trade-off'), t.slice(-300));
 t = await answerChoice('raises an error on an MPS tensor', 0);
-check('q-deterministic: the right option is accepted', t.includes('Correct.'));
+check('q-deterministic: the right option is accepted, and the explanation (not a note above it) gives the details', t.includes('Correct.') && t.includes('get_rows_back'));
 
 // ---- coarsening: prediction, the erratum gate, the coarsened explorer
 t = await predict('how many constant-memory loads does one thread make per atom', 4);
@@ -174,6 +178,11 @@ t = await answerChoice('which of its 128 points does block 0 write', 0);
 check('q-printed: points 0 to 34 is right', t.includes('Correct.'));
 await page.waitForSelector(E2);
 const M2 = E2 + ' [data-view="mapping"]';
+tabs = await page.$$eval('.code .tabs button', (b) => b.map((x) => x.textContent.trim()));
+check('after the answer: the corrected listing and the fix appear', tabs.includes('Fig. 21.8, corrected') && (await statusCount()) === 4 &&
+  (await page.$eval('.prose', (e) => e.textContent)).includes('The fix is one multiplication'), tabs.join(' | '));
+const kernels2 = await page.$$eval(M2 + ' [aria-label="Kernel"] button', (b) => b.map((x) => x.textContent.trim()));
+check('the coarsened explorer offers the three coarsened kernels', kernels2.join(' | ') === 'coarsened, as printed (21.8) | coarsened, adjacent (21.8 fixed) | coarsened, stride (21.10)', kernels2.join(' | '));
 const exp2 = await model((m) => {
   const atoms = m.seededAtoms(5, 16, 4, 1);
   const run = (kernel, over = {}) => m.mapKernel({ kernel, W: 16, H: 4, atoms, blockX: 4, blockY: 2, F: 4, ...over });
@@ -217,13 +226,13 @@ check('Exercise 2 at F = 8: 32 loads against 4, multiplications 10 (16 as writte
   lo.join() === '32,4' && mul[1] === `${exp2.c8.mul} (${exp2.c8.mulUnhoisted} as written)` && exp2.c8.mul === 10 && dv.join() === '8,8' && sq.join() === '8,8', JSON.stringify({ lo, mul, dv, sq }));
 if (out) await page.screenshot({ path: out + '-ops.png' });
 t = await answerChoice('Which per-point work stays exactly as it was?', 0);
-check('q-ex2: one division and one square root per point', t.includes('Correct.'));
+check('q-ex2: one division, one root and one addition inside the root per point; the shared addition named',
+  t.includes('Correct.') && t.includes('one addition inside the root') && t.includes('is the one coarsening shares'), t.slice(-500));
 t = await answerChoice('You raise the coarsening factor from 4 to 16', 2);
-check('q-ex3: a wrong option is explained', t.includes('Not quite.') && t.includes('blockDim.x'));
+check('q-ex3: a wrong option is explained, and the book\'s two costs (registers, coalescing) are named before Fig. 21.9\'s granularity',
+  t.includes('Not quite.') && t.includes('blockDim.x') && t.includes('more registers per thread, and the loss of coalescing') && t.includes('not discussed in the text'), t.slice(-700));
 
 // ---- coalescing: prediction and the write-statement stepper
-t = await predict('How many 32-byte sectors does that one statement touch?', 16);
-check('p-adjacent-sectors reveal: 16, and 64 for the four statements', t.includes('16.') && t.includes('64 sectors') && t.includes('That is what you had.'));
 const W1 = WS + ' [data-view="writes"]';
 const ws = await model((m) => {
   const run = (o, over = {}) => m.writeStatements({ ownership: o, F: 4, warpWidth: 32, blockX: 128, blockY: 1, rowPitch: 1024, segmentBytes: 32, ...over });
@@ -233,8 +242,14 @@ const ws = await model((m) => {
     f4: run('float4').transactions,
     wave: run('strided', { warpWidth: 64, blockX: 32, blockY: 2, segmentBytes: 128 }).statements.map((s) => s.runs),
     wave128: run('strided', { warpWidth: 64, blockX: 128, segmentBytes: 128 }).statements.map((s) => s.runs),
+    amdAdjFirst: run('adjacent', { warpWidth: 64, segmentBytes: 128 }).statements[0].access.transactions,
+    amdAdjTot: run('adjacent', { warpWidth: 64, segmentBytes: 128 }).transactions,
+    amdStr: run('strided', { warpWidth: 64, segmentBytes: 128 }).transactions,
   };
 });
+t = await predict('How many 128-byte lines does that one statement touch?', 8);
+check('p-adjacent-lines reveal (a 64-lane wavefront, 128-byte lines): the model\'s 8 per statement, 32 for four, 8 with the stride',
+  t.includes('8.') && t.includes('32 lines') && t.includes('That is what you had.') && ws.amdAdjFirst === 8 && ws.amdAdjTot === 32 && ws.amdStr === 8, JSON.stringify({ a: ws.amdAdjFirst, b: ws.amdAdjTot, c: ws.amdStr }));
 d = await data(W1);
 check('adjacent ownership: statement 1 touches 16 sectors; all four 64',
   Number(d.statement) === 0 && Number(d.transactions) === ws.adj[0] && ws.adj[0] === 16 && Number(d.total) === ws.adjTot && ws.adjTot === 64, JSON.stringify(d));
@@ -272,8 +287,7 @@ check('Apple\'s memory unit is a labelled choice', (await text(W1)).includes('Se
 // ---- the remaining questions
 t = await answerChoice('Is Fig. 21.10\'s stride still right there?', 0);
 check('q-wavefront: right option accepted', t.includes('Correct.'));
-t = await answerChoice('[[threads_per_threadgroup]]', 1);
-check('q-metal-edge: dispatchThreadgroups distractor explained', t.includes('Not quite.') && t.includes('dispatchThreadgroups'));
+check('the Metal edge-threadgroup trap lives on the lab page, not here', !(await page.$eval('.prose', (e) => e.textContent)).includes('threads_per_threadgroup'));
 t = await answerChoice('What must be true of the slice?', 0);
 check('q-ex4: 16-byte row alignment accepted', t.includes('Correct.'));
 check('the page links to lab 21.1 and to section 15.5', !!(await page.$('a[href="#/ch21/labs"]')) && !!(await page.$('a[href="#/ch15/15.5"]')));

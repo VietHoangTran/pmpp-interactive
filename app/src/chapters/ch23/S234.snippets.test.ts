@@ -3,7 +3,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { edges, program } from '../../sim/haloloop';
+import { DEFAULTS, edges, program, simulate } from '../../sim/haloloop';
+import { longestRight } from './questionText';
+import { WINDOW_NCCL, WINDOW_STREAMS, questionsS234 } from './S234';
 
 // Section 23.4 shows Fig. 23.14 (corrected) with its setup, and lines 27-44 of Fig. 23.20.
 // They are copied into S234.tsx from labs/ch23/snippets/overlap_loop.cu and nccl_exchange.cu
@@ -163,5 +165,35 @@ describe.skipIf(!clang)('the CUDA front-end check (clang, the course stub header
     fs.rmSync(dir, { recursive: true, force: true });
     expect(r.status).not.toBe(0);
     expect(r.stderr).toMatch(/expected|error/);
+  });
+});
+
+describe("the page's questions and its model claims", () => {
+  it('no right answer is strictly the longest option, JSX labels included', () => {
+    expect(longestRight(questionsS234)).toEqual([]);
+  });
+  it('NCCL and NVSHMEM specifics stay out of the review pool (the chapter is condensed)', () => {
+    expect(Object.keys(questionsS234).filter((id) => /nccl|nvshmem/.test(id))).toEqual([]);
+  });
+  it(`p-window: Fig. 23.14 hides two equal exchanges up to ${WINDOW_STREAMS.toFixed(2)}, NCCL up to ${WINDOW_NCCL.toFixed(2)}`, () => {
+    expect(WINDOW_STREAMS.toFixed(2)).toBe('2.99');
+    expect(WINDOW_NCCL.toFixed(2)).toBe('6.00');
+    const hidden = (v: 'streams' | 'nccl' | 'mpi', e: number) => simulate({ ...DEFAULTS, exTop: e, exBottom: e, version: v }).hidden;
+    expect(hidden('streams', WINDOW_STREAMS - 0.01)).toBe(true);
+    expect(hidden('streams', WINDOW_STREAMS + 0.01)).toBe(false);
+    expect(hidden('streams', 2.5)).toBe(true);
+    expect(hidden('streams', 3)).toBe(false);
+    expect(hidden('nccl', WINDOW_NCCL)).toBe(true);
+    expect(hidden('nccl', WINDOW_NCCL + 0.01)).toBe(false);
+    for (const e of [0.5, 1, 2, 4]) expect(hidden('mpi', e)).toBe(false);
+  });
+  it('dropping the reset waits never fires in Fig. 23.14 at any slider setting, and does in the NCCL loop', () => {
+    for (let i = 2; i <= 12; i += 2) for (let b = 0.5; b <= 4; b += 0.75) for (let t = 0.5; t <= 12; t += 1.5) for (let u = 0.5; u <= 12; u += 1.5)
+      for (const priority of ['equal', 'higher'] as const) for (const issue of ['boundary-first', 'internal-first'] as const) {
+        const r = simulate({ internal: i, boundary: b, exTop: t, exBottom: u, version: 'streams', defect: 'reset-waits', priority, issue });
+        expect(r.violations.some((v) => v.kind === 'reset')).toBe(false);
+      }
+    const nccl = simulate({ ...DEFAULTS, exTop: 2, exBottom: 10, version: 'nccl', defect: 'reset-waits' });
+    expect(nccl.violations.some((v) => v.kind === 'reset')).toBe(true);
   });
 });

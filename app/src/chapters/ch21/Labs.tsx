@@ -1,5 +1,5 @@
 import type { Question } from '../../components/Ask';
-import { Aside, Source, Today, type Tier } from '../../components/notes';
+import { Source, Today, type Tier } from '../../components/notes';
 import {
   BackendsAndEmulator,
   LabFiles,
@@ -230,25 +230,27 @@ export function Labs() {
           ],
         ]}
       />
-      <p>Where the lab differs from the printed listings, each difference tested:</p>
+      <p>Where the lab differs from the printed listings:</p>
       <ul>
         <li>
           Fig. 21.8's line 05 adds an unscaled <code>threadIdx.x</code> while each thread writes <code>i</code> to{' '}
           <code>i+3</code>, so neighbouring threads overlap and most of each block's points are never written (
           <a href={href('ch21', '21.2')}>21.2</a>, the erratum hunt). The provided baseline scales the index by the factor,
           as the text on p. 521 describes. The same line 05 is right in Fig. 21.10, whose ownership is strided, and your
-          kernel keeps it.
+          kernel keeps it. Tested: every case runs the corrected baseline, and{' '}
+          <code>labs/ch21/snippets/check.py</code> runs the printed line and shows it failing as 21.2 says.
         </li>
         <li>
           The slice is an <code>int k</code> and its z is <code>k * gridspacing</code>. Fig. 21.6 passes a float{' '}
           <code>z</code> and computes <code>k = z / gridspacing</code>, which truncates, and Figs. 21.3 and 21.4 index the
           slice two other ways. The sizes are <code>nx</code> and <code>ny</code> where the book passes a{' '}
-          <code>dim3 grid</code>.
+          <code>dim3 grid</code>. Tested: the slice offset, by the sentinel cases below.
         </li>
         <li>
           No listing tests a bound, and Fig. 21.5 has no atom count at all: the threads past the end of a partial chunk
           would add atoms the previous chunk left in constant memory. Here the grid is not padded to whole blocks, so every
-          kernel tests its bounds, the coarsened one once per point.
+          kernel tests its bounds, the coarsened one once per point. Tested: by the overhanging slices and the partial
+          chunk below.
         </li>
         <li>
           The chapter does not name the call that fills constant memory; it is <code>cudaMemcpyToSymbol</code>. The
@@ -267,6 +269,13 @@ export function Labs() {
         half-way between two slice planes, so no distance is zero. A GPU also runs 1000 × 333 with 2,000 atoms in chunks
         of 1,024. All four kernels run every case, and gather and coarsened must also agree with each other.
       </p>
+      <Today checked="2026-11-20 (notes/today/ch21-facts.md A10, B2, C3)">
+        <p>
+          Why a tolerance: CUDA's <code>/</code> and <code>sqrtf</code> are correctly rounded by default; HIP reports
+          differences within 1 ULP of the C++ library; Metal's fast math, the compiler default, gives x / y within 2.5 ulp
+          and computes sqrt as x·rsqrt(x).
+        </p>
+      </Today>
       <p>
         What each backend can catch matters here more than in most labs. The emulator runs one thread at a time and never
         interrupts a <code>+=</code> half-way, so it cannot see a missing atomic: a scatter kernel with a plain{' '}
@@ -293,15 +302,13 @@ export function Labs() {
         buffer as <code>device float*</code>. Launch the coarsened kernel with <code>dispatchThreadgroups</code>, whole
         threadgroups of <code>BLOCK_X × BLOCK_Y</code>, and read its stride from{' '}
         <code>[[dispatch_threads_per_threadgroup]]</code>: <code>dispatchThreads</code> would trim the edge threadgroups,
-        and a trimmed group's missing threads own points that nobody computes (
-        <a href={href('ch21', '21.2')}>21.2</a> has a question on it).
+        and a trimmed group's missing threads own points that nobody computes. A trimmed group also reports its smaller
+        size in <code>[[threads_per_threadgroup]]</code>, so a stride read from there is wrong at the edge.
       </p>
       <Today checked="2026-11-20 (notes/today/ch21-facts.md C1, C2; infra-facts C1, C6; ch05-facts C4, C5; ch02-facts C9)">
         <p>
-          Metal: float atomics take an atomic type and need Apple7 (M1) or later. Apple documents no constant cache and no
-          size limit behind <code>constant</code> buffers. An edge threadgroup of <code>dispatchThreads</code> is smaller,
-          and <code>[[threads_per_threadgroup]]</code> reports its actual size. Dispatches of one compute encoder run in
-          order and see each other's writes.
+          Float atomics need an atomic type and Apple7 (M1) or later. No constant cache is documented. An edge
+          threadgroup of <code>dispatchThreads</code> is smaller. Dispatches of one encoder see each other's writes.
         </p>
       </Today>
       <p>
@@ -311,9 +318,8 @@ export function Labs() {
       </p>
       <Today checked="2026-11-20 (notes/today/infra-facts.md B1, B5; ch21-facts B1)">
         <p>
-          HIP compiles float <code>atomicAdd</code> as a safe operation, possibly a compare-and-swap loop, unless built
-          with <code>-munsafe-fp-atomics</code>; RDNA1 and CDNA1 have no hardware float atomic add. AMD documents no size
-          for constant memory, and its scalar cache helps only reads that are the same across the wavefront.
+          HIP's float <code>atomicAdd</code> is a safe operation, possibly a compare-and-swap loop, unless built with{' '}
+          <code>-munsafe-fp-atomics</code>. AMD documents no constant-memory size.
         </p>
       </Today>
 
@@ -322,16 +328,11 @@ export function Labs() {
         Do this once your kernels pass. Comparison A times scatter against gather on a 256 × 256 slice with 1,024 atoms in
         chunks of 256; it is kept small because scatter has one thread per atom and each one walks the whole slice.
         Comparison B times gather, the provided adjacent kernel and your strided kernel on a 1024 × 1024 slice with 4,096
-        atoms, at chunks of 64, 256, 512 and 1,024. Every time is one whole slice, all chunks included, the best of five.
-        Write down two predictions before you run <code>--bench</code>.
+        atoms, at chunks of 64, 256, 512 and 1,024. Chunk 512 is 8 KB of atoms, the constant-cache working set per SM
+        that NVIDIA documents (ch21-facts A5); whether anything changes there is not documented. Every time is one whole
+        slice, all chunks included, the best of five. Write down two predictions before you run <code>--bench</code>.
       </p>
       <Source section="21.2, 21.4" pages="518, 521–522" />
-      <Aside>
-        <p>
-          Chunk 512 is 8 KB of atoms, the constant-cache working set per SM that NVIDIA documents (ch21-facts A5). Whether
-          anything changes there is not documented; comparison B is where you would see it.
-        </p>
-      </Aside>
       <LabPrediction
         id="ch21/labs/p-scatter"
         prompt={
@@ -369,8 +370,8 @@ export function Labs() {
             Above 1, the strided kernel was faster. On NVIDIA the documented rule gives 64 sectors for the adjacent
             kernel's four write statements per warp and 16 for the strided kernel's. But a launch reads and writes each
             point once while its atom loop runs <code>chunk</code> times per point, so our own prediction, unverified, is
-            that the gap shrinks as the chunk grows. On Metal and HIP no document predicts either number: Apple documents
-            no coalescing rule. Neighbouring sizes can differ by a few per cent between runs; run the benchmark twice before
+            that the gap shrinks as the chunk grows. AMD documents grouping into 64- or 128-byte lines (ch21-facts B3, E2),
+            which predicts the line counts but not the time. Apple documents no coalescing rule. Neighbouring sizes can differ by a few per cent between runs; run the benchmark twice before
             you read much into a small gap.
           </>
         }
@@ -391,7 +392,8 @@ export function Labs() {
       <p>
         A pair is one atom and one point, so pairs per second compares kernels on slices of different sizes. The group
         width is <code>warpSize</code> on CUDA and HIP and, on Metal, the <code>threadExecutionWidth</code> of the coarsened
-        pipeline; the write-statement explorer on <a href={href('ch21', '21.2')}>21.2</a> offers it as yours. On CUDA,
+        pipeline; the write-statement explorer on <a href={href('ch21', '21.2')}>21.2</a> and the mask panel on{' '}
+        <a href={href('ch21', '21.5')}>21.5</a> offer Metal's recorded width under "Apple". On CUDA,
         Nsight Compute's sectors per request for the global stores of your kernel and of the adjacent one shows the
         difference the model predicts; for 32-bit accesses by a full warp the optimum is 4 (ch21-facts A8). Nothing here
         ran on a CUDA device.

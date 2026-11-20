@@ -309,6 +309,7 @@ export function S210() {
         Molecules play no part in LLM inference, and the domain gets one paragraph here. What transfers is the sequence
         of four decisions the book makes about one all-pairs sum:
       </p>
+      <Source section="21 (opening), 21.6" pages="513, 527–528" />
       <ul>
         <li>
           <b>Who owns each output.</b> A thread per atom scatters its contributions over the grid and needs an atomic
@@ -329,7 +330,6 @@ export function S210() {
           <a href={href('ch21', '21.5')}>21.5</a>).
         </li>
       </ul>
-      <Source section="21 (opening), 21.6" pages="513, 527–528" />
       <Aside>
         <p>
           The opening (p. 513) lists a "gather-to-scatter transformation" among the chapter's techniques. The chapter
@@ -342,8 +342,12 @@ export function S210() {
       <p>
         VMD is a program for displaying, animating and analysing models of biomolecules. One thing it computes is an
         electrostatic potential map, used for example to find where ions fit around a molecule before a
-        molecular-dynamics simulation. The potential at grid point <i>j</i> is a sum over all atoms of each atom's
-        charge divided by its distance to the point:{' '}
+        molecular-dynamics simulation.
+      </p>
+      <Source section="21.1" pages="513–514" figs="Fig. 21.2, p. 515" />
+      <p>
+        The potential at grid point <i>j</i> is a sum over all atoms of each atom's charge divided by its distance to
+        the point:{' '}
         <span style={{ whiteSpace: 'nowrap' }}>
           <i>V</i>
           <sub>j</sub> = Σ<sub>i</sub> <i>q</i>
@@ -354,7 +358,6 @@ export function S210() {
         grid points. That is why the computation has traditionally run as a batch job, and why making it fast enough to
         use interactively was worth a GPU.
       </p>
-      <Source section="21.1" pages="513–514" figs="Fig. 21.2, p. 515" />
       <Today checked="2026-11-20 (notes/today/ch21-facts.md, A1)">
         <p>
           VMD is still released: version 2.0.0 came out on 2026-03-25, with a Linux build that uses CUDA. Its GPU page
@@ -392,7 +395,7 @@ export function S210() {
         No kernel in this chapter forms that matrix. Each pair's contribution is computed and added straight into a
         sum: into a register in the gather kernels, into the grid through an atomic in the scatter kernel. A fused
         attention kernel avoids writing its score matrix for the same reason, though softmax makes it harder there:
-        chapter 20 builds one.
+        chapter 20 builds one (<a href={href('ch20', '20.5')}>§20.5</a>).
       </p>
 
       <h2>The chapter in this course</h2>

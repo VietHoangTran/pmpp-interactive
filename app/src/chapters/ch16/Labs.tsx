@@ -213,8 +213,9 @@ export function Labs() {
       <p>
         Part (b), sheared tiles. Each tile row slides one column further left than the row above, so every step inside a
         tile is a full anti-diagonal of W cells and a tile takes W steps. <code>hyInitTile</code> zeroes the tile behind a
-        barrier; <code>hyLoadN</code>, <code>hyLoadW</code> and <code>hyLoadNW</code> read stored columns q_tile − 1, q_tile
-        − 1 and q_tile − 2 (the two the book leaves to you on p. 394 are the question on page 16.6);{' '}
+        barrier; <code>hyLoadN</code>, <code>hyLoadW</code> and <code>hyLoadNW</code> read the neighbours from the tile,
+        stored as a square (work out which stored columns: the book leaves two of them to you on p. 394, and the question
+        on page 16.6 walks through one);{' '}
         <code>swHyperKernel</code> puts each tile row two tile columns behind the row above, with{' '}
         <code>tile_col = d − 2·tile_row</code> and the last tile column included; <code>hyStoreTile</code> skips cells
         outside the table on every side. <code>launchSwHyper</code> launches exactly the tiles of each of the 3T − 1

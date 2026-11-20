@@ -72,7 +72,7 @@ const J_EX1 = toJDS(EXERCISE1);
 
 /** One warp over uniform rows of 16 floats: CSR's sector requests and distinct sectors, and ELL's. */
 const LEN = 16;
-const WARP = 32;
+const WARP = 32; // NVIDIA's warp width; the question says it is NVIDIA's model (ch06-facts A2)
 const csrIter = (t: number) => warpAccess(Array.from({ length: WARP }, (_, l) => (LEN * l + t) * 4), 4, 32);
 const ellIter = (t: number) => warpAccess(Array.from({ length: WARP }, (_, l) => (t * WARP + l) * 4), 4, 32);
 const ITERS = Array.from({ length: LEN }, (_, t) => t);
@@ -175,7 +175,8 @@ export const questionsWrap: Record<string, Question> = {
     id: 'ch17/wrap/q-csr-sectors',
     prompt: (
       <>
-        Uniform rows of {LEN} floats in CSR, the array starting on a 32-byte boundary. A warp of {WARP} threads runs its{' '}
+        On an NVIDIA GPU ({WARP}-thread warps, 32-byte sectors, ch06-facts A2): uniform rows of {LEN} floats in CSR, the
+        array starting on a 32-byte boundary. A warp of {WARP} threads runs its{' '}
         {LEN} iterations; in iteration <code>t</code>, thread <code>l</code> reads <code>value[{LEN}*l + t]</code>.
         Counted per instruction, each iteration touches {csrIter(0).transactions} sectors, {SECTORS.csrRequests} sector
         requests in all. How many <em>distinct</em> 32-byte sectors of <code>value</code> do those {LEN} iterations touch?
@@ -330,7 +331,7 @@ export function Wrap() {
       <h2>A mixed check</h2>
       <p>
         These draw on the whole chapter and on situations the pages did not show.
-        {asked ? ` So far in this chapter you have answered ${right} of ${asked} questions correctly on the first recorded try.` : ''}
+        {asked ? ` So far in this chapter you have answered ${right} of ${asked} questions correctly, counting your latest answer to each.` : ''}
       </p>
       <Beyond>
         <p>
@@ -438,8 +439,9 @@ export function Wrap() {
           row 1.
         </li>
         <li>
-          The 1000 × 1000 example (pp. 412–413) gives the other rows "fewer than 10" non-zeros, which cannot add up to 1%
-          beside a row of 200. Page 17.5 keeps the 1%; the ratio is 19.05, which the book rounds to 20.
+          The 1000 × 1000 example (pp. 412–413) gives the other rows "fewer than 10" non-zeros, which by our arithmetic
+          cannot add up to 1% beside a row of 200: 999 × 9 + 200 = 9,191, short of 10,000. Page 17.5 keeps the 1%; the
+          ratio is 19.05, which the book rounds to 20.
         </li>
         <li>
           p. 416 sorts the rows "in increasing order"; the paragraph before it and Fig. 17.14 sort longest first, which this

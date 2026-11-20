@@ -1,0 +1,96 @@
+{
+ "model": "eleven_v4",
+ "voice": "tnSpp4vdxKPjI9w0GnoV",
+ "clips": {
+  "neighbours-1": {
+   "file": "neighbours-1.mp3",
+   "sha256": "9574efbe1c38b570a0cd614d5b4d924791b1d77540303fa614ba5a1d4e5c0be3",
+   "duration": 19.84,
+   "bytes": 335653,
+   "generated": "2026-11-20",
+   "model": "eleven_v4",
+   "take": 1
+  },
+  "neighbours-2": {
+   "file": "neighbours-2.mp3",
+   "sha256": "0e9d828ea7f7838a701b1f0e24acb7430ea930a2fb30f895bde290553e9f3a38",
+   "duration": 20.56,
+   "bytes": 347356,
+   "generated": "2026-11-20",
+   "model": "eleven_v4",
+   "take": 1
+  },
+  "neighbours-3": {
+   "file": "neighbours-3.mp3",
+   "sha256": "d5af88420fa2eb13563289a41abc7f3c3870d4d33d8410d8e2b6b732d7c0534e",
+   "duration": 19.6,
+   "bytes": 331892,
+   "generated": "2026-11-20",
+   "model": "eleven_v4",
+   "take": 1
+  },
+  "neighbours-4": {
+   "file": "neighbours-4.mp3",
+   "sha256": "bd381b96faeb1f08fa5172488b2f9733514bbc41eb7816f57543add60f08acb9",
+   "duration": 19.92,
+   "bytes": 336907,
+   "generated": "2026-11-20",
+   "model": "eleven_v4",
+   "take": 1
+  },
+  "neighbours-5": {
+   "file": "neighbours-5.mp3",
+   "sha256": "11295132d941c4a9b881795e67d929d6b3427334d64996439eddc6e528e37ee5",
+   "duration": 22.48,
+   "bytes": 377867,
+   "generated": "2026-11-20",
+   "model": "eleven_v4",
+   "take": 1
+  },
+  "shear-1": {
+   "file": "shear-1.mp3",
+   "sha256": "bb39f22a1a024faf7f5c4cd35ff88eaf2771d30b05dd7ffc1012993608cec53f",
+   "duration": 18.08,
+   "bytes": 307650,
+   "generated": "2026-11-20",
+   "model": "eleven_v4",
+   "take": 1
+  },
+  "shear-2": {
+   "file": "shear-2.mp3",
+   "sha256": "30987133ac99a32c15d081effda7ba2317839ac98488ff1834190bca8cbfe3bc",
+   "duration": 17.36,
+   "bytes": 295947,
+   "generated": "2026-11-20",
+   "model": "eleven_v4",
+   "take": 1
+  },
+  "shear-3": {
+   "file": "shear-3.mp3",
+   "sha256": "e5f2a2c50ccff4fe48c5f5637888c2fe97332692ef2ea9d30c422358ad8c1e91",
+   "duration": 20.32,
+   "bytes": 343177,
+   "generated": "2026-11-20",
+   "model": "eleven_v4",
+   "take": 1
+  },
+  "shear-4": {
+   "file": "shear-4.mp3",
+   "sha256": "5cbf191b8ea8bb44b89163fc76c910cb1113c808b23fc1377aefb373516babd1",
+   "duration": 18.8,
+   "bytes": 318935,
+   "generated": "2026-11-20",
+   "model": "eleven_v4",
+   "take": 1
+  },
+  "shear-5": {
+   "file": "shear-5.mp3",
+   "sha256": "3aea95f21adb6f7a91e9db5821805ef26ca8862c5992de27cfd2dedd260744fe",
+   "duration": 19.6,
+   "bytes": 331892,
+   "generated": "2026-11-20",
+   "model": "eleven_v4",
+   "take": 1
+  }
+ }
+}

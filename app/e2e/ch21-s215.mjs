@@ -90,6 +90,7 @@ const exp = await model((m) => {
     full: m.counts(R(1.3, 'full'), 2),
     book2d: m.counts(R(3, 'half'), 2),
     r: Number(R(2 - Math.SQRT2 / 2, 'half').toFixed(3)),
+    at24: m.counts(R(1.7, 'half'), 2),
   };
 });
 await press('R = 2 bin widths');
@@ -107,6 +108,9 @@ await setSelect('Super-circle radius', 'half');
 await setRange('cutoff in bin widths', 3);
 d = await data();
 check('cutoff 3 bin widths (12 Å on 4 Å bins): the 2D list of the book\'s case has 61 bins', Number(d.list) === exp.book2d.total && exp.book2d.total === 61, JSON.stringify(d));
+await setRange('cutoff in bin widths', 1.7);
+d = await data();
+check('cutoff 1.70 (R ≈ 2.41, q-fully\'s case): 25 bins, 9 fully inside', Number(d.list) === exp.at24.total && Number(d.full) === exp.at24.full && exp.at24.total === 25 && exp.at24.full === 9, JSON.stringify(d));
 await press('R = 2 bin widths');
 if (out) await page.screenshot({ path: out + '-r2.png' });
 
@@ -121,7 +125,8 @@ const st = await model((m) => {
   const t5 = walk.list.reduce((s, x) => { for (const row of x.outcome) { s.scanned++; if (row[5] === 'accept') s.accepted++; } return s; }, { scanned: 0, accepted: 0 });
   const g = m.runGrid(w, bin, cutoff, R, false);
   const walk2 = m.blockWalk(w, bin, cutoff, R, 6, 1);
-  return { cap, overflow: bin.overflow.length, dummy: bin.dummy, tested: walk.tested, accepted: walk.accepted, t5, tests: g.tests, direct: g.directPairs, max: m.maxOccupancy(w), tested2: walk2.tested, inBox2: walk2.list.filter((x) => x.inBox).length };
+  const split = (ww) => { let real = 0, n = 0; for (const e of walk.list) e.slots.forEach((s, k) => { if (s >= 0) { real++; if (m.acceptMasks(e, k, ww).some(m.diverges)) n++; } }); return { real, n }; };
+  return { split32: split(32), cap, overflow: bin.overflow.length, dummy: bin.dummy, tested: walk.tested, accepted: walk.accepted, t5, tests: g.tests, direct: g.directPairs, max: m.maxOccupancy(w), tested2: walk2.tested, inBox2: walk2.list.filter((x) => x.inBox).length };
 });
 d = await data();
 check('default capacity is the smallest with under 3 % overflow', Number(d.capacity) === st.cap && Number(d.overflow) === st.overflow && st.overflow <= 0.03 * 128, JSON.stringify(d));
@@ -131,6 +136,20 @@ check('whole-grid pairs: direct against binned', Number(d.direct) === st.direct 
 check('the mask panel opens on an atom that splits warp 0', !!(await page.$(V + ' [data-warp="0"][data-diverges="yes"]')));
 const lanes = await page.$$eval(V + ' [data-warp="0"] svg', (x) => x.length);
 check('a block of 4 × 4 points is one warp of 16 lanes here', lanes === 16);
+check('the mask panel counts, from the model, how many staged real atoms split a warp',
+  Number((await page.$eval(V + ' [data-mask]', (e) => e.dataset.split))) === st.split32.n && Number((await page.$eval(V + ' [data-mask]', (e) => e.dataset.real))) === st.split32.real &&
+  (await text(V + ' [data-readout="split"]')).includes(`${st.split32.n} of ${st.split32.real} staged real atoms split at least one warp of 32 lanes`), JSON.stringify(st.split32));
+// group width: 8 × 8-point bins are 64 threads, two warps of 32 or one wavefront of 64
+await setSelect('Bin side', 8);
+check('64 threads at 32 lanes: two warps of 32', (await page.$$(V + ' [data-warp]')).length === 2 && (await page.$$eval(V + ' [data-warp="1"] svg', (x) => x.length)) === 32);
+await setSelect('Group width', '64');
+check('64 threads at 64 lanes (AMD Instinct): one wavefront of 64', (await page.$$(V + ' [data-warp]')).length === 1 && (await page.$$eval(V + ' [data-warp="0"] svg', (x) => x.length)) === 64 &&
+  (await text(V + ' [data-mask]')).includes('wavefront 0') && Number(await page.$eval(V + ' [data-mask]', (e) => e.dataset.groupWidth)) === 64);
+const appleOpt = await page.evaluate((sel) => [...document.querySelectorAll(sel + ' [data-mask] option')].find((o) => o.value === 'apple').textContent, V);
+check('the Apple option names a width recorded on this Mac, or says none is recorded', /Apple: \d+ lanes, from lab [\d.]+ on this Mac/.test(appleOpt) || appleOpt.includes('not recorded here yet'), appleOpt);
+await setSelect('Group width', '32');
+await setSelect('Bin side', 4);
+await press('R = 2 bin widths');
 await page.evaluate((sel) => [...document.querySelectorAll(sel + ' [data-mask] .seg button')].find((b) => b.textContent.includes('dummy'))?.click(), V);
 await pause(150);
 check('a dummy slot: tested by every lane, adds 0', (await text(V + ' [data-mask]')).includes('dummy: tested, adds 0'));
@@ -198,10 +217,10 @@ check('an 8 Å cutoff recomputes the 3D list', (await text(V + ' [data-readout="
 
 // ---- the scene is there; the remaining questions
 check('the binned-block scene is on the page', !!(await page.$('section.scene[aria-label="A block walks its neighbourhood"]')));
-t = await answerChoice('how many lie entirely inside the circle?', 1);
-check('q-fully: the book\'s 9 is marked wrong and explained', t.includes('Not quite.') && t.includes('2.12 b'));
+t = await answerChoice('a super circle of radius 2.4 b', 0);
+check('q-fully (R = 2.4 b): the figure\'s 21 with 9 is marked wrong and explained', t.includes('Not quite.') && t.includes('2.12 b') && t.includes('25'));
 t = await answerChoice('Exercise 5. How does control divergence arise', 0);
-check('q-ex5: accepted', t.includes('Correct.'));
+check('q-ex5: accepted; the explanation sends the reader to the computed count, not a claim', t.includes('Correct.') && t.includes('the mask panel counts them') && !t.includes('most bins split most warps'));
 t = await answerChoice('Why do the atoms move from constant memory to global memory', 0);
 check('q-global: accepted', t.includes('Correct.'));
 t = await answerChoice('raising it until nothing overflows', 0);

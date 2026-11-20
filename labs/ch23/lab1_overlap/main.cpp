@@ -678,39 +678,42 @@ static int bench(const pmpp::Args& a) {
                 "so that the rows below time the overlap, not this.\n", create, fresh, fill);
     pmpp::bench_row(a, "firsttouch").n("create_s", create).n("fresh_fill_s", fresh).n("fill_s", fill).n("bytes", bytes).emit();
 
-    // The GPU's part at one degree: its own account of one command buffer.
+    // The GPU's part at one degree, timed exactly as the serial row is: the provided
+    // runSerialMetal at that degree, and the GPU's own account of its command buffer.
+    // (A lone command buffer timed apart from the fill and drain gave a GPU time well
+    // above the serial row's at the same degree on the machine this lab was built on.)
     auto measure = [&](int d) -> bool {
+      MetalJob jd{m.device, m.queue, hostIn.data(), hostOut.data(), n, d};
       double best = std::numeric_limits<double>::infinity();
       for (int r = 0; r <= a.reps; ++r) {
         polyResetRecord();
-        id<MTLCommandBuffer> cb = [m.queue commandBuffer];
-        id<MTLComputeCommandEncoder> enc = [cb computeCommandEncoder];
-        encodePoly(enc, bin, 0, bout, 0, n, d);
-        [enc endEncoding];
-        [cb commit];
-        if (waitFor(cb) != 0) return false;
+        if (callSerial(jd) != 0) return false;
         if (r > 0) best = std::min(best, polyRecord().gpuSeconds);
       }
       kt[d] = best;
-      std::printf("  kernel at degree %6d: %.6f s (GPU time)\n", d, best);
+      std::printf("  kernel at degree %6d: %.6f s (GPU time inside runSerialMetal)\n", d, best);
       return true;
     };
-    std::printf("\ncalibration: fill of the whole array (CPU memcpy into a shared buffer) %.6f s\n", fill);
+    // The CPU does both the fill and the drain, one after the other on one thread, so
+    // its lane is fill + drain. The kernel is matched to that sum, the pipeline's best case.
+    const double cpu = fill + drain;
+    std::printf("\ncalibration: the CPU's lane, fill + drain of the whole array, %.6f s + %.6f s = %.6f s\n", fill,
+                drain, cpu);
     int d = 1;
     for (;; d *= 2) {
       if (!measure(d)) return 1;
-      if (kt[d] >= 2 * fill || d >= (1 << 16)) break;
+      if (kt[d] >= 2 * cpu || d >= (1 << 16)) break;
     }
-    if (d > 1 && kt[d] > fill && kt[d / 2] < fill) {
+    if (d > 1 && kt[d] > cpu && kt[d / 2] < cpu) {
       const int lo = d / 2;
-      const int guess = lo + (int)std::lround((fill - kt[lo]) / (kt[d] - kt[lo]) * (d - lo));
+      const int guess = lo + (int)std::lround((cpu - kt[lo]) / (kt[d] - kt[lo]) * (d - lo));
       if (guess > lo && guess < d && !measure(guess)) return 1;
     }
     degree = kt.begin()->first;
     for (const auto& p : kt)
-      if (std::fabs(p.second - fill) < std::fabs(kt[degree] - fill)) degree = p.first;
-    std::printf("chosen degree %d: kernel %.6f s against fill %.6f s (measured here, not assumed)\n", degree,
-                kt[degree], fill);
+      if (std::fabs(p.second - cpu) < std::fabs(kt[degree] - cpu)) degree = p.first;
+    std::printf("chosen degree %d: kernel %.6f s against fill + drain %.6f s (measured here, not assumed)\n", degree,
+                kt[degree], cpu);
   }
   std::printf("\nparts, each alone over the whole array: fill %.6f s, kernel %.6f s, drain %.6f s\n", fill, kt[degree],
               drain);

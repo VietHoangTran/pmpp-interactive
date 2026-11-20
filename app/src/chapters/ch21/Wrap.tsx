@@ -73,15 +73,15 @@ export const questionsWrap: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Nothing: one writer per output and no atomics is exactly the form this chapter recommends.',
+        label: 'Nothing: one writer per output and no atomics is exactly the form this chapter recommends over scatter.',
         why: `It pays for every pair: ${n(VOCAB)} threads each test ${PAIRS} entries, ${n(VOCAB * PAIRS)} comparisons for ${PAIRS} useful additions. Gather won in this chapter because every atom contributes to every grid point.`,
       },
       {
-        label: `Give each of the ${PAIRS} pairs a thread that adds its bias to its logit with an atomic: ${PAIRS} updates that rarely collide, against ${n(VOCAB * PAIRS)} comparisons. If the bits must not change between runs, sort the pairs by id and let one thread sum each id's run.`,
+        label: `One thread per pair, adding its bias with an atomic; if the bits must stay fixed, sort the pairs by id first.`,
         correct: true,
       },
       {
-        label: 'Make the add atomic: two threads race when a token appears in the list twice.',
+        label: 'Make the final add atomic: two threads race on one logit when a token appears in the list twice.',
         why: 'Only thread v ever writes logit v. A token that appears twice is summed inside that one thread.',
       },
       {
@@ -92,7 +92,8 @@ export const questionsWrap: Record<string, Question> = {
     explain: (
       <>
         <p>
-          The chapter prefers gather because in direct summation every input reaches every output. The scatter kernel's
+          A thread per pair makes {PAIRS} updates that rarely collide, against {n(VOCAB * PAIRS)} comparisons. The
+          chapter prefers gather because in direct summation every input reaches every output. The scatter kernel's
           lanes then collide on one point at every step, and gather does the same number of pairs without a single
           atomic. Here each input reaches one output. The gather kernel still visits every pair, with an equality test
           in place of 1/r, while a scatter does one update per input and its atomics almost never meet. Chapter 22 makes
@@ -127,13 +128,14 @@ export const questionsWrap: Record<string, Question> = {
       <p>
         {CHUNK} × {OPS_PER_ATOM} = {n(CHUNK * OPS_PER_ATOM)} operations against {RMW_BYTES} bytes, one float read and one
         written: {INTENSITY} per byte. At a chunk of 1,024 it is {n(INTENSITY_1024)}. The atom reads go to the constant
-        cache, which the book says removes most of their DRAM accesses. Chapter 5's example GPU needs 20 to leave the memory-bound regime (the book's
-        example, p. 97), so the book is right that global bandwidth does not limit this kernel (p. 519). It also means the
+        cache, which the book says removes most of their DRAM accesses. Chapter 5's example GPU, the book's H100, needs
+        about 20 to leave the memory-bound regime (p. 94), so the book is right that global bandwidth does not limit this
+        kernel (p. 519). It also means the
         write pattern, the subject of §21.4, is a small share of the time, and a smaller one the larger the chunk: the
         basis of our prediction for lab 21.1.
       </p>
     ),
-    source: 'counts from Fig. 21.6, p. 518 (notes/today/ch21-facts.md E1, E3); ch. 5 §5.1, p. 97; the reasoning is ours',
+    source: 'counts from Fig. 21.6, p. 518 (notes/today/ch21-facts.md E1, E3); ch. 5 §5.1, p. 94 (notes/ch05.md); the reasoning is ours',
   },
   'ch21/wrap/q-factor8': {
     kind: 'numeric',
@@ -213,11 +215,11 @@ export const questionsWrap: Record<string, Question> = {
     options: [
       {
         label:
-          'Their arithmetic differs: the coarsened kernel gets dx1 to dx3 by adding multiples of blockDim.x · gridspacing to dx0, where gather subtracts the atom\'s x from its own point\'s x. Each step rounds, so the distances, and the sums, can differ in the last bits.',
+          'They compute the same distances by different float operations, and each operation rounds.',
         correct: true,
       },
       {
-        label: 'They add the atoms in different orders.',
+        label: 'They add the atoms of a chunk in different orders.',
         why: 'Both walk each chunk from n = 0 upwards, and both are launched once per chunk in the same order.',
       },
       {
@@ -231,7 +233,9 @@ export const questionsWrap: Record<string, Question> = {
     ],
     explain: (
       <p>
-        <code>(x − a) + 64·s</code> and <code>(x + 64·s) − a</code> are equal as real numbers and not always as floats,
+        The coarsened kernel gets <code>dx1</code> to <code>dx3</code> by adding multiples of{' '}
+        <code>blockDim.x * gridspacing</code> to <code>dx0</code>, where gather subtracts the atom's x from its own
+        point's x. <code>(x − a) + 64·s</code> and <code>(x + 64·s) − a</code> are equal as real numbers and not always as floats,
         because each operation rounds (appendix A). On Metal, fast math adds its own looser division and square root. So
         two correct kernels agree to a tolerance, while a determinism test compares a kernel with itself. That is the
         line PyTorch draws: deterministic mode promises the same output for the same input on the same software and
@@ -344,7 +348,7 @@ export function Wrap() {
       <h2>A mixed check</h2>
       <p>
         These draw on the whole chapter and on situations the pages did not show.
-        {asked ? ` So far in this chapter you have answered ${right} of ${asked} questions correctly on the first recorded try.` : ''}
+        {asked ? ` So far in this chapter you have answered ${right} of ${asked} questions correctly, counting your latest answer to each.` : ''}
       </p>
       <Beyond>
         <p>
@@ -403,8 +407,9 @@ export function Wrap() {
               <td>3</td>
               <td>Two disadvantages of more work per thread</td>
               <td>
-                a question on <a href={href('ch21', '21.2')}>21.2</a>; the register cost also on the{' '}
-                <a href={href('ch21', 'start')}>start page</a>
+                a question on <a href={href('ch21', '21.2')}>21.2</a> (registers, with granularity from Fig. 21.9); the
+                coalescing cost in its section "Coalescing: who owns which four" and the write-statement stepper; the
+                register cost also on the <a href={href('ch21', 'start')}>start page</a>
               </td>
             </tr>
             <tr>

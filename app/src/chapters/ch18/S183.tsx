@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
 import { Aside, Beyond, Simplification, Source, Today } from '../../components/notes';
+import { useReports, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import { changedLines, region } from '../../sim/bfsvisit';
 import { functionSource } from '../../sim/toolchain';
@@ -122,16 +123,17 @@ export const questionsS183: Record<string, Question> = {
     id: 'ch18/18.3/q-hub-checks',
     prompt: (
       <>
-        A vertex with 1,000 out-edges is never in the last level during a search of 10 levels. How many times, in
-        total, do edge-centric threads read its level?
+        A vertex with 1,000 out-edges is never in the last level during a search whose host loop makes 10 kernel
+        calls, the last one finding nothing. How many times, in total, do edge-centric threads read its level?
       </>
     ),
     answer: 10000,
     unit: 'reads',
     explain: (
       <p>
-        Each of its 1,000 edges has a thread at every level, and each thread reads the source's level to find out it
-        has nothing to do: 1,000 × 10. A push thread reads it once per level, 10 in all, and skips the whole list.
+        Each of its 1,000 edges has a thread in every call, and each thread reads the source's level to find out it has
+        nothing to do: 1,000 edges × 10 calls. A push thread reads it once per call, 10 in all, and skips the whole
+        list. Ten calls is a search of 9 levels after the root, since the last call finds nothing.
       </p>
     ),
     source: 'ch. 18 §18.4, p. 438',
@@ -343,10 +345,27 @@ function Listings() {
   );
 }
 
+/**
+ * The Metal tab's status, from this machine's reports: lab 18.1's "provided frontier" test runs
+ * ref_bfs_frontier, which calls ref_visit_vertex, in every variant.
+ */
+function metalVisitStatus(reports: Reports): string {
+  const rs = (reports.metal?.results ?? []).filter((r) => r.lab === 'ch18/lab1_frontier' && r.built);
+  const tests = rs.flatMap((r) => r.tests.filter((t) => t.case.startsWith('provided frontier')));
+  if (!tests.length) return 'unverified (no run of lab 18.1 on this machine)';
+  return tests.every((t) => t.pass)
+    ? "verified on Metal (lab 18.1's provided frontier test, which calls it, passes on this machine)"
+    : 'unverified (failed on this machine)';
+}
+
+/** Code inside the backends table: allowed to wrap, so no column is squeezed by one long name. */
+const TC = ({ children }: { children: ReactNode }) => <code style={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{children}</code>;
+
 /** Fig. 18.14 as the course writes it for CUDA and HIP, and the Metal form lab 18.1 provides. */
 function VisitOnBackends() {
   const cu = useLabFile('ch18/snippets/s183_variants.cu');
   const metal = useLabFile('ch18/lab1_frontier/provided/ref_kernels.metal');
+  const { reports } = useReports();
   if (!cu || !metal) return null;
   const fig = region(cu, 'fig18_14_fixed') ?? '// region not found';
   const fn = functionSource(metal, 'ref_visit_vertex');
@@ -354,7 +373,7 @@ function VisitOnBackends() {
     <Code
       tabs={[
         { label: 'CUDA and HIP', code: fig, tiers: BFS_TIERS, highlight: changedLines(region(cu, 'fig18_14_printed') ?? '', fig), status: 'emulator-checked and front-end-checked; unverified on CUDA and HIP hardware' },
-        { label: 'Metal', tiers: BFS_TIERS, code: fn ? fn.text : '// ref_visit_vertex not found in labs/ch18/lab1_frontier/provided/ref_kernels.metal', status: 'provided with lab 18.1; its status is on the labs page' },
+        { label: 'Metal', tiers: BFS_TIERS, code: fn ? fn.text : '// ref_visit_vertex not found in labs/ch18/lab1_frontier/provided/ref_kernels.metal', status: metalVisitStatus(reports) },
       ]}
       caption={
         <>
@@ -373,7 +392,7 @@ export function S183() {
   return (
     <>
       <p>
-        This page runs one level of BFS four ways on a graph you can edit, counts the work each way does, and ends with
+        This page runs one level of BFS four ways on four small graphs, counts the work each way does, and ends with
         the step every later kernel depends on: making a vertex join the next frontier exactly once, with
         compare-and-swap, on CUDA, HIP and Metal.
       </p>
@@ -475,17 +494,13 @@ export function S183() {
       <Ask q={questionsS183['ch18/18.3/q-hub-checks']} label="Work it out" />
       <Ask q={questionsS183['ch18/18.3/q-edge-gain']} />
       <p>
-        These kernels look like chapter 17's SpMV kernels for a reason: written slightly differently, a BFS level is a
-        sparse matrix–vector product plus a few vector operations. That linear-algebra view is the basis of GraphBLAS,
-        an API specification. It lets graph code reuse sparse libraries, at the price of optimisations that only one
-        algorithm can make.
+        These kernels look like chapter 17's SpMV kernels for a reason: a BFS level can be written as a sparse
+        matrix–vector product, the view behind the GraphBLAS API. The book gives it a paragraph; this course leaves it
+        there.
       </p>
       <Source section="18.4" pages="438" />
       <Today checked="2026-11-20 (notes/today/ch18-facts.md A12)">
-        <p>
-          The current specification is the GraphBLAS C API 2.1.0. Its reference implementation, SuiteSparse:GraphBLAS
-          10.5.4, runs on the CPU; its CUDA folder is a draft that its README says is not ready to use.
-        </p>
+        <p>GraphBLAS C API 2.1.0; its reference implementation runs on the CPU, its CUDA folder a draft.</p>
       </Today>
 
       <h2>Run them side by side</h2>
@@ -504,9 +519,10 @@ export function S183() {
         prompt={<>Exercise 1 graph, root 0, pull kernel, second call (it labels level 2). How many threads loop over their incoming edges?</>}
         unit="threads"
       >
-        {() => (
+        {(v) => (
           <>
             <p>
+              {v === 5 ? 'Right: ' : v === 3 ? 'That counts the threads that label. The answer is ' : 'It is '}
               5: the unvisited vertices 1, 3, 4, 6 and 7. Of those, 3 find a parent at level 1 and label their vertex
               (1, 3 and 7); 4 and 6 have none yet.
             </p>
@@ -519,9 +535,10 @@ export function S183() {
         prompt={<>Same graph, edge-centric kernel, third call. How many threads find their edge's source at level 2?</>}
         unit="threads"
       >
-        {() => (
+        {(v) => (
           <>
             <p>
+              {v === 8 ? 'Right: ' : v === 4 ? 'That counts the threads that may label. The answer is ' : 'It is '}
               8: the edges out of 1, 3 and 7. Four of them may label: 1 → 4, 7 → 4, 3 → 6 and 7 → 6, two writers for each
               of 4 and 6, the benign duplicate again.
             </p>
@@ -537,8 +554,8 @@ export function S183() {
       </p>
       <Simplification>
         <p>
-          A step is one kernel call; nothing is timed. Every thread of a call sees the levels as they were before the
-          call, so where two threads may write the same vertex the labels written are a range. The frontier kernel
+          A step is one kernel call; nothing is timed. Blocks and warps are 4 threads wide, so a whole call fits on
+          screen. Every thread of a call sees the levels as they were before the call, so where two threads may write the same vertex the labels written are a range. The frontier kernel
           appends in one possible order (threads in index order). Figs. 18.7 to 18.13 print each vertex's final level
           even at the level 1 to 2 step; the explorer shows levels as of the current call.
         </p>
@@ -690,16 +707,22 @@ export function S183() {
         </p>
       </Today>
       <VisitOnBackends />
-      <table className="data wide" style={{ maxWidth: '58rem' }}>
+      <table className="data wide" data-backends style={{ maxWidth: '58rem', tableLayout: 'fixed', width: '100%', overflowWrap: 'anywhere' }}>
+        <colgroup>
+          <col style={{ width: '19%' }} />
+          <col style={{ width: '27%' }} />
+          <col style={{ width: '27%' }} />
+          <col style={{ width: '27%' }} />
+        </colgroup>
         <thead>
           <tr><th>Feature</th><th>CUDA</th><th>HIP</th><th>Metal</th></tr>
         </thead>
         <tbody>
           <tr>
             <td>Visit-once compare-and-swap</td>
-            <td><code>atomic_ref::compare_exchange_strong</code> (strong); legacy <code>atomicCAS</code></td>
-            <td>libhipcxx's strong form lowered to the weak built-in at block and device scope; legacy <code>atomicCAS</code> strong</td>
-            <td><code>atomic_compare_exchange_weak_explicit</code> only; spurious failure not documented either way</td>
+            <td><TC>compare_exchange_strong</TC> on an <TC>atomic_ref</TC> (strong); legacy <TC>atomicCAS</TC></td>
+            <td>libhipcxx's strong form lowered to the weak built-in at block and device scope; legacy <TC>atomicCAS</TC> strong</td>
+            <td><TC>atomic_compare_exchange_weak_explicit</TC> only; spurious failure not documented either way</td>
           </tr>
           <tr>
             <td>Expected value after a failed compare-and-swap</td>
@@ -709,15 +732,15 @@ export function S183() {
           </tr>
           <tr>
             <td>Global frontier counter</td>
-            <td><code>atomic_ref&lt;unsigned, thread_scope_device&gt;::fetch_add(1, relaxed)</code></td>
+            <td><TC>fetch_add(1, relaxed)</TC> on an <TC>atomic_ref&lt;…, device&gt;</TC></td>
             <td>same, through libhipcxx</td>
-            <td><code>atomic_fetch_add_explicit</code> on a <code>device atomic_uint*</code></td>
+            <td><TC>atomic_fetch_add_explicit</TC> on a <TC>device atomic_uint*</TC></td>
           </tr>
           <tr>
             <td>Max-unsigned sentinel</td>
-            <td><code>cuda::std::numeric_limits&lt;unsigned int&gt;::max()</code></td>
-            <td>same, through libhipcxx; or <code>UINT_MAX</code></td>
-            <td><code>numeric_limits&lt;uint&gt;::max()</code> or <code>UINT_MAX</code></td>
+            <td><TC>numeric_limits&lt;unsigned int&gt;::max()</TC> from <TC>cuda::std</TC></td>
+            <td>same, through libhipcxx; or <TC>UINT_MAX</TC></td>
+            <td><TC>numeric_limits&lt;uint&gt;::max()</TC> or <TC>UINT_MAX</TC></td>
           </tr>
         </tbody>
       </table>

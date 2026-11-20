@@ -11,10 +11,16 @@ const [BX, BY] = SCENE.block;
 const S = world.side;
 const CAP = SCENE.capacity;
 const LIST = walk.list;
+/**
+ * The block's lanes as one group. The scene's block has 16 threads (4 × 4 points), fewer than
+ * a warp or wavefront of 32 or 64 lanes (ch05-facts B5), so the whole block sits in one group
+ * whatever the backend's width; no width is assumed here.
+ */
+const GROUP = walk.points.length;
 /** Beat 3's atom: the first staged real atom that splits the warp, and a dummy slot of the same entry. */
 const DIV = (() => {
   for (const e of LIST) {
-    const k = e.slots.findIndex((s, j) => s >= 0 && diverges(acceptMasks(e, j, 32)[0]));
+    const k = e.slots.findIndex((s, j) => s >= 0 && diverges(acceptMasks(e, j, GROUP)[0]));
     const d = e.slots.findIndex((s) => s < 0);
     if (k >= 0 && d >= 0) return { e, k, d };
   }

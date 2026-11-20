@@ -9,7 +9,6 @@ import {
   toCOO,
   toCSC,
   toCSR,
-  toggleEdge,
   workBounds,
   type Graph,
   type LevelRun,
@@ -31,6 +30,9 @@ export interface ExplorerRequest {
 }
 
 const VARIANTS: Variant[] = ['push', 'pull', 'edge', 'frontier', 'diropt'];
+/** Blocks and warps of 4 threads, so that a whole call of the small graphs fits on screen. */
+const BLOCK_SIZE = 4;
+const WARP_WIDTH = 4;
 const KERNEL_SHORT: Record<string, string> = { push: 'push', pull: 'pull', edge: 'edge', frontier: 'frontier' };
 
 function itemName(c: LevelRun, t: ThreadInfo, g: Graph): string {
@@ -119,29 +121,22 @@ const roleStyle = (role: ThreadInfo['role'], selected: boolean): CSSProperties =
 
 export function LevelExplorer({ request }: { request?: ExplorerRequest | null }) {
   const [preset, setPreset] = useState(0);
-  const [g, setG] = useState<Graph>(PRESETS[0]);
+  const g: Graph = PRESETS[preset];
   const [root, setRoot] = useState(PRESETS[0].root);
   const [variant, setVariant] = useState<Variant>('push');
-  const [blockSize, setBlockSize] = useState(4);
-  const [warpWidth, setWarpWidth] = useState(4);
+  const blockSize = BLOCK_SIZE;
+  const warpWidth = WARP_WIDTH;
   const [switchCall, setSwitchCall] = useState(3);
   const [step, setStep] = useState(0);
-  const [edit, setEdit] = useState(false);
-  const [from, setFrom] = useState<number | null>(null);
-  const [note, setNote] = useState<string | null>(null);
   const [sel, setSel] = useState<number | null>(null);
   const box = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!request) return;
     setPreset(request.preset);
-    setG(PRESETS[request.preset]);
     setRoot(request.root);
     setVariant(request.variant);
     setStep(request.step);
-    setEdit(false);
-    setFrom(null);
-    setNote(null);
     setSel(null);
     box.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [request?.key]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -153,7 +148,6 @@ export function LevelExplorer({ request }: { request?: ExplorerRequest | null })
   const shown = cur ? cur.after : run.calls[0].before;
   const fresh = new Set(cur?.newVertices ?? []);
   const bounds = workBounds(g, run.d);
-  const edited = g.edges.length !== PRESETS[preset].edges.length || g.edges.some(([a, b], i) => PRESETS[preset].edges[i]?.[0] !== a || PRESETS[preset].edges[i]?.[1] !== b);
 
   // Writers per vertex in this call, for the "may be written twice" ring.
   const writers = new Map<number, number>();
@@ -170,29 +164,10 @@ export function LevelExplorer({ request }: { request?: ExplorerRequest | null })
   };
   const choosePreset = (k: number) => {
     setPreset(k);
-    setG(PRESETS[k]);
     setRoot(PRESETS[k].root);
-    setFrom(null);
-    setNote(null);
     reset();
   };
   const clickVertex = (v: number) => {
-    if (edit) {
-      if (from === null) {
-        setFrom(v);
-        setNote(`From ${v}: now click the destination.`);
-      } else if (from === v) {
-        setFrom(null);
-        setNote(null);
-      } else {
-        const had = g.edges.some(([a, b]) => a === from && b === v);
-        setG(toggleEdge(g, from, v));
-        setNote(`Edge ${from} → ${v} ${had ? 'removed' : 'added'}.`);
-        setFrom(null);
-        reset();
-      }
-      return;
-    }
     const t = cur?.threads.find((x) => x.item !== null && (cur.kernel === 'edge' ? false : x.vertex === v));
     if (t) setSel(t.t);
   };
@@ -241,23 +216,6 @@ export function LevelExplorer({ request }: { request?: ExplorerRequest | null })
                 onChange={(e) => { setSwitchCall(+e.target.value); }} />
             </label>
           ) : null}
-          <label className="field">
-            Block size
-            <span className="seg" role="group" aria-label="Block size">
-              {[2, 4, 8].map((b) => <button key={b} aria-pressed={blockSize === b} onClick={() => { setBlockSize(b); setSel(null); }}>{b}</button>)}
-            </span>
-          </label>
-          <label className="field">
-            Warp width
-            <span className="seg" role="group" aria-label="Warp width">
-              {[4, 8].map((w) => <button key={w} aria-pressed={warpWidth === w} onClick={() => setWarpWidth(w)}>{w}</button>)}
-            </span>
-          </label>
-          <label className="check">
-            <input type="checkbox" checked={edit} onChange={(e) => { setEdit(e.target.checked); setFrom(null); setNote(e.target.checked ? 'Click a source vertex, then a destination, to add or remove that edge.' : null); }} />
-            edit edges
-          </label>
-          {edited ? <button className="quiet" onClick={() => choosePreset(preset)}>Undo edits</button> : null}
         </div>
         <div className="row" style={{ marginBottom: '0.8rem' }}>
           <button onClick={() => { setStep(0); setSel(null); }} disabled={s === 0}>Restart</button>
@@ -276,7 +234,7 @@ export function LevelExplorer({ request }: { request?: ExplorerRequest | null })
               label={`${g.name}, ${cur ? 'call ' + s : 'before the first call'}`}
               look={(v) => (v === root ? 'root' : fresh.has(v) ? 'new' : shown[v] === UNVISITED ? 'unvisited' : 'visited')}
               tag={(v) => (shown[v] === UNVISITED ? null : String(shown[v]))}
-              ring={(v) => (edit && v === from ? 'pick' : (writers.get(v) ?? 0) > 1 ? 'fail' : null)}
+              ring={(v) => ((writers.get(v) ?? 0) > 1 ? 'fail' : null)}
               edgeLook={(_, a, b) =>
                 !cur || cur.kernel === 'edge' ? 'plain'
                 : cur.kernel === 'pull' ? (cur.before[b] === UNVISITED ? 'plain' : 'dim')
@@ -285,10 +243,8 @@ export function LevelExplorer({ request }: { request?: ExplorerRequest | null })
               onVertex={clickVertex}
               onGlyph={(t) => setSel(t)}
             />
-            {note ? <p className="muted" role="status" style={{ margin: '0.4rem 0 0' }}>{note}</p> : null}
             <p className="muted" style={{ margin: '0.4rem 0 0' }}>
-              n = {g.n} vertices, m = {g.edges.length} edges, d = {run.d} levels after level 0
-              {edited ? ' (edited)' : ''}. Amber: labelled, darker for this call's new labels.
+              n = {g.n} vertices, m = {g.edges.length} edges, d = {run.d} levels after level 0. Amber: labelled, darker for this call's new labels.
               {writers.size && [...writers.values()].some((x) => x > 1) ? ' A dashed red ring: more than one thread may write it.' : ''}
             </p>
           </div>
@@ -376,12 +332,11 @@ export function LevelExplorer({ request }: { request?: ExplorerRequest | null })
         {s >= total ? (
           <p data-work style={{ margin: '0.7rem 0 0' }}>
             Whole search, {total} calls: <b>{run.totals.work}</b> units of work ({run.totals.vertexWork} threads that each checked a vertex, plus {run.totals.edgeWork} edges read).
-            The table on p. 439 bounds this kernel by{' '}
-            {run.options.variant === 'push' ? <>(d + 1)·n + m = {bounds.push}</>
-              : run.options.variant === 'pull' ? <>(d + 1)·(n + m) = {bounds.pull}</>
-              : run.options.variant === 'edge' ? <>(d + 1)·m = {bounds.edge}</>
-              : run.options.variant === 'frontier' ? <>n + m = {bounds.frontier}</>
-              : <>push's {bounds.push} and pull's {bounds.pull}, depending on the switch</>}
+            {run.options.variant === 'push' ? <>The p. 439 bound O(d·n + m), counted here with the final empty call as (d + 1)·n + m = {bounds.push}</>
+              : run.options.variant === 'pull' ? <>The p. 439 bound O(d·n + d·m), counted here with the final empty call as (d + 1)·(n + m) = {bounds.pull}</>
+              : run.options.variant === 'edge' ? <>The p. 439 bound O(d·m), counted here with the final empty call as (d + 1)·m = {bounds.edge}</>
+              : run.options.variant === 'frontier' ? <>The p. 439 bound O(n + m), counted here as n + m = {bounds.frontier}</>
+              : <>The p. 439 bounds, counted here with the final empty call, are push's {bounds.push} and pull's {bounds.pull}; which one applies depends on the switch</>}
             ; one pass over every vertex and edge would be n + m = {bounds.frontier}.
           </p>
         ) : null}

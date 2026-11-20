@@ -1,7 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { DEFAULTS, LINES, SNIPPET, simulate } from '../../sim/chunkpipe';
+import { DEFAULTS, LINES, MAX_STREAMS, SNIPPET, simulate } from '../../sim/chunkpipe';
+import { longestRight } from './questionText';
+import { FALSE_DEP, FALSE_DEP_8, FALSE_DEP_FREE, TWO_STREAMS, questionsS233 } from './S233';
 
 // Section 23.3's stepper shows labs/ch23/snippets/staged_loop.cu (and, in its Metal
 // view, staged_loop_metal.mm) through useLabFile, so the lesson always shows the checked
@@ -64,5 +66,22 @@ describe('the stepper highlights the calls that issue each operation', () => {
     expect(cu.join('\n')).toContain('job.streams[list.size() % job.nStreams]');
     expect(mm.join('\n')).toContain('int o = (int)((long long)c * n / nChunks)');
     expect(mm.join('\n')).toContain('int k = j++ % K;');
+  });
+});
+
+describe("the page's questions and the numbers its text quotes", () => {
+  it('no right answer is strictly the longest option, JSX labels included', () => {
+    expect(longestRight(questionsS233)).toEqual([]);
+  });
+  it('q-twostreams: about 1.9x with 2 streams, about 2.6x with 3, and no stream count does better', () => {
+    expect(TWO_STREAMS(2).total).toBe(19);
+    expect(TWO_STREAMS(3).total).toBe(14);
+    expect(TWO_STREAMS(2).speedup.toFixed(1)).toBe('1.9');
+    expect(TWO_STREAMS(3).speedup.toFixed(1)).toBe('2.6');
+    for (let s = 1; s <= MAX_STREAMS; s++) expect(TWO_STREAMS(s).speedup).toBeLessThanOrEqual(TWO_STREAMS(3).speedup + 1e-9);
+  });
+  it('the false-dependency case: 16 chunks in 16 streams, breadth first, slows with 8 queues', () => {
+    expect(FALSE_DEP).toMatchObject({ a: 12, b: 12, c: 12, n: 16, streams: 16, order: 'breadth', queues: 8 });
+    expect(FALSE_DEP_8).toBeGreaterThan(FALSE_DEP_FREE);
   });
 });

@@ -319,10 +319,11 @@ export interface Snapshot {
   /** numCurrFrontier, or numFrontier[0..] for Exercise 3. */
   counters: number[];
 }
+/** `step` is the index in Trace.steps of the step that makes the event. */
 export type CounterEvent =
-  | { kind: 'append'; rank: number; level: number; slot: number; vertex: number; after: number }
-  | { kind: 'read'; rank: number; level: number; value: number }
-  | { kind: 'reset'; rank: number; level: number; before: number };
+  | { kind: 'append'; step: number; rank: number; level: number; slot: number; vertex: number; after: number }
+  | { kind: 'read'; step: number; rank: number; level: number; value: number }
+  | { kind: 'reset'; step: number; rank: number; level: number; before: number };
 export type ViolationKind = 'partial-count' | 'read-after-reset' | 'early-exit' | 'late-reset' | 'deadlock' | 'crash';
 export interface Violation {
   kind: ViolationKind;
@@ -483,7 +484,7 @@ export function simulate(
             bufC[slot] = nb;
             el.appended.push({ vertex: nb, slot });
             appendsAt.set(lvl, (appendsAt.get(lvl) ?? 0) + 1);
-            history.push({ kind: 'append', rank: r, level: lvl, slot, vertex: nb, after: slot + 1 });
+            history.push({ kind: 'append', step: steps.length, rank: r, level: lvl, slot, vertex: nb, after: slot + 1 });
           }
           els.push(el);
           if (crashed) break;
@@ -509,7 +510,7 @@ export function simulate(
         const c = counterFor(lvl);
         const value = st.counters[c];
         t.numPrev = value;
-        history.push({ kind: 'read', rank: r, level: lvl, value });
+        history.push({ kind: 'read', step: steps.length, rank: r, level: lvl, value });
         const unfinished = st.threads.filter((u) => u.rank !== r && u.status !== 'exited' && u.worked < lvl).map((u) => u.rank);
         let violation: Violation | undefined;
         let note: string | undefined;
@@ -541,7 +542,7 @@ export function simulate(
           const early = Math.max(0, (appendsAt.get(lvl + 1) ?? 0));
           st.counters[0] = 0;
           resetDone.add(lvl);
-          history.push({ kind: 'reset', rank: r, level: lvl, before });
+          history.push({ kind: 'reset', step: steps.length, rank: r, level: lvl, before });
           push({
             rank: r, op: 'reset', level: lvl, lines: L('reset'), waits,
             text: `${who(r)} is grid thread 0: it sets *numCurrFrontier from ${before} to 0.${waits ? ' It waits at grid.sync() 3.' : ''}`,

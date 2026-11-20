@@ -16,7 +16,8 @@ import { EllScene } from './EllScene';
 
 // ---------------------------------------------------------------- the code shown
 
-/** The snippets this page shows, loaded at run time; snippets-s172.test.ts pins the lines below in them. */
+/** The snippets of this page, loaded at run time; snippets-s172.test.ts pins the lines below in them. The page shows coo,
+ * csr and ell; csc is named in the prose and checked with the others, not shown. */
 export const SNIPPETS = {
   coo: 'ch17/snippets/spmv_coo.cu',
   csr: 'ch17/snippets/spmv_csr.cu',
@@ -781,8 +782,9 @@ export const questionsS172: Record<string, Question> = {
       <p>
         On Fig. 17.1 in one group of 4, both versions run {ell1.groupIterations} iterations and do {ell1.useful} useful
         lane-iterations. Stopping at nnzPerRow, {ell1.idle} lane-iterations wait; looping the full width, {ellFull1.idle} wait and{' '}
-        {ellFull1.pad} read a pad instead. The lanes are busy either way in this model, which has no timing: what the full width buys
-        is a loop with no data-dependent trip count, at the price of reading <code>colIdx</code> at every pad.
+        {ellFull1.pad} read a pad instead. In this model, which has no timing, the group spends {ell1.useful + ell1.idle}{' '}
+        lane-iterations either way; what the full width buys is a loop with no data-dependent trip count, at the price of reading{' '}
+        <code>colIdx</code> at every pad.
       </p>
     ),
     source: 'ch. 17 §17.4, pp. 411, 413–414',
@@ -790,18 +792,26 @@ export const questionsS172: Record<string, Question> = {
   'ch17/17.2/q-csc-use': {
     kind: 'choice',
     id: 'ch17/17.2/q-csc-use',
-    prompt: <>Which job is CSC the right layout for?</>,
+    prompt: (
+      <>
+        You compute <code>y = A·x + y</code> where <code>x</code> is itself sparse: 2% of its entries are non-zero, and A has a
+        million columns. You may store A as COO, CSR or CSC. Which layout lets a kernel skip the work that the zeros of{' '}
+        <code>x</code> make pointless, and what does it pay for that?
+      </>
+    ),
     options: [
-      { label: <>Multiplying a vector by the matrix, <code>xᵀ·A</code>, where each output is a column's dot product; and a sparse <code>x</code>, where every column whose <code>x</code> entry is zero can be skipped whole.</>, correct: true },
-      { label: 'Plain SpMV, because it reads x coalesced and only once.', why: 'That is its only virtue for SpMV. It still needs atomics on y, and its matrix reads are scattered and divergent (pp. 420–421).' },
-      { label: 'Matrices that change often.', why: 'Adding a non-zero shifts every later column and bumps every later colPtrs entry, as in CSR (p. 420).' },
-      { label: 'The smallest storage.', why: 'It takes 2z + n + 1 numbers: the same as CSR when there are about as many columns as rows.' },
+      { label: <>CSC: the non-zeros of <code>x</code> name the columns to visit, and each column's non-zeros sit together, so the kernel reads about 2% of A. It pays with atomics on <code>y</code>.</>, correct: true },
+      { label: <>CSR: one thread per row owns <code>y[row]</code>, so it skips the work and needs no atomics.</>, why: 'It needs no atomics, but it skips nothing: a zero x entry kills a column, and CSR groups by row, so every row must still be read to find which of its entries meet a non-zero x.' },
+      { label: 'COO: its triples can sit in any order, so it balances the remaining work best.', why: 'Balance comes after finding the work. The entries of the chosen columns are spread over all z triples, so finding them means reading every triple, unless they are sorted by column, which is CSC with a longer index array.' },
+      { label: 'CSC, with no atomics, because each thread owns one column.', why: 'A thread owns a column, but the output is indexed by row: two columns with a non-zero in the same row add into the same y element (pp. 419–420).' },
     ],
     explain: (
       <p>
-        The book's two uses (p. 421): a vector–matrix product, where grouping by column is exactly the work of one output, and
-        sparse-matrix–sparse-vector products, where a column whose <code>x</code> entry is zero contributes nothing and its non-zeros
-        sit together, so skipping it is cheap.
+        A product <code>x[col]·A[row][col]</code> is zero whenever <code>x[col]</code> is, so a zero in <code>x</code> makes a
+        whole column pointless. The book names this case, sparse-matrix–sparse-vector multiplication, as one of CSC's two uses: the
+        column's non-zeros are grouped, so skipping it is cheap (p. 421). The atomics on <code>y</code> stay, as in the book's
+        SpMV/CSC kernel. The other use is the vector–matrix product <code>xᵀ·A</code>, where each output is the dot product of{' '}
+        <code>x</code> with one column.
       </p>
     ),
     source: 'ch. 17 §17.7, pp. 419–421',
@@ -865,54 +875,6 @@ function CsrReveal({ v }: { v: number }) {
         Step the explorer's CSR tab to iteration 1 to see it, then compare the "matrix reads" chip with the ELL tab's at the same step.
       </p>
     </>
-  );
-}
-
-function BackendsTable() {
-  return (
-    <table className="data wide" style={{ maxWidth: '58rem' }}>
-      <thead>
-        <tr><th>For these kernels</th><th>CUDA</th><th>HIP</th><th>Metal</th></tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>One thread per row (CSR, ELL)</td>
-          <td><code>blockIdx.x*blockDim.x + threadIdx.x</code> and a bounds check</td>
-          <td>the same source</td>
-          <td><code>[[thread_position_in_grid]]</code>; with <code>dispatchThreads</code> no thread falls outside the grid</td>
-        </tr>
-        <tr>
-          <td>Float atomic add (COO, CSC)</td>
-          <td><code>cuda::atomic_ref&lt;float, cuda::thread_scope_device&gt;</code>, <code>fetch_add(v, cuda::memory_order_relaxed)</code>; or the legacy <code>atomicAdd</code></td>
-          <td>the same spelling through libhipcxx (ROCm 10.1 and later); or <code>atomicAdd</code>, done safely, possibly as a compare-and-swap loop, unless built with <code>-munsafe-fp-atomics</code></td>
-          <td><code>atomic_fetch_add_explicit</code> on a <code>device atomic_float*</code> buffer, <code>memory_order_relaxed</code> only; Metal 3 and Apple7 or later</td>
-        </tr>
-        <tr>
-          <td>Order of float atomic adds</td>
-          <td>undefined</td>
-          <td>undefined</td>
-          <td>not documented</td>
-        </tr>
-        <tr>
-          <td>Unit that coalescing is counted in</td>
-          <td>32-byte sectors</td>
-          <td>64- or 128-byte cache lines</td>
-          <td>not documented</td>
-        </tr>
-        <tr>
-          <td>Divergence (CSR's uneven loops)</td>
-          <td>documented: masked passes per warp</td>
-          <td>documented: the EXEC mask, per wavefront</td>
-          <td>not documented</td>
-        </tr>
-        <tr>
-          <td>The book's struct of device pointers as an argument</td>
-          <td>by value; all parameters together at most 32,764 bytes</td>
-          <td>the same syntax; no size limit found</td>
-          <td>an argument buffer (Metal 2 and later)</td>
-        </tr>
-      </tbody>
-    </table>
   );
 }
 
@@ -1004,19 +966,18 @@ export function S172() {
       <p>
         The book names two costs of the atomic. One is throughput: threads queue on one address. The other is order. Atomic adds into
         one element happen one at a time, in an undefined order, and float addition is not associative, so the low bits of{' '}
-        <code>y</code> can change from one run to the next. The stepper below makes both concrete.
+        <code>y</code> can change from one run to the next.
       </p>
       <Source section="17.2" pages="406–407" />
       <p>
         The vendor libraries turn that second cost into a switch: a faster algorithm whose result may differ in the last bits from
-        run to run, or a deterministic one that is slower. Which one runs is chosen in the call, not by the format.
+        run to run, or a deterministic one that is slower. Which one runs is chosen in the call, not by the format. The stepper
+        below makes both costs concrete.
       </p>
       <Today checked="2026-11-20 (notes/today/ch17-facts.md, A2, A7, B5)">
         <p>
-          cuSPARSE: <code>COO_ALG1</code> "may produce slightly different results during different runs"; <code>COO_ALG2</code> is
-          bit-wise deterministic and slower (this table, not the general reproducibility section, is the specific statement).
-          rocSPARSE: <code>coo_atomic</code> or a deterministic <code>coo</code>; hipSPARSE maps both COO choices to the
-          deterministic one on AMD. Library COO is assumed sorted by row; the book's kernel is not.
+          cuSPARSE's <code>COO_ALG1</code> may differ between runs, <code>COO_ALG2</code> is deterministic; rocSPARSE has the same
+          pair. cuSPARSE assumes COO sorted by row (A7); the book's kernel does not.
         </p>
       </Today>
       <RaceStepper />
@@ -1039,7 +1000,8 @@ export function S172() {
         caption={
           <>
             Fig. 17.9 from <code>labs/ch17/snippets/spmv_csr.cu</code>, with the <code>CSRMatrix</code> struct the book never defines.
-            The loop bounds lean on the end marker; the last line accumulates. The same source builds for HIP.
+            The loop bounds lean on the end marker; the last line accumulates. Nothing in it needs a HIP-specific spelling (ch05-facts
+            B4, ch17-facts B1); not compiled for HIP here: unverified.
           </>
         }
       />
@@ -1150,7 +1112,8 @@ export function S172() {
         If you have used a block-sparse attention mask, you have used this layout. Such a mask over query and key blocks is mostly
         empty, and the program that handles one row of query blocks has to know which key blocks to visit. Store, for every row, a
         count and a fixed-width list of block indices, padded where the row is short, and each program finds its row's work at a
-        fixed offset with no search. That is <code>nnzPerRow</code> plus an ELL row, for the same reason.
+        fixed offset with no search. That is <code>nnzPerRow</code> plus a fixed-width padded row, ELL's accessibility (p. 413);
+        stored row-major, because one program walks one row, so the book's coalescing argument does not carry over.
       </p>
       <Beyond title="Not in the book: sparse attention masks">
         <p>
@@ -1177,17 +1140,12 @@ export function S172() {
         <Open tab="csc">Open the CSC tab</Open>
       </p>
       <Source section="17.7" pages="419–421" figs="Figs. 17.17–17.18" />
-      <Snippet
-        file={SNIPPETS.csc}
-        marks={[CSC_LOAD_LINE, 'y_ref.fetch_add(inValue*value, cuda::memory_order_relaxed);']}
-        caption={
-          <>
-            Fig. 17.18 from <code>labs/ch17/snippets/spmv_csc.cu</code>. The page's listing reads <code>rowIdxs</code> and{' '}
-            <code>values</code> where the text and Fig. 17.16 say <code>rowIdx</code> and <code>value</code>, and its caption calls it
-            an SpMV/CSR kernel; this copy uses the singular names, and adds the include and the struct.
-          </>
-        }
-      />
+      <p>
+        The kernel itself is CSR's loop over a column, with COO's atomic add. Two slips on its page: the listing reads{' '}
+        <code>rowIdxs</code> and <code>values</code> where the text and Fig. 17.16 say <code>rowIdx</code> and <code>value</code>,
+        and its caption calls it an SpMV/CSR kernel. A corrected copy, <code>labs/ch17/snippets/spmv_csc.cu</code>, runs on the
+        emulator with the other three.
+      </p>
       <p>
         It has one virtue. Adjacent threads read adjacent elements of <code>x</code>, each exactly once, where every other kernel here
         reads <code>x</code> wherever the non-zeros' columns point. In the CSC tab, the "x reads" chip shows one run at t = 0 and
@@ -1205,21 +1163,12 @@ export function S172() {
       <h2>The same kernels on other backends</h2>
       <p>
         The per-row kernels need nothing beyond a thread index, so they port everywhere. The atomic kernels need a float atomic add,
-        and the table says what each backend calls it and what it promises.
+        which each backend spells differently and orders differently. The <a href={href('ch17', 'labs')}>lab page</a> has the
+        table, backend by backend.
       </p>
       <Beyond>
-        <p>
-          The book uses CUDA only. Everything here about HIP and Metal is from notes/today/ch17-facts.md, "Where the backends really
-          differ", checked 2026-11-20. Nothing on this page has run on a GPU.
-        </p>
+        <p>The book uses CUDA only. Nothing on this page has run on a GPU.</p>
       </Beyond>
-      <BackendsTable />
-      <p>
-        The lab binds one buffer per array and passes sizes explicitly, which maps one to one onto Metal's buffer bindings and leaves
-        the struct question aside. One consequence on Metal: a COO kernel's <code>y</code> is declared <code>device atomic_float*</code>,
-        so it is not the same plain <code>float</code> buffer type the CSR kernel writes, though the host allocates plain floats either
-        way.
-      </p>
 
       <h2>Which format, then</h2>
       <p>
@@ -1232,8 +1181,8 @@ export function S172() {
       <ScoreTable st={st} set={set} />
       <p>
         Which one is fastest depends on how the non-zeros are spread, which the book calls data-dependent performance, and sparse code
-        reaches far fewer FLOPS than dense code, on CPUs and GPUs alike. The <a href={href('ch17', 'labs')}>lab</a> (17.1, CSR and ELL SpMV
-        on skewed rows) measures CSR against ELL on your device. Make its prediction before you run it.
+        reaches far fewer FLOPS than dense code, on CPUs and GPUs alike. The <a href={href('ch17', 'labs')}>lab</a>, Lab 17.1: CSR and ELL SpMV
+        on skewed rows, measures CSR against ELL on your device. Make its prediction before you run it.
       </p>
       <Source section="17.8" pages="421–422" />
       <Ask q={questionsS172['ch17/17.2/q-ex1-pads']} label="Work it out" />

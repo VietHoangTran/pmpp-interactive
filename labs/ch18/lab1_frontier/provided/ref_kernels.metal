@@ -15,9 +15,9 @@ constant uint UNVISITED = numeric_limits<uint>::max();
 // Fig. 18.14: true for exactly one of the threads that try to visit the same vertex. A weak
 // compare-and-exchange may fail although the values were equal; then `expected` still holds
 // UNVISITED and the loop tries again. A real failure loads the winner's level into `expected`.
-static bool ref_visit_vertex(device atomic_uint* level, uint vertex, uint currLevel) {
+static bool ref_visit_vertex(device atomic_uint* level, uint vertexId, uint currLevel) {
     uint expected = UNVISITED;
-    while (!atomic_compare_exchange_weak_explicit(&level[vertex], &expected, currLevel,
+    while (!atomic_compare_exchange_weak_explicit(&level[vertexId], &expected, currLevel,
                                                   memory_order_relaxed, memory_order_relaxed)) {
         if (expected != UNVISITED) {
             return false;
@@ -33,10 +33,10 @@ kernel void ref_bfs_push(device const uint*  srcPtrs          [[buffer(0)]],
                          device atomic_uint* level            [[buffer(3)]],
                          device atomic_uint* newVertexVisited [[buffer(4)]],
                          constant uint&      currLevel        [[buffer(5)]],
-                         uint vertex [[thread_position_in_grid]]) {
-    if (vertex < numVertices) {
-        if (atomic_load_explicit(&level[vertex], memory_order_relaxed) == currLevel - 1) {
-            for (uint edge = srcPtrs[vertex]; edge < srcPtrs[vertex + 1]; ++edge) {
+                         uint vertexId [[thread_position_in_grid]]) {
+    if (vertexId < numVertices) {
+        if (atomic_load_explicit(&level[vertexId], memory_order_relaxed) == currLevel - 1) {
+            for (uint edge = srcPtrs[vertexId]; edge < srcPtrs[vertexId + 1]; ++edge) {
                 uint neighbor = dst[edge];
                 if (atomic_load_explicit(&level[neighbor], memory_order_relaxed) == UNVISITED) {
                     atomic_store_explicit(&level[neighbor], currLevel, memory_order_relaxed);
@@ -59,8 +59,8 @@ kernel void ref_bfs_frontier(device const uint*  srcPtrs         [[buffer(0)]],
                              constant uint&      currLevel       [[buffer(7)]],
                              uint i [[thread_position_in_grid]]) {
     if (i < numPrevFrontier) {
-        uint vertex = prevFrontier[i];
-        for (uint edge = srcPtrs[vertex]; edge < srcPtrs[vertex + 1]; ++edge) {
+        uint vertexId = prevFrontier[i];
+        for (uint edge = srcPtrs[vertexId]; edge < srcPtrs[vertexId + 1]; ++edge) {
             uint neighbor = dst[edge];
             if (ref_visit_vertex(level, neighbor, currLevel)) {
                 uint currFrontierIdx = atomic_fetch_add_explicit(numCurrFrontier, 1u, memory_order_relaxed);

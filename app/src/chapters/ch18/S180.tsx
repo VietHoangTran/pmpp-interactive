@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
-import { Aside, Bench, Simplification, Source, Today } from '../../components/notes';
+import { Aside, Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
 import { useProgress } from '../../lib/progress';
 import { href } from '../../lib/router';
 import { BOOK, EX1, backtrace, inNeighbours, levels, showLevel, storage, toCOO, toCSC, toCSR, treeEdges, UNVISITED } from '../../sim/bfs';
@@ -292,7 +292,7 @@ function ArrayRow({ id, name, values, hot, on }: { id: string; name: string; val
       <div className="mx-label t-global">{name}</div>
       <div className="mx global" style={{ gridTemplateColumns: `repeat(${values.length}, auto)` }}>
         {values.map((x, i) => (
-          <span key={i} data-i={i} className={hot.has(i) ? 'hot' : on.has(i) ? 'on' : ''} style={{ minWidth: '2.15rem', height: '1.8rem' }}>
+          <span key={i} data-i={i} className={hot.has(i) ? 'hot' : on.has(i) ? 'on' : ''} style={{ minWidth: '1.9rem', height: '1.8rem' }}>
             {x}
             <sub>{i}</sub>
           </span>
@@ -551,11 +551,17 @@ export function S180() {
       </ul>
       <Source pages="425, 449" />
       <p>
-        Token-by-token decoding is the case the book describes for small frontiers: every step launches many short
-        kernels, and each launch has a fixed cost that the little work inside it cannot hide. The book's remedy is one
-        launch for many steps. Inference engines reach for the same remedy in other forms, recording a step's launches
-        once and replaying them.
+        Token-by-token decoding has the shape the book describes for small frontiers (our reading): every step
+        launches many short kernels, and each launch has a fixed cost that the little work inside it cannot hide. The
+        book's remedy is one launch for many levels. Inference engines reach for the same remedy in other forms,
+        recording a step's launches once and replaying them.
       </p>
+      <Beyond title="Bridge (ours)">
+        <p>
+          The book discusses launch overhead only for BFS on graphs with small frontiers, such as road networks (p.
+          445). The mapping to decoding is ours.
+        </p>
+      </Beyond>
       <Today checked="2026-11-20 (notes/today/ch18-facts.md D3, D5, D6)">
         <p>
           llama.cpp turns CUDA graphs on by default when you build llama.cpp itself, and HIP graphs on by default.
@@ -576,7 +582,7 @@ export function S180() {
       </p>
       <Source section="18.1" pages="425–427" figs="Figs. 18.1, 18.2" />
       <p>
-        So the sparse formats of <a href={href('ch17')}>chapter 17</a> apply, under new names. CSR keeps the rows as{' '}
+        So the sparse formats of <a href={href('ch17', '17.2')}>chapter 17</a> apply, under new names. CSR keeps the rows as{' '}
         <code>srcPtrs</code> (row offsets) and <code>dst</code> (column indices). CSC keeps the columns as{' '}
         <code>dstPtrs</code> and <code>src</code>. COO keeps each edge as a <code>src</code>, <code>dst</code> pair.
         Every stored value would be 1, so the data array is dropped: an index existing means an edge exists. That
@@ -630,7 +636,6 @@ export function S180() {
             2.
           </>
         }
-        unit="level"
       >
         {(v) => (
           <>
@@ -708,7 +713,7 @@ export function S180() {
       </p>
       <Aside>
         <p>
-          Chapter 17 is condensed too, and covers the formats this page borrows: <a href={href('ch17')}>chapter 17</a>.
+          Chapter 17 is condensed too, and covers the formats this page borrows on its page <a href={href('ch17', '17.2')}>17.2</a>.
         </p>
       </Aside>
 
