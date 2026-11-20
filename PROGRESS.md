@@ -17,12 +17,12 @@ narration audio for the new scripts, runs `./verify.sh` and `npm run e2e`, looks
 pages, and commits. Per-chapter hints given to the designers are in the wave's `args`.
 
 **Waves** (tick when committed)
-- [ ] Wave 0: on-demand loading of chapters and sections, chapter-building rules in
+- [x] Wave 0 (committed c0ec3fe): on-demand loading of chapters and sections, chapter-building rules in
       CLAUDE.md (done); shared labs-page kit `app/src/components/LabKit.tsx`; emulator
       extension (warps, warp intrinsics, atomics, constant memory, cooperative groups,
       streams, a ThreadSanitizer `race` backend); `notes/today/infra-facts.md`.
-- [ ] Wave 1: ch02, ch03, ch04 (Deep); ch01, ch24 (Condensed).
-- [ ] Wave 2: ch06 (Deep), ch07 (Standard), ch08 (Condensed), ch09 (Standard), ch10 (Deep), appC (Standard).
+- [ ] Wave 1 (running, run id wf_ec5c6999-f65, ports 5300+): ch02, ch03, ch04 (Deep); ch01, ch24 (Condensed).
+- [ ] Wave 2 (running, run id wf_450b41fe-79b, ports 5600+, script `build-chapters-v2.js`): ch06 (Deep), ch07 (Standard), ch08 (Condensed), ch09 (Standard), ch10 (Deep), appC (Standard).
 - [ ] Wave 3: ch15, ch11, ch12 (Deep), ch14 (Standard), ch13 (Condensed).
 - [ ] Wave 4: ch20 (Deep), ch22, ch19, appA (Standard), x1 sampling (Deep).
 - [ ] Wave 5: x2 quantised kernels (Deep), x3 reading real backends (Standard),
