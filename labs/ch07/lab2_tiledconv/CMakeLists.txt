@@ -1,5 +1,5 @@
 pmpp_add_lab(ch07/lab2_tiledconv
-  VARIANTS work solution
+  VARIANTS work solution RACE
   TILE 32
   EXTRA_TILES 8 16
   SHARED_CU ${CMAKE_CURRENT_SOURCE_DIR}/../shared/conv_const.cu

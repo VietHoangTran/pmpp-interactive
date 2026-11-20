@@ -1,5 +1,5 @@
 pmpp_add_lab(ch06/lab4_linear
-  VARIANTS work solution
+  VARIANTS work solution RACE
   TILE 16
   EXTRA_TILES 32
   SHARED_CU ${CMAKE_CURRENT_SOURCE_DIR}/provided/linear_baseline.cu
