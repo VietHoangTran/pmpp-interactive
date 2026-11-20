@@ -110,19 +110,30 @@ async function content(req, res, url) {
   }
 }
 
-const vite = await createVite({ root: APP, server: { middlewareMode: true }, appType: 'spa' });
+// One port for everything: the hot-reload websocket is attached to this same
+// server, so a second copy of the app (or any other Vite project) cannot clash.
+let vite;
+const server = http.createServer(async (req, res) => {
+  const url = new URL(req.url, 'http://localhost');
+  try {
+    if (url.pathname.startsWith('/api/')) return await api(req, res, url);
+    if (url.pathname.startsWith('/content/')) return await content(req, res, url);
+  } catch (e) {
+    return send(res, 500, { error: String(e && e.message ? e.message : e) });
+  }
+  vite.middlewares(req, res);
+});
 
-http
-  .createServer(async (req, res) => {
-    const url = new URL(req.url, 'http://localhost');
-    try {
-      if (url.pathname.startsWith('/api/')) return await api(req, res, url);
-      if (url.pathname.startsWith('/content/')) return await content(req, res, url);
-    } catch (e) {
-      return send(res, 500, { error: String(e && e.message ? e.message : e) });
-    }
-    vite.middlewares(req, res);
-  })
-  .listen(PORT, '127.0.0.1', () => {
-    console.log(`\n  PMPP interactive textbook: http://localhost:${PORT}\n  progress file: ${path.relative(REPO, PROGRESS)}\n`);
-  });
+server.on('error', (e) => {
+  if (e.code === 'EADDRINUSE') {
+    console.error(`\n  Port ${PORT} is already in use. Is the app already running?\n  To use another port:  PORT=5180 ./start.sh\n`);
+    process.exit(1);
+  }
+  throw e;
+});
+
+vite = await createVite({ root: APP, server: { middlewareMode: true, hmr: { server } }, appType: 'spa' });
+
+server.listen(PORT, '127.0.0.1', () => {
+  console.log(`\n  PMPP interactive textbook: http://localhost:${PORT}\n  progress file: ${path.relative(REPO, PROGRESS)}\n`);
+});
