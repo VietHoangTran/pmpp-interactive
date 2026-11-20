@@ -1,0 +1,1 @@
+Pass 2 does the same with the next bit, working on the output of pass 1. It never reorders keys inside a group. So now the list is in order by its lowest 2 bits: first the keys ending in zero zero, then zero one, then one zero, then one one.

@@ -1,0 +1,1 @@
+Move by 1. j drops to 1, and i rises to 2. Both tests pass: 7 is no bigger than 10, and 7 is less than 8. So thread 1 starts at A 2 and B 1. [short pause] 4 candidates shrank to 1 in 3 iterations. That halving is why the cost grows with the logarithm of the length.

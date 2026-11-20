@@ -1,0 +1,1 @@
+Here are the book's 16 keys, each 4 bits long. Pass 1 looks only at the lowest bit. Every key whose lowest bit is 0 goes to the front, and every key whose lowest bit is 1 goes to the back. Inside each group, the keys keep the order they arrived in.

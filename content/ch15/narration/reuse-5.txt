@@ -1,0 +1,1 @@
+Last, shrink the tile to a single row, as when a model decodes one token at a time. The whole band of B is still fetched, for just one row of output. The ratio falls below one half, and making the tile wider cannot lift it. That bound is our derivation, not the book's.

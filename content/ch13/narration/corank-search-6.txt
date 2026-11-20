@@ -1,0 +1,1 @@
+Why is one test strict and the other not? Tag each equal key with its array, then swap the tests. The slices move: B's first 10 lands ahead of A's 10, at the boundary between threads 1 and 2. [short pause] The keys are still sorted, but the merge is not stable. Ties must go to A, as in the sequential merge.

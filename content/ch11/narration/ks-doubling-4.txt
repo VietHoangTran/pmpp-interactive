@@ -1,0 +1,1 @@
+The third step uses a stride of 4. Each window grows to 8 inputs, which here means everything up to that position. After 3 steps, every position is final. That is log base 2 of 8. With 1024 values the same scan would take 10 steps.

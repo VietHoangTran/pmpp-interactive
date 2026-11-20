@@ -1,0 +1,1 @@
+Here is the direct scatter of section 14.5. Block 0's four threads write to the zero bucket, then the one bucket, then zero, then one, far apart. In a warp of 32 threads, the zeros form one run and the ones another. The two runs cost 4 to 7 sectors of 32 bytes, where one coalesced store costs 4.

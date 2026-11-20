@@ -1,0 +1,1 @@
+The last section left one block alone on each SM. Watch its two pieces of hardware. The memory side loads tiles A 0 and B 0 while the compute side waits. Then the compute side works while memory sits idle. With no second block on the SM, nothing fills those gaps. Each lane is busy half of the time.

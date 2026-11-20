@@ -1,0 +1,1 @@
+Passes 3 and 4 do the same with bits 2 and 3. After pass 3, the list is in order by its lowest 3 bits. Pass 4 splits the keys by the top bit, with 7 zeros in front of 9 ones. After 4 stable passes, the whole list is sorted.

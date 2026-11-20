@@ -1,0 +1,1 @@
+Now make each load 3 times longer than the compute. Overlap can only hide the shorter phase, so the memory lane sets the pace. Four tiles take 13 units instead of 16. In this model one load runs at a time. On real hardware several loads can be waiting at once, so libraries keep several stages of loads in flight.

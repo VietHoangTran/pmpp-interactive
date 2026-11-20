@@ -1,0 +1,1 @@
+This is one block's output tile: 128 by 128 floats, cut into 256 patches of 8 by 8, one per thread. Warp 6 now runs one store instruction. Each of its 32 lanes writes one float, and neighbours sit 32 bytes apart. That touches 32 sectors, and uses 4 bytes of each.

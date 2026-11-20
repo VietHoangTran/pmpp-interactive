@@ -1,0 +1,1 @@
+Now rotate the loop. A prologue loads tile 0. Then each iteration computes with the tile it already has, while it loads the next one into the other buffer. The compiler can interleave those instructions, and the two lanes run side by side. One last compute follows the loop. Four tiles take 5 units instead of 8.

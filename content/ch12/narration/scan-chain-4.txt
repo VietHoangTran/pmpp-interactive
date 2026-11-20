@@ -1,0 +1,1 @@
+One step later, number 1 sees the flag, publishes its own, and writes. By then every read of number 0 is done. Number 0 finishes and frees its slot, so block index 0 starts and takes number 2. It finds number 1's flag already set. The result is the stable filter, and no key was overwritten before it was read.

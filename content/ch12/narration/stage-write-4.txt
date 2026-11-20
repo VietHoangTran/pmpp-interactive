@@ -1,0 +1,1 @@
+Count what each version issued. The direct scatter: 4 store instructions, touching 4 segments, 64 bytes moved for 32 useful. The staged version: 2 store instructions and 2 full segments. The same output, with half the stores. The price is a trip through shared memory and one barrier.

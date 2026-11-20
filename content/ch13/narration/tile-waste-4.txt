@@ -1,0 +1,1 @@
+Why not load less? Here is another merge, where every output of the first 2 tiles comes from A. Each of those tiles uses 8 elements of A and none of B. Had the block loaded only 4 of each, it could not have written 8 outputs. Only a full tile of each is always enough.

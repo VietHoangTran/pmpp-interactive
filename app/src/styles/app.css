@@ -207,8 +207,9 @@ select,
 }
 .rail nav a {
   display: grid;
-  grid-template-columns: 2.1rem 1fr auto;
-  gap: 0.2rem;
+  /* wide enough for five-character section numbers such as 10.10 and 15.10 */
+  grid-template-columns: 2.7rem 1fr auto;
+  gap: 0.35rem;
   align-items: baseline;
   padding: 0.34rem 0.4rem;
   margin: 0 -0.4rem;

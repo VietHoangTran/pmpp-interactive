@@ -1,0 +1,1 @@
+Some AMD GPUs run 64 lanes per wavefront. Then the same block is 4 wavefronts, as 2 by 2 tiles of 64 by 64. The lanes form 8 rows of 8, and a lane row writes 128 contiguous bytes. Same idea. The numbers come from the device's width.

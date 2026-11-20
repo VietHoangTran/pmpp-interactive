@@ -1,0 +1,1 @@
+Every thread runs the same search, at the same time, on its own. Thread 0 starts at 0 and 0, thread 1 at 2 and 1, thread 2 at 5 and 1, and the end is 5 and 4. Thread 1 takes only elements of A, thread 2 only elements of B. Then each merges its own slices. Nobody waits.

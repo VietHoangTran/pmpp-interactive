@@ -1,0 +1,1 @@
+Now the staged version of figure 12.9. Each kept key is first written to shared memory, at its offset inside its block. A barrier waits for the whole block. Then threads 0, 1, 2 and 3 copy the block's run out together, so one store writes 4 consecutive slots.

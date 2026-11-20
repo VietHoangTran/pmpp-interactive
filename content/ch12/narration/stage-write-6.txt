@@ -1,0 +1,1 @@
+In this toy each block keeps 4 keys for 8 threads: fewer than one per thread. That is when CUB skips staging and scatters directly. It stages only when a tile keeps more keys than it has threads. Lab 12.3 times the direct and the staged scatter on your device.

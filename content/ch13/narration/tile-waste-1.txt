@@ -1,0 +1,1 @@
+One block will write the next 8 outputs of the merge. Before it searches, it cannot know how many will come from A and how many from B. All 8 could come from either one. So the book's tiled kernel loads 8 elements of each into shared memory, with consecutive threads copying consecutive elements.

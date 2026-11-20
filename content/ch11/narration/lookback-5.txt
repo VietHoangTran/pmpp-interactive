@@ -1,0 +1,1 @@
+Decoupled lookback. Each block publishes its own total as soon as its segment is scanned. A waiting block reads back through its predecessors, adding their totals, until it reaches one whose full prefix is ready. Here the waiting drops from 5 rounds to 1, and the price is 4 extra additions.

@@ -1,0 +1,1 @@
+Now give each lane a float4 store instead. A lane writes 16 bytes at once, so the warp needs only a quarter of the instructions. But the lanes are still 32 bytes apart. The instruction still touches 32 sectors, and every sector is only half used.

@@ -1,0 +1,1 @@
+Now the race. Replay the stride 2 step, but let thread 4 store its new value before thread 6 reads it. Thread 6 picks up x1 to x4 instead of x3 and x4, and the next step adds x1 and x2 again. [short pause] Hence the private temp, and a second barrier before every store.

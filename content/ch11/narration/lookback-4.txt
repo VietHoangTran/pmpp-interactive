@@ -1,0 +1,1 @@
+Now drop the counter and trust the hardware index. Suppose the scheduler starts blocks 3, 4 and 5 first. Block 3 spins on block 2, which has not started. Blocks 4 and 5 spin on blocks that are themselves spinning. No block finishes, so no slot frees, and the device is deadlocked.

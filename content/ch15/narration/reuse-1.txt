@@ -1,0 +1,1 @@
+Here is a 128 by 128 corner of C, cut into 32 by 32 tiles, one block per tile. Watch the top row. The first block fetches its band of A from global memory. So does the second block, and the third, and the fourth. Four blocks, the same 32 rows of A, fetched 4 times.

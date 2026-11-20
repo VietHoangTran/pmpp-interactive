@@ -17,6 +17,9 @@ export async function open({ width = 1440, height = 900, dark = false } = {}) {
   if (!executablePath) throw new Error('No Chrome found. Set CHROME_PATH.');
   const browser = await puppeteer.launch({ executablePath, headless: 'new', args: ['--autoplay-policy=no-user-gesture-required'] });
   const page = await browser.newPage();
+  // Checks click choice options by their written index; the app shows readers a shuffled
+  // order (components/Ask.tsx displayOrder), so ask it for the written order here.
+  await page.evaluateOnNewDocument(() => { window.__PMPP_WRITTEN_ORDER__ = true; });
   await page.setViewport({ width, height, deviceScaleFactor: 1 });
   if (dark) await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'dark' }]);
   const errors = [];

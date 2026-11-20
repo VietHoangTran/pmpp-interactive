@@ -1,0 +1,1 @@
+Phase two. Each thread's last value is the total of its run: 7, 7, 6 and 11. These 4 totals go through one block scan, the only parallel scan left in the kernel, and become 7, 14, 20 and 31. Each is the sum of everything up to the end of that run.

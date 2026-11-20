@@ -1,0 +1,1 @@
+Why does the depth of each step not matter? For one tile pair, the operations grow with m times n times k. The bytes grow with k times m plus n. Slide k from 8 up to 32. Both bars grow by the same factor, and the ratio stays at 32 operations per byte.

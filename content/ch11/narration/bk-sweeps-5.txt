@@ -1,0 +1,1 @@
+Level 3. Every even position from 2 to 14 adds its left neighbour, which is already final, and now all 16 positions are done. Brent-Kung used 26 additions in 7 steps. Kogge-Stone, on the same 16 inputs, used 49 additions in 4. Fewer additions, more steps.

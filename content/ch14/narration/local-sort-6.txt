@@ -1,0 +1,1 @@
+How much this saves depends on how many keys share a local bucket. With blocks of 256 threads and random keys, a warp's store drops from about 16 sectors to 6 at 4 bits, but only from 30 to 22 at 8 bits, where a bucket holds about one key. Sections 14.7 and 14.8 take it from there.

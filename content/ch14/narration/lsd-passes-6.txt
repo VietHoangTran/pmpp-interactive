@@ -1,0 +1,1 @@
+Each pass is a stable partition. It is chapter 12's stable filter, with a second list for the keys that fail the test. And every key's destination comes from one exclusive scan of the bits, which counts the ones before each key. That is how the next section runs a pass in parallel.

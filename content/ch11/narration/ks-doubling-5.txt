@@ -1,0 +1,1 @@
+Now count the work. The three steps did 7, then 6, then 4 additions: 17 in all. The plain loop needs only 7. Kogge-Stone buys fewer steps with more total work, and the gap grows with the length of the array. Section 11.5 comes back to this trade.

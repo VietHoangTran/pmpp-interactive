@@ -1,0 +1,1 @@
+Run the same warp again. Same keys, same counter, but this time the requests are served as lane 4, lane 5, lane 2, then lane 1. The same four keys land in a different order. That is all unstable means here: the set of kept keys is fixed, and their order is not.

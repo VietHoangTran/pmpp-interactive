@@ -1,0 +1,1 @@
+First, the direct scatter of figure 12.8. Each warp issues one store for its kept lanes. Inside a warp the kept lanes write neighbouring slots, so each store is a short run. But every warp issues its own store, and each one fills only part of a segment.

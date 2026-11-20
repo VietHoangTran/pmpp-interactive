@@ -1,0 +1,1 @@
+Follow two keys, zero one zero one and zero one zero zero. They differ only in the lowest bit, and they arrive in the wrong order. Pass 1 puts zero one zero zero first. Pass 2 sees the same bit in both and, being stable, keeps them that way. That is how each pass inherits the work before it.

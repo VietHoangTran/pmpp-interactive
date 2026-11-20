@@ -1,0 +1,1 @@
+Now let it run. Each block waits for the one just before it, so the scanned sums travel down a chain, one block at a time. With 6 blocks the chain has 5 links. With 32 blocks all on the device at once, it has 31, and the last block waits for every one of them.

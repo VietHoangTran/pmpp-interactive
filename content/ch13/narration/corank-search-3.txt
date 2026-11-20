@@ -1,0 +1,1 @@
+So halve the gap. i drops by 2, to 1, and j rises by 2, to 2. Their sum is still 3. [short pause] Now the first test passes. But the second compares B at index 1, which holds 10, with A at index 1, which holds 7. 10 is not smaller, so now j is too high.

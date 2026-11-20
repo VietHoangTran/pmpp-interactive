@@ -1,0 +1,1 @@
+Now each of the 2 threads searches the tile for its own 4 outputs and merges them. Thread 0 takes 3 from A and 1 from B. Thread 1 takes 2 and 2. Together they used 5 of A and 3 of B. The other 8 loaded elements were never touched.

@@ -1,0 +1,1 @@
+The odd step shifts every pair along by one. Now only 3 threads have a pair, and the two values at the ends sit out. [short pause] Alternating the two kinds of step is what lets a value cross the border between one pair and the next.

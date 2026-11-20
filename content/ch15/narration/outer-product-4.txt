@@ -1,0 +1,1 @@
+Every output in the patch now takes one product: its row's value from the A strip times its column's value from the B strip. All 64 cells move together. This is an outer product, a rank 1 update of the whole patch. 16 reads from shared memory have fed 64 multiply adds.

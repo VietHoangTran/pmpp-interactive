@@ -1,0 +1,1 @@
+The second step uses a stride of 2. Each position adds the value 2 places to its left, and that value is already a pair. So the windows grow from 2 inputs to 4. Positions 2 and 3 are now final. Reusing the sums a neighbour built in the step before is the whole trick.

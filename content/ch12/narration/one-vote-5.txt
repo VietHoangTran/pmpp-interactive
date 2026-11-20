@@ -1,0 +1,1 @@
+Only the leader touches the counter. It adds 4 in a single atomic and gets back 40, the start of a range of 4 slots that now belongs to this warp. Then a shuffle carries that 40 from lane 1 to the other three passing lanes, so every one of them knows where the range starts.

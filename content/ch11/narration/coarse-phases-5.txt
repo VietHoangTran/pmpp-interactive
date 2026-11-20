@@ -1,0 +1,1 @@
+Phase three. Each thread adds the scanned total of the thread before it to every value in its registers. Thread 0 adds nothing. Thread 1 adds 7. Thread 2 adds 14, and thread 3 adds 20. Then each thread writes its finished run back into shared memory.

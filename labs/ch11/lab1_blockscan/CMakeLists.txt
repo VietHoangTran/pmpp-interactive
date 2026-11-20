@@ -1,0 +1,1 @@
+pmpp_add_lab(ch11/lab1_blockscan VARIANTS work solution SHARED_CU ${CMAKE_CURRENT_SOURCE_DIR}/../shared-g11/bs_two_barrier.cu ${CMAKE_CURRENT_SOURCE_DIR}/../shared-g11/bs_copy.cu SHARED_MM ${CMAKE_CURRENT_SOURCE_DIR}/../shared-g11/bs_launch.mm RACE)

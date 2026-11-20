@@ -1,0 +1,1 @@
+Single lookback, with the index claimed from a counter. The blocks take indices 0, 1 and 2 in the order they start. Block 1 finishes its segment before block 0 does, and spins on block 0's flag. Block 0 stores its sum, then releases the flag. Block 1 acquires it, and only then reads the sum.

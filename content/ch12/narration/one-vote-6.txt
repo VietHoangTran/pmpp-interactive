@@ -1,0 +1,1 @@
+Each lane still needs its own place in the range. It masks off itself and every lane above it, and counts the passing lanes that are left. That gives ranks 0, 1, 2 and 3. The keys land side by side in slots 40 to 43, in lane order, after one atomic instead of four.

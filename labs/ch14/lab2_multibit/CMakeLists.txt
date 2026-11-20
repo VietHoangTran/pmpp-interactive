@@ -1,0 +1,1 @@
+pmpp_add_lab(ch14/lab2_multibit VARIANTS work solution SHARED_CU ${CMAKE_CURRENT_SOURCE_DIR}/../shared-g11/scan.cu ${CMAKE_CURRENT_SOURCE_DIR}/../shared-g11/onebit_global.cu SHARED_MM ${CMAKE_CURRENT_SOURCE_DIR}/../shared-g11/scan_launch.mm ${CMAKE_CURRENT_SOURCE_DIR}/../shared-g11/onebit_global_launch.mm RACE)

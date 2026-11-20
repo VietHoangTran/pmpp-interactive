@@ -1,0 +1,1 @@
+pmpp_add_lab(ch11/lab6_topp VARIANTS work solution SHARED_CU ${CMAKE_CURRENT_SOURCE_DIR}/../shared-g12/topp_naive.cu ${CMAKE_CURRENT_SOURCE_DIR}/../shared-g12/topp_copy.cu SHARED_MM ${CMAKE_CURRENT_SOURCE_DIR}/../shared-g12/topp_launch.mm RACE)

@@ -1,0 +1,1 @@
+Now widen the digit. With 2 bits there are 4 buckets, and with 8 bits, 256. On random keys, almost every thread of the warp then has a bucket to itself, and so a run to itself. The cost climbs to nearly one sector per key, close to 32 sectors for a store that needs 4.

@@ -1,0 +1,1 @@
+Here is a toy warp of 8 lanes. Each lane holds one key and tests it against the same rule: keep the key if it is below 5. Lanes 1, 2, 4 and 5 pass. Each of those four lanes now needs a slot of its own in the output array, and no two may share one.

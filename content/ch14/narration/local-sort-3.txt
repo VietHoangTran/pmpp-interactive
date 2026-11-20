@@ -1,0 +1,1 @@
+The fix comes in two phases. In phase one, each block sorts its own keys by the digit, in shared memory, using a scan that covers only that block. Each key moves a few places at most, and never leaves its block. Nothing has been written to global memory yet.

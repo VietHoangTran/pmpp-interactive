@@ -8,6 +8,8 @@ export interface ChoiceQ {
   id: string;
   prompt: ReactNode;
   options: { label: ReactNode; correct?: boolean; why?: ReactNode }[];
+  /** Keep the written order (a scale, or "none of these" last). Otherwise the order is shuffled. */
+  fixedOrder?: boolean;
   explain?: ReactNode;
   /** Where the answer comes from, e.g. "ch. 5 §5.4, p. 110". */
   source?: string;
@@ -24,6 +26,33 @@ export interface NumericQ {
   source?: string;
 }
 export type Question = ChoiceQ | NumericQ;
+
+/**
+ * The order the options are shown in: a shuffle seeded by the question's id, so it is the
+ * same on every visit and machine, and the correct option is not always in the place the
+ * author happened to write it. Answers are stored by the written index, so changing the
+ * shuffle never invalidates progress. Browser checks set window.__PMPP_WRITTEN_ORDER__ to
+ * see the written order, which is what they click by index.
+ */
+export function displayOrder(q: ChoiceQ): number[] {
+  const idx = q.options.map((_, i) => i);
+  const written =
+    q.fixedOrder || (typeof window !== 'undefined' && (window as { __PMPP_WRITTEN_ORDER__?: boolean }).__PMPP_WRITTEN_ORDER__);
+  if (written) return idx;
+  let h = 2166136261; // FNV-1a over the id seeds mulberry32, a well-mixed 32-bit generator
+  for (let i = 0; i < q.id.length; i++) h = Math.imul(h ^ q.id.charCodeAt(i), 16777619) >>> 0;
+  const next = () => {
+    h = (h + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(h ^ (h >>> 15), h | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  for (let i = idx.length - 1; i > 0; i--) {
+    const j = Math.floor(next() * (i + 1));
+    [idx[i], idx[j]] = [idx[j], idx[i]];
+  }
+  return idx;
+}
 
 export const numericOk = (q: NumericQ, v: number) =>
   q.tol ? Math.abs(v - q.answer) <= Math.abs(q.answer) * q.tol + 1e-12 : v === q.answer;
@@ -73,7 +102,7 @@ export function Ask({
       <div className="prompt">{q.prompt}</div>
       {q.kind === 'choice' ? (
         <div className="opts" role="radiogroup">
-          {q.options.map((o, i) => (
+          {displayOrder(q).map((i) => [q.options[i], i] as const).map(([o, i]) => (
             <label
               key={i}
               className={checked && pick === i ? (o.correct ? 'right' : 'wrong') : checked && o.correct ? 'right' : ''}

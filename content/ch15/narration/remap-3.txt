@@ -1,0 +1,1 @@
+The fix starts one level up. Split the block tile among its 8 warps, as 2 rows of 4 warp tiles. Each warp tile is 64 rows by 32 columns. Warp 6 owns this one, third from the left in the bottom row. Let's zoom in on it.

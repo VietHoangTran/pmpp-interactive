@@ -1,0 +1,1 @@
+The next tile starts right after what was used, at element 5 of A and element 3 of B. So the 3 of A and 5 of B that went unused are loaded again. This time the outputs use 2 of A and 6 of B. Over the whole merge, the block loads 55 elements to write 32.

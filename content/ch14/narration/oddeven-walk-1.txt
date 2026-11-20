@@ -1,0 +1,1 @@
+Here are the 8 values from the book's figure. On an even step, 4 threads each take one pair: positions 0 and 1, then 2 and 3, and so on. No two pairs share a value, so no two threads ever touch the same element. Two of the pairs are out of order, and they swap.

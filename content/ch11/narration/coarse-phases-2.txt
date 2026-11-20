@@ -1,0 +1,1 @@
+First, the load. It takes 4 load instructions. In each one, the 4 threads copy 4 neighbouring elements, so thread t takes element t of the chunk, and the whole access is one contiguous piece of memory. If each thread fetched its own run instead, one instruction would touch 4 separate pieces.

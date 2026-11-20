@@ -1,0 +1,1 @@
+Coarsening by 2, as in figure 12.10. One block of eight threads now takes all sixteen keys. Its run is 8 keys long: 1 chunk instead of 2. It still needs 2 stores, one per warp. And one scan inside the block now serves sixteen keys instead of eight.

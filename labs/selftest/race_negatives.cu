@@ -52,9 +52,32 @@ static std::string tShuffleIsNoBarrier() {
     return "";
 }
 
+// 4. A race between two barriers: each thread reads its neighbour's slot, then overwrites
+//    its own slot before the next barrier, while the neighbour may still be reading it.
+//    Every barrier of a block once shared one happens-before token, so a thread leaving
+//    barrier 1 late could "synchronise" with a neighbour already at barrier 2 and hide
+//    this race; the tokens now alternate per barrier.
+__global__ void kBetweenBarriers(int* out) {
+    __shared__ int s[64];
+    int t = threadIdx.x;
+    s[t] = t;
+    __syncthreads();
+    int v = s[(t + 1) % 64];
+    s[t] = v + 1;                               // BUG: needs a __syncthreads() between the read and this write
+    __syncthreads();
+    out[t] = s[t];
+}
+static std::string tBetweenBarriers() {
+    StBuf<int> out(64, 0);
+    kBetweenBarriers<<<1, 64>>>(out.dev);
+    ST_LAUNCHED();
+    return "";
+}
+
 extern const pmpp_selftest_case pmpp_selftest_cases[] = {
     {"missing __syncthreads between writing and reading shared memory", tNoBarrier},
     {"blocks adding to one global without an atomic", tBlocksRace},
     {"shared memory read after a shuffle instead of after __syncwarp", tShuffleIsNoBarrier},
+    {"a neighbour's slot overwritten between two barriers", tBetweenBarriers},
 };
 ST_END_CASES

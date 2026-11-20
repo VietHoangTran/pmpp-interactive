@@ -1,0 +1,1 @@
+Now swap the loops, so that the step along the inner dimension comes first. At step 0 the thread copies column 0 of its rows of A into 8 registers, the A strip, and row 0 of its columns of B into 8 more, the B strip. That is 16 reads from shared memory, and no more for this step.

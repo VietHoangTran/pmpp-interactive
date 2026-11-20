@@ -1,0 +1,1 @@
+The hardware starts blocks in an order nobody chose. Here it starts block index 2, then block index 1, and only 2 blocks fit at once. So each block takes the next number from a counter as it starts. Block index 2 becomes number 0. A lower number always belongs to a block that has already started.

@@ -1,0 +1,1 @@
+Now take the numbers from block index instead, with the same start order. Blocks 2 and 1 fill both slots. Block 2 spins on block 1, block 1 spins on block 0, and block 0 never gets a slot. CUDA promises progress only to blocks that have started. AMD and Apple document nothing here.

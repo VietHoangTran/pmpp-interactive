@@ -1,0 +1,1 @@
+Every step pays for about N over 2 comparisons, whether anything moves or not. Over about N steps, the bill grows with N squared. For 1,024 values that is about half a million comparisons, against about 10 thousand for a sort that needs N log N.

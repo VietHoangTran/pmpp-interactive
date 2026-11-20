@@ -1,0 +1,1 @@
+Step 2 adds pairs of pairs, so positions 3, 7, 11 and 15 each hold 4 inputs. Step 3 puts 8 inputs at positions 7 and 15, and step 4 puts all 16 at position 15. That is 15 additions in 4 steps. Positions 0, 1, 3, 7 and 15 already hold their final sums.

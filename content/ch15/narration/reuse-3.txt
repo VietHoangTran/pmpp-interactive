@@ -1,0 +1,1 @@
+Now merge the 16 narrow blocks into one block that owns the whole 128 by 128 tile. It fetches the band of A once, and the band of B once. The bytes requested drop by a factor of 4. In every row, one wide block now does what 4 narrow blocks did, without the repeats.

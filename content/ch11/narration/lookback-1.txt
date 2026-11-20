@@ -1,0 +1,1 @@
+Here are 6 blocks, and a device that can hold 3 of them at a time. Each block scans its own segment of the array. Then it needs one more number before it can finish: the total of every segment that comes before it. The others wait in the queue until a slot frees.

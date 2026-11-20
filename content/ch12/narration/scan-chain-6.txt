@@ -1,0 +1,1 @@
+Where does that leave each backend? On CUDA, the counter makes the wait legal. On HIP the same code runs, but treat it as unverified, because AMD documents no such promise. On Metal, avoid the wait: let one threadgroup walk its range in order, with barriers, the way lab 12.4 handles each row.

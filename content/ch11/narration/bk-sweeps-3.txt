@@ -1,0 +1,1 @@
+Now the down-sweep, a reverse tree, hands partial sums to the positions that still need them. Position 11 holds inputs 8 to 11. What it lacks is the sum of inputs 0 to 7, and that sits at position 7, 4 places to its left. One addition, and position 11 is final.

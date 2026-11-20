@@ -1,0 +1,1 @@
+Steps 1 to 7 do the same with the next column of A and the next row of B. Each step costs 16 reads and does 64 multiply adds. At the end the count is 128 reads, against 1024 in the first order: 8 times fewer. And the patch holds exactly the values the first order produced.

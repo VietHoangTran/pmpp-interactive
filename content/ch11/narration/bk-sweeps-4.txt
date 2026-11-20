@@ -1,0 +1,1 @@
+Level 2 works 2 places apart. Positions 5, 9 and 13 each hold a pair. The sums they lack now sit at positions 3, 7 and 11, which are already final, so 3 additions at once complete them. Each level halves the distance and roughly doubles the number of adders.

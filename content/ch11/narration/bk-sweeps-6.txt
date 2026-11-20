@@ -1,0 +1,1 @@
+On one warp of 32 lanes, Brent-Kung takes 9 steps. In most of them a few lanes add and the rest sit idle, yet still occupy the warp. Kogge-Stone keeps most lanes busy and finishes in 5 steps. So once coarsening has done most of the work, the book keeps Kogge-Stone inside the warp.

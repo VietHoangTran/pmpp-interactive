@@ -1,0 +1,1 @@
+Thread 1's outputs start at position 3. Its first guess takes as much of A as it can: i is 3 and j is 0, so i plus j is 3. The first test compares A at index 2, which holds 8, with B at index 0, which holds 7. 8 is bigger, so i is too high.

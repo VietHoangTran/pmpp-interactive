@@ -1,0 +1,1 @@
+Three threads share a merge of 9 outputs. Cut the output into equal slices, and each thread knows where its own outputs start: at 0, 3, and 6. [short pause] What it does not know is where its inputs start. That depends on the values in A and B, so each thread has to search for it.

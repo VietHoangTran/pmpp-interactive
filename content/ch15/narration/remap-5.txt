@@ -1,0 +1,1 @@
+Now replay the store. Each lane writes one row of one square: 16 bytes. The 4 lanes of a lane row sit side by side, so together they write 64 contiguous bytes. 8 lane rows make 16 sectors, and every byte the warp moves is a byte it asked for.

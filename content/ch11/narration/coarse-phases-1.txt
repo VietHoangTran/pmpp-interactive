@@ -1,0 +1,1 @@
+A block of 4 threads owns 16 elements, 4 for each thread. Thread 0 owns the first 4, thread 1 the next 4, and so on. At the start all 16 values sit in global memory, the top row. They will pass through shared memory and registers, and come back scanned.

@@ -1,0 +1,1 @@
+Every other row of blocks does the same. Now look down the first column. The 4 blocks there each fetch the same band of B. Across the whole corner, every band of A and every band of B is fetched 4 times, so the bytes requested climb to 4 times what the data needs.

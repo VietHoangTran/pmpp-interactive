@@ -1,0 +1,1 @@
+The first step uses a stride of 1. Every position except the first adds the value of its left neighbour, all in the same step. Now each position holds a window of 2 inputs. Position 1 holds x0 plus x1, which is already its final answer, so it will not change again.

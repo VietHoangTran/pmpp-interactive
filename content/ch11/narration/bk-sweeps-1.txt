@@ -1,0 +1,1 @@
+Here are 16 positions, one input in each. Brent-Kung works in two phases. The first, the up-sweep, is the reduction tree from chapter 10. In its first step, each of the 8 odd positions adds the value held by its left neighbour, so it now holds a pair. The even positions wait.

@@ -30,9 +30,13 @@ pages, and commits. Per-chapter hints given to the designers are in the wave's `
       argmax (10.3), M5 token counts (9.3). Every browser check passes. Audio committed separately.
 - Builder agents run on Opus 5.5 (the reader's request, 2026-11-20). Agents inherit the
   session model; new wave scripts should also pass `model: 'opus'` to every agent() call.
-- [ ] Wave 3 (running, run id wf_a2cea698-3c2, ports 5900+, script `build-chapters-v3.js` with
-      model 'opus' on every agent): ch15, ch11, ch12 (Deep), ch14 (Standard), ch13 (Condensed).
-- [ ] Wave 4: ch20 (Deep), ch22, ch19, appA (Standard), x1 sampling (Deep).
+- [x] Wave 3 (run wf_a2cea698-3c2, Opus 5.5): ch15, ch11, ch12 (Deep), ch14 (Standard, 3 labs:
+      accepted), ch13 (Condensed). Built, reviewed and fixed; 22 labs (11.1–11.6, 12.1–12.5,
+      13.1, 14.1–14.3, 15.1–15.7); milestones M3 (15.6) and the M5 pieces (11.6 top-p mask,
+      12.4 candidates, 14.3 sorted rows). Labs 11.5 and 12.5 are CUDA-family only (Metal
+      documents no forward progress between threadgroups). Every browser check passes.
+- [ ] Wave 4 (running, run id wf_ccca9f22-a5f, ports 6200+, v3 script): ch20 (Deep), x1 (Deep),
+      ch22, ch19, appA (Standard).
 - [ ] Wave 5: x2 quantised kernels (Deep), x3 reading real backends (Standard),
       ch16, ch17, ch18, ch21, ch23 (Condensed).
 - [ ] Final pass to-do list (collected along the way):
@@ -42,6 +46,14 @@ pages, and commits. Per-chapter hints given to the designers are in the wave's `
       a choice-type Predict, a source label and custom line numbers for Code, emulator
       enforcement of per-dimension block and grid limits, condensed ASan reports in
       pmpp.py, lab 4.1's kernel named like lab 3.3's;
+      the right option is still the longest in 75-90% of choice questions in most chapters:
+      rebalance distractor lengths chapter by chapter (content work, not a component fix);
+      deferred wave 3 requests: shared NoteGroup and useNarrow, a lab-status helper and a
+      bench-row picker in lib/reports.ts, a function-excerpt option for useLabFile, cu2emu
+      accepting parentheses in __shared__ bounds, cudaGetDevice and cudaFuncGetAttributes in
+      the stub, emulator and hip.h, a SHARED_DIR argument and per-backend libs in
+      pmpp_add_lab, source_hash covering provided/shared sources, PMPP_CMAKE_ARGS, a 'no
+      Metal build' message, LabKit's status table listing race;
       deferred wave 2 requests: the race emulator gives a block one happens-before token
       for all its barriers (can hide races between barrier 1 and 2 on small launches);
       pmpp.py should accept appendix lab numbers (C.1); Code tabs' status text is squeezed
@@ -98,6 +110,14 @@ settings follow AMD's and CMake's documentation (facts file, B6 and B7).
   so nothing was checked in a visible browser window.
 
 ### Decisions
+- 2026-11-20: choice options are shown in a stable shuffled order per question id
+  (components/Ask.tsx displayOrder; `fixedOrder` keeps a scale in order). Builders had put
+  the right answer first in up to 81% of a chapter's questions. Answers are stored by the
+  written index; browser checks set window.__PMPP_WRITTEN_ORDER__ (e2e/browser.mjs).
+- 2026-11-20: the race emulator alternates two happens-before tokens per barrier (and per
+  grid sync). One shared token let a thread leaving barrier k sync with a neighbour already
+  at barrier k+1 and hid races between them (a new self-test case shows it: missed 3 of 5
+  runs before, reported 6 of 6 after). All 36 race-enabled lab solutions still pass.
 - 2026-11-20: shared fixes from wave 2: pmpp.py locks reports/runs while merging and replaces
   files atomically (concurrent runs had emptied emu.json); the labs-page emulator paragraph
   now matches labs/README.md (0xCD shared memory per block, warps modelled); realBackends
@@ -127,6 +147,10 @@ settings follow AMD's and CMake's documentation (facts file, B6 and B7).
 - 2026-11-20: pilot chapter is 5 (memory and data locality, tiled matmul).
 
 ### Findings worth remembering
+- On the M3 Max, chapter 15's M3 GEMM (the book's 128x128 tile, register tiling, padding,
+  pipelining) measured slower than chapter 5's M2 at batch 256 and far below MPS: the
+  book's NVIDIA-shaped tuning does not transfer to Apple's GPU as is. Pages show only
+  measurements; module X3 and the final pass should not claim otherwise.
 - On the Apple M3 Max used for the pilot, tiling gave about 1.7x to 1.9x over the naive
   kernel and a 4x4 tile was slower than naive; the naive kernel ran about 10x above the
   book's 0.25 FLOP/B model ceiling. Caches serve most of the naive kernel's reads.

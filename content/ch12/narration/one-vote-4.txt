@@ -1,0 +1,1 @@
+Figure 12.3 does it with one atomic. First the passing lanes vote. The mask they get back has a one for every lane that passed: bits 1, 2, 4 and 5. The lowest set bit makes lane 1 the leader, and counting the ones in the mask gives 4.

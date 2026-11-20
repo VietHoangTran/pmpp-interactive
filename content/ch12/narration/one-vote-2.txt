@@ -1,0 +1,1 @@
+Figure 12.2 hands out slots with one atomic per kept key. Four requests arrive at the same counter, which stands at 40. The counter can serve only one at a time, so they queue, in an order nobody chose. Here lane 2 gets 40, then lane 5 gets 41, lane 1 gets 42, and lane 4 gets 43.

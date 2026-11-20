@@ -1,0 +1,1 @@
+Here are the book's sixteen keys, split between two blocks of eight threads. In this toy a warp has 4 lanes, so each block holds 2 warps. Eight keys are kept. The scan gives each kept key its offset in the output: the number of kept keys before it.

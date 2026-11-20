@@ -1,0 +1,1 @@
+Last, the store, chunk by chunk, back to global memory and coalesced again. Each element passed through shared memory twice, once on the way in and once on the way out. By the book's count the block did 32 additions for 16 elements, twice the element count. Kogge-Stone on 16 elements does 49.

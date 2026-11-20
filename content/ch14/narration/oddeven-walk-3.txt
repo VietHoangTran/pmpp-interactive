@@ -1,0 +1,1 @@
+Now the worst case: the largest value starts at the front. Each step can move it exactly one place, because it meets one neighbour at a time. So the 8 needs 7 steps to reach the end. For N values, that is about N steps, however many threads you have.

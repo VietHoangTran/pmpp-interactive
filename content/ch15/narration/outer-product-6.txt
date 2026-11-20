@@ -1,0 +1,1 @@
+Step back to the whole block. Its tiles of A and B sit in shared memory, loaded once from global memory and read by many threads. Each thread's strips sit in registers, loaded once from shared memory and used 8 times. It is the same idea at two levels. CUTLASS calls the thread level an accumulated outer product.

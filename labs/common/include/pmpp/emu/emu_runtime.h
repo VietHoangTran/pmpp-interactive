@@ -109,6 +109,9 @@ struct ThreadRec {
   const char* what = "";            // name of the call it is waiting in
   const char* file = "";
   int line = 0;
+  // Barriers this thread has passed in its current block, and grid syncs in this launch.
+  // They pick which of two happens-before tokens a barrier uses (see emu_device.h).
+  unsigned nBar = 0, nGrid = 0;
   std::condition_variable cv;
 };
 
@@ -120,7 +123,7 @@ struct BlockCtx {
   unsigned live = 0, atBarrier = 0;
   std::vector<void*> slots;         // one per __shared__ declaration in the program
   unsigned char* dyn = nullptr;     // dynamic shared memory
-  char hbBarrier = 0;
+  char hbBarrier[2] = {0, 0};      // alternate per barrier: see block_sync
   std::vector<char> hbWarp;
 };
 
@@ -137,7 +140,7 @@ struct Rt {
   unsigned live = 0, running = 0, atGrid = 0;
   bool aborting = false, shutdown = false, yielded = false;
   std::string error;
-  char hbGrid = 0;
+  char hbGrid[2] = {0, 0};
 };
 
 struct SharedType {
@@ -634,6 +637,7 @@ inline cudaError_t launch_impl(dim3 grid, dim3 block, size_t sharedBytes, bool c
             t.st = b.active ? ThreadRec::Ready : ThreadRec::Idle;
             t.go = t.started = false;
             t.wait = Wait::None;
+            t.nBar = 0;
           }
           if (!b.active) continue;
           b.rank = n;

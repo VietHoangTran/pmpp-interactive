@@ -1,0 +1,1 @@
+Give the next pair of tiles a second buffer, and the false dependence is gone, so its barrier goes too. But look at the lanes. The load of the next pair still sits in the next iteration, after this compute, so the two lanes still take turns. Four pairs still take 8 units of time.

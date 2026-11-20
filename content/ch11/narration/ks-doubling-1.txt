@@ -1,0 +1,1 @@
+Here are the 8 values from exercise 1, one per position. Right now each position holds only its own value. The goal of an inclusive scan is that every position ends up holding the total of everything up to and including it. Kogge-Stone gets there in a few steps, with every position working at once.

@@ -1,0 +1,1 @@
+Now replay pass 4, but fill its ones bucket backwards. The top bit still splits the list correctly. But the 9 keys whose top bit is 1 come out in reverse order of their lower 3 bits, so the list is no longer sorted. One unstable pass undoes the work of every pass before it.

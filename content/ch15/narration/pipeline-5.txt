@@ -1,0 +1,1 @@
+Follow the buffers. In iteration 0, buffer 0 is current and buffer 1 is filling. In iteration 1 they swap. The single barrier at the end of each iteration does two jobs. It makes sure the next tile is complete before anyone uses it, and it keeps any thread from loading into a buffer a slower thread is still reading.

@@ -1,0 +1,1 @@
+Every iteration has two barriers. The one after the loads guards a true dependence. No thread may compute until every element of the tiles has arrived. The one after the compute guards a false dependence. The next load needs nothing from this compute. It waits only because it would overwrite tiles that other threads are still reading.

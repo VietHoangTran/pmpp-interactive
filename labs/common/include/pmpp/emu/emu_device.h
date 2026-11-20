@@ -18,7 +18,13 @@ namespace pmpp_emu {
 inline unsigned block_sync(int predicate, unsigned* n, const char* what, const char* file, int line) {
   ThreadRec& me = self(what);
   Rt& rt = *me.rt;
-  hb_before(&me.blk->hbBarrier);
+  // Two tokens, alternating per barrier. With one token, a thread still leaving barrier k
+  // would acquire what a neighbour released on arriving at barrier k+1, and every access
+  // the neighbour made between the two barriers would wrongly look ordered before this
+  // thread's. No live thread can reach barrier k+2 before all have left barrier k, so two
+  // are enough.
+  const void* token = &me.blk->hbBarrier[me.nBar & 1];
+  hb_before(token);
   unsigned out;
   {
     Quiet q;
@@ -28,14 +34,16 @@ inline unsigned block_sync(int predicate, unsigned* n, const char* what, const c
     out = unsigned(me.out);
     if (n) *n = unsigned(me.arg);
   }
-  hb_after(&me.blk->hbBarrier);
+  hb_after(token);
+  me.nBar++;
   return out;
 }
 
 inline void grid_sync(const char* what, const char* file, int line) {
   ThreadRec& me = self(what);
   Rt& rt = *me.rt;
-  hb_before(&rt.hbGrid);
+  const void* token = &rt.hbGrid[me.nGrid & 1];   // alternating, as in block_sync
+  hb_before(token);
   {
     Quiet q;
     std::unique_lock<std::mutex> lk(rt.m);
@@ -46,7 +54,8 @@ inline void grid_sync(const char* what, const char* file, int line) {
     me.op = Op::None;
     arrive(rt, me, lk, Wait::Grid);
   }
-  hb_after(&rt.hbGrid);
+  hb_after(token);
+  me.nGrid++;
 }
 
 // ---- warp rendezvous ------------------------------------------------------------

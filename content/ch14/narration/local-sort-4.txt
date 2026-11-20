@@ -1,0 +1,1 @@
+Each block now knows the size of its local buckets. It writes them into a table, every block's zero count first, then every block's one count. One exclusive scan over that table gives each local bucket its starting place. The zero buckets start at 0, 2, 4 and 5. The one buckets start at 8, 10, 12 and 15.

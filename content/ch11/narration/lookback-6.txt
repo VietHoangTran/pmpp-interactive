@@ -1,0 +1,1 @@
+Who promises the progress this needs? CUDA documents it: a block that has started keeps making progress, so waiting on a claimed index ends. AMD documents no such rule, so here it stays unverified. Metal documents none either, and an Apple engineer called the assumption undefined, so on Metal the scan runs as separate dispatches, one after another.

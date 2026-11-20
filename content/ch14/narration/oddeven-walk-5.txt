@@ -1,0 +1,1 @@
+Every thread that swaps also writes 1 to the same flag, all in the same step. They all write the same value, but it is still a data race, and the CUDA memory model makes a data race undefined behaviour. So the store is made atomic.
