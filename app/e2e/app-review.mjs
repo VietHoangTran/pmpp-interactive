@@ -79,11 +79,30 @@ await pause(100);
 check('theme button switches between light and dark', (await bg()) !== before);
 
 // ---- every route renders without errors, at desktop and phone widths ----
-const routes = ['', 'review', ...['start', '5.1', '5.2', '5.3', '5.4', '5.5', '5.6', 'labs', 'wrap'].map((s) => 'ch05/' + s)];
+// The routes come from the app's own chapter registry: every chapter that has sections.
+// CHAPTERS=ch02,ch05 limits the sweep (useful while other chapters are being built).
+const only = (process.env.CHAPTERS || '').split(',').filter(Boolean);
+const built = await page.evaluate(async () => {
+  const reg = await import('/src/chapters/registry.ts');
+  const out = [];
+  for (const id of reg.CHAPTER_IDS) {
+    const ch = await reg.loadChapter(id);
+    if (ch.sections.length) out.push([id, ch.sections.map((s) => s.id)]);
+  }
+  return out;
+});
+const routes = ['', 'review', ...built.filter(([id]) => !only.length || only.includes(id)).flatMap(([id, ss]) => ss.map((s) => `${id}/${s}`))];
+console.log(`sweeping ${routes.length} routes in ${built.length} built chapters${only.length ? ` (limited to ${only.join(', ')})` : ''}`);
 for (const width of [1440, 390]) {
   await page.setViewport({ width, height: 900, deviceScaleFactor: 1 });
   for (const route of routes) {
-    await goto(page, route);
+    try {
+      await goto(page, route);
+    } catch {
+      const text = await page.$eval('.page', (e) => e.textContent.slice(0, 160)).catch(() => '');
+      check(`route "${route}" at ${width}px: loads`, false, text);
+      continue;
+    }
     const info = await page.evaluate(() => ({
       placeholder: document.querySelector('.page').textContent.includes('This section is being written'),
       overflow: document.documentElement.scrollWidth - window.innerWidth,

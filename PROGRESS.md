@@ -39,8 +39,8 @@ pages, and commits. Per-chapter hints given to the designers are in the wave's `
       enforcement of per-dimension block and grid limits, condensed ASan reports in
       pmpp.py, lab 4.1's kernel named like lab 3.3's;
       the labs page uses two wordings for the same statuses (table vs tabs) and the
-      kernel.cu tab says "no run" when a run failed; `app-review.mjs` only visits
-      chapter 5 routes: extend to every built chapter.
+      kernel.cu tab says "no run" when a run failed. (`app-review.mjs` now sweeps every
+      built chapter from the registry; `CHAPTERS=ch01,ch02` limits it.)
 - [ ] Final: whole-course consistency pass, spaced-review pool check, final verify
       report, hand-off.
 

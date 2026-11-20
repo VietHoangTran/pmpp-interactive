@@ -64,15 +64,22 @@ export function useChapter(id: string | undefined): Chapter | null | undefined {
 export function useAllChapters(): Chapter[] | undefined {
   const [all, setAll] = useState<Chapter[]>();
   useEffect(() => {
-    Promise.all(CHAPTER_IDS.map((id) => loadChapter(id)!)).then(setAll);
+    // A chapter whose index fails to load is left out rather than blanking the list.
+    Promise.allSettled(CHAPTER_IDS.map((id) => loadChapter(id)!)).then((rs) =>
+      setAll(rs.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []))),
+    );
   }, []);
   return all;
 }
 
 /** Every question of every built section, for review. Loads all section code. */
 export async function loadAllQuestions(): Promise<Record<string, Question>> {
-  const chapters = await Promise.all(CHAPTER_IDS.map((id) => loadChapter(id)!));
-  const mods = await Promise.all(chapters.flatMap((c) => c.sections.map((s) => s.load())));
+  // One section that fails to load (a chapter mid-build, a broken import) must not empty
+  // the whole review queue: load each independently and keep what arrives.
+  const settled = <T,>(ps: Promise<T>[]) =>
+    Promise.allSettled(ps).then((rs) => rs.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : [])));
+  const chapters = await settled(CHAPTER_IDS.map((id) => loadChapter(id)!));
+  const mods = await settled(chapters.flatMap((c) => c.sections.map((s) => s.load())));
   return Object.assign({}, ...mods.map((m) => m.questions));
 }
 
