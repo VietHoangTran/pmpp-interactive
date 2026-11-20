@@ -37,8 +37,11 @@ pages, and commits. Per-chapter hints given to the designers are in the wave's `
       documents no forward progress between threadgroups). Every browser check passes.
 - [ ] Wave 4 (running, run id wf_ccca9f22-a5f, ports 6200+, v3 script): ch20 (Deep), x1 (Deep),
       ch22, ch19, appA (Standard).
-- [ ] Wave 5: x2 quantised kernels (Deep), x3 reading real backends (Standard),
-      ch16, ch17, ch18, ch21, ch23 (Condensed).
+- [ ] Wave 5a (running, run id wf_63d11bbd-bd6, ports 6500+): ch16, ch17, ch18, ch21, ch23
+      (Condensed).
+- [ ] Wave 5b (after wave 4; briefs in the session scratchpad, ports 6700+): x2 quantised
+      kernels (Deep), x3 reading real backends (Standard). M10 must not download anything:
+      a deterministic toy model generated in the repo; a real checkpoint only by the reader.
 - [ ] Final pass to-do list (collected along the way):
       lab 5.5's prediction compares GFLOP/s at different matrix widths (2048 vs lab 5.2's
       adaptive width): make the two benchmarks use the same width or reword the prompt;
