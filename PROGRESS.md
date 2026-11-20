@@ -2,6 +2,34 @@
 
 Running state across sessions. Newest first. Decisions are dated.
 
+## State on 2026-11-20 (later): building the rest, in waves
+
+The reader approved the pilot ("looks good... go ahead and build the rest") without
+CUDA/ROCm reports yet; CUDA and HIP therefore stay unverified on hardware for everything.
+The reader also said: add narrated animations or any other content wherever it helps,
+without rationing usage.
+
+**How the build runs.** One orchestrated run per wave (the Workflow tool, script saved
+by the harness under the session's `workflows/scripts/build-chapters-*.js`). Per chapter:
+facts check against current docs -> design -> section builders and lab builders in
+parallel -> integration -> independent review -> fixes. The main session then generates
+narration audio for the new scripts, runs `./verify.sh` and `npm run e2e`, looks at the
+pages, and commits. Per-chapter hints given to the designers are in the wave's `args`.
+
+**Waves** (tick when committed)
+- [ ] Wave 0: on-demand loading of chapters and sections, chapter-building rules in
+      CLAUDE.md (done); shared labs-page kit `app/src/components/LabKit.tsx`; emulator
+      extension (warps, warp intrinsics, atomics, constant memory, cooperative groups,
+      streams, a ThreadSanitizer `race` backend); `notes/today/infra-facts.md`.
+- [ ] Wave 1: ch02, ch03, ch04 (Deep); ch01, ch24 (Condensed).
+- [ ] Wave 2: ch06 (Deep), ch07 (Standard), ch08 (Condensed), ch09 (Standard), ch10 (Deep), appC (Standard).
+- [ ] Wave 3: ch15, ch11, ch12 (Deep), ch14 (Standard), ch13 (Condensed).
+- [ ] Wave 4: ch20 (Deep), ch22, ch19, appA (Standard), x1 sampling (Deep).
+- [ ] Wave 5: x2 quantised kernels (Deep), x3 reading real backends (Standard),
+      ch16, ch17, ch18, ch21, ch23 (Condensed).
+- [ ] Final: whole-course consistency pass, spaced-review pool check, final verify
+      report, hand-off.
+
 ## State on 2026-11-20: pilot complete, waiting for review
 
 **Phase:** chapter 5 (the pilot) is built to the finished standard. Nothing after the
