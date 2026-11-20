@@ -1,0 +1,1 @@
+Here the wait is 20 times as long as the burst. So out of every 21 time slots, the bus is busy for just 1. That is about 4.8 percent. [short pause] A channel whose bus could move 16 gigabytes per second delivers only about 0.76 of them.

@@ -1,0 +1,1 @@
+Modern GPUs carry out these atomics in the last level cache, which all the multiprocessors share. The book puts that at tens of cycles, rather than hundreds. Every link in the chain shrinks, and the shape stays the same. In the book's words, atomic throughput improves by at least an order of magnitude.

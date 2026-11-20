@@ -1,0 +1,1 @@
+Here are 24 pixels, each already turned into one of 8 bin numbers, and 3 blocks of 8 threads. In the basic kernel every thread adds 1 to a single public histogram in global memory. Look at bin 7, the bright sky. 14 threads from all 3 blocks aim at that one counter, and their atomics must take turns.

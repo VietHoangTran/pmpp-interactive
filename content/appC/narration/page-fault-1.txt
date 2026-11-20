@@ -1,0 +1,1 @@
+A kernel loads from a managed page that lives in CPU memory right now. The GPU has no valid mapping for this page, so the access cannot complete. It raises a page fault, and the load waits while the Unified Memory driver deals with it.

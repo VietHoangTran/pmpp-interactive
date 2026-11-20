@@ -1,0 +1,1 @@
+The loop did 7 additions, and so did the tree: the same work. What changed is the span, 7 steps against 3. Each square is 1 adder busy for 1 step. For N values the work is N minus 1 either way, and the tree's span is log base 2 of N.

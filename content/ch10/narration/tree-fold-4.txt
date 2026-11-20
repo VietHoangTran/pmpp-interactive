@@ -1,0 +1,1 @@
+Now scale up to 1024 values. The first step needs 512 adders, then 256, then 128, down to a single adder in step 10. On average only about 102 are busy. Hardware sized for the peak sits idle most of the time. The kernels in the rest of this chapter keep running into that.

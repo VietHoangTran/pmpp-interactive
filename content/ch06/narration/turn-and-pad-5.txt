@@ -1,0 +1,1 @@
+The price is small but real. One column of 32 floats holds nothing, which is 128 bytes per tile. And finding a row now costs a shift and an add, instead of a single shift. The book prints that shift pointing the wrong way. Multiplying by 32 is a shift to the left by 5.

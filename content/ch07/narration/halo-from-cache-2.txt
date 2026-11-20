@@ -1,0 +1,1 @@
+Block B runs next door. Its left halo is the last 2 columns of A's tile, and the model finds every one of those lines still in L2. No new DRAM traffic. Even B's own tile was already there, because A's halo read pulled in whole lines. This is the case the book is counting on.

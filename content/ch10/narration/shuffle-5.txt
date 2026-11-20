@@ -1,0 +1,1 @@
+Suppose the data ends at lane 20, and lanes 20 and up have already returned. A lane that reads one of them gets an undefined value, drawn as a question mark. Follow the question marks: after the second step one reaches lane 0, so the total is garbage. The fix is to stay in the loop and contribute zero.

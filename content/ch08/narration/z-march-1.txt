@@ -1,0 +1,1 @@
+Here is the book's input tile: six planes of six by six points. One thread per point needs 216 threads, and that is allowed. But a tile 32 points wide would need 32,768 threads, and a block may hold at most 1,024. One thread per point cannot grow the tile. Something has to give.

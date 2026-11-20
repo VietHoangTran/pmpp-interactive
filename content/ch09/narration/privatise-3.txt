@@ -1,0 +1,1 @@
+Each thread now adds 1 to a bin of its own block's copy. It still needs an atomic, because 2 threads of one block can pick the same bin. But the crowd is smaller. The busiest bin of any copy has 5 contenders, all from one block, instead of 14 from everywhere.

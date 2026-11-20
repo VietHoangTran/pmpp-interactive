@@ -61,6 +61,10 @@ std::vector<std::pair<std::string, std::string>> device_props() {
   add("maxGridSize.z", p.maxGridSize[2]);
   add("sharedMemPerBlock", (double)p.sharedMemPerBlock);
   add("regsPerBlock", p.regsPerBlock);
+  // ch07-facts: constant memory and L2 size are queried, never assumed. On HIP an
+  // l2CacheSize of 0 means not reported, and totalConstMem is the largest allocation.
+  add("totalConstMem", (double)p.totalConstMem);
+  add("l2CacheSize", p.l2CacheSize);
   add("computeCapability.major", p.major);
   add("computeCapability.minor", p.minor);
   // Note the inconsistent capitalisation in the real headers: ...Multiprocessor

@@ -1,0 +1,1 @@
+The panel for Apple GPUs is nearly empty. Apple documents no constant cache. Its conference talks call the constant address space the path for read-only data that is reused a lot, and describe preloading small data of known size. With no rule to model, the lab measures instead of predicting.

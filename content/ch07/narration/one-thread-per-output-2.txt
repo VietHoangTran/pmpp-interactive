@@ -1,0 +1,1 @@
+Pick one thread: thread 1, 1 of block 1, 1. Block index times block size, plus thread index, gives row 5 and column 5. So this thread computes P 5, 5. Its patch of inputs starts 2 rows up and 2 columns left, at row 3, column 3, and covers 5 by 5 elements.

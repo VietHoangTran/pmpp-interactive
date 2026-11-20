@@ -1,0 +1,1 @@
+Now the loop moves on, one tap at a time, through a 5 by 5 filter. At every tap the lanes still agree on the address, because the index does not depend on which thread is asking. So each tap costs one answer, and the whole filter costs this warp 25 answers, whatever the warp's width.

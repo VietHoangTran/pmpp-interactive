@@ -1,0 +1,1 @@
+Eight threads each load a value from a different address. The requests go out one after another, a few cycles apart, and then they all wait at the same time. So all 8 loads are back just after one memory latency. Memory keeps up because many requests are in flight at once.

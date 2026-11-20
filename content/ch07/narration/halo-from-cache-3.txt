@@ -1,0 +1,1 @@
+Neighbours in the picture are not neighbours in time. Block C, the first of the next row, runs a whole row of blocks after A. Its top halo includes A's bottom rows. Since then, this small cache has filled with other tiles and evicted those lines, so C's reads of them go to DRAM.

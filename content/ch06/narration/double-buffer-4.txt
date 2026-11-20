@@ -1,0 +1,1 @@
+Look again at the first failure. Thread 3 and thread 0 never needed the same value. They collided only because the read of one iteration and the write of the next use the same slot. That dependence is false. So give the writes a place of their own: a second buffer.

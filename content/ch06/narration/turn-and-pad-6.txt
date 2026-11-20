@@ -1,0 +1,1 @@
+All of these counts follow NVIDIA's documented rule. On an AMD GPU with 64 banks and 64 lanes, the same column write counts differently, and AMD serves 16 lanes per cycle in any case. Apple documents no banks at all. So lab 6.3 measures what your own device does.

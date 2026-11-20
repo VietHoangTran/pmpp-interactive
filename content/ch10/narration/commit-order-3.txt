@@ -1,0 +1,1 @@
+Now run it again. The 8 block sums are exactly the same. Only the order changes, because the blocks finished differently. The rounding falls in different places, so the two totals differ by a couple of steps in their last bits. Both are good sums. But a test that compares bits between runs will fail.

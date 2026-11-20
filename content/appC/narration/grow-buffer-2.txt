@@ -1,0 +1,1 @@
+Keep generating and it happens again. At token 9 you copy 8. At token 17 you copy 16. Each copy is larger than the last, and each move gives the buffer a new base address, so everything holding the old pointer must be told. By token 32 you have copied 28 tokens' worth.

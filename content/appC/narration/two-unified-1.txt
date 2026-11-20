@@ -1,0 +1,1 @@
+Here is Figure C 1 on a computer with a separate graphics card. CUDA malloc managed returns one pointer, but no page has been placed anywhere yet. Then fread writes the file on the CPU, and each of the 8 pages lands in CPU memory, the place where it was first touched.

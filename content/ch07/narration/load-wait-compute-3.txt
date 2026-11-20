@@ -1,0 +1,1 @@
+Then a barrier. Threads that finish loading early stop here and wait until all 64 slots are filled. One barrier is enough. In chapter 5, a second barrier stopped the next tile from overwriting values still being read. Here the tile is loaded once and never overwritten, so there is nothing else to protect.

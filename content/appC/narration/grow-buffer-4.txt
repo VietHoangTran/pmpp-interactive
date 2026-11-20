@@ -1,0 +1,1 @@
+Create one chunk of physical memory and map it at the start of the range. The addresses now have memory behind them, but a kernel that reads them still crashes, because no device has been given access. Grant access, and only now can a kernel read the first chunk.

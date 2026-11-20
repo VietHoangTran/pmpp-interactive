@@ -1,0 +1,1 @@
+The hardware does not fetch 32 separate floats. It serves the warp in aligned pieces of memory. On NVIDIA GPUs the piece is a 32 byte sector, and four sectors make one 128 byte cache line. These 32 floats fill exactly 4 sectors of one line. Four transactions serve the whole warp, and every byte fetched is used.

@@ -1,0 +1,1 @@
+Now the compute phase. The outer ring of 28 threads has nothing to compute and switches off. Each of the inner 36 reads a 3 by 3 patch from shared memory, with no bounds tests. The thread in row 1, column 1 writes output row 0, column 0. The thread in row 6, column 6 writes row 5, column 5.

@@ -1,0 +1,1 @@
+Later the CPU touches the page, and the whole sequence runs in reverse: a CPU fault, the GPU loses its mapping, and the page travels back. A page that both sides keep touching moves back and forth every time. That is when mapping it, or a hint, beats migration.

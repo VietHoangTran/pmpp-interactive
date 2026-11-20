@@ -1,0 +1,1 @@
+Here is where this goes next. Each block first counts into its own copy of the bin, in on-chip memory, where an atomic takes a few cycles. Then one thread per block adds the block's count to the global bin. The long global chain becomes one short commit per block. That is privatisation, the next section.

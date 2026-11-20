@@ -1,0 +1,1 @@
+On an AMD wavefront of 64 lanes, the loop written for 32 still starts at 16. Lane 0 collects lanes 0 to 31, and lane 32 collects lanes 32 to 63. With every value 1, each holds 32, and no lane holds 64. The fix: start the loop at warp size over 2, and on HIP pass a 64-bit mask.

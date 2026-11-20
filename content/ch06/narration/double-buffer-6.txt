@@ -1,0 +1,1 @@
+Chapter 5's tiled kernel has the same pair. Barrier 1 guards a true dependence. Barrier 2 only stops the next phase from overwriting tiles that are still being read: a false one. Two pairs of tiles remove it, at twice the shared memory. Lab 6.5 asks you to do exactly that, with the race detector watching.

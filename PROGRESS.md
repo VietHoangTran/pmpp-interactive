@@ -24,10 +24,14 @@ pages, and commits. Per-chapter hints given to the designers are in the wave's `
 - [x] Wave 1 (run wf_ec5c6999-f65, finished on Opus 5.5): ch02, ch03, ch04 (Deep); ch01, ch24
       (Condensed). Built, reviewed and fixed; 13 labs (2.1–2.4, 3.1–3.5, 4.1–4.4); every
       browser check for ch01–ch05 and ch24 passes. Narration audio is committed separately.
-- [ ] Wave 2 (running, run id wf_52b4ecac-e87; the first run wf_450b41fe-79b produced nothing before the usage limit, ports 5600+, script `build-chapters-v2.js`): ch06 (Deep), ch07 (Standard), ch08 (Condensed), ch09 (Standard), ch10 (Deep), appC (Standard).
+- [x] Wave 2 (run wf_52b4ecac-e87, Opus 5.5): ch06 (Deep), ch07 (Standard), ch08 (Condensed),
+      ch09 (Standard), ch10 (Deep), appC (Standard). Built, reviewed and fixed; 15 labs (6.1–6.5,
+      7.1–7.2, 8.1, 9.1–9.3, 10.1–10.3, appC lab 1); milestones M2 tuned (6.4), M4 softmax and
+      argmax (10.3), M5 token counts (9.3). Every browser check passes. Audio committed separately.
 - Builder agents run on Opus 5.5 (the reader's request, 2026-11-20). Agents inherit the
   session model; new wave scripts should also pass `model: 'opus'` to every agent() call.
-- [ ] Wave 3: ch15, ch11, ch12 (Deep), ch14 (Standard), ch13 (Condensed).
+- [ ] Wave 3 (running, run id wf_a2cea698-3c2, ports 5900+, script `build-chapters-v3.js` with
+      model 'opus' on every agent): ch15, ch11, ch12 (Deep), ch14 (Standard), ch13 (Condensed).
 - [ ] Wave 4: ch20 (Deep), ch22, ch19, appA (Standard), x1 sampling (Deep).
 - [ ] Wave 5: x2 quantised kernels (Deep), x3 reading real backends (Standard),
       ch16, ch17, ch18, ch21, ch23 (Condensed).
@@ -38,6 +42,11 @@ pages, and commits. Per-chapter hints given to the designers are in the wave's `
       a choice-type Predict, a source label and custom line numbers for Code, emulator
       enforcement of per-dimension block and grid limits, condensed ASan reports in
       pmpp.py, lab 4.1's kernel named like lab 3.3's;
+      deferred wave 2 requests: the race emulator gives a block one happens-before token
+      for all its barriers (can hide races between barrier 1 and 2 on small launches);
+      pmpp.py should accept appendix lab numbers (C.1); Code tabs' status text is squeezed
+      at 390 px; ch12's lab 1 comment says the HIP build does not link libhipcxx (now it
+      does where ROCm has it); emu.json lost chapters 2–6 results before the lock: re-run;
       the labs page uses two wordings for the same statuses (table vs tabs) and the
       kernel.cu tab says "no run" when a run failed. (`app-review.mjs` now sweeps every
       built chapter from the registry; `CHAPTERS=ch01,ch02` limits it.)
@@ -89,6 +98,13 @@ settings follow AMD's and CMake's documentation (facts file, B6 and B7).
   so nothing was checked in a visible browser window.
 
 ### Decisions
+- 2026-11-20: shared fixes from wave 2: pmpp.py locks reports/runs while merging and replaces
+  files atomically (concurrent runs had emptied emu.json); the labs-page emulator paragraph
+  now matches labs/README.md (0xCD shared memory per block, warps modelled); realBackends
+  leaves out `race`; `__launch_bounds__` in the stub and emulator; cudaMallocManaged and
+  cudaMemAttachGlobal in hip.h (appC-facts B6); the CUDA-family device report adds
+  totalConstMem and l2CacheSize; the HIP build links libhipcxx::libhipcxx when ROCm has it
+  (infra-facts B2, unverified); the highlighter no longer colours `.x` members as variables.
 - 2026-11-20: condensed chapters may carry more than one or two pages of interactives
   (ch01 and ch24 do), on the reader's word that more content is welcome. Their reviewers
   flagged the extra density; it is accepted, not a defect.

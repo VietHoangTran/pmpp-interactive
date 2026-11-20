@@ -1,0 +1,1 @@
+On an AMD GPU, constant data goes through a scalar cache, but only when every lane of the wavefront reads the same address. The filter tap qualifies, so it is served there. The codebook lookup does not, so its reads are serialised. And AMD gives no size for this memory at all.

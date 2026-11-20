@@ -1,0 +1,1 @@
+What it costs is one more launch, and one float per block. Here, that is 8 floats. For a million logits, with blocks of 1024 threads, it is 489. For max and argmax there is no portable float atomic at all. So two passes is also the portable route. It is the one llama.cpp's Metal argmax takes.

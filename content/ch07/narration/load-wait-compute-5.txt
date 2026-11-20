@@ -1,0 +1,1 @@
+Each active thread stores one result, and together they fill a 6 by 6 output tile. The next block starts 6 columns to the right. Its input tile overlaps this one by 2 columns, the halo. Those inputs are loaded twice, once by each block. That repeated loading is the cost of the halo.

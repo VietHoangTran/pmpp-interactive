@@ -1,0 +1,1 @@
+Here are 32 lanes of one warp. Each lane holds a number in a register, and no shared memory is involved. Now every lane asks for the value held 16 lanes above it. Lanes 0 to 15 receive the values of lanes 16 to 31. The top 16 lanes have nothing above them, so each keeps its own value.

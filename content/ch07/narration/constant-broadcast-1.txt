@@ -1,0 +1,1 @@
+Here is one warp of 32 lanes, and a small filter held in constant memory. Every lane is about to read the same weight, the top left corner of the filter. One address lights up. The cache answers once, and that single answer fans out to all 32 lanes together.

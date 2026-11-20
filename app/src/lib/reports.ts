@@ -41,7 +41,8 @@ export function useReports(): { reports: Reports; loading: boolean; reload: () =
 }
 
 // Real GPU backends only (the emulator has no meaningful timings).
-export const realBackends = (r: Reports) => Object.keys(r).filter((b) => b !== 'emu');
+/** Backends that ran on a GPU: neither emulator flavour (emu, race) counts as a device. */
+export const realBackends = (r: Reports) => Object.keys(r).filter((b) => b !== 'emu' && b !== 'race');
 
 export function benchRows(run: BackendRun | undefined, lab: string, variant = 'solution'): BenchRow[] {
   if (!run) return [];

@@ -1,0 +1,1 @@
+Each block reduces its own segment, always in the same order. Then its leader, thread 0, adds the block's sum into one total in global memory, with an atomic add. The atomic stops two leaders from losing each other's update. It does not decide who goes first. Watch the total. It is rounded to float after every add.

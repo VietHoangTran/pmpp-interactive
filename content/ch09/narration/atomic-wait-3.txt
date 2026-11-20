@@ -1,0 +1,1 @@
+Take the atomic away, and let a warp of 8 lanes do a plain read, add and write, in step. Every lane reads 0. Every lane writes 1. It finishes quickly, and the bin ends at 1. Seven of the 8 updates have vanished, and nothing reports it.

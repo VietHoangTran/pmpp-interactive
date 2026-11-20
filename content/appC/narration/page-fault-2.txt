@@ -1,0 +1,1 @@
+Next, the driver takes the page away from its owner. The CPU's mapping for it is removed. For a moment neither processor can use the page, so nobody can change it while it moves. That is how migration keeps the two sides coherent: one owner at a time.

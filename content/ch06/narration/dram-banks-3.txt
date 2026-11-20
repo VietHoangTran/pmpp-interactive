@@ -1,0 +1,1 @@
+Now add a second bank. It starts its own request while the first bank is still waiting. When the first burst is done, the second one is ready, so the two bursts go out back to back. Neither bank got any faster. Yet the bus now does twice the work.

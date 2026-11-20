@@ -71,6 +71,12 @@
 #define cudaHostAllocMapped        hipHostMallocMapped
 #define cudaHostAllocWriteCombined hipHostMallocWriteCombined
 
+// appC-facts.md B6 (managed memory): names that map one for one. Prefetch and advise
+// do not: HIP keeps the CUDA 12 argument form, so code that calls them branches on
+// the platform instead of going through this header.
+#define cudaMallocManaged          hipMallocManaged
+#define cudaMemAttachGlobal        hipMemAttachGlobal
+
 // infra-facts.md B8 (events, used for timing).
 #define cudaEvent_t              hipEvent_t
 #define cudaEventCreate          hipEventCreate

@@ -1,0 +1,1 @@
+Same 5 steps, different partners. Each lane now trades with the lane whose number differs from its own in one bit: 16 apart, then 8, 4, 2 and 1. Values cross in both directions, so every lane ends up holding the total, 162, not just lane 0. The example in NVIDIA's own guide reduces a warp this way.

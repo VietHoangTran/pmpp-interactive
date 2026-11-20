@@ -1,0 +1,1 @@
+Now look at who reads what. A thread's previous and next values are read by that thread alone. Only the current plane is shared with its neighbours. So the previous and next values move into each thread's registers, and shared memory shrinks to a single plane. Global memory sees no difference: the block loads exactly the same points.

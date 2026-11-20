@@ -1,0 +1,1 @@
+Count as the book does, for a block away from the edges. 64 loads and 36 stores serve 324 multiply adds. The constant memory kernel makes 324 input loads for the same work. That is 1.62 operations per byte, against 0.5. With a 32 by 32 block and a 5 by 5 filter, the same count gives 5.42.

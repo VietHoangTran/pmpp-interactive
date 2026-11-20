@@ -1,0 +1,1 @@
+Side by side, the filter is the best case for a constant cache. One address per tap, one answer for the whole warp. The codebook is close to the worst. Most entries are asked for at once, and answered one at a time. That may be why the CUDA side of llama.cpp keeps its quantisation tables in ordinary device memory.

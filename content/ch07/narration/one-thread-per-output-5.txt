@@ -1,0 +1,1 @@
+But threads do not run alone. In this toy, all 16 threads of the corner block share one warp, and they step through the taps together. At each tap, the lanes whose input is a ghost cell sit idle while their neighbours multiply. That idling, lane by lane, is control divergence.

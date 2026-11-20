@@ -1,0 +1,1 @@
+Put that barrier back, and remove the one after the write instead. Now thread 0 writes, carries straight on into the next iteration, and reads slot 1 before thread 1 has written it. That is a read after write failure. The reader needs a value that does not exist yet, and no amount of memory can fix that.

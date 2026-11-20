@@ -1,0 +1,1 @@
+So flatten the block. Keep one thread for each point of a single plane, 36 threads, and let the block walk through z. The inner 16 threads compute. The ring around them only loads. Before the walk begins, each thread loads its point of plane 0 into the previous buffer, and of plane 1 into the current one.

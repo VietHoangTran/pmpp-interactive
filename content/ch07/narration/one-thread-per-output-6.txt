@@ -1,0 +1,1 @@
+Zoom out to a 1024 by 1024 image with 32 by 32 blocks. A warp is now one row of a block. Only warps at the left and right edges diverge, about 6 percent of them. At the top and bottom, every lane skips the same taps. Divergence is not the real limit. Memory traffic is, and that comes next.

@@ -1,0 +1,1 @@
+Now each block gets its own copy of the 8 bins, in shared memory. Shared memory starts out holding whatever was there before, so the block's threads first write a zero into every bin. Then a barrier. No thread may start counting until every bin of its block's copy is zero.

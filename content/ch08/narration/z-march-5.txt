@@ -1,0 +1,1 @@
+The same steps repeat: load one plane, wait, compute, wait, shift. Each step adds one input plane and one finished output plane. At the end the block has loaded 6 planes to produce 4. At width 32 the same march needs only 1,024 threads and reaches about 1.47 operations per byte, against 0.96 for the 8 wide cube.

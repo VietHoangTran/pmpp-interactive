@@ -1,0 +1,1 @@
+A second barrier, then the window moves on. Each thread copies its own current value into previous, and its own next value into current. The first barrier protected a true dependence: you cannot read what has not been written. The second protects a false one: nobody may overwrite a value that a neighbour has not read yet.

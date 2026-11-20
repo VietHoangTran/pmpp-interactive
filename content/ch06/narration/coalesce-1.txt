@@ -1,0 +1,1 @@
+One load instruction, one warp, 32 lanes. At step k equals 0, every lane works out its own address in N, which is stored row by row. Lane 0 wants element 0, lane 1 wants element 1, and so on up to lane 31. On the strip of memory below, the 32 addresses land side by side, with no gaps.

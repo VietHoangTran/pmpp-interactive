@@ -1,0 +1,1 @@
+Side by side: one word, two mechanisms. CUDA's Unified Memory is a pool, managed in software, that migrates pages between two memories. Apple's unified memory is one physical memory. 16 pages crossed in both CUDA modes, and none on the Mac. What all three still ask of you is ordering.

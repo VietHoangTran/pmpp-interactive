@@ -1,0 +1,1 @@
+Keep adding banks, each starting one burst time after the last. With 21 banks, which is R plus 1, the bursts tile the bus with no gaps at all. The bus is busy 100 percent of the time. [short pause] Fewer banks leave gaps. More banks cannot raise it any further.

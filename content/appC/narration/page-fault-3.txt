@@ -1,0 +1,1 @@
+Then the page itself travels over the interconnect into GPU memory. This is the expensive part. NVIDIA notes that the amount of work is proportional to the page size, and that its GPUs prefer large pages. A bigger page means fewer faults, but more bytes for each one.

@@ -35,6 +35,8 @@
 // [G 5.4.1.3]. clang treats __noinline__ as a keyword in CUDA mode, so it needs
 // no definition here. __restrict__ is a keyword of the compiler.
 #define __forceinline__ __inline__ __attribute__((always_inline))
+// Kernel launch bounds (ch08-facts A4/B4): clang's CUDA mode has the attribute itself.
+#define __launch_bounds__(...) __attribute__((launch_bounds(__VA_ARGS__)))
 #define __inline_hint__
 
 // ---- vector types [?] UNVERIFIED alignments, see pmpp/emu/emu_types.h ------------------
@@ -189,6 +191,7 @@ struct cudaDeviceProp {
       maxThreadsPerMultiProcessor, maxBlocksPerMultiProcessor, multiProcessorCount;
   int maxThreadsDim[3], maxGridSize[3], major, minor;
   int cooperativeLaunch, concurrentKernels, unifiedAddressing, managedMemory, integrated;
+  int l2CacheSize;
 };
 
 // ---- runtime functions, C forms [R] -------------------------------------------------------------------

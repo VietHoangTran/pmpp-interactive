@@ -1,0 +1,1 @@
+Now remove the barrier after the read. Thread 0 runs ahead: it reads, and then writes its own slot straight away. Thread 3 comes later and reads slot 0, expecting the initial value. It finds the next iteration's value instead. That is a write after read failure: a write came before a read that still needed the old value.

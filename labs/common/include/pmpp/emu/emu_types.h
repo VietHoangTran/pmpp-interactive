@@ -14,6 +14,8 @@
 #define __host__
 #define __constant__          /* a plain global here: kernel writes are NOT rejected */
 #define __forceinline__ inline __attribute__((always_inline))
+// A register-budget hint for the GPU compiler; nothing to do on the CPU.
+#define __launch_bounds__(...)
 #define __inline_hint__
 // libc++ and libstdc++ spell an attribute __attribute__((__noinline__)) in their
 // own headers, which this macro would break. cuda_emu.h includes the standard
@@ -111,6 +113,7 @@ struct cudaDeviceProp {
   char name[256];
   size_t totalGlobalMem;
   size_t totalConstMem;
+  int l2CacheSize;
   size_t sharedMemPerBlock;
   size_t sharedMemPerBlockOptin;
   size_t sharedMemPerMultiprocessor;

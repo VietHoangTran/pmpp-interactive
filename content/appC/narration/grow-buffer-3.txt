@@ -1,0 +1,1 @@
+Now the other way. First reserve a range of addresses big enough for everything the buffer will ever hold, here 8 chunks of 4 tokens each. Nothing is behind those addresses yet. Reserving costs addresses, not memory, and a 64 bit address space has plenty to spare.

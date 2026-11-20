@@ -1,0 +1,1 @@
+Now the thread in the top left corner, thread 0, 0 of block 0, 0. Its patch hangs 2 rows over the top and 2 columns over the left. 16 of its 25 taps land on ghost cells. The bounds test skips them, which gives the same sum as multiplying by zero.

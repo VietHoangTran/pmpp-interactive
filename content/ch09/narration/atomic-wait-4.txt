@@ -1,0 +1,1 @@
+With several bins, chains form side by side. Spread 8 updates evenly over 4 bins, and each chain is 2 links long. Now skew the data, so that 5 updates land in one bin. That chain sets the finish, while the other 3 bins sit idle. The busiest bin, not the number of bins, sets the pace.

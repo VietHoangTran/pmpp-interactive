@@ -1,0 +1,1 @@
+Over the loop, the two counters drift apart by a factor of 8. One caveat. The unused bytes in each sector are values the same lane needs at the next few steps. A cache that kept those sectors would rescue part of the waste. How much it rescues on your GPU is a measurement, and lab 6.1 makes it.

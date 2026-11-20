@@ -1,0 +1,1 @@
+First, the limited mode. That is CUDA 6 on Kepler and Maxwell, and still Windows and WSL today. At the launch, every managed page the CPU holds is moved to the GPU at once, all 8 of them. Until the program synchronises, the CPU must not touch managed memory at all.

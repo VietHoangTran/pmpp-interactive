@@ -1,0 +1,1 @@
+Now fold the same values in pairs. In the first step, 4 adders work at once and produce 11, 5, 13 and 15. In the second step, 2 adders produce 16 and 28. In the third, a single adder produces 44. The number of busy adders halves at every step.

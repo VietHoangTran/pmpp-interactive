@@ -1,0 +1,1 @@
+Each lane adds what it received to what it already had. Then the distance halves: 8, then 4, then 2, then 1. Each time, only the lower half of the lanes that mattered before still matters. After 5 steps, lane 0 holds the sum of all 32 values. Here that is 162.

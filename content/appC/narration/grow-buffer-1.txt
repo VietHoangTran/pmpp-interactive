@@ -1,0 +1,1 @@
+Here is the usual way to grow a buffer. It holds 4 tokens, and now it is full. So you allocate a new buffer twice as large, somewhere else, copy all 4 tokens across, and free the old one. For a moment both buffers exist: room for 12 tokens, holding 4.

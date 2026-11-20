@@ -863,11 +863,16 @@ export function BackendsAndEmulator() {
         the run with a report that names the source line.
       </p>
       <p>
-        What it cannot tell you: anything about time, bandwidth, caches, occupancy, warps or coalescing. Only one
-        emulated thread runs at a time, switching at barriers, so it is not real concurrency. Host and device memory
-        are the same memory, so dereferencing a device pointer on the host goes unnoticed. And blocks run one after
-        another, so shared memory still holds what the previous block left, where a GPU promises nothing about its
-        contents. It is never benchmarked.
+        It also models warps as groups of 32 threads in index order, with the warp intrinsics (shuffles, votes,{' '}
+        <code>__syncwarp</code>), and fills every block's shared memory with <code>0xCD</code> bytes, so reading a
+        slot nobody wrote shows up every time, where a GPU promises nothing about its contents.
+      </p>
+      <p>
+        What it cannot tell you: anything about time, bandwidth, caches, coalescing, bank conflicts, divergence cost
+        or occupancy, and nothing about lockstep execution inside a warp. Only one emulated thread runs at a time,
+        switching at barriers, so it is not real concurrency (the <code>race</code> flavour runs threads at once under
+        ThreadSanitizer for that). Host and device memory are the same memory, so dereferencing a device pointer on
+        the host goes unnoticed. It is never benchmarked.
       </p>
     </>
   );

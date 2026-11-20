@@ -1,0 +1,1 @@
+But the controller does not choose the bank. The address does. Here, two requests in a row want the same bank. The second has to wait until the first has finished its whole access, and everything behind it waits too. The bus runs dry for 20 burst times. That is a bank conflict.

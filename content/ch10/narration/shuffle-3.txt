@@ -1,0 +1,1 @@
+Now look at what the other lanes were doing. Every lane ran every shuffle and every addition: 160 operations in all. Only 31 of them feed lane 0, and they light up as a cone. The other 129 produce sums that nobody reads. That waste is the price the two-stage kernel of the next section accepts on purpose.

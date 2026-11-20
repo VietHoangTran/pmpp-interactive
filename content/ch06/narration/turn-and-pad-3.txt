@@ -1,0 +1,1 @@
+Shared memory is split into 32 banks, each 4 bytes wide, and consecutive words go to consecutive banks. With rows of 32 words, every element of a column sits a multiple of 32 words from the start. So every lane needs bank 0, and that bank serves them one at a time. 32 passes, while 31 banks sit idle.

@@ -1,0 +1,1 @@
+Now the GPU gains a mapping. The load that faulted is replayed, and this time it completes. Later loads from the same page, in this kernel or the next one, are local and cheap. The cost was paid once, at the first touch.

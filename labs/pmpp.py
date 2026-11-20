@@ -14,6 +14,7 @@ Standard library only. Needs cmake >= 3.21 and a C++17 compiler.
 """
 import argparse
 import datetime
+import fcntl
 import filecmp
 import hashlib
 import json
@@ -306,13 +307,27 @@ def selftest_verdict(r):
 def save_runs(results, states, devs=None):
     """Merge results into reports/runs/<backend>.json, which the app reads.
     A result replaces the earlier one for the same lab, variant and tile width."""
-    os.makedirs(os.path.join(REPORTS, "runs"), exist_ok=True)
+    runs = os.path.join(REPORTS, "runs")
+    os.makedirs(runs, exist_ok=True)
     now = datetime.datetime.now().isoformat(timespec="seconds")
-    for b in sorted({r["backend"] for r in results}):
-        path = os.path.join(REPORTS, "runs", "%s.json" % b)
+    # Several pmpp.py processes may run at once (parallel builds, or the app's reader).
+    # Hold an exclusive lock across each read-merge-write, and replace the file atomically,
+    # so no run ever reads a half-written file or overwrites another run's merge.
+    with open(os.path.join(runs, ".lock"), "w") as lockf:
+        fcntl.flock(lockf, fcntl.LOCK_EX)
+        for b in sorted({r["backend"] for r in results}):
+            _merge_runs(os.path.join(runs, "%s.json" % b), b, results, states, devs, now)
+
+
+def _merge_runs(path, b, results, states, devs, now):
         try:
             data = json.load(open(path))
-        except (OSError, ValueError):
+        except OSError:
+            data = {"device": {}, "results": [], "work_state": {}}
+        except ValueError:
+            # Unreadable: keep it for inspection instead of silently starting from nothing.
+            shutil.copyfile(path, path + ".corrupt")
+            print("warning: %s was unreadable; saved as %s.corrupt and started afresh" % (path, path), file=sys.stderr)
             data = {"device": {}, "results": [], "work_state": {}}
         new = [r for r in results if r["backend"] == b]
         key = lambda r: (r["lab"], r["variant"], r["tile"])
@@ -339,7 +354,10 @@ def save_runs(results, states, devs=None):
         data.setdefault("work_state", {}).update(states)
         if devs and b in devs:
             data["device"] = devs[b]
-        json.dump(data, open(path, "w"), indent=1)
+        fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".%s." % b, suffix=".json")
+        with os.fdopen(fd, "w") as f:
+            json.dump(data, f, indent=1)
+        os.replace(tmp, path)
 
 
 def counts(r):

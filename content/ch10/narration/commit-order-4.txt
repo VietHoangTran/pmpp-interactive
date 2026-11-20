@@ -1,0 +1,1 @@
+The second design drops the atomic. Each leader writes its sum into an array, at its own block's index. Now the order of the writes cannot matter. A second launch, with a single block, reduces the array in a fixed tree. Every run gives the same bits. This is the default mode of CUB's device reduce.

@@ -1,0 +1,1 @@
+Each step starts with one new plane. Every thread loads its point of plane 2 into the next buffer. Then the block waits at a barrier: each thread is about to read its neighbours' points. Now the 16 inner threads each combine five values from the current plane and one from each side, and output plane 1 is done.

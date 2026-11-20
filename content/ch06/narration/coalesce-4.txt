@@ -1,0 +1,1 @@
+Now store N column by column, which is what you get when a matrix is read as its own transpose. The same lanes now land Width elements apart. With Width at 1024, neighbours are 4096 bytes apart, so every lane needs a sector of its own. That is 32 transactions, and 32 bytes fetched for every 4 the warp uses.

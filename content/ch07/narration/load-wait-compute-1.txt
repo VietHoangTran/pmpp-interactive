@@ -1,0 +1,1 @@
+Here is one block of the tiled kernel, over the top left corner of a 10 by 10 image. Its 64 threads form an 8 by 8 square, one per element of the input tile. The tile starts one row above and one column left of the image, so its top row and left column hang over the edge.

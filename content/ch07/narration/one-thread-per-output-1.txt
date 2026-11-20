@@ -1,0 +1,1 @@
+This is the book's toy example: a 16 by 16 image, cut into 16 blocks of 4 by 4 threads. Each thread owns exactly one output. No two threads share work, and no thread ever waits for another. That independence is what makes convolution such an easy fit for a GPU.

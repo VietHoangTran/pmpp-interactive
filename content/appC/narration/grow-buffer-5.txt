@@ -1,0 +1,1 @@
+Growth is now one more chunk mapped right after the last, plus one more grant. Nothing is copied, and the base address never changes, so every kernel keeps the pointer it already has. When the buffer holds 32 tokens, 8 chunks are mapped and nothing has moved. That is how a K V cache can grow token by token.

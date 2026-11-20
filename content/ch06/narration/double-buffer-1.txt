@@ -1,0 +1,1 @@
+Four threads share one buffer in shared memory. In every trip round the loop, each thread reads its neighbour's slot, waits at a barrier, writes its own slot, and waits again. Watch the values travel round the ring. The tens count the steps, and the last digit names the thread the value started at.

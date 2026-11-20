@@ -1,0 +1,1 @@
+Turn the corner. Now the warp reads down the left edge of the tile. Those addresses are consecutive, so 4 sectors serve the whole warp, and the load is coalesced. But look where each value goes. Thread x writes row x of the shared tile, so together the warp writes a column of it.

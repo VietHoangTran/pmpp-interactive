@@ -1,0 +1,1 @@
+Now swap the filter for a 16 entry codebook, the kind a quantised model uses to decode 4 bit weights. Each lane asks for the entry its own weight code names. With these codes, the warp wants 14 different entries. NVIDIA's rule serialises them. [short pause] 14 rounds, one after another, while the other lanes wait.

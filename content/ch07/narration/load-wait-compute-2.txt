@@ -1,0 +1,1 @@
+First, the load phase. Each thread copies its own element from global memory into the shared tile. Of the 64 threads, 15 find that their element lies outside the image. They do not skip the store. They write a zero instead. So the ghost cells are already in place before anyone reads them.

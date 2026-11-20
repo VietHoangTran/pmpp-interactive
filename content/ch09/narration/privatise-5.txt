@@ -1,0 +1,1 @@
+Now count the global atomics. The basic kernel issued 24, one per pixel. The privatised kernel issued 11, one per block for each bin that block actually saw. In exchange, every block pays to zero its copy and to commit it. That cost comes once per block, which is why the next section wants fewer, busier blocks.

@@ -1,0 +1,1 @@
+Here is a 32 by 32 tile of N, stored column by column, loaded with the mapping from chapter 5. One warp is one row of threads, and it reads along the top edge of the tile. In column order, those elements are a whole column apart. So the warp needs 32 sectors, one for each lane.

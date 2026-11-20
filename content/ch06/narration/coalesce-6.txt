@@ -1,0 +1,1 @@
+There is a fix that keeps the column layout. It is called corner turning. The warp loads its tile along the left edge instead of the top. In column order a column is consecutive, so consecutive lanes hit consecutive addresses, and 4 sectors come back. The tile is turned around in shared memory. Section 6.4 shows what that costs.

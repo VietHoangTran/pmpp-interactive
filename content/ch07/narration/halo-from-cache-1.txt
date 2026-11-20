@@ -1,0 +1,1 @@
+Here is a small image, cut into tiles, and the cached kernel at work. Block A, in the corner, loads only its own tile into shared memory. Each line it needs comes from DRAM and passes through the L2 cache on the way. Then A reads its halo from global memory, and those lines land in L2 too.

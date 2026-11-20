@@ -1,0 +1,1 @@
+One memory channel, with one bank behind it. A request arrives, and the bank spends a long time reaching into its cell array. That is the light bar. Then a short burst of data crosses the bus, the dark bar. Only then can the bank take the next request. Watch the bus. Most of the time, it carries nothing.

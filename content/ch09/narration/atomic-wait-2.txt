@@ -1,0 +1,1 @@
+Now the same 8 threads add 1 to the same bin, with atomics. An atomic holds the location for a load and then a store, 400 cycles in the book's example. The next one cannot start until the last has finished. [short pause] So the finish line moves out to 8 times 400 cycles.

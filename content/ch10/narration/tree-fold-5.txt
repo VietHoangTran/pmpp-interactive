@@ -1,0 +1,1 @@
+Added exactly, whole numbers give the same total in any order. Floats are rounded after every addition. Here are 8 float values from the model. The loop and the tree add the same numbers, yet the 2 sums differ in their last bits, shown here in hex. The grouping changed what was rounded.

@@ -1,0 +1,1 @@
+A long input is cut into segments, one per block. Each segment holds two times the block size, so block b starts at two times the block size, times b. With 4 threads, a segment holds 8 logits. 60 logits need 8 blocks, and the last is only half full. Its spare threads still run. They add 0.

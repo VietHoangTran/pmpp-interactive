@@ -1,0 +1,1 @@
+Now count what a full bus needs. Every busy bank holds one request, so 21 requests must be in flight at the same moment, all the time. On a GPU, those requests are loads issued by warps. More resident warps, or more bytes in each load, are what keep them coming.

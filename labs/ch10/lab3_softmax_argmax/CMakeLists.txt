@@ -1,0 +1,1 @@
+pmpp_add_lab(ch10/lab3_softmax_argmax VARIANTS work solution SHARED_CU ${CMAKE_CURRENT_SOURCE_DIR}/../shared/rowwise_naive.cu SHARED_MM ${CMAKE_CURRENT_SOURCE_DIR}/../shared/rowwise_naive_launch.mm RACE)

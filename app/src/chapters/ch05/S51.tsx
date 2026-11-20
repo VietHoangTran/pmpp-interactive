@@ -529,7 +529,8 @@ export function S51() {
       <h3>When a measurement lands above the roof</h3>
       <p>
         If you have run lab 5.1, select your own device in the explorer. On the machine this course was built on, the
-        naive kernel measured about ten times <em>above</em> the ceiling the model gives it. Nothing broke. The 0.25
+        naive kernel measured well <em>above</em> the ceiling the model gives it; your explorer shows by how much on
+        yours. Nothing broke. The 0.25
         figure charges every load to global memory, and the book says in the same breath that the true ratio is higher
         because some of those loads are served by on-chip caches. How much higher depends on the device and the matrix
         size, and it can be a lot.

@@ -1,0 +1,1 @@
+Now the same pair of neighbours on a GPU whose L2 is split per die. The program does not choose where a block runs. In this run, A and B land on different dies, so A's lines sit in the other die's cache. B's reads of them miss and go to DRAM, although A loaded them moments before.

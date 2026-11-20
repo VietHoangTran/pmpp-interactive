@@ -1,0 +1,1 @@
+With two buffers, each thread reads from one and writes into the other. Thread 0 can run ahead and write, and its slow neighbour still reads the old value, undisturbed. One barrier remains, after the write, for the true dependence. Then every thread swaps its own two pointers, so the next iteration reads what was just written.

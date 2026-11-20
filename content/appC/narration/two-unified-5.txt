@@ -1,0 +1,1 @@
+Apple silicon is a different thing with the same name. There is one memory. The CPU writes a shared buffer, and the GPU reads the very same pages in place. Nothing moves, at any step. The one duty left is to wait for the command buffer before reading the result.

@@ -1,0 +1,1 @@
+Max works the same way. Think of a knockout tournament where each match keeps the larger value and its index. 2 entries tie for the top. If a tie keeps the left player, the winner depends on the bracket. If a tie goes to the lower index, every bracket crowns the same winner. That is what argmax needs.

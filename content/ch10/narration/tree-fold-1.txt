@@ -1,0 +1,1 @@
+Start with the loop, on 8 values: 4, 7, 2, 3, 8, 5, 9 and 6. A single adder does all the work. The running total reads 4, then 11, 13, 16, 24, 29, 38, and finally 44. That is 7 additions, in 7 steps, 1 at a time.

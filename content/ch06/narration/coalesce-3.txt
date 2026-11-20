@@ -1,0 +1,1 @@
+Now k advances. Each step reads 32 floats from the next row of N. That is another run of 128 bytes, 4 kilobytes further on. Again 4 sectors, and again nothing is wasted. Watch the two counters at the bottom: bytes fetched, and bytes the warp actually needed. They climb together, step after step.

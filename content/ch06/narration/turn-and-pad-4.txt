@@ -1,0 +1,1 @@
+Now add one unused column. Each row is 33 words long, so going down one row also moves one bank to the right. Lane 0 lands in bank 0, lane 1 in bank 1, and so on across all 32 banks. The queue is gone, and the whole store takes a single pass.

@@ -60,7 +60,8 @@ function highlightLine(line: string, tiers: Record<string, Tier>, inBlock: { v: 
     if (m) {
       const w = m[0];
       if (SYNC.has(w)) push('v-sync', w);
-      else if (Object.hasOwn(tiers, w)) push('v-' + tiers[w], w);
+      // A member (blockIdx.x, p->x) is not the variable of the same name.
+      else if (Object.hasOwn(tiers, w) && line[i - 1] !== '.' && line.slice(i - 2, i) !== '->') push('v-' + tiers[w], w);
       else if (KEYWORDS.has(w)) push('k', w);
       else push(null, w);
       i += w.length;

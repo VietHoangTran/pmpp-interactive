@@ -1,0 +1,1 @@
+A second barrier makes sure every update in the block has landed. Then one thread per bin reads its block's count. If the count is not zero, it adds it to the public bin with a device scope atomic. Now a public bin sees at most 3 contenders: one per block.
