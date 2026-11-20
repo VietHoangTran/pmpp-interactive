@@ -1,0 +1,1 @@
+Last, temperature 0.8 divides the three survivors' logits, which sharpens them: token 2 now holds 77 percent. Laid end to end, they fill a bar from 0 to 1. Philox, for seed 0, row 0 and step 0, gives the number u, 0.399. It lands inside token 2's segment, and token 2 is written out.

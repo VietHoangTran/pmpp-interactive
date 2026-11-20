@@ -1,0 +1,1 @@
+Now paged. The same memory is cut into fixed-size blocks of 32 tokens. Each request gets a block table, a short list of block numbers. It takes a new block only when its last one is full, so it never holds more than one partly empty block.

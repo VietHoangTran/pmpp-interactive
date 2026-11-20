@@ -1,0 +1,1 @@
+Now q prime meets every cached key, one dot product per row. Each key row is read from memory once, used for that one dot product, and not touched again in this step. Bytes and operations rise together, still one multiply-add for every element read.

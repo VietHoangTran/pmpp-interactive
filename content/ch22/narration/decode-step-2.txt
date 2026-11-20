@@ -1,0 +1,1 @@
+Now 8 requests share the step. The weight stream is just as long as before, because each weight is still read once. But 8 rows meet every weight, so the arithmetic lane is 8 times busier. And 8 tokens come out in almost the same time. The weights were the cost, and 8 requests now share them.

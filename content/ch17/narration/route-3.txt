@@ -1,0 +1,1 @@
+Next, an exclusive scan of the counts, from chapter 11. It gives each expert the place where its tokens start: 0, then 6, then 11 for expert 2, and 11 again for expert 3, because expert 2 holds nothing. [short pause] Append the total, 16, and you have exactly the row pointers of the C S R format.

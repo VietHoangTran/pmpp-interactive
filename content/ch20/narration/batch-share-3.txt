@@ -1,0 +1,1 @@
+Attention is different. Each request attends to its own context, so each one reads its own cache. Four requests means four caches: four times the bytes, and four times the operations. The ratio does not move. Attention's intensity stays near one in 16-bit.

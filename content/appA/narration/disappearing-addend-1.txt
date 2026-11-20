@@ -1,0 +1,1 @@
+Two half precision numbers, 1000 and 0.3. Each is a sign, an exponent, and a window of 11 significant bits. 1000 has exponent 9. 0.3 has exponent minus 2. The adder cannot add them as they stand. [short pause] First it must give both the same exponent, and that means moving the smaller one.

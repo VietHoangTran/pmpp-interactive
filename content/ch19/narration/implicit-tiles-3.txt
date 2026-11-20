@@ -1,0 +1,1 @@
+Then a barrier, so that no thread reads a tile before every thread has written its slot. Now each thread multiplies 2 pairs from shared memory, and adds them to its running sum, which lives in a register. Nothing in this step touches global memory.

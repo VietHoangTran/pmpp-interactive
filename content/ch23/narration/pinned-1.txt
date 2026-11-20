@@ -1,0 +1,1 @@
+Start with memory from malloc. Your program sees one long run of addresses, cut into pages. Each page sits in some frame of physical memory, but only for now. The operating system may move a page to another frame, or write it out to disk, at any moment. Memory like this is called pageable.

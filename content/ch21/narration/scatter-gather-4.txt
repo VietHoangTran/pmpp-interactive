@@ -1,0 +1,1 @@
+Now gather. There are 6 threads, one per point. At the first step every lane reads the same atom: one constant memory address, broadcast to the whole group. Each thread adds its contribution into its own register. No two threads share a destination, so nothing queues.

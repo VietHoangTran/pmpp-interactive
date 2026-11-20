@@ -1,0 +1,1 @@
+Pixels 1, 2 and 3 follow, each into its own column. Watch the counters on the input. Neighbouring patches overlap, so pixels are copied more than once. The centre pixel is copied 4 times, each edge pixel twice, each corner once. B ends up with 48 entries made from 27 values.

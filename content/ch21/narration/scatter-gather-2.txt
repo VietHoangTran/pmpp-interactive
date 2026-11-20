@@ -1,0 +1,1 @@
+Scatter first. Each of 4 threads holds one atom, and the threads run in lockstep. At the first step all 4 compute their contribution to point 0 and add it at the same moment. They all name one address, so the 4 atomic updates queue up and land one at a time.

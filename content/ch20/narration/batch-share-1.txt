@@ -1,0 +1,1 @@
+One decode step for one request. The projection weights are read from memory once, to make a single row. Then this request's own cache is read once, for its attention. Both passes do about one multiply-add for each element they read.

@@ -1,0 +1,1 @@
+Here are 32 weights from one row of a layer, drawn as dots on a number line. Most of them sit close to zero, within about half a unit. One does not. Element 7 is 12, far out on its own. [short pause] All 32 must now share a single scale.

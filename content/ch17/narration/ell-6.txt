@@ -1,0 +1,1 @@
+Now the bill. 12 slots hold 8 non-zeros, and every slot carries a column index too. One long row sets the width for every row. In the book's example, a 1000 by 1000 matrix that takes about 2 percent of its dense size as CSR takes 40 percent as ELL. The next page asks what to do about that.

@@ -1,0 +1,1 @@
+Last, put everything back. The inverse permutation sends each expert's output to its token's slot, and each token combines its 2 outputs. That inverse is the row array of the J D S format. [short pause] M L X L M does the same with an arg sort and its inverse, once there are 64 or more entries.

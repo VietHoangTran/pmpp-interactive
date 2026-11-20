@@ -1,0 +1,1 @@
+Then it turns the rectangle. Read it down column 0, then column 1, then column 2, and lay the cells out flat in that order. 1, 5, 2, 6. Then 7, 3, 8 and a pad. Then a pad, 9 and two more pads. A cell's place is now its address: t times the stride, plus the row.

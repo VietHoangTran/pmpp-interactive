@@ -1,0 +1,1 @@
+Each expert now multiplies one contiguous slice of activations by its own weights. Here every slice is padded up to a whole tile of 4, so every thread can store without checking that its row exists. Llama dot C P P pads its list of ids for the same reason, and its Metal kernel pads each slice by 1 entry.

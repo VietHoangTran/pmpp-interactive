@@ -1,0 +1,1 @@
+Keep doubling the batch. Some work belongs to each row, not to the weights: the bias and residual adds, the softmax over the whole vocabulary, and the argmax that picks the token. That band grows with the batch from the very start. It is thin at first, and nothing in it is shared.

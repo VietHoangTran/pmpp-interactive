@@ -1,0 +1,1 @@
+Top-k, with k equal to 5. The five tallest bars stay lit, and the other seven fade where they stand. Nothing is sorted yet: a selection only has to find the cut. Tokens 3 and 10 tie at the cut, both at 0.7. The rule is the lower token id, so token 3 stays and token 10 goes.

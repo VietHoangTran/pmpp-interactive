@@ -1,0 +1,1 @@
+At the end of the list, this block made 1344 tests, 752 of them on dummy atoms, and accepted 114, about 8 percent. Direct summation would have paired these 16 points with all 160 atoms: 2560 pairs. That number grows with the box. The list does not.

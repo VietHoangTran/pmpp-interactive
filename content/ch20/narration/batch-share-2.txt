@@ -1,0 +1,1 @@
+Now batch four requests together. The weights are still read once, but each weight now serves four rows instead of one. That is four times the arithmetic for the same bytes, so the projections' intensity rises four times. Nothing else had to change.

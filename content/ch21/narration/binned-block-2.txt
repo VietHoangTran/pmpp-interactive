@@ -1,0 +1,1 @@
+The block takes the first offset. All 16 threads load that bin's atoms into shared memory together. Every bin has the same 4 slots, so the empty ones hold dummy atoms with a charge of zero. Then a barrier waits until the whole bin is in place.

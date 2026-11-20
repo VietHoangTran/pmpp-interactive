@@ -1,0 +1,1 @@
+Now the other 3 threads of the block run. Their patches overlap, so watch the counts on the input. In every map the centre value is fetched 4 times, each edge value twice, and each corner once. One block makes 48 input reads to cover only 27 different values.

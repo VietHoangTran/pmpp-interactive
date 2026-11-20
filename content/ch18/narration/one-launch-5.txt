@@ -1,0 +1,1 @@
+At the end of each level, three barriers guard one ordering each. The first waits for every append, so the count is complete. Everyone reads it. The second makes sure no one reads after the reset. Thread 0 resets the count. The third makes sure no append starts before the reset. [short pause] With a counter per level, one barrier is enough.

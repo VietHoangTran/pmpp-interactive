@@ -1,0 +1,115 @@
+import { useMemo, useState } from 'react';
+import { Bench } from '../../components/notes';
+import { useReports } from '../../lib/reports';
+import { BOOK, fits, largestFittingBc, limits, plan, type PlanInput } from '../../sim/flashplan';
+
+// "Fit the tiles": the constants of Fig. 20.9 and what they cost, against the documented
+// limits and the reader's own Metal limit. Model: src/sim/flashplan.ts.
+
+const int = (v: number) => v.toLocaleString('en-US');
+
+function Seg({ label, value, options, onChange, fmt = String }: {
+  label: string; value: number; options: number[]; onChange: (v: number) => void; fmt?: (v: number) => string;
+}) {
+  return (
+    <label className="field">
+      {label}
+      <span className="seg" role="group" aria-label={label}>
+        {options.map((o) => (
+          <button key={o} aria-pressed={value === o} onClick={() => onChange(o)}>{fmt(o)}</button>
+        ))}
+      </span>
+    </label>
+  );
+}
+
+/** The reader's Metal threadgroup-memory limit, if a report has it. */
+export function useMetalLimit(): { bytes: number; device: string } | null {
+  const { reports } = useReports();
+  const d = reports.metal?.device;
+  const bytes = Number(d?.maxThreadgroupMemoryLength);
+  return bytes > 0 ? { bytes, device: String(d?.name ?? 'your Mac') } : null;
+}
+
+export function FlashFit() {
+  const [cfg, setCfg] = useState<PlanInput>({ ...BOOK });
+  const set = (k: keyof PlanInput) => (v: number) => setCfg((c) => ({ ...c, [k]: v }));
+  const p = useMemo(() => plan(cfg), [cfg]);
+  const metal = useMetalLimit();
+  const lims = limits(metal?.bytes, metal ? `${metal.device} (your report)` : undefined);
+  const isBook = (Object.keys(BOOK) as (keyof PlanInput)[]).every((k) => cfg[k] === BOOK[k]);
+  const metalLimit = lims.find((l) => l.id === 'metal')!.bytes;
+  const { bc: _bc, ...rest } = cfg;
+  const bestBc = largestFittingBc(rest, [64, 32, 16, 8], metalLimit);
+  const ok = p.problems.length === 0;
+
+  return (
+    <Bench
+      title="Fit the tiles"
+      task="Find the book’s 37,376 bytes and 20 registers, then a configuration that fits Metal."
+      foot={
+        <>
+          Shared memory counts the three tile arrays of Fig. 20.9 (KT_j padded with one float per bank-count
+          elements, S_i, V_j), 4 bytes per float; registers count O_i, Q_i, m_i and D_i per thread. Limits: CUDA ch05
+          facts A3, AMD ch20 facts B3, Metal {metal ? 'from your report' : 'ch05 facts C1 (no Metal report on this machine yet)'}.
+        </>
+      }
+    >
+      <div className="row" style={{ marginBottom: '0.6rem' }}>
+        <Seg label="Head dimension d" value={cfg.d} options={[64, 128, 256]} onChange={set('d')} />
+        <Seg label="B_r" value={cfg.br} options={[8, 16, 32, 64]} onChange={set('br')} />
+        <Seg label="B_c" value={cfg.bc} options={[8, 16, 32, 64]} onChange={set('bc')} />
+      </div>
+      <div className="row" style={{ marginBottom: '0.8rem' }}>
+        <Seg label="Threads per block" value={cfg.threads} options={[128, 256, 512, 1024]} onChange={set('threads')} />
+        <Seg label="Warp width" value={cfg.warp} options={[32, 64]} onChange={set('warp')} />
+        <Seg label="Padding for" value={cfg.banks} options={[32, 64, 0]} onChange={set('banks')} fmt={(v) => (v ? `${v} banks` : 'off')} />
+        <button onClick={() => setCfg({ ...BOOK })} disabled={isBook}>The book’s example</button>
+      </div>
+
+      <div className="cols">
+        <table className="data" style={{ margin: 0, background: 'var(--page)' }} data-plan>
+          <tbody>
+            <tr><td>N_WARPS = threads / warp width</td><td data-v="nWarps">{Number.isInteger(p.nWarps) ? p.nWarps : p.nWarps.toFixed(2)}</td></tr>
+            <tr><td>B_r_warp = B_r / N_WARPS</td><td data-v="brWarp" className={Number.isInteger(p.brWarp) && p.brWarp >= 1 ? '' : 't-fail'}>{Number.isInteger(p.brWarp) ? p.brWarp : p.brWarp.toFixed(3)}</td></tr>
+            <tr><td>d_size = d / warp width</td><td data-v="dSize">{p.dSize}</td></tr>
+            <tr><td className="t-shared">KT_j (d × B_c{p.floats.ktPad ? ` + ${int(p.floats.ktPad)} padding` : ''})</td><td data-v="kt">{int(p.bytes.kt)} B</td></tr>
+            <tr><td className="t-shared">S_i (B_r × B_c)</td><td data-v="s">{int(p.bytes.s)} B</td></tr>
+            <tr><td className="t-shared">V_j (B_c × d)</td><td data-v="v">{int(p.bytes.v)} B</td></tr>
+            <tr><td className="t-shared"><b>shared memory per block</b></td><td data-v="total"><b>{int(p.bytes.total)} B</b></td></tr>
+            <tr>
+              <td className="t-reg">registers per thread (O {p.regs.o} + Q {p.regs.q} + m {p.regs.m} + D {p.regs.D})</td>
+              <td data-v="regs">{ok ? `${p.regs.total} floats` : '—'}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div>
+          {p.problems.length ? (
+            <div className="narrate bad" style={{ marginBottom: '0.8rem' }} data-problems>
+              {p.problems.map((x) => <div key={x}>{x}.</div>)}
+            </div>
+          ) : null}
+          {lims.map((l) => {
+            const f = fits(p.bytes.total, l.bytes);
+            const frac = Math.min(1, p.bytes.total / l.bytes);
+            return (
+              <div key={l.id} style={{ marginBottom: '0.7rem' }} data-limit={l.id} data-fits={f ? 'yes' : 'no'}>
+                <div className="row" style={{ justifyContent: 'space-between', gap: '0.4rem' }}>
+                  <span>{l.label}: {int(l.bytes)} B</span>
+                  {f ? <span className="chip ok">fits</span> : <span className="chip fail">does not fit</span>}
+                </div>
+                <div style={{ height: 10, background: 'var(--cell)', border: '1px solid var(--rule)', borderRadius: 2, marginTop: 3 }}>
+                  <div style={{ width: `${frac * 100}%`, height: '100%', background: f ? 'var(--shared)' : 'var(--fail)' }} />
+                </div>
+              </div>
+            );
+          })}
+          <p className="muted" style={{ margin: '0.4rem 0 0' }} data-best-bc>
+            At d = {cfg.d} and B_r = {cfg.br}, the largest B_c of 64, 32, 16 and 8 that fits {int(metalLimit)} B is{' '}
+            {bestBc ?? 'none of them'}.
+          </p>
+        </div>
+      </div>
+    </Bench>
+  );
+}

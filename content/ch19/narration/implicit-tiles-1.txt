@@ -1,0 +1,1 @@
+Now keep X as it is, and never build B in global memory. This block owns 2 pixels of each output map: 14 and 20 from map 0, 12 and 24 from map 1. B is drawn only as a dashed outline, because it never exists as a whole anywhere.

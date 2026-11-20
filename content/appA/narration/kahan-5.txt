@@ -1,0 +1,1 @@
+Now run all 4096 values. The compensated sum climbs one step for every four values, on average, and lands exactly on the true total, 1 plus 2 to the power minus 13. The plain sum is still 1, which is 1024 units in the last place short. Kahan's error is zero.

@@ -1,0 +1,1 @@
+Your device bends somewhere else, so measure it: the batching lab times this step with your own kernels. One warning. A kernel whose tile is 128 rows tall computes 128 rows whatever the batch, so its line stays flat up to 128 for a reason unrelated to bandwidth. A 16 row tile makes steps of 16.

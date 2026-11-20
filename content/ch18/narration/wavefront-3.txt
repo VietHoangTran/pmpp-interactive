@@ -1,0 +1,1 @@
+The frontier kernel launches threads only for the last wavefront, at most 15 cells at a time. Over the whole search it launches 197 threads, one per cell, and reads each of the 672 edges once. That is 869 units of work against push's 6779. This is work efficiency: launch only for what changed.

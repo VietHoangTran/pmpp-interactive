@@ -1,0 +1,1 @@
+Phases 2 and 3 gather from the second input map, and phases 4 and 5 from the third. After each pair of phases, the running sums grow by one map's share. After phase 5 they read 14, 20, 12 and 24, and each thread stores its sum to Y.

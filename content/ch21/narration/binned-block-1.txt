@@ -1,0 +1,1 @@
+This block's points fill one bin. Around the bin's centre we draw a super circle: the cutoff plus half the bin's diagonal. Any bin it touches could hold an atom that some point of the block needs. Here that is 21 bins, written once on the host as a list of relative offsets.

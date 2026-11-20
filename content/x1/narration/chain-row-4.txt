@@ -1,0 +1,1 @@
+Top-p at 0.9. A marker walks along, carrying the mass ranked before each token. Token 2 starts at 0, token 7 at 0.62, token 5 at 0.78, and token 9 at 0.89. All are below 0.9, so all stay, including token 9, whose own share carries the total past 0.9. Token 3 starts at 0.95, and goes dark.

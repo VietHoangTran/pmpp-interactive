@@ -1,0 +1,1 @@
+So before you write a new kernel, ask 4 questions. Who writes each output? Who reads each input? How many threads does this cut expose? And how much work does each thread get? Avoiding atomics is one answer. Parallelism, finding the inputs, and load balance are the others the book lists.

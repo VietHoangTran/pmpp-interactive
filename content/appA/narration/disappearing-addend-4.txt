@@ -1,0 +1,1 @@
+The loop keeps adding 0.3. Below 1024 the spacing is one half, and 0.3 is more than half a step, so every addition rounds up to a whole step. The running sum climbs faster than the true one. At 1024 the exponent goes up by one, and the spacing doubles to 1.

@@ -1,0 +1,1 @@
+Now each thread tests every staged atom against the cutoff around its own point. For this atom, some lanes accept and others reject, so the warp diverges and runs both paths. A dummy atom costs every lane a test and adds nothing at all.

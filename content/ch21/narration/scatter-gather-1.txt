@@ -1,0 +1,1 @@
+Here is a row of 6 grid points with 4 atoms above them. Every atom contributes to every point, so there are 24 pairs to add up. The scatter kernel of figure 21.5 shares the pairs out by atom. The gather kernel of figure 21.6 shares them out by point. Watch where each one writes.

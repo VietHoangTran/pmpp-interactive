@@ -1,0 +1,1 @@
+Past 1024 the spacing is 1, and 0.3 is less than half a step. Every addition now rounds straight back to where it started. The running sum is stuck at 1024, while the exact sum keeps climbing. No error is raised and nothing signals. The addend has simply disappeared.

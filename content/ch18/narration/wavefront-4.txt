@@ -1,0 +1,1 @@
+Each level costs one launch, and one read back of the frontier size so the host knows whether to go on. This grid takes 31 of each, and no wavefront holds more than 15 cells. Many small levels mean many fixed costs: the case the next page attacks, with one launch for the whole search.

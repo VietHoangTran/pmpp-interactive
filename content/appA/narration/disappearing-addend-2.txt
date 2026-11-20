@@ -1,0 +1,1 @@
+The smaller significand slides right, one place per tick, and its exponent counts up from minus 2 to 9. That is 11 places, as many as the window holds. Every bit leaves it. The first bit out becomes the guard bit, the next the round bit, and everything after is folded into one sticky bit.

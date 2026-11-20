@@ -1,0 +1,1 @@
+Min-p at 0.1. The threshold is one tenth of the top probability. In logits, that is the largest logit plus the natural log of 0.1: about 3.2 minus 2.3, so 0.9. No softmax is needed. Token 9 sits at 0.8, just under the line, and falls. Three survivors are left.

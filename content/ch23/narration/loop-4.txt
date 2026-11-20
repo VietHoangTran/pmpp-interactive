@@ -1,0 +1,1 @@
+Meanwhile the host waits on the top stream, then sits inside the top exchange, which blocks until about 5. Only then can it turn to the bottom stream, whose kernel finished at about 1. The bottom exchange starts 4 units late, and now ends after the internal kernel. The book calls this gap synchronisation overhead.

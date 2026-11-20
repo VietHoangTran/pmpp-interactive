@@ -1,0 +1,1 @@
+Past about 41 rows, at the book's example threshold of 20 operations per byte, the arithmetic outlasts the weight stream. The step is now bound by compute, not bandwidth, and it grows in proportion to the batch. This is the knee. Before it, extra requests ride almost free. After it, every request costs time.

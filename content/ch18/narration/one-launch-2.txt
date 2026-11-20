@@ -1,0 +1,1 @@
+Now a graph whose levels grow fast, like a social network, where a few hops reach almost everyone. There are only a handful of levels, and each kernel has plenty of work. The gaps are drawn as before, but next to bars this wide they hardly show. Launch overhead is negligible for big frontiers, and may dominate for small ones.

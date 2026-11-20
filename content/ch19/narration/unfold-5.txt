@@ -1,0 +1,1 @@
+Multiply row 0 of F by column 0 of B: 12 products, and the sum is 14, the same number as before. Do it for every row and column, and the product F times B is the 2 output maps, each already laid out row by row. Nothing needs to be reshuffled afterwards.

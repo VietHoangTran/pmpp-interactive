@@ -1,0 +1,1 @@
+First, count. Each pair adds 1 to its expert's counter, which is the histogram of chapter 9. Expert 0 ends with 6 tokens, experts 1 and 3 with 5 each, and expert 2 with none. Nobody picked it, so its matrix multiply can be skipped entirely.

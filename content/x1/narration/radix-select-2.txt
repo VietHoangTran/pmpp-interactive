@@ -1,0 +1,1 @@
+Pass 1 builds a histogram of the top byte. The block has 16 threads, so thread 0 reads columns 0, 16, 32 and 48, and so on. Each thread adds 1 to its key's bin with an atomic in shared memory. When the last round is done, one read of the row has given one histogram of 256 bins.

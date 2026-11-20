@@ -1,0 +1,1 @@
+Now the streams run. The internal stream zeroes the norm and reaches the event called reset L2. Both boundary streams were waiting for it, so their small kernels start at once and finish at about 1. The internal kernel starts just after them, shares the GPU with them for a moment, and runs until about 7.

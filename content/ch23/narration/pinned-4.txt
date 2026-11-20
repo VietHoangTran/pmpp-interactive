@@ -1,0 +1,1 @@
+Here is the pipeline with 4 chunks and pageable buffers. Each copy holds the host thread until it is done, and a copy out first waits for its own kernel. So the host queues the next chunk late, and nothing overlaps. The whole job takes 16 units, exactly what it takes in one piece.

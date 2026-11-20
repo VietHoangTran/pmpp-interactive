@@ -1,0 +1,1 @@
+Decoding multiplies each code by the scale. The bars show the error. 30 of the 31 small weights came back as 0, all because of one outlier. [short pause] Now split the same weights into 2 blocks of 16, each with its own scale. The half without the outlier loses none.

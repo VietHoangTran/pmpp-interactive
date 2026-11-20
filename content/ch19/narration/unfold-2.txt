@@ -1,0 +1,1 @@
+Now look at the filters as they are stored. The array is M by C by K by K, in row major order. Read it row by row and it is already a matrix F, 2 rows by 12 columns: one row per output map, with that map's 3 filters in turn. Nothing moves in memory. Only the indexing changes.

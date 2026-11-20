@@ -1,0 +1,1 @@
+Today the rule is softer than the book says, and easier to miss. On CUDA, an asynchronous copy from pageable memory is legal, but it quietly becomes synchronous. HIP says the same, with hip host malloc as the pinned allocator. On Apple silicon, a shared buffer already is the GPU's memory, so there is nothing to copy or pin.

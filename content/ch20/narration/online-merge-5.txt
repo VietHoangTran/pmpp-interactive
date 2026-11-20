@@ -1,0 +1,1 @@
+After the last tile comes one division: the output, divided by D. The bars land on exact attention, computed in double precision. They differ by a few parts in a hundred million, the rounding of single precision floats. At no point did any step need the whole row at once.

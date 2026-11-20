@@ -1,0 +1,1 @@
+Here are 16 tiles, numbered in the order of their fronts. Each tile needs the tile above it and the tile to its left. So the tiles on one anti-diagonal never need each other, and they can run together. Beside them are 2 lanes, one for each streaming multiprocessor of the small GPU in the book's example.

@@ -1,0 +1,1 @@
+ELL starts by padding. Each row's elements slide to the left, into a rectangle as wide as the longest row: here 4 rows of 3 slots. The empty slots get pad marks, column minus 1 and value 0. Count them: 4 pads, to hold 8 non-zeros.

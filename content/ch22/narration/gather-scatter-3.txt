@@ -1,0 +1,1 @@
+Now one thread per input. Each thread takes its value and pushes it towards every output it feeds, up to 3 of them. Follow the arrows: they converge. Every output now has 3 threads trying to update it at once. That is the scatter pattern, and those shared outputs need atomic updates to come out right.

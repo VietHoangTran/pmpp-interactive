@@ -1,0 +1,1 @@
+Here are the book's 3 input maps, each 3 by 3, and its 6 filters, each 2 by 2. Output pixel 0, 0 of map 0 is a sum over all 3 input maps. Each map adds one patch times one filter: 7, then 5, then 2. Together they give 14.

@@ -1,0 +1,1 @@
+The copy engine moves data without the CPU, and it works with physical addresses. It reads frame after frame directly. Now suppose the operating system reassigned a frame halfway through the copy. The engine would read data that belongs to someone else. So the driver will not point the engine at pageable memory.

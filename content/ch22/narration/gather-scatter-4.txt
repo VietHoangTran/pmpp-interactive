@@ -1,0 +1,1 @@
+The atomic makes the answer correct, but it does not make the updates simultaneous. Updates to one address are served one at a time, so a queue forms at every output and drains one update per tick. Scatter needs 3 ticks here. Gather finished all 6 of its writes on the first tick.

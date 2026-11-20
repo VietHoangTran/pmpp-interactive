@@ -1,0 +1,1 @@
+Now shear the tile. Row 1 slides 1 cell to the left, and row 2 slides 2 cells. The square becomes a parallelogram. Look at the columns of the tile: each one now lies on a single anti-diagonal of the table. The shear moves each row back by its row number.

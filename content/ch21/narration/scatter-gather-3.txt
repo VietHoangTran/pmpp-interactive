@@ -1,0 +1,1 @@
+The threads move along the row together, so every step is another 4 way collision on a single point. Nobody defines the order in which a queue is applied. Here two runs apply it in different orders, and point 3 ends with totals that differ in the last digits, because floating point addition is not associative.

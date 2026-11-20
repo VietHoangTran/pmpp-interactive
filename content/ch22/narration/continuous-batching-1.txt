@@ -1,0 +1,1 @@
+6 requests arrive over time, each wanting a different number of tokens. Each row here is a slot in the batch, and each column is one decode step. A step adds one token to every request in the batch. A request keeps its slot until it has all its tokens.

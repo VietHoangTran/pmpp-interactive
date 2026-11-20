@@ -1,0 +1,1 @@
+Now walk the bins from the highest down, adding up their counts. The top bin holds 6 keys, too few. The next holds 13, and the running count passes 12 inside it. So the 6 keys above are in, every key below is out, and only this one bin is undecided. We still need 6 of its 13 keys.

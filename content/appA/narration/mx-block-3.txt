@@ -1,0 +1,1 @@
+Now the shared scale. The largest magnitude is 12, and the base 2 logarithm of 12, rounded down, is 3. The largest exponent of the 4-bit format is 2. Subtract it, and the scale is 2 to the power 1, which is 2. It is stored as one byte.

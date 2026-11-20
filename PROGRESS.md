@@ -35,10 +35,15 @@ pages, and commits. Per-chapter hints given to the designers are in the wave's `
       13.1, 14.1–14.3, 15.1–15.7); milestones M3 (15.6) and the M5 pieces (11.6 top-p mask,
       12.4 candidates, 14.3 sorted rows). Labs 11.5 and 12.5 are CUDA-family only (Metal
       documents no forward progress between threadgroups). Every browser check passes.
-- [ ] Wave 4 (running, run id wf_ccca9f22-a5f, ports 6200+, v3 script): ch20 (Deep), x1 (Deep),
-      ch22, ch19, appA (Standard).
-- [ ] Wave 5a (running, run id wf_63d11bbd-bd6, ports 6500+): ch16, ch17, ch18, ch21, ch23
-      (Condensed).
+- [ ] Wave 4 (run wf_ccca9f22-a5f, STOPPED 2026-11-20 by the weekly usage limit; resets Nov 27):
+      26 of 45 agents done. Facts and designs done for all five; ch20 sections built, its labs,
+      integration and review not; x1 sections and labs not built; ch22, ch19, appA partly built
+      (their integration and review not run). Resume with the same script and args:
+      Workflow({scriptPath: <session>/workflows/scripts/build-chapters-v3.js,
+      resumeFromRunId: 'wf_ccca9f22-a5f', args: scratchpad wave4-args.json}).
+- [ ] Wave 5a (run wf_63d11bbd-bd6, STOPPED by the same limit): 24 of 36 done. ch17 integrated
+      (review not run); ch16, ch21, ch23 built (integration and review not run); ch18 not built.
+      Resume with resumeFromRunId 'wf_63d11bbd-bd6' and wave5a-args.json.
 - [ ] Wave 5b (after wave 4; briefs in the session scratchpad, ports 6700+): x2 quantised
       kernels (Deep), x3 reading real backends (Standard). M10 must not download anything:
       a deterministic toy model generated in the repo; a real checkpoint only by the reader.

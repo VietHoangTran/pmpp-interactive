@@ -1,0 +1,1 @@
+Now each finished tile sets a flag, and tiles are handed out in front order. A tile starts once the flags above it and to its left are set. At step 4, tile 6 takes the lane that sat empty, because the tile to its left is done. The run takes 9 steps. A tile waits only for its neighbours.

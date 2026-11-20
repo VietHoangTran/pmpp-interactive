@@ -1,0 +1,1 @@
+The tally, with the same 4 slots. Static batching took 12 steps to make these 26 tokens. Continuous batching took 8. The short requests came back sooner. And each user still gets one token per step, so the time per token is the step time at whatever batch the server is running.

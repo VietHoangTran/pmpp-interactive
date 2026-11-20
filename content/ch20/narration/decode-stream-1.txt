@@ -1,0 +1,1 @@
+One new token reaches a layer as a single row. Three matrix-vector products turn it into q prime, k prime and v prime. Every weight of the three projections is read from memory once and used for one multiply-add. Watch the two counters climb together: about one operation for every byte.

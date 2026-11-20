@@ -1,0 +1,1 @@
+Step 1. Each thread divides its row by the row's first coefficient: thread 0 by 3, thread 1 by 2, thread 2 by 1. Now every row starts with 1. [short pause] Then a barrier. No thread may go on until all 3 have finished, because the next step reads another thread's row.

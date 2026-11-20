@@ -1,0 +1,1 @@
+What gets stored: 32 codes of 4 bits each, which is 16 bytes, and the one scale byte. That makes 17 bytes, or 4 and a quarter bits per weight. The same 32 weights in BF16 take 64 bytes. The llama C P P project stores its MXFP4 blocks in exactly this shape.

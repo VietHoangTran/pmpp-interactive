@@ -1,0 +1,1 @@
+The weighted sum reads every value row once more, and adds it, scaled by its probability, into one output row: o prime. Again, each element read is used for a single multiply-add. The whole V cache has streamed past to make one row of output.

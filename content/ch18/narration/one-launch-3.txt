@@ -1,0 +1,1 @@
+The fix is to launch once. A fixed set of blocks, all resident, runs every level. Each frontier is dealt out by stride: thread i takes element i, then i plus the total number of threads, and so on. A grid-wide barrier replaces each round trip. The CPU is free, and data can stay on chip between levels.

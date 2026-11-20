@@ -1,0 +1,1 @@
+Kahan's method keeps a second register, called c, which starts at zero. For each value it first forms y, the value minus c. Then it forms t, the sum plus y. For the first small value c is still zero, so y is the value itself, and t rounds back to 1, just as before.

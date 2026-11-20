@@ -1,0 +1,1 @@
+This only works if every block is resident at once. Here the grid has more blocks than slots. The resident blocks wait at the barrier for blocks that can never start. So size the grid as multiprocessors times blocks per multiprocessor, from the occupancy query. On CUDA and HIP, a cooperative grid that is too large is refused at launch.

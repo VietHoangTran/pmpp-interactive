@@ -1,0 +1,1 @@
+The second column repeats the pattern with 2 threads, and the third with one. Then back substitution runs upward. Z is 3, so thread 1 finds that Y is 2. Then thread 0 finds that X is 1. [short pause] Count the idle slots. As the system grows, close to half of all thread steps do nothing.

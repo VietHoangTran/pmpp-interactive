@@ -1,0 +1,1 @@
+Here is a square tile, 3 cells by 3. Each cell is labelled with the thread that computes it, and a thread owns a row. The first step lights 1 cell, then 2, then 3, then 2, then 1. So 9 cells take 5 steps, and most steps leave threads idle.

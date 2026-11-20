@@ -1,0 +1,1 @@
+Now the trick. Take t minus the old sum: that is what the addition really added, and here it is zero. Then take away y, what we meant to add. The result is minus 2 to the power minus 25: exactly the part the rounding dropped, with its sign turned around. It goes into c.

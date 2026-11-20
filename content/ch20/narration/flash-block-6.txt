@@ -1,0 +1,1 @@
+After the last tile, each warp divides its output by D, once, and writes its rows of O. Beside each row it writes the max plus the log of D, which training needs. The scores and the probabilities lived only in shared memory. None of them ever reached global memory.

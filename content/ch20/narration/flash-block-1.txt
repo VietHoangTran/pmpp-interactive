@@ -1,0 +1,1 @@
+Block one takes a panel of four rows of Q, rows 4 to 7. In this small version a warp has four lanes. Each warp loads its two rows into registers, dealt across its lanes: lane 0 takes columns 0 and 4, lane 1 takes 1 and 5, and so on. Neighbouring lanes read neighbouring elements.

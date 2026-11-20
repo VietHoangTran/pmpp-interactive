@@ -1,0 +1,1 @@
+With NCCL, each exchange is queued in its boundary stream, right behind its kernel. Both start the moment their kernels end, at about 1, and run side by side. The bottom one no longer waits for the top one. The host waits in one place only: on the internal stream, before the all-reduce.

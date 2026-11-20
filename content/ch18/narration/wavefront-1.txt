@@ -1,0 +1,1 @@
+Here is a 15 by 15 wiring grid with two blockages. Each free block is a vertex, and each step a wire can take to a neighbouring block is an edge. A search from the source labels 4 blocks at level 1, 8 at level 2, and 12 at level 3, a wavefront that bends around the blockages.

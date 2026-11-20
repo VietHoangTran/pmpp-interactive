@@ -1,0 +1,1 @@
+Phase 0. The F tile loads exactly as in any tiled matrix multiply. The B tile is different. Each thread works out, with equation 19.5, which input pixel its slot copies, and reads it straight from X. 3 input pixels fill 4 slots, and 1 of them lands in 2 slots.

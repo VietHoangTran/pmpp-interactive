@@ -1,0 +1,1 @@
+Now scatter. Each pair moves to its expert's start plus its rank among that expert's pairs. Ranks taken from an atomic counter would come out in whatever order the threads arrive. Llama dot C P P computes each rank with a ballot and a population count instead, so token order is kept. Each expert's tokens now sit side by side.

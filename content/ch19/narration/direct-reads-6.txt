@@ -1,0 +1,1 @@
+The totals. 96 input reads for 27 different values, and as many filter reads. Every multiply and add asks for 8 bytes, so the kernel requests a quarter of an operation per byte. The reuse that spans output maps is what the matrix formulation in section 19.3 captures.

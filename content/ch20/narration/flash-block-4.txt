@@ -1,0 +1,1 @@
+The scores become exponentials in place, in the same shared array, and their sum joins D. A warp barrier makes every lane's element visible to the others. Then each lane shrinks its part of the output by the rescale factor, and adds this tile's probabilities times its columns of V.

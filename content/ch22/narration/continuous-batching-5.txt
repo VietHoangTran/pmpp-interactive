@@ -1,0 +1,1 @@
+The knob is the slot limit. Raise it, and the batch grows, and so do tokens per second, until the step crosses the knee from the last animation. Past it, every user waits longer per token for little extra throughput. Every server has a limit like this, and setting it is this section's trade-off.

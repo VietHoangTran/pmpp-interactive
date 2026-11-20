@@ -1,0 +1,1 @@
+One last pass writes the answer. Keys above the threshold are kept, and ties are kept in column order until the budget of 2 is spent. Each lane finds its slot from a ballot and a count of the lanes before it. The select reads each key 5 times. A full sort moves 4 times as many bytes per key.

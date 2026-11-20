@@ -1,0 +1,1 @@
+Here is CSR on the running example, one thread per row, so four threads. In the first iteration, threads 0 to 3 read elements 0, 2, 5 and 7 of the value array. Neighbouring threads read addresses that sit far apart, so one load asks memory for four separate places.

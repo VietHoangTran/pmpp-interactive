@@ -1,0 +1,1 @@
+After 4 steps, one per atom, each thread holds its point's total. It writes that point once, with a plain store, because no other thread touches it. The atoms are added in the order the loop visits them, so every run produces exactly the same bits.

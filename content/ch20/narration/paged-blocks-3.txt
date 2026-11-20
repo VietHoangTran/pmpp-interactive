@@ -1,0 +1,1 @@
+A request finishes. Its blocks go straight back to the free list, and in the same step a waiting request is admitted into them. Nothing has to be moved or compacted, because no request needs its blocks to sit next to each other.

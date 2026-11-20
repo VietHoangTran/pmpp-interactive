@@ -1,0 +1,1 @@
+Give the same grid 4 lanes. Now every front fits at once, so both ways take 7 steps, and no tile starts early. When the machine is as wide as the widest front, there is no gap to fill. What decides is the chain from the first tile to the last: 2 T minus 1 tiles, one after another.

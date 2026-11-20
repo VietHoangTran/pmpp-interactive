@@ -1,0 +1,1 @@
+Tile one brings four scores. Its own maximum is 1.6. The kernel raises e to each score minus that maximum, and adds the results: that is the running denominator, D. It also adds up the four value rows, each weighted by its exponential. That weighted sum is the output, not yet divided by anything.

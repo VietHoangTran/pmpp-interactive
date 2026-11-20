@@ -1,0 +1,1 @@
+Now build B. Output pixel 0 needs the top left patch of every input map. Its patch from map 0 slides down into column 0 first, then the patch from map 1, then map 2. That is the same channel order as a row of F, so the row and the column line up term by term.

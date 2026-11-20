@@ -1,0 +1,1 @@
+Here is the same model as two curves. Tokens per second climb with the batch, then flatten past the knee. Each user's time per token stays nearly flat, then climbs. That is the book's trade-off: more throughput for the group, paid for with a longer wait for each user once the step stops being free.

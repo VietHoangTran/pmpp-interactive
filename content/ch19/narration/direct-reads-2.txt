@@ -1,0 +1,1 @@
+Thread 0, 0 of block 0 computes the first pixel of map 0. Its loop runs over 3 input maps and 4 filter positions: 12 steps. Each step fetches one input value and one filter weight from global memory, and adds their product to a register. The register climbs to 14.

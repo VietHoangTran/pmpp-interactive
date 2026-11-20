@@ -1,0 +1,1 @@
+Pass 2 histograms the second byte, but only for keys in that undecided bin. A thread first checks whether its key starts with the prefix found so far. Only 13 lanes pass the test and do an atomic. The others sit idle, shown in grey, so the warp splits at that branch. Two more keys are decided above.

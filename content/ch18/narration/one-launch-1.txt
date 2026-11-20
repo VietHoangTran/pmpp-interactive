@@ -1,0 +1,1 @@
+Picture a road map as a grid, searched from one corner. For every level, the CPU launches the kernel, waits, copies the new frontier size back, and decides whether to launch again. Each kernel bar is short, because a level is only a thin diagonal of the grid. Every gap is a round trip, and every level pays one.

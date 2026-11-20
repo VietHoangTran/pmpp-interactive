@@ -1,0 +1,1 @@
+Now the two side by side, over the whole run. The contiguous reservations waste most of what they hold. Paging wastes at most one partly filled block per request, so far more requests run at once, and this stream of 10 requests finishes in well under half the steps.

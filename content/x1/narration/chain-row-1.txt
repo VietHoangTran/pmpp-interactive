@@ -1,0 +1,1 @@
+Twelve logits, and under each, how often that token appears in the context. Only used tokens change. A positive logit is divided by the repetition penalty, 1.25, and a negative one is multiplied. Then frequency and presence are subtracted. Token 7, used three times, drops from first place to second. Lab 9.3's counts make this one pass over the row.

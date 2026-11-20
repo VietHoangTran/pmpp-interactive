@@ -1,0 +1,1 @@
+Now the two windows are added exactly. The true sum is just over 1000.3. The format cannot hold it. Its two nearest neighbours are 1000 and 1000.5, half a unit apart. Round to nearest even picks the closer one, 1000.5. The error is about 4 tenths of a unit in the last place.

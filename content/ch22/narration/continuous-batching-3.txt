@@ -1,0 +1,1 @@
+Now continuous batching. At every step, finished requests leave and waiting ones join. The slots stay full, and short requests come back as soon as they are done. The idea goes by 3 names: iteration-level scheduling, from the Orca paper, in-flight batching, and continuous batching. They are one technique.

@@ -1,0 +1,1 @@
+There are three ways out. Add the small values to each other first, in a tree, so that they grow large enough to register. Carry the lost part along in a second variable, which is Kahan's method in section A.6. Or accumulate in single precision, whose window is 24 bits wide.

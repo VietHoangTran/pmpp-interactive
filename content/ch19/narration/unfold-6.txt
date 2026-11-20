@@ -1,0 +1,1 @@
+Now scale up. As the input maps grow, the ratio of B to X climbs toward K squared: a limit of 4 for this example, and 25 for the first layer of LeNet, which is already at about 19. And building B is not free. It is one more pass over global memory, written and then read back.

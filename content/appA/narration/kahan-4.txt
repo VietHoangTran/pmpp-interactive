@@ -1,0 +1,1 @@
+The next value arrives, and subtracting c adds the lost part back, so y is twice as big. That is a tie, t still rounds to 1, and c grows. With the third value, y is three quarters of the gap, so t moves up one step. That overshoots a little, and c records the overshoot.

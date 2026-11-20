@@ -1,0 +1,1 @@
+Keep growing the batch. The weight bytes are shared by more and more rows, so their cost per token keeps falling. The cache bytes per token stay exactly where they were. And every new request brings a whole cache with it, so memory fills up.

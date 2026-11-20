@@ -1,0 +1,1 @@
+That is why it matters. The full row of scores never existed anywhere. And two numbers per row, the maximum and the sum, are all it takes to merge partial results. Two blocks can each take half of the columns, and one more step combines them with exactly the same rule.

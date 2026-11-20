@@ -1,0 +1,1 @@
+Here is one row of 64 logits, and we want the 12 largest. Each logit becomes a 32 bit key, the transform from lab 14.3, so a larger key means a larger logit. The top byte of each key is in bold. We need no order among the others, only where the twelfth largest key sits.

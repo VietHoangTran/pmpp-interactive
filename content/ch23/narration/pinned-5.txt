@@ -1,0 +1,1 @@
+Now the same run with buffers from cuda malloc host. The engine reads them directly, so every call returns at once, and the host queues all 12 operations straight away. Chunk 1's copy in runs under kernel 0, and every copy out but the last runs under a later kernel. 10 units instead of 16.

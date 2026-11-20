@@ -1,0 +1,1 @@
+The tally. Scatter made 24 atomic updates to 6 addresses, 4 on each, and read 4 different constant addresses at every step. Gather made 24 additions in registers and 6 plain writes, and read 1 address per step. That is why gather is the default whenever each output can have one owner.

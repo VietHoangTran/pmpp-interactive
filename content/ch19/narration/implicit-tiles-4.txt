@@ -1,0 +1,1 @@
+Phase 1. The next F tile, and a B tile gathered from the middle row of the first input map. The new values go into the same shared slots as before. That is why the second barrier comes first: no thread may overwrite a slot that a neighbour is still reading.

@@ -1,0 +1,1 @@
+Shared memory stores the tile as a square, with column d holding step d. So the north input sits 1 row up and 1 column left. The west input is 1 column left. The north west input is 1 row up and 2 columns left. That is where the offsets in the load functions come from.

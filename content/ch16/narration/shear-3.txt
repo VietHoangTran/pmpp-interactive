@@ -1,0 +1,1 @@
+Run it again. Each step is now 1 tile column, and all 3 threads work at every step. Inside the tile, a cell's north and west neighbours were finished 1 step earlier, and its north west neighbour 2 steps earlier, so every input is ready in time. The same 9 cells take 3 steps, with no idle thread.

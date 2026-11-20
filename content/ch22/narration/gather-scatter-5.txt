@@ -1,0 +1,1 @@
+Gather is not free either. Its threads read overlapping inputs: the middle ones are read 3 times, which is the reuse a block can keep on chip in shared memory. And for some problems the owner of an output cannot tell which inputs are its own. A histogram bin thread must look at every input.

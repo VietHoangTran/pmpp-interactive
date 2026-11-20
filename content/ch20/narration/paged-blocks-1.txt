@@ -1,0 +1,1 @@
+First, contiguous caches. Each request reserves room for the maximum length the moment it is admitted. Most requests stop far short of it, so most of each reservation sits empty, and only 2 requests fit in this pool at once. The others wait in the queue.

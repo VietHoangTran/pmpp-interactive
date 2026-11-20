@@ -1,0 +1,1 @@
+k prime and v prime are written as the newest row of this layer's K cache and V cache. Nothing else in the cache moves. Every older row stays exactly as it was, because the tokens it came from, and the weights that made it, have not changed.

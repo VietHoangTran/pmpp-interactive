@@ -1,0 +1,1 @@
+Step 2. Threads 1 and 2 subtract thread 0's row from their own, and the first coefficient of each becomes 0. Thread 0 has nothing left to do until the end, so it goes idle. [short pause] Another barrier. From here on, each subtraction retires one more thread.

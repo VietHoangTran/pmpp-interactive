@@ -1,0 +1,1 @@
+Then the next token arrives. The cache is one row longer, and all of it streams again. So the bytes per token grow with N, while the work per byte stays near one operation in 16-bit precision, and half that in 32-bit. That is why decode is bandwidth-bound.

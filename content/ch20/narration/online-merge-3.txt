@@ -1,0 +1,1 @@
+Tile two holds a larger score, 2.9. Everything kept so far was measured against the old maximum, so it is now too large. D and the output both shrink by e to the power of old max minus new max, about 0.27. Then tile two's terms, already measured against the new maximum, are added.

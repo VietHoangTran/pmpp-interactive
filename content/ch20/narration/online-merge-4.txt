@@ -1,0 +1,1 @@
+Tile three's largest score is 2.1, below the running maximum. The maximum does not move, so the factor on what is kept is exactly 1. The tile's four terms are measured against 2.9 and simply add on. Nothing already done has to be redone, whichever tile happens to carry the maximum.

@@ -1,0 +1,1 @@
+Passes 3 and 4 repeat the step on the third and fourth bytes, each time on fewer keys. After the fourth byte the prefix is a whole key, the twelfth largest. Ten keys lie strictly above it. Three keys are equal to it, and we need only 2 of them.

@@ -1,0 +1,1 @@
+Static batching, with 4 slots. The first 4 requests start together. The 2 short ones finish early, and their slots sit idle. The newcomers wait in the queue, because a static batch ends only when its longest request is done. Watch the idle slots, and the tokens made per step.

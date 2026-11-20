@@ -1,0 +1,1 @@
+The scores pass through a softmax. That is one short vector, a single value per cached token in each head. Next to the passes over the weights and the keys it is cheap, which is why the book leaves it out of its count.

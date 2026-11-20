@@ -1,0 +1,1 @@
+Instead, a copy from pageable memory goes in two steps. The CPU copies a piece into a pinned staging buffer, which the system will not move. The engine then moves that piece on, while the CPU fills the next buffer. The CPU takes part until the last piece is through, so the call cannot return any sooner.

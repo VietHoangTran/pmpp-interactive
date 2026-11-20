@@ -1,0 +1,1 @@
+Every weight is divided by 2. The grid of the 4-bit format slides in: 0, one half, 1, one and a half, 2, 3, 4 and 6. Each dot snaps to its nearest grid point. The outlier lands exactly on 6, the largest value. Almost every other weight is now closer to 0 than to one half.

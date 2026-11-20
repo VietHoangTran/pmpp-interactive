@@ -1,0 +1,1 @@
+Watch the host first. In about a quarter of one time unit it queues 12 operations: a memset, an event record, two waits, three kernel launches, two more records, two more waits, and the copy of the norm. Each call returns as soon as its operation sits in a stream. Nothing had to finish first.

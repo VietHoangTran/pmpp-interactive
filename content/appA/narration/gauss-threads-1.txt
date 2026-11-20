@@ -1,0 +1,1 @@
+The book's system of 3 equations, written as an augmented matrix. Each row holds 3 coefficients and a right-hand side. One thread owns each row, and all 3 rows sit in the shared memory of one block. Thread 0 has the row 3, 5, 2, 19. Threads 1 and 2 have the other two.

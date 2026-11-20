@@ -1,0 +1,1 @@
+Requests keep growing at different speeds. When one fills its last block, it takes whatever the free list offers, often a block another request has just given back, so its blocks end up scattered across the pool. The block table keeps the logical order, and the attention kernel follows it to every key and value.

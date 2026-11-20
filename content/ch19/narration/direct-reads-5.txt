@@ -1,0 +1,1 @@
+Block 1 computes output map 1. It needs exactly the same 27 input values, and it fetches all 48 of them again. Shared memory belongs to one block, so nothing block 0 loaded can help it. Every extra output map repeats the whole input traffic.

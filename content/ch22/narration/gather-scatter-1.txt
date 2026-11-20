@@ -1,0 +1,1 @@
+Here is a small one dimensional convolution. 8 inputs, 6 outputs, and each output is the sum of 3 neighbouring inputs. Read the arrows the other way and every input feeds up to 3 outputs. So there are two ways to hand out the work: give each thread an output, or give each thread an input.

@@ -1,0 +1,1 @@
+Pivoting adds a step before each division. The threads run a max reduction down the column, looking for the largest first coefficient. Thread 1's row wins with a 2, and swaps to the top. Elimination then finds 1, 2, 3. [short pause] Across many blocks, this search would need the whole grid to agree, once per column.

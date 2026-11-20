@@ -1,0 +1,1 @@
+First, a relaunch after every front. No tile may start until the whole front before it is done. The fronts of 1 tile and of 3 tiles leave a lane empty for a step, outlined in red. Count the steps: 10, for 16 tiles on 2 lanes. A relaunch makes every tile wait for the whole previous front.

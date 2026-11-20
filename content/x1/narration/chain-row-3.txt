@@ -1,0 +1,1 @@
+Now the five survivors slide into descending order and become probabilities that add up to 1. Only five values were sorted, and only five were normalised, not the whole vocabulary. Every stage after this one works on five numbers. Token 2 holds 62 percent of the mass, and token 7 about 16.

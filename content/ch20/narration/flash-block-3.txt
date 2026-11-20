@@ -1,0 +1,1 @@
+Now each warp works through its rows. For one row, every lane computes the score of one column, taking each element of Q from whichever lane holds it, with a shuffle. The scores are scaled, columns past the row are masked by index, and the warp's maximum updates m and rescales D.

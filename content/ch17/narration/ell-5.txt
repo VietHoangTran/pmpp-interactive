@@ -1,0 +1,1 @@
+Run the same four threads again. In every iteration their reads fall inside one contiguous run: slots 0 to 3, then 4 to 7, then 8 to 11. That is the coalescing CSR lacked. But the loop still stops at each row's length, so the same lanes go idle as before. Divergence remains.

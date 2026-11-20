@@ -1,0 +1,1 @@
+This is the book's small example, launched the way the direct kernel launches it. The grid's x axis is the output map, y is the tile, and z is the sample. Two output maps of 2 by 2 pixels, with tiles of 2 by 2, make 2 blocks of 4 threads. Each block owns one whole output map.

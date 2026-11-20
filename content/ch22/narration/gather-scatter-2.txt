@@ -1,0 +1,1 @@
+First, one thread per output. Each thread pulls in its 3 inputs and adds them up in a register that only it can see. Then it writes its sum once. All 6 writes land in different cells at the same moment. No two threads write the same place, so nothing needs an atomic.

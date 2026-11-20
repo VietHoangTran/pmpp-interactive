@@ -1,0 +1,1 @@
+During binning, 3 atoms did not fit their bins, so they went on an overflow list. After the kernel, the grid comes back to the host, which adds their contributions to the points within the cutoff. With the volume cut into pieces, the host can do this while the device runs the next piece.

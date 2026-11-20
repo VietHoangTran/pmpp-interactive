@@ -1,0 +1,1 @@
+On HIP, the calls have the same names. The header is different, and the launch needs all six arguments. Metal has no grid barrier at all, so it runs one dispatch per level on a serial encoder, and an indirect dispatch can read the next level's size from a GPU buffer. The technique survives everywhere except the single launch itself.

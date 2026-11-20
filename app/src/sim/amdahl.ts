@@ -10,8 +10,8 @@
 //   - A run has two parts only: one you speed up (a fraction p of the original
 //     time) and one you leave alone (1 - p).
 //   - The two parts do not overlap in time. Chapter 22 (§22.3, pp. 537–538)
-//     relaxes this with host and device work running at once; when that chapter
-//     is built it should extend this file, not add a second Amdahl model.
+//     relaxes this with host and device work running at once: see overlapped()
+//     and moduleSpeedup() at the end of this file, which chapter 22 added.
 //   - The untouched part stays the same size. In a real port, moving work to a
 //     GPU adds copies and kernel launches to it.
 //   - The problem size is fixed.
@@ -263,3 +263,185 @@ export function limitsCurve(
     return { threads, s: k.s, overall: k.overall };
   });
 }
+
+// ======================================================== chapter 22: modules and overlap
+// Section 22.3 (pp. 537–538) applies the law to an application made of several
+// modules, each either moved to the GPU or left on the host, and adds the case
+// chapter 1 leaves out: host and device working at the same time. The book's
+// worked numbers: 95% made 100 times faster gives 1 / (5% + 0.95%) = 16.8 (the
+// page prints "17x"); with the device's time hidden inside the host's, 1 / 5% = 20
+// (notes/ch22.md; notes/today/ch22-facts.md, A9).
+//
+// What this part assumes, beyond the list at the top of the file:
+//   - A host module keeps its original speed; a device module runs `s` times faster.
+//   - No copies between host and device and no launch costs (tasklanes.ts models
+//     launches).
+//   - Overlap: a host module runs at the same time as the device unless it is
+//     chained to the device, meaning it produces what the device needs or needs
+//     what the device produces within the same step. Chained host time adds to the
+//     total; the other host time and the device time run side by side and the
+//     longer counts: total = chained host + max(other host, device). With nothing
+//     chained that is the book's max(host, device). The chain is ours; the book's
+//     example comes out the same either way as long as the device's time fits
+//     inside the unchained host work.
+//   - Shares are fractions of the original run time and add up to 1.
+
+/**
+ * Speed-up when the part left alone (1 - p) and the accelerated part (p / s) run
+ * at the same time: the longer of the two sets the run time.
+ */
+export function overlapped(p: number, s: number): number {
+  return 1 / Math.max(1 - p, p / s);
+}
+
+export type Place = 'host' | 'device';
+
+export interface AppModule {
+  /** Short name, as drawn. */
+  name: string;
+  /** Fraction of the original run time, 0 to 1. */
+  share: number;
+  place: Place;
+  /** How many times faster the module runs on the device. Ignored on the host. */
+  s: number;
+  /** Chained to the device's work (see above). Matters only on the host, with overlap on. */
+  chained?: boolean;
+  /** Where the module has to run, when it cannot be moved. */
+  fixed?: Place;
+}
+
+/** One module's place in time, as a fraction of the original run time. */
+export interface Span {
+  /** Index of the module in the list. */
+  module: number;
+  lane: Place;
+  start: number;
+  end: number;
+}
+
+export interface ModuleResult {
+  /** Time on the host, as a fraction of the original run time. */
+  host: number;
+  /** The part of `host` that is chained to the device. */
+  chained: number;
+  /** Time on the device, as a fraction of the original run time. */
+  device: number;
+  /** Device time that runs while unchained host work runs (0 without overlap). */
+  hidden: number;
+  /** New run time as a fraction of the original. */
+  total: number;
+  /** 1 / total. */
+  speedup: number;
+  /** The most any device speed-up gives with this placement: 1 / host (Infinity with nothing on the host). */
+  ceiling: number;
+  /** Where each module sits in time, for drawing. */
+  spans: Span[];
+}
+
+/** Time a module takes where it is placed, as a fraction of the original run time. */
+export const moduleTime = (m: AppModule) => (m.place === 'device' ? m.share / m.s : m.share);
+
+/**
+ * The application's new run time and speed-up when each module runs where it is
+ * placed, with or without host and device overlapping.
+ */
+export function moduleSpeedup(modules: AppModule[], overlap: boolean): ModuleResult {
+  const onHost = (m: AppModule) => m.place === 'host';
+  const host = modules.filter(onHost).reduce((a, m) => a + m.share, 0);
+  const chained = overlap ? modules.filter((m) => onHost(m) && m.chained).reduce((a, m) => a + m.share, 0) : 0;
+  const device = modules.filter((m) => !onHost(m)).reduce((a, m) => a + moduleTime(m), 0);
+  const spans: Span[] = [];
+  let total: number;
+  let hidden = 0;
+  if (!overlap) {
+    // One after another, in list order.
+    let t = 0;
+    modules.forEach((m, i) => {
+      const len = moduleTime(m);
+      spans.push({ module: i, lane: m.place, start: t, end: t + len });
+      t += len;
+    });
+    total = t;
+  } else {
+    // Chained host modules listed before the first device module run first, the
+    // other chained ones after; in between, the device's modules and the unchained
+    // host modules run side by side, each lane in list order.
+    const firstDevice = modules.findIndex((m) => !onHost(m));
+    const isBefore = (i: number) => firstDevice >= 0 && i < firstDevice;
+    let t = 0;
+    modules.forEach((m, i) => {
+      if (onHost(m) && m.chained && isBefore(i)) {
+        spans.push({ module: i, lane: 'host', start: t, end: t + m.share });
+        t += m.share;
+      }
+    });
+    const windowStart = t;
+    let h = windowStart;
+    let d = windowStart;
+    modules.forEach((m, i) => {
+      if (onHost(m) && m.chained) return;
+      const len = moduleTime(m);
+      if (onHost(m)) {
+        spans.push({ module: i, lane: 'host', start: h, end: h + len });
+        h += len;
+      } else {
+        spans.push({ module: i, lane: 'device', start: d, end: d + len });
+        d += len;
+      }
+    });
+    hidden = Math.min(h, d) - windowStart;
+    t = Math.max(h, d);
+    modules.forEach((m, i) => {
+      if (onHost(m) && m.chained && !isBefore(i)) {
+        spans.push({ module: i, lane: 'host', start: t, end: t + m.share });
+        t += m.share;
+      }
+    });
+    total = t;
+    spans.sort((a, b) => a.module - b.module);
+  }
+  return { host, chained, device, hidden, total, speedup: 1 / total, ceiling: host > 0 ? 1 / host : Infinity, spans };
+}
+
+/**
+ * Set module `i` to `share` and scale every other module so that the shares still
+ * add up to 1 (equal parts if the others were all 0).
+ */
+export function rebalance(modules: AppModule[], i: number, share: number): AppModule[] {
+  if (modules.length === 1) return [{ ...modules[0], share: 1 }];
+  const v = Math.min(1, Math.max(0, share));
+  const rest = modules.reduce((a, m, j) => (j === i ? a : a + m.share), 0);
+  const n = modules.length - 1;
+  return modules.map((m, j) =>
+    j === i ? { ...m, share: v } : { ...m, share: rest > 0 ? (m.share / rest) * (1 - v) : (1 - v) / n },
+  );
+}
+
+/**
+ * The molecular-dynamics time step of Fig. 22.2 (p. 537) with the book's split:
+ * non-bonded forces are 95% of the original time and 100 times faster on the GPU;
+ * everything else stays on the host. How the other 5% divides between the three
+ * host modules, and the speed-up those three would get on a GPU, are ours. The
+ * chained flags follow the figure's arrows: the non-bonded kernel needs the
+ * neighbour list, and the update needs both kinds of force before the next step.
+ */
+export const MD_STEP: AppModule[] = [
+  { name: 'Neighbour list', share: 0.02, place: 'host', s: 4, chained: true },
+  { name: 'Non-bonded forces', share: 0.95, place: 'device', s: 100 },
+  { name: 'Vibrational and rotational forces', share: 0.02, place: 'host', s: 4 },
+  { name: 'Update positions and velocities', share: 0.01, place: 'host', s: 4, chained: true },
+];
+
+/**
+ * Ours, for illustration only: one decode step of a language model, with each
+ * part's share of the step's time today and no timings. Speed-ups are relative to
+ * today's version of each part; the sampler's 10 on a GPU is a placeholder. The
+ * next step's kernels need the sampled token, so a host sampler is chained.
+ */
+export const DECODE_STEP: AppModule[] = [
+  { name: 'Projections and attention', share: 0.78, place: 'device', s: 1, fixed: 'device' },
+  { name: 'Elementwise kernels', share: 0.08, place: 'device', s: 1, fixed: 'device' },
+  { name: 'Sampling', share: 0.06, place: 'host', s: 10, chained: true },
+  { name: 'Kernel launches', share: 0.05, place: 'host', s: 1, fixed: 'host' },
+  { name: 'Detokenise and stream out', share: 0.03, place: 'host', s: 1, fixed: 'host' },
+];

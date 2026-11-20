@@ -1,0 +1,1 @@
+A float accumulator holds 1. Small values arrive one at a time, each 2 to the power minus 25. That is a quarter of the gap between 1 and the next float above it, so every addition rounds straight back to 1. The plain sum never moves, while the true total keeps climbing.

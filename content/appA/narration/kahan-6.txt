@@ -1,0 +1,1 @@
+One warning. In exact arithmetic c is always zero, so a compiler allowed to regroup additions can delete it, leaving the plain sum. On CUDA, write the additions with the round to nearest intrinsics. On HIP, leave fast math off. On Metal, put the safe math mode pragma in the kernel. Lab A1 checks your device.

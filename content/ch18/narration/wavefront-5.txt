@@ -1,0 +1,1 @@
+The target sits at level 26. Walk back: step to any neighbour one level lower, until you reach the source. The line is a shortest wire, 27 blocks long. At 9 blocks on the way, two neighbours were one level lower, and the model's fixed rule chose one. Routers spend that freedom on the wires still to come.

@@ -1,0 +1,1 @@
+A second barrier, so that nobody overwrites the bin while others still read it, and the block moves on to the next offset. The loop repeats down the list while the counts of tests and accepted atoms grow. Bins at the edge of the circle bring mostly rejections.

@@ -1,0 +1,1 @@
+Tile 0. All eight threads copy four rows of K into shared memory, turned on their side, so that each key becomes a column. They copy the same four rows of V. Then a block barrier: no warp may read the tiles until every thread has finished writing them.

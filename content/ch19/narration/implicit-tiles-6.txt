@@ -1,0 +1,1 @@
+Count the reads for this toy. The direct kernel read 96 input values. Explicit unrolling read 48 to write the 48 entries of B, then read them back. Implicit unrolling gathered 48, and kept the copies in shared memory only. The price is a divide and a remainder in every gather.

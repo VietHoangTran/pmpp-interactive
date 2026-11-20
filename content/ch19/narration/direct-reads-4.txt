@@ -1,0 +1,1 @@
+Now look at the filter side. At every step, all 4 threads of the block read the same filter weight. It is one address, shared by the whole block. That is the cheap kind of repeated read: one request can serve every thread that asks for it.

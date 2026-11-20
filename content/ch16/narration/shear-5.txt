@@ -1,0 +1,1 @@
+Zoom out to a 9 by 9 table of 3 by 3 tiles. Square tiles take 5 launches, up to 3 tiles each. Sheared tiles take 8, at most 2 at a time, with part tiles at both edges. So inside a tile the shear packs more work into every step, and outside it costs more launches.

@@ -1,0 +1,1 @@
+Now run it with the vertex-centric push kernel. Every call launches one thread per free cell, 197 of them. Only the threads on the last wavefront have work. The rest check their own cell, find it is not on the wavefront, and stop. By the end, 31 calls have launched 6107 threads.

@@ -1,0 +1,1 @@
+A second block barrier, and the next tile may overwrite the shared arrays. The block repeats this for every tile. For this panel, tile 2 lies entirely above the diagonal: every score is masked, and it contributes nothing. FlashAttention two would skip it. The book's kernel computes it anyway.

@@ -1,0 +1,1 @@
+Last, the book's persistent blocks each own a row of tiles. Say rows 3 and 2 get the lanes. Row 3 waits for row 2, which waits for row 1, which never gets a lane. Nothing moves. Hand out tiles from a counter, and it completes. Only CUDA documents that started work keeps going, so on Metal the relaunch stays.

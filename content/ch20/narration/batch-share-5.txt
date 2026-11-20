@@ -1,0 +1,1 @@
+That is the trade-off the book names. The memory left after the weights caps batch size times context length. For Llama 2 7B in 16-bit, every gibibyte left over holds 2048 tokens of cache: one sequence of 2048, or 4 of 512, or 16 of 128.

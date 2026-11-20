@@ -1,0 +1,1 @@
+A mixture of experts layer has run its router. Each of 8 tokens picked 2 of 4 experts, which makes 16 token and expert pairs. Drawn with experts as rows and tokens as columns, they form a sparse matrix. Listed in token order, they are a coordinate list: the book's C O O format.

@@ -1,0 +1,1 @@
+First the block needs its largest magnitude. That is a max reduction, the same tree as in chapter 10. Pairs of elements compare, the larger survives, and after 5 rounds one value is left. [short pause] Here it is the outlier, 12. Every other decision in this block now depends on it.
