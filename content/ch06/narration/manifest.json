@@ -1,0 +1,198 @@
+{
+ "model": "eleven_v4",
+ "voice": "tnSpp4vdxKPjI9w0GnoV",
+ "clips": {
+  "coalesce-1": {
+   "file": "coalesce-1.mp3",
+   "sha256": "cb0ce760996f1afa88d70448848152da36c7b7a1286cb8af9646212716661068",
+   "duration": 23.04,
+   "bytes": 386644,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "coalesce-2": {
+   "file": "coalesce-2.mp3",
+   "sha256": "69471ed6c4e7b1d67d6bc7ec5527c6ac32fb78ce31d1fb8b866a117cbfb8a76c",
+   "duration": 23.04,
+   "bytes": 386644,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "coalesce-3": {
+   "file": "coalesce-3.mp3",
+   "sha256": "8755e035b343b37803d702fdb5bb4d37205185997ccae669dd470a87f78d9ebd",
+   "duration": 22.4,
+   "bytes": 376613,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "coalesce-4": {
+   "file": "coalesce-4.mp3",
+   "sha256": "f9e8d1488fe88fe52b923a04c8871a6a5b7c6782724212f69a9f49e958f1ff5c",
+   "duration": 22.16,
+   "bytes": 372852,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "coalesce-5": {
+   "file": "coalesce-5.mp3",
+   "sha256": "a1897ed81b62ac14451fe47e3796a0fcb99e9dd39603d63ea9fd47f85f5a2839",
+   "duration": 19.76,
+   "bytes": 334400,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "coalesce-6": {
+   "file": "coalesce-6.mp3",
+   "sha256": "8670f2b3450202a8a3ba10da6f9efb767109df52e7bc5d5d95de4890edd612df",
+   "duration": 22.16,
+   "bytes": 372852,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "double-buffer-1": {
+   "file": "double-buffer-1.mp3",
+   "sha256": "aaf8f5a3245d7abce0b59dcc601b4db05f70193cebb8a4073f83d09e79160d3c",
+   "duration": 18.16,
+   "bytes": 308904,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "double-buffer-2": {
+   "file": "double-buffer-2.mp3",
+   "sha256": "3c9bc6fa2f3e186ab6bcb3a881288beefa047af83df0e2293ba9b3d54be7dd6e",
+   "duration": 21.6,
+   "bytes": 363657,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "double-buffer-3": {
+   "file": "double-buffer-3.mp3",
+   "sha256": "2cc84d18081afcb1c5785089de03507f20821d978ac17736a7c6db2ccc974e93",
+   "duration": 19.2,
+   "bytes": 325204,
+   "generated": "2026-11-20",
+   "take": 2
+  },
+  "double-buffer-4": {
+   "file": "double-buffer-4.mp3",
+   "sha256": "b8b5c93242208b7ad572a52d582579239626320be93c5d4ff8bb9429ff25ebd1",
+   "duration": 16.8,
+   "bytes": 287170,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "double-buffer-5": {
+   "file": "double-buffer-5.mp3",
+   "sha256": "d58cdfe33077c8228f6c7c20fee9f2cb25577ddd7ebe6b73bd350ea8b8bed633",
+   "duration": 20.88,
+   "bytes": 352372,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "double-buffer-6": {
+   "file": "double-buffer-6.mp3",
+   "sha256": "7a01bfe88c42f33ca1f12062d5811de329835394679e375b82b49393adcbc812",
+   "duration": 21.12,
+   "bytes": 356133,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "dram-banks-1": {
+   "file": "dram-banks-1.mp3",
+   "sha256": "e87fee171829ae7c73d12818ebb64168b51091831429a02f2393f28ec69cdf61",
+   "duration": 20.48,
+   "bytes": 345684,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "dram-banks-2": {
+   "file": "dram-banks-2.mp3",
+   "sha256": "0d19c7141c1e258584f628f591b44d1ad58b2057bc9828036f71611bad084de5",
+   "duration": 18.48,
+   "bytes": 313920,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "dram-banks-3": {
+   "file": "dram-banks-3.mp3",
+   "sha256": "d5644999bfbdf8bbddb90a7946ec08b7285088578194e8490435748c3942338a",
+   "duration": 15.52,
+   "bytes": 266690,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "dram-banks-4": {
+   "file": "dram-banks-4.mp3",
+   "sha256": "4b068c65d742a8d94498f7ce805cb6cf897631e616d7860ba15443952fffbe96",
+   "duration": 18.64,
+   "bytes": 316427,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "dram-banks-5": {
+   "file": "dram-banks-5.mp3",
+   "sha256": "60fda0f19e2abdfed6ea51791f49c8a03ce01b2d1fa07dee228fa0112509c064",
+   "duration": 18.4,
+   "bytes": 312666,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "dram-banks-6": {
+   "file": "dram-banks-6.mp3",
+   "sha256": "46ebd2c9a52e5ee46e1891abf05ae04acdb4ebbfb9867dba5b33c3be6f2c4544",
+   "duration": 18.48,
+   "bytes": 313920,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "turn-and-pad-1": {
+   "file": "turn-and-pad-1.mp3",
+   "sha256": "219ef1b4e3cce896ec7de72e346d5f30520b1d9fdf751d5184e9a3e6a9e05bfd",
+   "duration": 19.44,
+   "bytes": 329384,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "turn-and-pad-2": {
+   "file": "turn-and-pad-2.mp3",
+   "sha256": "13ef94d6edef7d3bf0e365021e3d09b54965389fe171a7ecbbaa0f5d19e56c9b",
+   "duration": 17.92,
+   "bytes": 304724,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "turn-and-pad-3": {
+   "file": "turn-and-pad-3.mp3",
+   "sha256": "2a489ad4e70ddc0a171736eb314fee9e1ed4e0d3e6436fe4caca5de97013cfc7",
+   "duration": 22.16,
+   "bytes": 372852,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "turn-and-pad-4": {
+   "file": "turn-and-pad-4.mp3",
+   "sha256": "3da390d21254d7e80f05c236808ce5a5c6aaefc2bf26256f2dedc2eebacbb09d",
+   "duration": 18.88,
+   "bytes": 320189,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "turn-and-pad-5": {
+   "file": "turn-and-pad-5.mp3",
+   "sha256": "6ca4196c06eaf1b8ceede836db16ef0bf0e20ca8f68b0fbcf64c622b17ac956d",
+   "duration": 19.44,
+   "bytes": 329384,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "turn-and-pad-6": {
+   "file": "turn-and-pad-6.mp3",
+   "sha256": "341ff387562312e50547481b6d1fae3d4791a8d2243f4c69b98cefa0ecc841da",
+   "duration": 19.84,
+   "bytes": 335653,
+   "generated": "2026-11-20",
+   "take": 1
+  }
+ }
+}

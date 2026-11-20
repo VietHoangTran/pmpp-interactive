@@ -1,0 +1,94 @@
+{
+ "model": "eleven_v4",
+ "voice": "tnSpp4vdxKPjI9w0GnoV",
+ "clips": {
+  "atomic-wait-1": {
+   "file": "atomic-wait-1.mp3",
+   "sha256": "e2e6b3b8e4a0ef7620cb097a489735cd768c9e42a2cfb2bd899537e4a51d0bff",
+   "duration": 17.36,
+   "bytes": 295947,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "atomic-wait-2": {
+   "file": "atomic-wait-2.mp3",
+   "sha256": "99e52c946a60b3aa4609cc58bbb1329bf59aa21b83ac017e51a4e23a4288c83c",
+   "duration": 18.08,
+   "bytes": 307650,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "atomic-wait-3": {
+   "file": "atomic-wait-3.mp3",
+   "sha256": "6fe69722ec747f33ec282b68b2833caa4c3c9518b9a5248e00b3f9420a15a6f3",
+   "duration": 16.72,
+   "bytes": 285916,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "atomic-wait-4": {
+   "file": "atomic-wait-4.mp3",
+   "sha256": "a33cdbcb4b2e2a34861188b57c84e922f3545d49d154e2b3dd24c33560a9977c",
+   "duration": 20.56,
+   "bytes": 347356,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "atomic-wait-5": {
+   "file": "atomic-wait-5.mp3",
+   "sha256": "962f1e3158e6b7d19fcea0829dfc2c8b31e3f9273d975ed71c593c80adfc6734",
+   "duration": 18.88,
+   "bytes": 320189,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "atomic-wait-6": {
+   "file": "atomic-wait-6.mp3",
+   "sha256": "6900da0e80eeb953832358a67f45e26cca4e087fb1538ea172d8f717e3b2c92c",
+   "duration": 20.16,
+   "bytes": 340669,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "privatise-1": {
+   "file": "privatise-1.mp3",
+   "sha256": "993657314effab05de2146e20149e17a6febb35e8afcafc0758067c550469b2d",
+   "duration": 21.2,
+   "bytes": 357387,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "privatise-2": {
+   "file": "privatise-2.mp3",
+   "sha256": "e28bfa8230bc906c93bae3c60a63b925fdeaf4be2d5e7b6fe2c454aaed32e2dd",
+   "duration": 17.52,
+   "bytes": 298455,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "privatise-3": {
+   "file": "privatise-3.mp3",
+   "sha256": "397ff0e555fbb2e1b5ae605940ebdc8bb2a1195872683c04ddd35782d4328cf4",
+   "duration": 16.72,
+   "bytes": 285916,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "privatise-4": {
+   "file": "privatise-4.mp3",
+   "sha256": "2a5555ee723d317f3cf8ff99156ed2d270257e6b10784389438ac6deffccf8ce",
+   "duration": 17.2,
+   "bytes": 293440,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "privatise-5": {
+   "file": "privatise-5.mp3",
+   "sha256": "76789ee8bd25e63504e22ef8d3d50e538d9b4d96b55f6f2bf40d5f982e659973",
+   "duration": 21.36,
+   "bytes": 359895,
+   "generated": "2026-11-20",
+   "take": 1
+  }
+ }
+}

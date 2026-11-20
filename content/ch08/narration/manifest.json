@@ -1,0 +1,54 @@
+{
+ "model": "eleven_v4",
+ "voice": "tnSpp4vdxKPjI9w0GnoV",
+ "clips": {
+  "z-march-1": {
+   "file": "z-march-1.mp3",
+   "sha256": "09b51bd872efb1183b2a7571319ee66228cf6790ff487b89f195b4137f89f7aa",
+   "duration": 23.36,
+   "bytes": 392078,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "z-march-2": {
+   "file": "z-march-2.mp3",
+   "sha256": "a52fc763b0f8ba4d772b525b14956c7de84420e35e4a3399af5834d501612dcc",
+   "duration": 20.32,
+   "bytes": 343177,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "z-march-3": {
+   "file": "z-march-3.mp3",
+   "sha256": "a7fb9322a00b789421f061422a1064f0ed53340abebb422ae6eafd55c2ac8312",
+   "duration": 20.16,
+   "bytes": 340669,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "z-march-4": {
+   "file": "z-march-4.mp3",
+   "sha256": "f2c38cd194d66b80f1bf38504493b89a2609aac8da01eb2ca41c5197bfff2370",
+   "duration": 20.48,
+   "bytes": 345684,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "z-march-5": {
+   "file": "z-march-5.mp3",
+   "sha256": "4d71b8952b0af299a6a0043049961e2849a1f43ac15333857a15c30be8c59a3b",
+   "duration": 26.16,
+   "bytes": 436800,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "z-march-6": {
+   "file": "z-march-6.mp3",
+   "sha256": "5f32cbd58e231a592427c4e30ec181b2c9f4b5d1d4d511f126796c10af8f0716",
+   "duration": 21.28,
+   "bytes": 358641,
+   "generated": "2026-11-20",
+   "take": 1
+  }
+ }
+}

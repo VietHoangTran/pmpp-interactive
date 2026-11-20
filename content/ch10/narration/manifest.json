@@ -1,0 +1,142 @@
+{
+ "model": "eleven_v4",
+ "voice": "tnSpp4vdxKPjI9w0GnoV",
+ "clips": {
+  "commit-order-1": {
+   "file": "commit-order-1.mp3",
+   "sha256": "cc7ebe50773e9cd890fdbd34e4134313753e0f310023c2ec7d554e2139cc182d",
+   "duration": 21.68,
+   "bytes": 364911,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "commit-order-2": {
+   "file": "commit-order-2.mp3",
+   "sha256": "ac172212d350680bef290fc51f414dd5ef9ebe1fa21d7bcf6158a6574897f7b0",
+   "duration": 21.04,
+   "bytes": 354880,
+   "generated": "2026-11-20",
+   "take": 2
+  },
+  "commit-order-3": {
+   "file": "commit-order-3.mp3",
+   "sha256": "563482495b05dcdf6ecc4dc24f2a67166d0b358bb4e5162f8b5a11583f7e6812",
+   "duration": 18.72,
+   "bytes": 317681,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "commit-order-4": {
+   "file": "commit-order-4.mp3",
+   "sha256": "49534bc6707d4d85a38106d15ec5f646ea2bcf6287ed23cb480d6efde5a89dc9",
+   "duration": 19.44,
+   "bytes": 329384,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "commit-order-5": {
+   "file": "commit-order-5.mp3",
+   "sha256": "d1d4548c8881ab85971d94beef547ac0ac1c15d6b3872202ad6b7b6f649e03a3",
+   "duration": 22.72,
+   "bytes": 381629,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "shuffle-1": {
+   "file": "shuffle-1.mp3",
+   "sha256": "07c6b8b9ff57c839901a2331e3074a99b0b7bf69be5e13e4b2329f2eca9c25c1",
+   "duration": 21.12,
+   "bytes": 356133,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "shuffle-2": {
+   "file": "shuffle-2.mp3",
+   "sha256": "664865737bd4995590e81f0ce4e4c549624af1706e2f1b9c17d87be956093d87",
+   "duration": 21.52,
+   "bytes": 362403,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "shuffle-3": {
+   "file": "shuffle-3.mp3",
+   "sha256": "6021431ec37163d932911c4897e659086d888c4107c183fbecfb1a83425595f6",
+   "duration": 21.76,
+   "bytes": 366164,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "shuffle-4": {
+   "file": "shuffle-4.mp3",
+   "sha256": "2c367e7a644bc426528889527ead33cf3371c630f061432fb3039f61c4a7432f",
+   "duration": 23.28,
+   "bytes": 390824,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "shuffle-5": {
+   "file": "shuffle-5.mp3",
+   "sha256": "5e0fb0b7087e84109aa3b13254d68fc3b0d8a338065f65d0ec0cafdc4d38be39",
+   "duration": 19.76,
+   "bytes": 334400,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "shuffle-6": {
+   "file": "shuffle-6.mp3",
+   "sha256": "2bd2c02468f0590940ad8e8173a276a6c8c5130d808f050f37d24afcc10955b1",
+   "duration": 24.4,
+   "bytes": 408796,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "tree-fold-1": {
+   "file": "tree-fold-1.mp3",
+   "sha256": "6f4487ab1302745051369cbd3403aa2add7ff1e21c9ce7294ea3477c174e048f",
+   "duration": 24.88,
+   "bytes": 416320,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "tree-fold-2": {
+   "file": "tree-fold-2.mp3",
+   "sha256": "eed3ad121b3c83f41b27a60651d11006b41816b758d1551ab92c1d346197f3ad",
+   "duration": 20,
+   "bytes": 338161,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "tree-fold-3": {
+   "file": "tree-fold-3.mp3",
+   "sha256": "65f1a091186796e7ea2cd564ef5764d92f3d229da364e225dc1e12ff9c7ced39",
+   "duration": 18.4,
+   "bytes": 312666,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "tree-fold-4": {
+   "file": "tree-fold-4.mp3",
+   "sha256": "3ebf9fa9ac14eebf74dc224d319ceab186fa96c5f05ec7ccb570d92f7708b7df",
+   "duration": 22,
+   "bytes": 370344,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "tree-fold-5": {
+   "file": "tree-fold-5.mp3",
+   "sha256": "1ce7cda830fe6b2a201d0f83cf03bd76c8d4403e99ab2002e9363e5440c05e65",
+   "duration": 18.72,
+   "bytes": 317681,
+   "generated": "2026-11-20",
+   "take": 1
+  },
+  "tree-fold-6": {
+   "file": "tree-fold-6.mp3",
+   "sha256": "9d9b7c989bf8400f40bb7b5415c7f44dc27fa815bee8ba70c134e373763ccf74",
+   "duration": 18.88,
+   "bytes": 320189,
+   "generated": "2026-11-20",
+   "take": 1
+  }
+ }
+}

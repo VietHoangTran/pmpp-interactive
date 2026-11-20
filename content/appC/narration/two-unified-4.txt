@@ -1,1 +1,1 @@
-After CUDA device synchronize, use data reads the result on the CPU. Now the CPU takes the faults, and the pages the kernel wrote come back one by one. Count them: 8 pages over, 8 pages back. That is exactly what two explicit copies would have moved. Managed memory saved code here, not traffic.
+After CUDA device synchronize, the CPU reads the result. Now the CPU takes the faults, and the pages the kernel wrote come back one by one. Count them: 8 pages over, 8 pages back. That is exactly what two explicit copies would have moved. Managed memory saved code here, not traffic.
