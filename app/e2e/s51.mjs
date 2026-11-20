@@ -78,8 +78,14 @@ panel = (await text(bench(R) + ' .panel')).replace(/\s+/g, '');
 check('a tile wide enough crosses into compute-bound', panel.includes('tiled,T=9624compute-bound66,900'), panel);
 if (out) await page.screenshot({ path: out + '-roofline-book.png' });
 
-if (real.length) {
-  const b = real[0];
+// "Your device" appears only when lab 5.1 has been benchmarked on it (not after ./verify.sh --quick).
+const measuredOn = real.find((b) =>
+  reports[b].results.some((x) => x.lab === 'ch05/lab1_roofline' && x.variant === 'solution' && x.bench.some((r) => r.name === 'roofline')),
+);
+const offered = await page.$$eval(bench(R) + ' select option', (o) => o.map((x) => x.value));
+check('hardware list offers a device only when lab 5.1 measured it', measuredOn ? offered.includes(measuredOn) : offered.join() === 'book,custom', offered.join());
+if (measuredOn) {
+  const b = measuredOn;
   await page.select(bench(R) + ' select', b);
   await pause(150);
   const row = reports[b].results.find((x) => x.lab === 'ch05/lab1_roofline' && x.variant === 'solution').bench.find((x) => x.name === 'roofline');

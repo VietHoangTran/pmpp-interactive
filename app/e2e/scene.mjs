@@ -6,6 +6,13 @@ import { open, goto, BASE } from './browser.mjs';
 
 const out = process.argv[2];
 const { browser, page, errors } = await open({ width: 1440, height: 1000 });
+// Leave no trace in the real progress file.
+await page.setRequestInterception(true);
+page.on('request', (r) =>
+  r.method() === 'PUT' && r.url().includes('/api/progress')
+    ? r.respond({ status: 200, contentType: 'application/json', body: '{"ok":true}' })
+    : r.continue(),
+);
 const fail = [];
 const check = (name, ok, detail = '') => {
   console.log((ok ? 'ok   ' : 'FAIL ') + name + (ok ? '' : '  ' + detail));
