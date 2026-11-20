@@ -915,6 +915,22 @@ table.data th.num {
 .scene .stage {
   margin-bottom: 0.8rem;
 }
+/* Many parts: let the row of part buttons wrap instead of running off a narrow screen. */
+.scene .seg {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+/* A scene draws on a wide canvas; scaled to a phone its labels become unreadable, so on
+   narrow screens the drawing keeps a readable width and scrolls sideways in its frame.
+   A scene that draws its own narrow layout marks its svg data-layout="narrow" and is left alone. */
+@media (max-width: 640px) {
+  .scene .stage {
+    overflow-x: auto;
+  }
+  .scene .stage > svg:not([data-layout='narrow']) {
+    min-width: 560px;
+  }
+}
 
 /* Pages without a section number: no empty first column. */
 .section-head .num:empty {

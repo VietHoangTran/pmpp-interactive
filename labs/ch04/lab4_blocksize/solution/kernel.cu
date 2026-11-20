@@ -2,8 +2,9 @@
 // A kernel that spends its time waiting on memory, launched with a block size
 // chosen at run time, and the book's occupancy arithmetic to set beside the
 // measurement. Book: section 4.6 (pp. 82-85) for why waiting is tolerable,
-// section 4.7 (pp. 85-87) for the arithmetic.
-#include "limits.h"
+// section 4.7 (pp. 85-87) for the arithmetic. The kernel is ours, not a listing
+// from the book.
+#include "sm_limits.h"
 
 // An embedding bag: each output is the sum of k table entries chosen by idx.
 //   out[i] = sum over j < k of table[idx[i*k + j]]      for i < n
@@ -36,16 +37,20 @@ void launchGatherSum(const float* table, const int* idx, float* out, int n, int 
 // Where this goes beyond the page:
 //   - The book's block sizes are all whole warps. A block that is not takes
 //     whole warps of thread slots all the same, the last one padded (p. 75),
-//     so the block size is rounded up before anything is divided.
-//   - Registers are counted for the padded warps too. The book's cases do not
-//     decide this. NVIDIA's guide says registers are partitioned among the
-//     warps and does not give the granularity, so this is the model's choice.
+//     so the block size is rounded up before the thread slots are divided.
+//   - Registers are threads times registers per thread, the book's product
+//     (p. 86). The padding lanes run no thread and are charged none. NVIDIA's
+//     guide says registers are partitioned among the warps and does not give
+//     the granularity, so for a real kernel the vendor's occupancy function is
+//     the authority and this is a model.
 //   - A limit of 0, or regsPerThread of 0, means "not known" and its rule is skipped.
 int modelBlocksPerSm(const SmLimits& L, int threadsPerBlock, int regsPerThread) {
+    if (threadsPerBlock < 1) return 0;
     if (L.maxThreadsPerBlock > 0 && threadsPerBlock > L.maxThreadsPerBlock) return 0;
 
-    int warps = (threadsPerBlock + L.warpSize - 1)/L.warpSize;
-    int slots = warps*L.warpSize;              // thread slots one block takes
+    int width = L.warpSize > 0 ? L.warpSize : 1;
+    int warps = (threadsPerBlock + width - 1)/width;
+    int slots = warps*width;                   // thread slots one block takes
 
     int blocks = -1;
     if (L.maxThreadsPerMultiProcessor > 0) {   // thread slots: whole blocks only, a remainder stays empty
@@ -55,7 +60,7 @@ int modelBlocksPerSm(const SmLimits& L, int threadsPerBlock, int regsPerThread) 
         if (blocks < 0 || L.maxBlocksPerMultiProcessor < blocks) blocks = L.maxBlocksPerMultiProcessor;
     }
     if (L.regsPerMultiprocessor > 0 && regsPerThread > 0) {   // registers
-        int byRegisters = L.regsPerMultiprocessor/(slots*regsPerThread);
+        int byRegisters = L.regsPerMultiprocessor/(threadsPerBlock*regsPerThread);
         if (blocks < 0 || byRegisters < blocks) blocks = byRegisters;
     }
     return blocks;
@@ -64,10 +69,13 @@ int modelBlocksPerSm(const SmLimits& L, int threadsPerBlock, int regsPerThread) 
 // Occupancy as the book defines it on p. 85: warps on the SM over the warps it
 // can hold, as a fraction between 0 and 1. -1 if the thread slots are not
 // reported or the block count is unknown.
+// (The summary on p. 90 says threads instead of warps. The two differ only
+// when a block is not whole warps.)
 double modelOccupancy(const SmLimits& L, int threadsPerBlock, int regsPerThread) {
     int blocks = modelBlocksPerSm(L, threadsPerBlock, regsPerThread);
     if (blocks < 0 || L.maxThreadsPerMultiProcessor <= 0) return -1.0;
-    int warps = (threadsPerBlock + L.warpSize - 1)/L.warpSize;
-    int warpSlots = L.maxThreadsPerMultiProcessor/L.warpSize;
+    int width = L.warpSize > 0 ? L.warpSize : 1;
+    int warps = (threadsPerBlock + width - 1)/width;
+    int warpSlots = L.maxThreadsPerMultiProcessor/width;
     return (double)(blocks*warps)/warpSlots;
 }

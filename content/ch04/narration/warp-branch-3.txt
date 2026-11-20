@@ -1,1 +1,1 @@
-So it takes the paths one at a time. First path A. The 24 lanes that chose it execute its 3 instructions. The other 8 are masked, so nothing they would do takes effect. They cannot run ahead. The waiting lanes still hold their place in the warp.
+So it takes the paths one at a time. First path A. The 24 lanes that chose it execute its 3 instructions. The other 8 are masked, so nothing they would do takes effect. In this picture they wait their turn, still holding their place in the warp.

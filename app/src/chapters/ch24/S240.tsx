@@ -1,13 +1,14 @@
-import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { Ask, Predict, type ChoiceQ, type Question } from '../../components/Ask';
 import { Aside, Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
 import { useProgress } from '../../lib/progress';
-import { benchRows, fmt, num, realBackends, useReports, type Reports } from '../../lib/reports';
+import { fmt, useReports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import { PLAN, useAllChapters } from '../registry';
 import { GOALS, STEPS, goal, lanes, rollup, stepOf, stepsOf, type GoalId, type Step } from '../../sim/booksteps';
 import {
   BOOK,
+  CORRECTIONS,
   DEFAULTS,
   DEVICES,
   LIMITS,
@@ -25,7 +26,6 @@ import {
   regime,
   threshold,
   tileFor,
-  type Device,
   type FigureSet,
   type LimitId,
   type Options,
@@ -34,6 +34,20 @@ import {
 
 const P_HOSTLINK = 'ch24/start/p-hostlink';
 const P_KNEE = 'ch24/start/p-knee';
+
+/** True below 600 px of viewport width, where the two wide widgets lay themselves out again. */
+const NARROW = '(max-width: 600px)';
+function useNarrow() {
+  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.matchMedia(NARROW).matches);
+  useEffect(() => {
+    const m = window.matchMedia(NARROW);
+    const on = () => setNarrow(m.matches);
+    on();
+    m.addEventListener('change', on);
+    return () => m.removeEventListener('change', on);
+  }, []);
+  return narrow;
+}
 
 // ---------------------------------------------------------------- 1. the steps map
 // What each goal's set of chapters shows, in one or two sentences (PLAN.md sections 2, 3 and 5).
@@ -199,7 +213,7 @@ const NOT_THIS: Record<string, Partial<Record<LimitId, string>>> = {
     compute: "The arithmetic is one elementwise reduction. The card is about getting each GPU's data to the others.",
     membw: 'Each GPU reads its own memory quickly. The data then has to reach the other GPUs.',
     memcap: 'Nothing here asks whether data fits.',
-    hostlink: 'On a node with no direct link the traffic does go over PCIe, which NCCL also supports (p. 564). The row that names a link between GPUs is another one.',
+    hostlink: 'These GPUs are joined to each other directly, and the book calls NCCL topology-aware (p. 564), so their traffic need not cross the link to the host. Without NVLink it would go over PCIe.',
   },
 };
 
@@ -249,7 +263,7 @@ function LimitsBench() {
     <Bench
       title="What limits what"
       task="Five things you have met. Place each on the row of the table that limits it, then check."
-      foot="Each card is limited by a different row. Sources are the earlier chapters named in the feedback; the placement of each card is how those chapters reason, not something chapter 24 says."
+      foot="Each card is limited by a different row. Each is labelled with the chapters it draws on, and the feedback gives sections and pages; the placement of each card is how those chapters reason, not something chapter 24 says."
     >
       <div className="panel">
         {LIMITS.map((c, i) => {
@@ -263,6 +277,9 @@ function LimitsBench() {
               data-result={fresh ? (ok ? 'right' : 'wrong') : ''}
               style={{ padding: '0.65rem 0', borderTop: i ? '1px solid var(--rule-soft)' : undefined }}
             >
+              <div className="muted" style={{ fontSize: '0.74rem', fontWeight: 600, marginBottom: '0.2rem' }} data-from>
+                {c.from}
+              </div>
               <div className="row">
                 <p style={{ margin: 0, flex: '1 1 18rem', minWidth: 0 }}>{c.card}</p>
                 <label className="field" style={{ maxWidth: '100%' }}>
@@ -358,7 +375,11 @@ function Seg<T extends string | number>({ label, value, options, onChange }: { l
   );
 }
 
+// A printed ratio its own printed figures contradict (only 638x): the one that earns the failure colour.
+const CONTRADICTED = new Set(auditPrinted().filter((a) => !a.matches).map((a) => a.row));
+
 function Recomputed() {
+  const narrow = useNarrow();
   const [set, setSet] = useState<FigureSet>('book');
   const [o, setO] = useState<Options>(DEFAULTS.book);
   const [sel, setSel] = useState<RowId>('fp32');
@@ -380,22 +401,33 @@ function Recomputed() {
         <Seg label="NVLink counted" value={o.nvlink} onChange={(v) => setO({ ...o, nvlink: v })} options={[['both', 'both directions'], ['eachWay', 'each way']]} />
       </div>
       <div className="panel" style={{ overflowX: 'auto' }}>
-        <table className="data" style={{ margin: 0, minWidth: '42rem' }} data-recomputed>
+        {/* Below 600 px the two figure columns move under the row name, so growth, printed ratio and bar stay in view. */}
+        <table className="data" style={{ margin: 0, minWidth: narrow ? 0 : '42rem', fontSize: narrow ? '0.8rem' : undefined }} data-recomputed>
           <thead>
             <tr>
               <th>Row (select one)</th>
-              <th className="num">2007</th>
-              <th className="num">2025</th>
+              {narrow ? null : (
+                <>
+                  <th className="num">2007</th>
+                  <th className="num">2025</th>
+                </>
+              )}
               <th className="num">Growth</th>
-              <th className="num" style={{ paddingRight: '1.2rem' }}>Printed</th>
-              <th style={{ width: '36%', minWidth: '15rem' }}>
-                <div style={{ position: 'relative', height: '1.1em', fontWeight: 450, fontSize: '0.7rem' }} className="muted">
-                  {[0, 1, 2, 3, 4].map((e) => (
-                    <span key={e} style={{ position: 'absolute', left: `${(e / LOG_MAX) * 100}%`, transform: e === LOG_MAX ? 'translateX(-100%)' : e ? 'translateX(-50%)' : undefined, whiteSpace: 'nowrap' }}>
-                      {fmtX(10 ** e)}
-                    </span>
-                  ))}
-                </div>
+              <th className="num" style={{ paddingRight: narrow ? undefined : '1.2rem' }}>Printed</th>
+              <th style={{ width: narrow ? '22%' : '36%', minWidth: narrow ? '3.5rem' : '15rem' }}>
+                {narrow ? (
+                  <span className="muted" style={{ fontWeight: 450, fontSize: '0.7rem' }}>
+                    log, {fmtX(1)} to {fmtX(10 ** LOG_MAX)}
+                  </span>
+                ) : (
+                  <div style={{ position: 'relative', height: '1.1em', fontWeight: 450, fontSize: '0.7rem' }} className="muted">
+                    {[0, 1, 2, 3, 4].map((e) => (
+                      <span key={e} style={{ position: 'absolute', left: `${(e / LOG_MAX) * 100}%`, transform: e === LOG_MAX ? 'translateX(-100%)' : e ? 'translateX(-50%)' : undefined, whiteSpace: 'nowrap' }}>
+                        {fmtX(10 ** e)}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </th>
             </tr>
           </thead>
@@ -405,6 +437,8 @@ function Recomputed() {
               const x = ratio(r, set, o);
               const printed = BOOK.rows.find((b) => b.id === r)!.ratio;
               const differs = x != null && fmtX(x) !== printed;
+              const fromText = f.from == null ? 'N/A' : `${show(f.from)} ${f.unit}`;
+              const toText = `${show(f.to)} ${f.unit}`;
               return (
                 <tr key={r} data-row={r} style={sel === r ? { background: 'var(--rule-soft)' } : undefined}>
                   <td>
@@ -412,20 +446,45 @@ function Recomputed() {
                       <input type="radio" name="ch24-row" checked={sel === r} onChange={() => setSel(r)} />
                       <span style={sel === r ? { fontWeight: 600 } : undefined}>{ROW_NAME[r]}</span>
                     </label>
+                    {narrow ? (
+                      <div className="muted" style={{ fontSize: '0.74rem' }}>
+                        {fromText} to <span data-to>{toText}</span>
+                      </div>
+                    ) : null}
                   </td>
-                  <td className="num nowrap">{f.from == null ? 'N/A' : `${show(f.from)} ${f.unit}`}</td>
-                  <td className="num nowrap">
-                    {show(f.to)} {f.unit}
-                  </td>
+                  {narrow ? null : (
+                    <>
+                      <td className="num nowrap">{fromText}</td>
+                      <td className="num nowrap" data-to>
+                        {toText}
+                      </td>
+                    </>
+                  )}
                   <td className="num" data-ratio>
                     <b>{x == null ? '' : fmtX(x)}</b>
                   </td>
-                  <td className="num" data-printed style={{ paddingRight: '1.2rem' }}>
-                    {differs ? <span className="t-fail">{printed}</span> : <span className="muted">{printed}</span>}
+                  <td
+                    className="num nowrap"
+                    data-printed
+                    data-differs={!differs ? undefined : CONTRADICTED.has(r) ? 'contradicted' : 'figures'}
+                    style={{ paddingRight: narrow ? undefined : '1.2rem' }}
+                  >
+                    {!differs ? (
+                      <span className="muted">{printed}</span>
+                    ) : CONTRADICTED.has(r) ? (
+                      <span className="t-fail" title="Its own printed figures do not give this ratio">
+                        {printed}
+                      </span>
+                    ) : (
+                      <span title="Follows from the printed figures, not from the figures selected">
+                        <span className="muted">≠ </span>
+                        {printed}
+                      </span>
+                    )}
                   </td>
                   <td>
                     {x == null ? (
-                      <span className="muted">no 2007 figure to divide by</span>
+                      <span className="muted">{narrow ? 'no 2007 figure' : 'no 2007 figure to divide by'}</span>
                     ) : (
                       <div
                         style={{
@@ -453,10 +512,14 @@ function Recomputed() {
             <b>Least growth: {lower(ROW_NAME[least.r])}, {fmtX(least.x)}.</b> The next row up is{' '}
             {lower(ROW_NAME[next.r])} at {fmtX(next.x)}, {fmt(next.x / least.x, 2)} times as much.
           </p>
-          <p style={{ margin: 0 }} className="muted">
+          <p style={{ margin: '0 0 0.4rem' }} className="muted">
             Bars are on a log scale: each gridline is ten times the one before. NVLink has no 2007 figure; in one
             direction it carries {VENDOR.b200.nvlinkEachWay.value} GB/s, {nvlinkOverHostLink().toFixed(1)} times a Gen5
             x16 host link.
+          </p>
+          <p style={{ margin: 0 }} className="muted">
+            “≠” marks a printed ratio that follows from the book's figures but not from the ones selected. Red marks
+            the one its own printed figures contradict.
           </p>
         </div>
         <div className="panel" data-readout="built" aria-live="polite">
@@ -477,7 +540,9 @@ function Recomputed() {
 // Cell padding for the printed table, so its four columns fit a phone without scrolling.
 const TIGHT: CSSProperties = { padding: '0.4rem 0.25rem' };
 
-function TableAudit() {
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+function TableAudit({ onCheck }: { onCheck: () => void }) {
   const { progress } = useProgress();
   const committed = typeof progress.answers[P_HOSTLINK]?.value === 'number';
   const cells = useMemo(printedCells, []);
@@ -489,10 +554,12 @@ function TableAudit() {
     setTicks(ticks.includes(id) ? ticks.filter((t) => t !== id) : [...ticks, id]);
     setChecked(null);
   };
-  const wrong = cells.filter((c) => c.wrong);
+  const wrong = cells.filter((c) => c.kind === 'wrong');
   const found = checked ? wrong.filter((c) => checked.includes(c.id)).length : 0;
-  const others = checked ? checked.filter((id) => !byId[id].wrong).length : 0;
-  const listed = checked ? cells.filter((c) => checked.includes(c.id) || c.wrong) : [];
+  const others = checked ? checked.filter((id) => byId[id].kind !== 'wrong') : [];
+  const othersDiffer = others.filter((id) => byId[id].kind === 'differs').length;
+  const othersHold = others.length - othersDiffer;
+  const listed = checked ? cells.filter((c) => checked.includes(c.id) || c.kind === 'wrong') : [];
 
   if (!committed)
     return (
@@ -508,11 +575,14 @@ function TableAudit() {
     const c = byId[id];
     if (!c) return <td style={TIGHT}>{text}</td>;
     const ticked = ticks.includes(id);
-    const state = !checked ? '' : c.wrong ? 'wrong' : !ticked ? '' : c.stands ? 'stands' : 'ok';
+    // Red: the table contradicts itself. Green: its arithmetic holds and nothing corrects it.
+    // Neutral: its arithmetic holds, but NVIDIA's documents give another figure or label.
+    const state = !checked ? '' : c.kind === 'wrong' ? 'wrong' : !ticked ? '' : c.kind;
+    const wash = { wrong: 'var(--fail-wash)', consistent: 'var(--ok-wash)', differs: 'var(--rule-soft)', '': undefined }[state];
     return (
-      <td data-cell={id} data-state={state} style={{ ...TIGHT, background: state === 'wrong' ? 'var(--fail-wash)' : state === 'ok' ? 'var(--ok-wash)' : undefined }}>
+      <td data-cell={id} data-state={state} style={{ ...TIGHT, background: wash }}>
         <label className="check" style={{ alignItems: 'baseline', gap: '0.3rem' }}>
-          <input type="checkbox" checked={ticked} onChange={() => toggle(id)} aria-label={`${text}: wrong as printed`} />
+          <input type="checkbox" checked={ticked} onChange={() => toggle(id)} aria-label={`${text}: the table contradicts itself here`} />
           <span style={state === 'wrong' ? { color: 'var(--fail)', fontWeight: 600 } : undefined}>{text}</span>
         </label>
       </td>
@@ -522,7 +592,7 @@ function TableAudit() {
   return (
     <Bench
       title="Check the table"
-      task="Tick every cell you believe is wrong as printed, then check. A calculator is fair."
+      task="Tick every cell the table itself contradicts: a ratio its two figures do not give, or a unit that cannot be meant. Then check. A calculator is fair."
       foot="The cells are the book's, as printed on p. 578; the layout is ours. The book prints the two compute figures in one cell (“80 TFLOPS / 2200 TFLOPS (FP32 / Tensor Core FP32)”, “232x / 638x”); they are on two lines here so you can tick them separately."
     >
       <div className="panel" style={{ overflowX: 'auto' }}>
@@ -562,7 +632,13 @@ function TableAudit() {
         </table>
       </div>
       <div className="row" style={{ marginTop: '0.8rem' }}>
-        <button className="primary" onClick={() => setChecked(ticks)}>
+        <button
+          className="primary"
+          onClick={() => {
+            setChecked(ticks);
+            onCheck();
+          }}
+        >
           Check
         </button>
         <button className="quiet" onClick={() => { setTicks([]); setChecked(null); }} disabled={!ticks.length}>
@@ -575,8 +651,17 @@ function TableAudit() {
             </span>
           ) : (
             <>
-              <b>Two cells are wrong as printed.</b> You found {found} of {wrong.length}
-              {others ? `, and ticked ${others} other ${others === 1 ? 'cell' : 'cells'}` : ''}.
+              <b>The table contradicts itself in {wrong.length === 2 ? 'two' : wrong.length} cells.</b> You found {found} of{' '}
+              {wrong.length}
+              {others.length
+                ? `, and ticked ${plural(others.length, 'other cell', 'other cells')}: ${[
+                    othersDiffer ? `${othersDiffer} that NVIDIA's documents correct` : '',
+                    othersHold ? `${othersHold} that ${othersHold === 1 ? 'checks' : 'check'} out` : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' and ')}`
+                : ''}
+              .
             </>
           )}
         </span>
@@ -587,21 +672,26 @@ function TableAudit() {
             <ul style={{ margin: 0, paddingLeft: 0, listStyle: 'none' }}>
               {listed.map((c) => (
                 <li key={c.id} data-verdict={c.id} style={{ marginBottom: '0.45rem' }}>
-                  {c.wrong ? (
-                    <span className="chip fail">{checked.includes(c.id) ? 'wrong as printed' : 'missed'}</span>
-                  ) : c.stands ? (
-                    <span className="chip" style={{ background: 'var(--rule-soft)' }}>the figure stands</span>
+                  {c.kind === 'wrong' ? (
+                    <span className="chip fail">{checked.includes(c.id) ? 'contradicted' : 'missed'}</span>
+                  ) : c.kind === 'differs' ? (
+                    <span className="chip" style={{ background: 'var(--rule-soft)' }}>
+                      NVIDIA's documents differ
+                    </span>
                   ) : (
                     <span className="chip ok">consistent</span>
                   )}{' '}
                   <b>{c.text}</b>: <span className="mono">{c.arithmetic}</span>. {c.verdict}
+                  {c.fact ? <span className="muted"> [facts {c.fact}]</span> : null}
                 </li>
               ))}
             </ul>
             <p className="muted" style={{ margin: '0.3rem 0 0' }}>
-              Consistent means the ratio follows from the two figures beside it: {auditPrinted().filter((a) => a.matches).length} of
-              the 5 printed ratios do. Whether each figure is the right one for the hardware is a separate question,
-              and the controls below take it up.
+              Consistent means the table's arithmetic holds: {auditPrinted().filter((a) => a.matches).length} of the 5
+              printed ratios follow from the two figures beside them. Whether each figure is the right one for the
+              hardware is a separate question: NVIDIA's documents correct {Object.keys(CORRECTIONS).length} cells that
+              are not contradictions, one of them only in its label. The controls below recompute every ratio on
+              NVIDIA's figures.
             </p>
           </div>
           <Recomputed />
@@ -612,69 +702,58 @@ function TableAudit() {
 }
 
 // ---------------------------------------------------------------- 4. where the threshold went
-function measured(reports: Reports): Device[] {
-  return realBackends(reports).flatMap((b) => {
-    const r = benchRows(reports[b], 'ch05/lab1_roofline').find((x) => x.name === 'roofline');
-    const peak = num(r?.compute_gflops);
-    const bw = num(r?.bandwidth_gb_per_s);
-    if (!peak || !bw) return [];
-    return [
-      {
-        key: b,
-        label: `Yours: ${String(reports[b].device.name ?? b)} (${b}), measured by lab 5.1`,
-        peak,
-        bw,
-        note: `Measured by lab 5.1 on ${reports[b].generated.slice(0, 10)} with two simple probe kernels. It is not a vendor peak.`,
-      },
-    ];
-  });
-}
-
-function Strip({ thr, tile }: { thr: number; tile: number }) {
-  const W = 760;
-  const H = 222;
+function Strip({ thr, tile, narrow }: { thr: number; tile: number; narrow: boolean }) {
+  // Below 600 px the strip is drawn on a narrower canvas with larger type, one label per
+  // level, so it scales to the box instead of scrolling inside it.
+  const W = narrow ? 400 : 760;
+  const fs = narrow ? 13 : 11;
   const pad = { l: 18, r: 18 };
-  const axisY = 150;
+  const level = narrow ? [0, 1, 2, 3, 4, 5] : [2, 1, 0, 2, 1, 0]; // label rows, so neighbours do not collide
+  const step = narrow ? 20 : 30;
+  const top = narrow ? 48 : 50;
+  const axisY = narrow ? top + 5 * step + 24 : 150;
+  const H = axisY + 72;
   const xMin = 0.05;
   const xMax = 2000;
   const X = (v: number) =>
     pad.l + ((Math.log10(Math.min(Math.max(v, xMin), xMax)) - Math.log10(xMin)) / (Math.log10(xMax) - Math.log10(xMin))) * (W - pad.l - pad.r);
   const ms = marks(tile);
-  // Labels sit on three levels so neighbours do not collide.
-  const level = [2, 1, 0, 2, 1, 0];
   const tx = X(thr);
+  const edge = narrow ? 90 : 110;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Kernels on a FLOP per byte axis with the device threshold" style={{ width: '100%', minWidth: 560, display: 'block' }}>
+    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Kernels on a FLOP per byte axis with the device threshold" style={{ width: '100%', display: 'block' }} data-strip>
       <rect x={pad.l} y={14} width={W - pad.l - pad.r} height={axisY - 14} fill="var(--page)" />
       <rect x={pad.l} y={14} width={Math.max(0, tx - pad.l)} height={axisY - 14} fill="var(--global-wash)" />
       <rect x={tx} y={14} width={Math.max(0, W - pad.r - tx)} height={axisY - 14} fill="var(--reg-wash)" />
-      <text x={pad.l + 6} y={27} fontSize="11" style={{ fill: 'var(--global)' }}>memory-bound</text>
-      <text x={W - pad.r - 6} y={27} fontSize="11" textAnchor="end" style={{ fill: 'var(--reg)' }}>compute-bound</text>
+      <text x={pad.l + 6} y={28} fontSize={fs} style={{ fill: 'var(--global)' }}>memory-bound</text>
+      <text x={W - pad.r - 6} y={28} fontSize={fs} textAnchor="end" style={{ fill: 'var(--reg)' }}>compute-bound</text>
       <line x1={pad.l} x2={W - pad.r} y1={axisY} y2={axisY} stroke="var(--ink)" strokeWidth="1.4" />
       {[0.1, 1, 10, 100, 1000].map((v) => (
         <g key={v}>
           <line x1={X(v)} x2={X(v)} y1={axisY} y2={axisY + 5} stroke="var(--ink)" />
-          <text x={X(v)} y={axisY + 18} fontSize="11" textAnchor="middle">{v}</text>
+          <text x={X(v)} y={axisY + 18} fontSize={fs} textAnchor="middle">{v}</text>
         </g>
       ))}
-      <text x={W / 2} y={H - 6} fontSize="11.5" textAnchor="middle">operations per byte of global-memory traffic (FLOP/B), log scale</text>
+      <text x={W / 2} y={H - 6} fontSize={fs + 0.5} textAnchor="middle">
+        {narrow ? 'FLOP per byte of global memory, log scale' : 'operations per byte of global-memory traffic (FLOP/B), log scale'}
+      </text>
       {ms.map((m, i) => {
         const cx = X(m.ratio);
-        const ly = 50 + level[i] * 30;
+        const ly = top + level[i] * step;
         const tone = regime(m.ratio, thr) === 'memory-bound' ? 'var(--global)' : 'var(--reg)';
-        const anchor = cx < 110 ? 'start' : cx > W - 110 ? 'end' : 'middle';
+        const anchor = cx < edge ? 'start' : cx > W - edge ? 'end' : 'middle';
         return (
           <g key={m.id} data-mark={m.id}>
             <line x1={cx} x2={cx} y1={ly + 5} y2={axisY} stroke={tone} strokeWidth={m.tiled ? 1.8 : 1} />
             <circle cx={cx} cy={axisY} r={m.tiled ? 6 : 4.5} fill={m.tiled ? tone : 'var(--page)'} stroke={tone} strokeWidth="1.8" />
-            <text x={anchor === 'start' ? cx - 4 : anchor === 'end' ? cx + 4 : cx} y={ly} fontSize="11" textAnchor={anchor} fontWeight={m.tiled ? 650 : 400} style={{ paintOrder: 'stroke', stroke: 'var(--page)', strokeWidth: 4, strokeLinejoin: 'round' }}>
+            <text x={anchor === 'start' ? cx - 4 : anchor === 'end' ? cx + 4 : cx} y={ly} fontSize={fs} textAnchor={anchor} fontWeight={m.tiled ? 650 : 400} style={{ paintOrder: 'stroke', stroke: 'var(--page)', strokeWidth: 4, strokeLinejoin: 'round' }}>
               {m.label}
             </text>
           </g>
         );
       })}
       <line x1={tx} x2={tx} y1={8} y2={axisY + 30} stroke="var(--ink)" strokeWidth="2" strokeDasharray="5 3" />
-      <text x={tx + (tx > W - 150 ? -6 : 6)} y={axisY + 42} fontSize="11.5" fontWeight="650" textAnchor={tx > W - 150 ? 'end' : 'start'}>
+      <text x={tx + (tx > W - 150 ? -6 : 6)} y={axisY + 42} fontSize={fs + 0.5} fontWeight="650" textAnchor={tx > W - 150 ? 'end' : 'start'} data-threshold-label>
         threshold {thrFmt(thr)}
       </text>
     </svg>
@@ -683,9 +762,8 @@ function Strip({ thr, tile }: { thr: number; tile: number }) {
 
 function ThresholdBench() {
   const { progress } = useProgress();
-  const { reports } = useReports();
+  const narrow = useNarrow();
   const committed = typeof progress.answers[P_KNEE]?.value === 'number';
-  const mine = useMemo(() => measured(reports), [reports]);
   const [key, setKey] = useState('book2007');
   const [dense, setDense] = useState(false);
   const [tile, setTile] = useState(15);
@@ -697,7 +775,7 @@ function ThresholdBench() {
         </p>
       </Bench>
     );
-  const offered = [...DEVICES.filter((d) => d.key !== 'book2025dense'), ...mine];
+  const offered = DEVICES.filter((d) => d.key !== 'book2025dense');
   const dev = key === 'book2025tc' && dense ? DEVICES.find((d) => d.key === 'book2025dense')! : (offered.find((d) => d.key === key) ?? DEVICES[0]);
   const thr = threshold(dev.peak, dev.bw);
   const base = DEVICES[0];
@@ -707,8 +785,15 @@ function ThresholdBench() {
   return (
     <Bench
       title="Where the threshold went"
-      task="Start on the 2007 column and find the first T that crosses. Then change the device."
-      foot={<>Log scale. Marks are kernel ratios from earlier chapters; the filled one moves with T. Left of the dashed line a kernel is memory-bound on the chosen figures. {dev.note}</>}
+      task="Start on the 2007 column and find the first T that crosses. Then change the column."
+      foot={
+        <>
+          Log scale. Marks are kernel ratios from earlier chapters; the filled one moves with T. Left of the dashed
+          line a kernel is memory-bound on the chosen figures. {dev.note} Other devices, your own among them, are the
+          roofline of{' '}
+          <a href={href('ch05', '5.1')}>chapter 5, §5.1</a>.
+        </>
+      }
     >
       <div className="row" style={{ marginBottom: '0.9rem', alignItems: 'flex-end' }}>
         <label className="field" style={{ maxWidth: '100%' }}>
@@ -732,15 +817,13 @@ function ThresholdBench() {
           <input type="range" min="1" max="128" value={tile} onChange={(e) => setTile(+e.target.value)} aria-label="Tile width T" />
         </label>
       </div>
-      <div style={{ overflowX: 'auto' }}>
-        <Strip thr={thr} tile={tile} />
-      </div>
+      <Strip thr={thr} tile={tile} narrow={narrow} />
       <div className="cols" style={{ marginTop: '0.8rem' }}>
         <div className="panel" data-readout="knee" aria-live="polite">
           <p style={{ fontSize: '1.4rem', margin: '0 0 0.2rem', fontWeight: 600 }}>threshold {thrFmt(thr)} FLOP/B</p>
           <p style={{ margin: '0 0 0.5rem' }} className="muted">
             {fmtInt(dev.peak)} GFLOP/s over {show(dev.bw)} GB/s
-            {dev.key.startsWith('book') && dev.key !== 'book2007' ? <>, {fmt(thr / baseThr, 2)} times the 2007 column's {thrFmt(baseThr)}</> : null}.
+            {dev.key !== 'book2007' ? <>, {fmt(thr / baseThr, 2)} times the 2007 column's {thrFmt(baseThr)}</> : null}.
           </p>
           <p style={{ margin: '0 0 0.4rem' }}>
             Smallest T with 0.25 × T at or above it: <b data-need>{fmtInt(need)}</b>
@@ -750,11 +833,6 @@ function ThresholdBench() {
             At T = {tile} the tiled kernel reaches {fmt(0.25 * tile)} FLOP/B:{' '}
             {regime(0.25 * tile, thr) === 'memory-bound' ? <span className="chip global">memory-bound</span> : <span className="chip reg">compute-bound</span>}
           </p>
-          {mine.length === 0 ? (
-            <p className="muted" style={{ margin: '0.6rem 0 0' }}>
-              No device of yours is offered: lab 5.1 has not been benchmarked on this machine (<a href={href('ch05', 'labs')}>chapter 5 labs</a>).
-            </p>
-          ) : null}
         </div>
         <div className="panel" style={{ overflowX: 'auto' }}>
           <table className="data" style={{ margin: 0 }} data-marks>
@@ -790,7 +868,16 @@ const BOOK_TC = DEVICES.find((d) => d.key === 'book2025tc')!;
 const THR_2007 = threshold(BOOK_2007.peak, BOOK_2007.bw);
 const THR_2025 = threshold(BOOK_2025.peak, BOOK_2025.bw);
 const THR_TC = threshold(BOOK_TC.peak, BOOK_TC.bw);
+const THR_DENSE = threshold(DEVICES.find((d) => d.key === 'book2025dense')!.peak, BOOK_TC.bw);
 const TENSOR_AUDIT = auditPrinted().find((a) => a.row === 'tensor')!;
+const TENSOR_ROW = BOOK.rows.find((r) => r.id === 'tensor')!;
+/** The 2007 figure that would make the printed 638x right against the printed 2200. */
+const FROM_FOR_638 = TENSOR_ROW.to / TENSOR_AUDIT.printed;
+/** Shared memory, in MB, for one T x T tile of M and one of N as 4-byte floats. */
+export const tileBytesMB = (t: number) => (2 * t * t * 4) / 1e6;
+const T_TC = tileFor(THR_TC);
+const T_DENSE = tileFor(THR_DENSE);
+const T_2007 = tileFor(THR_2007);
 
 export const questions240: Record<string, Question> = {
   'ch24/start/q-compose': {
@@ -798,37 +885,39 @@ export const questions240: Record<string, Question> = {
     id: 'ch24/start/q-compose',
     prompt: (
       <>
-        You have a tested tiled GEMM and want top-p sampling to run on the device. Going by the book's three steps,
-        where is the material?
+        Min-p sampling keeps every token whose probability is at least a fixed fraction of the most likely token's,
+        then samples among them. The map lights five pattern chapters for sampling. Which does the min-p cut-off
+        itself need?
       </>
     ),
     options: [
       {
-        label: 'In step three, because sampling is an application, like the chapter on large language models.',
-        why: 'The application chapter, 20, stops at attention. It has no sampler.',
+        label: 'A sort (chapter 14), then a scan (chapter 11) of the sorted probabilities, as top-p does.',
+        why: "Top-p needs them because its cut-off is a running sum over the probabilities in sorted order. Min-p's cut-off depends on one number, the largest probability, so no order is needed.",
       },
       {
-        label:
-          'In step two, spread over four pattern chapters. The book never assembles them into a sampler, so the assembly is a module of ours.',
+        label: 'A reduction (chapter 10) for the largest probability, then a filter (chapter 12) to gather the tokens that pass.',
         correct: true,
       },
       {
-        label: 'In step one, because sampling is an elementwise operation on the logits.',
-        why: 'The top-p cut-off depends on a running sum over the whole row, so no thread can decide alone.',
+        label: 'Nothing beyond step one: each thread compares its own probability with the threshold.',
+        why: 'The threshold is a fraction of the largest probability in the row, and no thread knows that alone. Finding it is a reduction.',
       },
       {
-        label: 'Nowhere. Sampling needs techniques the book does not teach.',
-        why: 'Every building block is a pattern chapter. Only the assembly is missing.',
+        label: 'A histogram (chapter 9) of the probabilities.',
+        why: 'A histogram counts items per bin. The cut-off needs one value, the maximum, not a count per bin.',
       },
     ],
     explain: (
       <p>
-        The normaliser and the maximum are reductions (chapter 10), the cumulative probability is a scan (chapter 11),
-        dropping the candidates past the cut-off is a filter (chapter 12), and putting them in order is a sort (chapter
-        14). All four are step two. Module X1 puts them together, on top of the softmax you build in chapter 10.
+        Once a max reduction (chapter 10) has the largest probability, each token's test is elementwise, and gathering
+        the survivors without holes is a filter (chapter 12), whose stable form runs a scan over keep flags. No sort is
+        needed. Because every probability shares one normaliser, the test can even run on logits: keep a token if its
+        logit is at least the largest logit plus the log of the fraction. Min-p is not in the book; module X1 builds
+        samplers from these chapters.
       </p>
     ),
-    source: 'ch. 24 §24.1, pp. 577–578, for the steps; the course plan for what the book lacks',
+    source: 'ch. 24 §24.1, pp. 577–578, for the steps; ch. 10 (pp. 221–250) and ch. 12 (pp. 289–302) for the patterns; min-p is ours, not the book\'s',
   },
   ...Object.fromEntries(LIMITS.map((c) => [c.qid, limitQuestion(c.qid)])),
   'ch24/start/q-638': {
@@ -836,47 +925,51 @@ export const questions240: Record<string, Question> = {
     id: 'ch24/start/q-638',
     prompt: (
       <>
-        The table prints 0.345 TFLOPS for 2007, 2200 TFLOPS for the 2025 tensor-core figure, and a ratio of 638x. What
-        2025 figure would make 638x correct?
+        Fig. 24.1 prints 0.345 TFLOPS for 2007, 2200 TFLOPS for the 2025 tensor-core figure, and 638x between them.
+        Keeping the 2200, what 2007 throughput would make 638x correct?
       </>
     ),
-    answer: TENSOR_AUDIT.wouldMatch!,
+    answer: Number(FROM_FOR_638.toFixed(2)),
     tol: 0.01,
     unit: 'TFLOPS',
     explain: (
       <p>
-        638 × 0.345 = 220. So either the 2200 or the 638 is off by ten. NVIDIA prints 2.2 petaFLOPS for this row (TF32
-        with sparsity) and no source we found prints 220, so the ratio is the wrong cell. It should read about{' '}
-        {fmtX(TENSOR_AUDIT.recomputed)}.
+        2200 / 638 = {FROM_FOR_638.toFixed(2)} TFLOPS, ten times the printed 0.345. NVIDIA's own factors put the G80 at
+        128 multiply-adds per clock × 2 × 1.35 GHz = 345.6 GFLOPS, and NVIDIA prints 2.2 petaFLOPS for the 2025 row. With
+        both inputs confirmed, the ratio is the only cell left: it should read about {fmtX(TENSOR_AUDIT.recomputed)}.
       </p>
     ),
-    source: 'ch. 24 §24.2, Fig. 24.1, p. 578; notes/today/ch24-facts.md, A9',
+    source: 'ch. 24 §24.2, Fig. 24.1, p. 578; notes/today/ch24-facts.md, A2 and A9',
   },
   'ch24/start/q-tile': {
     kind: 'numeric',
     id: 'ch24/start/q-tile',
     prompt: (
       <>
-        A square-tiled matmul with one thread per output element reaches 0.25 × T FLOP/B. How wide must T be to reach
-        the threshold computed from the book's 2025 tensor-core figure, {fmt(THR_TC)} FLOP/B?
+        Against the book's 2025 tensor-core figure the threshold is {fmt(THR_TC)} FLOP/B, which chapter 5's tiled matmul
+        reaches only at T = {fmtInt(T_TC)}. That kernel keeps one T × T tile of M and one of N in shared memory, as
+        4-byte floats. How many megabytes would one block need?
       </>
     ),
-    answer: tileFor(THR_TC),
-    tol: 0.01,
+    answer: Number(tileBytesMB(T_TC).toFixed(2)),
+    // 9.68 MB, or 9.23 if counted in units of 2^20 bytes: both are right.
+    tol: 0.05,
+    unit: 'MB',
     explain: (
       <>
         <p>
-          {fmt(THR_TC)} / 0.25 = {fmtInt(tileFor(THR_TC))}. Two T × T tiles of floats would need 8 × T × T bytes of
-          shared memory, about 9.7 MB per block. Compare that with the limit <code>python3 labs/pmpp.py doctor</code>{' '}
-          prints for your device (<code>sharedMemPerBlock</code> on CUDA and HIP).
+          2 × {fmtInt(T_TC)} × {fmtInt(T_TC)} × 4 bytes = {fmt(tileBytesMB(T_TC))} MB per block. Compare that with the
+          limit <code>python3 labs/pmpp.py doctor</code> prints for your device (<code>sharedMemPerBlock</code> on CUDA
+          and HIP). On NVIDIA's dense TF32 figure T = {T_DENSE} still needs {fmt(tileBytesMB(T_DENSE), 2)} MB; on the
+          2007 figures T = {T_2007} needed {fmt((tileBytesMB(T_2007) * 1e6) / 1024, 2)} KB.
         </p>
         <p>
           The reuse has to come from somewhere else: larger output tiles held in registers (chapter 15), batching, or
-          fewer bytes per value. On the 2007 figures the answer was {tileFor(THR_2007)}.
+          fewer bytes per value.
         </p>
       </>
     ),
-    source: 'our analysis with the §5.1 method (ch. 5, pp. 94–97) on the figures of Fig. 24.1, p. 578',
+    source: 'our analysis with the §5.1 method (ch. 5, pp. 94–97) and the tiled kernel of §5.4 on the figures of Fig. 24.1, p. 578',
   },
   'ch24/start/q-norow': {
     kind: 'choice',
@@ -924,14 +1017,15 @@ const BACKEND_ROWS: { role: string; cuda: ReactNode; hip: ReactNode; metal: Reac
     role: 'Matrix-multiply hardware',
     cuda: 'Tensor Cores',
     hip: 'Matrix cores, formally MFMA units; documented for CDNA parts only',
-    metal: 'None named in Metal documentation',
+    metal: "None named in Metal documentation; Apple's spec page lists “Neural Accelerators” in the GPU, with no link to MSL stated",
     facts: 'A9, B1, C1',
   },
   {
     role: 'How kernel code reaches it',
     cuda: (
       <>
-        CUDA Tile (<code>cuda::tiles</code> in <code>cuda_tile.h</code>, Toolkit 13.3 onward), or libraries
+        CUDA Tile (<code>cuda::tiles</code> in <code>cuda_tile.h</code>, Toolkit 13.3 onward), or libraries. The book's
+        §15.9 (p. 369) also names the WMMA and WGMMA instructions.
       </>
     ),
     hip: 'Libraries, compiler intrinsics or inline assembly; no tile-level model found',
@@ -963,6 +1057,10 @@ const BACKEND_ROWS: { role: string; cuda: ReactNode; hip: ReactNode; metal: Reac
 ];
 
 export function S240() {
+  const { progress } = useProgress();
+  const committed = typeof progress.answers[P_HOSTLINK]?.value === 'number';
+  // What the audit finds is discussed below it, so that text waits for its Check.
+  const [audited, setAudited] = useState(false);
   return (
     <>
       <p>
@@ -971,6 +1069,14 @@ export function S240() {
         checked line by line, and a reading of that table for kernel work.
       </p>
       <Source pages="577" />
+
+      <h2>Before you start</h2>
+      <p>
+        Five cards drawn from chapters 2, 5, 20 and 23. The book's last table has five rows, each a limit you already
+        reason with: place each card on the row that limits it. Each card comes back in{' '}
+        <a href={href('review')}>review</a>.
+      </p>
+      <LimitsBench />
 
       <h2>What you can now do</h2>
       <p>
@@ -986,22 +1092,10 @@ export function S240() {
       <StepsMap />
       <Ask q={questions240['ch24/start/q-compose']} />
 
-      <h2>What limits what</h2>
-      <p>
-        The book's last table has five rows, each a limit you already reason with. Before reading it, place five
-        familiar things on the row that limits them.
-      </p>
-      <Aside>
-        <p>
-          From ch. 2 §2.4 (pp. 28–32), ch. 5 §5.1 (pp. 93–97), ch. 20 §20.4 and §20.6 (pp. 488–492, 504–508) and ch. 23
-          §23.4 (pp. 563–568).
-        </p>
-      </Aside>
-      <LimitsBench />
-
       <h2>The book's one table</h2>
       <p>
-        Section 24.2 opens with a table that sets the first CUDA GPU beside a 2025 one, with a ratio column. Before you see it, commit to a number for one of its rows.
+        Section 24.2 opens with a table that sets the first CUDA GPU beside a 2025 one, with a ratio column. Before you
+        see it, commit to a number for one of its rows.
       </p>
       <Source section="24.2" pages="578" figs="Fig. 24.1" />
       <Predict
@@ -1030,65 +1124,58 @@ export function S240() {
           </p>
         )}
       </Predict>
-      <TableAudit />
-      <Ask q={questions240['ch24/start/q-638']} />
-      <p>
-        Two cells are wrong as printed. 2200 / 0.345 is 6,377, not 638, and the 2,200 figure is NVIDIA's own, so the
-        ratio is the wrong cell. “1,800 TB/s” is 1,800 GB/s, and it counts both directions together while the PCIe row
-        counts each way.
-      </p>
-      <Aside>
-        <p>
-          Facts items A9 and A13 for these two; A9, A3 and A4, and A6 for the three that follow
-          (<code>notes/today/ch24-facts.md</code>).
+      <TableAudit onCheck={() => setAudited(true)} />
+      {audited ? (
+        <>
+          <p data-after-audit>
+            The table contradicts itself twice. 2200 / 0.345 is 6,377, not 638, and the 2,200 figure is NVIDIA's own,
+            so the ratio is the wrong cell. “1,800 TB/s” is 1,800 GB/s, and it counts both directions together while
+            the PCIe row counts each way.
+          </p>
+          <Aside>
+            <p>
+              Facts A9 and A13 for these two, A9 and A6 for the next two, A3, A4, A8 and A11 for the rest
+              (<code>notes/today/ch24-facts.md</code>).
+            </p>
+          </Aside>
+          <p>
+            Two more cells are wrong against NVIDIA's documents. The row labelled “Tensor Core FP32” is TF32 on Tensor
+            Cores counted with sparsity; dense is half. The 1.5 GB board is PCI Express generation 1 in NVIDIA's board
+            specification, so on those figures the host link grew about 16x, not 8x. The rest is looser: the 2007
+            column takes its bandwidth from one board and its capacity from another, and the 2025 column's 80 TFLOPS
+            and 192 GB match particular NVIDIA figures rather than the boards that ship, which have 75 TFLOPS and 180
+            GB.
+          </p>
+          <Today checked="2026-11-20 (ch24-facts A2, A8, A11)">
+            <p>
+              Every figure is a published peak, not a measurement: 0.345 TFLOPS is 128 multiply-adds per clock × 2 ×
+              1.35 GHz.
+            </p>
+          </Today>
+          <p>
+            One point survives every correction: everything on the device grew by about two orders of magnitude or
+            more, the host link by one. Our reading (the book only prints the numbers): keep weights, the KV cache and
+            sampling on the device.
+          </p>
+          <Ask q={questions240['ch24/start/q-638']} />
+        </>
+      ) : committed ? (
+        <p className="muted" data-gate="audit">
+          What the check finds, and a question on it, follow once you press Check above.
         </p>
-      </Aside>
-      <p>
-        Three more corrections come from NVIDIA's documents. The row labelled “Tensor Core FP32” is TF32 on Tensor
-        Cores counted with sparsity; dense is half. The G80 column takes its bandwidth from one board and its capacity
-        from another. The 1.5 GB board is PCI Express generation 1 in NVIDIA's board specification, so the host link
-        grew about 16x on those figures, not 8x.
-      </p>
-      <Today checked="2026-11-20 (ch24-facts A2, A8, A10, A11)">
-        <p>
-          Every figure is a published peak, not a measurement: 0.345 TFLOPS is 128 multiply-adds per clock × 2 × 1.35
-          GHz. For shipped HGX B200 boards NVIDIA's documents print 75 TFLOPS FP32 and 180 GB, and “up to 8 TB/s”.
-        </p>
-      </Today>
-      <p>
-        One point survives every correction: everything on the device grew by two orders of magnitude or more, the
-        host link by one. Our reading (the book only prints the numbers): keep weights, the KV cache and sampling on
-        the device.
-      </p>
-      <Today checked="2026-11-20 (ch24-facts A1, A7, A15)">
-        <p>
-          The G80 reached shops in November 2006; the first CUDA Toolkit is from June 2007. The B200 was announced in
-          March 2024, and NVIDIA's pages already list newer parts, so the 2025 column is superseded.
-        </p>
-      </Today>
+      ) : null}
 
       <h2>Reading the table as a kernel writer</h2>
       <p>
-        The book stops at the ratios. Section 5.1 gives the top two rows a better use: a device's threshold is its
-        peak throughput over its peak bandwidth, and a kernel whose FLOP/B is below it is memory-bound.
-      </p>
-      <Beyond>
-        <p>
-          The method is the book's (§5.1, pp. 94–97). Applying it to Fig. 24.1 is ours; chapter 24 does not do it.
-        </p>
-      </Beyond>
-      <p>
-        The strip puts kernels from earlier chapters on one FLOP/B axis. Choose the device figures and the threshold
-        moves; everything left of it is memory-bound on those figures.
+        The book stops at the ratios. Section 5.1 gives the top two rows a better use: a device's threshold is its peak
+        throughput over its peak bandwidth, and a kernel whose FLOP/B is below it is memory-bound. Applying that to Fig.
+        24.1 is ours; chapter 24 does not do it. The strip puts kernels from earlier chapters on one FLOP/B axis. Choose
+        a column and the threshold moves; everything left of it is memory-bound on those figures.
       </p>
       <Simplification>
         <p>
-          Peaks are vendor figures of different kinds, and the 2007 column mixes two boards. The tensor-core peak is
-          TF32 arithmetic with sparsity and applies only to matmul-shaped work.
-        </p>
-        <p>
-          The model counts the traffic a kernel asks for and ignores caches. “Yours” is measured by lab 5.1's probe
-          kernels and is not a vendor peak.
+          Peaks are vendor figures, caches are ignored, and the two linear-layer marks are 16-bit kernels set against
+          FP32 and TF32 peaks, so read their side of the line as indicative. Batch 1 is memory-bound on any peak.
         </p>
       </Simplification>
       <Predict
@@ -1122,10 +1209,12 @@ export function S240() {
       </p>
       <Ask q={questions240['ch24/start/q-tile']} />
       <p>
-        Batch-1 generation, about 1 FLOP/B in the book's 16-bit example (§20.6, p. 505), is memory-bound in every
-        column, and its ratio is set by bytes per weight and by batching. That is why the work left is chapter 15,
-        batching (chapters 20 and 22) and quantised kernels (module X2). The larger compute number is the mode behind a
-        flag you may already have set, <code>torch.backends.cuda.matmul.allow_tf32</code>.
+        For matrix-matrix work, the next source of reuse after a shared-memory tile is chapter 15's register tiles,
+        though against the tensor-core figure even the 128 × 128 tile falls short in this model. Batch-1 generation,
+        about 1 FLOP/B in the book's 16-bit example (§20.6, p. 505), is memory-bound in every column; its ratio moves
+        only with batching (chapters 20 and 22) or fewer bytes per weight (module X2). The arithmetic behind the larger
+        compute number, TF32 on Tensor Cores (dense, so at most half the printed figure), is what{' '}
+        <code>torch.backends.cuda.matmul.allow_tf32</code> switches on for matmul.
       </p>
       <Today checked="2026-11-20 against the PyTorch 2.15 docs (ch24-facts A9, D4)">
         <p>
@@ -1137,13 +1226,11 @@ export function S240() {
       <h2>The same rows on AMD and Apple</h2>
       <p>
         The table's vocabulary is NVIDIA's. Here is what each role is called, or whether it exists, on the two other
-        backends this course builds for.
+        backends this course builds for. The last column gives the items of <code>notes/today/ch24-facts.md</code>{' '}
+        behind each row; WMMA and WGMMA are the book's own names (ch. 15 §15.9, p. 369).
       </p>
       <Beyond>
-        <p>
-          Chapter 24 names no other vendor. Every cell is from <code>notes/today/ch24-facts.md</code>; the last column
-          gives the items.
-        </p>
+        <p>Chapter 24 names no other vendor. This table is ours.</p>
       </Beyond>
       <table className="data wide" data-backends>
         <thead>
@@ -1172,13 +1259,11 @@ export function S240() {
       <p>
         TF32 is not portable: one current AMD part offers it through software emulation, and it is absent from the
         type table of Metal's <code>matmul2d</code>. Apple publishes no FLOPS figure, so no Metal column of numbers can
-        be built.
+        be built. Where a cell says “not found” or “none documented”, we found none in the pages read; the vendor does
+        not say there is none.
       </p>
-      <Today checked="2026-11-20 against AMD's HIP documentation and product page and the MSL specification 4.1 (ch24-facts B1, C1, C3, C5)">
-        <p>
-          “No tile-level model found” for HIP and “none documented” for Apple mean we did not find one in the pages
-          read. Neither vendor says there is none.
-        </p>
+      <Today checked="2026-11-20 (ch24-facts B1, B4, C1, C3, C5)">
+        <p>AMD's MI355X page footnotes “TF32 support through software emulation”.</p>
       </Today>
       <Ask q={questions240['ch24/start/q-norow']} />
 
@@ -1191,8 +1276,8 @@ export function S240() {
       </p>
       <Today checked="2026-11-20 (ch24-facts A16, A17, A18)">
         <p>
-          NCCL's public repository dates from 2015, so “new” is relative. The statements about job sizes and about
-          lithography are the authors' judgement and only partly checkable against vendor pages.
+          NCCL's public repository dates from 2015, so “new” is relative. The claims on job sizes and lithography are
+          the authors' judgement.
         </p>
       </Today>
       <p>

@@ -127,8 +127,15 @@ describe("the book's cuts of multidimensional blocks (pp. 75 to 76, Fig. 4.7)", 
     expect(place(0, 4, 0, d, 32).warp).toBe(1);
     expect(place(0, 4, 0, d, 64)).toEqual({ index: 32, warp: 0, lane: 32 });
   });
-  it('warps cut through rows when blockDim.x does not divide the width', () => {
+  it('a row of 64 is two warps at 32 and one at 64; a row of 32 is half a warp at 64', () => {
+    expect(rowsPerWarp(dims(64, 2), 32)).toBe(0.5);
+    expect(rowsPerWarp(dims(64, 2), 64)).toBe(1);
+    expect(rowsPerWarp(dims(32, 8), 64)).toBe(2);
+    expect(rowsPerWarp(dims(96, 2), 32)).toBeCloseTo(1 / 3);
+  });
+  it('warps cut through rows when neither blockDim.x nor the width divides the other', () => {
     expect(rowsPerWarp(dims(12, 8), 32)).toBeNull();
+    expect(rowsPerWarp(dims(48, 2), 32)).toBeNull();
     expect(warpOf(31, 32)).toBe(0);
     expect(laneOf(33, 32)).toBe(1);
   });

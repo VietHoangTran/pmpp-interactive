@@ -54,6 +54,27 @@ void launchMatrixMul(float* M_d, float* N_d, float* P_d, int Width) {
     MatrixMulKernel<<<dimGrid, dimBlock>>>(M_d, N_d, P_d, Width);
 }`;
 const SNIPPET = 'labs/ch03/snippets/matmul_kernel.cu';
+// Book exercise 2 (p. 64): the four kernel bodies the question offers, one per kernel of
+// labs/ch03/snippets/matvec_options.cu. S34.test.ts fails if these copies and that file drift apart.
+const MATVEC_1 = `int i = blockIdx.x*blockDim.x + threadIdx.x;
+float s = 0;
+for (int j = 0; j < N; ++j) s += B[i*N + j]*c[j];
+a[i] = s;`;
+const MATVEC_2 = `int i = blockIdx.x*blockDim.x + threadIdx.x;
+if (i < N) {
+    float s = 0;
+    for (int j = 0; j < N; ++j) s += B[i*N + j]*c[j];
+    a[i] = s;
+}`;
+const MATVEC_3 = `int i = blockIdx.x*blockDim.x + threadIdx.x;
+if (i < N) {
+    float s = 0;
+    for (int j = 0; j < N; ++j) s += B[j*N + i]*c[j];
+    a[i] = s;
+}`;
+const MATVEC_4 = `int i = blockIdx.y*blockDim.y + threadIdx.y;
+int j = blockIdx.x*blockDim.x + threadIdx.x;
+if (i < N && j < N) a[i] += B[i*N + j]*c[j];`;
 /** Line 08, the loop body, as the animation's last beat shows it. */
 const LOOP_LINE = KERNEL.split('\n')[7].trim();
 /** Source line of Fig. 3.11 that each stepper operation executes. */
@@ -964,7 +985,7 @@ function Lab3Listing() {
       caption={
         <>
           The reference solution of lab 3.3, loaded from <code>labs/{LAB3}/solution/</code>. The status beside the tabs
-          is read from this machine's last <code>./verify.sh</code> run. The HIP build takes the CUDA file unchanged; it
+          is read from this machine's recorded lab runs. The HIP build takes the CUDA file unchanged; it
           has not yet been compiled or run on AMD hardware.
         </>
       }
@@ -1003,10 +1024,23 @@ export const questionsS34: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: <>M · N, as before.</>, why: 'That needs M read along row `row` and N read down column `col`. Both index expressions have changed.' },
+      {
+        label: <>M · N, as before.</>,
+        why: (
+          <>
+            That needs M read along row <code>row</code> and N read down column <code>col</code>. Both index expressions
+            have changed.
+          </>
+        ),
+      },
       {
         label: <>Mᵀ · N.</>,
-        why: 'Half right: M is now read down column `row`, which is row `row` of Mᵀ. But N is read along row `col`, not down column `col`.',
+        why: (
+          <>
+            Half right: M is now read down column <code>row</code>, which is row <code>row</code> of Mᵀ. But N is read
+            along row <code>col</code>, not down column <code>col</code>.
+          </>
+        ),
       },
       {
         label: <>N · M.</>,
@@ -1080,51 +1114,35 @@ export const questionsS34: Record<string, Question> = {
     ),
     options: [
       {
-        label: (
-          <code style={pre}>{`int i = blockIdx.x*blockDim.x + threadIdx.x;
-float s = 0;
-for (int j = 0; j < N; ++j) s += B[i*N + j]*c[j];
-a[i] = s;`}</code>
-        ),
+        label: <code style={pre}>{MATVEC_1}</code>,
         why: 'No guard. The grid is whole blocks, so unless N is a multiple of the block size some threads have i ≥ N and read and write past the ends of the arrays.',
       },
       {
-        label: (
-          <code style={pre}>{`int i = blockIdx.x*blockDim.x + threadIdx.x;
-if (i < N) {
-    float s = 0;
-    for (int j = 0; j < N; ++j) s += B[i*N + j]*c[j];
-    a[i] = s;
-}`}</code>
-        ),
+        label: <code style={pre}>{MATVEC_2}</code>,
         correct: true,
       },
       {
-        label: (
-          <code style={pre}>{`int i = blockIdx.x*blockDim.x + threadIdx.x;
-if (i < N) {
-    float s = 0;
-    for (int j = 0; j < N; ++j) s += B[j*N + i]*c[j];
-    a[i] = s;
-}`}</code>
-        ),
+        label: <code style={pre}>{MATVEC_3}</code>,
         why: 'B[j*N + i] walks down column i. That computes Bᵀ c.',
       },
       {
-        label: (
-          <code style={pre}>{`int i = blockIdx.y*blockDim.y + threadIdx.y;
-int j = blockIdx.x*blockDim.x + threadIdx.x;
-if (i < N && j < N) a[i] += B[i*N + j]*c[j];`}</code>
-        ),
+        label: <code style={pre}>{MATVEC_4}</code>,
         why: 'One thread per product: N threads now update the same a[i] with nothing to order them, so updates are lost. It is also not one thread per output element.',
       },
     ],
     explain: (
-      <p>
-        One output element per thread means a 1D grid and the mapping of chapter 2; the thread's loop walks row i of B,
-        1 apart, and the vector c. In the sidebar's vocabulary this is a level 2 routine. It is also the kernel of this
-        section with one output column: lab 3.3 tests exactly that shape (l = 1).
-      </p>
+      <>
+        <p>
+          One output element per thread means a 1D grid and the mapping of chapter 2; the thread's loop walks row i of
+          B, 1 apart, and the vector c. In the sidebar's vocabulary this is a level 2 routine. It is also the kernel of
+          this section with one output column: lab 3.3 tests exactly that shape (l = 1).
+        </p>
+        <p className="muted">
+          The four bodies are the kernels of <code>labs/ch03/snippets/matvec_options.cu</code> (front-end-checked). The
+          right one is emulator-checked against a CPU reference by <code>python3 labs/ch03/snippets/check.py</code>,
+          which also confirms that the third computes Bᵀ c.
+        </p>
+      </>
     ),
     source: 'ch. 3 exercise 2, p. 64; the book prints no answer, this one is ours',
   },
@@ -1168,7 +1186,7 @@ if (i < N && j < N) a[i] += B[i*N + j]*c[j];`}</code>
         why: 'The kernel would read an (out, in) buffer as if it were (in, out). With in ≠ out it fetches the wrong elements; with in = out it silently computes x A instead of x Aᵀ.',
       },
       {
-        label: 'The weight transposed once on the host into an (in, out) row-major buffer. (Or keep the stored buffer and change the index to W[col*in + k].)',
+        label: 'The weight transposed once on the host into an (in, out) row-major buffer.',
         correct: true,
       },
       { label: 'The weight with its rows in reverse order.', why: 'That permutes the outputs. It does not exchange rows with columns.' },
@@ -1180,8 +1198,9 @@ if (i < N && j < N) a[i] += B[i*N + j]*c[j];`}</code>
     explain: (
       <p>
         The book's kernel reads its second operand down a column, <code>N[k*Width + col]</code>. PyTorch stores one
-        output feature per row, so the same numbers sit at <code>W[col*in + k]</code>. Either move the data to match
-        the kernel or change the kernel to match the data; the product is the same. Lab 3.3 takes the first route so
+        output feature per row, so the same numbers sit at <code>W[col*in + k]</code>. With the index unchanged, the
+        data has to move to match the kernel. The other route, outside this question, is to keep the stored buffer
+        and change the kernel's index to <code>W[col*in + k]</code>; the product is the same. Lab 3.3 takes the first route so
         that its contract matches lab 5.3, and its driver checks the result against x Aᵀ computed from a weight stored
         PyTorch's way.
       </p>
@@ -1371,6 +1390,10 @@ export function S34() {
           </p>
         )}
       </Predict>
+      <p>
+        The book works out the first of these threads too, on p. 63: row 1 and column 0, so it computes P[1][0] from row
+        1 of M and column 0 of N.
+      </p>
       <Aside>
         <p>
           <b>A slip on the page.</b> For Thread (1,0) of Block (0,0), p. 63 prints the row as 0∗0+1 and the column as
@@ -1444,16 +1467,14 @@ export function S34() {
       <p>
         This is where the kernel meets code you already use. <code>nn.Linear</code> stores its weight with shape
         (out_features, in_features) and computes <code>y = x Aᵀ + b</code>. With the batch first, x is batch × in, and
-        output (b, o) is row b of x dotted with row o of the weight: both operands are read along a row. llama.cpp's{' '}
-        <code>ggml_mul_mat</code> has the same habit and transposes its second operand internally. The book's P = M N
-        does not: it reads its second operand down a column. It is one product with the second matrix stored two ways,
-        and a kernel is written for one of them.
+        output (b, o) is row b of x dotted with row o of the weight: both operands are read along a row. The book's P =
+        M N does not: it reads its second operand down a column. It is one product with the second matrix stored two
+        ways, and a kernel is written for one of them.
       </p>
-      <Today checked="2026-11-20 (notes/today/ch03-facts.md, D2, D6)">
+      <Today checked="2026-11-20 (notes/today/ch03-facts.md, D6)">
         <p>
           PyTorch 2.15 documents <code>nn.Linear</code> as y = xAᵀ + b with weight of shape (out_features,
-          in_features). ggml's header describes <code>ggml_mul_mat</code>'s second operand as "k columns, m rows (i.e.
-          we transpose it internally)".
+          in_features).
         </p>
       </Today>
       <p>
@@ -1470,20 +1491,6 @@ export function S34() {
         host, and compares your result with x Aᵀ.
       </p>
       <Ask q={questionsS34['ch03/3.4/q-linear']} />
-      <p>
-        Two places to see these choices in real backends. PyTorch's Metal kernel <code>naive_bmm</code> maps threads to
-        output elements exactly as this section does (column from x, row from y, a guard on the write, 16 × 16 groups),
-        but despite its name its inner product is the tiled one of chapter 5. And when llama.cpp hands its row-major
-        buffers to cuBLAS, which stores matrices column by column, it copies nothing: it asks the library to transpose
-        an operand, and the same call reaches hipBLAS on AMD through a rename.
-      </p>
-      <Today checked="2026-11-20 (notes/today/ch03-facts.md, D5, D2, A7; ch05-facts.md, B9)">
-        <p>
-          <code>naive_bmm</code> is in PyTorch's <code>mps/kernels/Matmul.metal</code>; which matmul path a given{' '}
-          <code>torch.matmul</code> call takes on MPS was not traced. llama.cpp's call is{' '}
-          <code>cublasSgemm(…, CUBLAS_OP_T, CUBLAS_OP_N, …)</code>.
-        </p>
-      </Today>
       <Lab3Reference />
 
       <h2>How much should one thread do?</h2>
@@ -1520,30 +1527,21 @@ export function S34() {
       </p>
       <Source section="3.4" pages="64" />
       <p>
-        The second way is what you just explored, and it is what production code does. llama.cpp's <code>pad.cu</code>{' '}
-        caps its grid at 65,535 blocks in y and in z and has each thread stride over whatever the grid could not cover.
-        The explorer's "largest Width" row shows the size of the effect for this kernel: a per-row or per-column launch
-        uses only the grid's x dimension, which is by far the roomiest.
+        The second way is what you just explored, and it is what production code does ("In real backends", below, has
+        an example). The explorer's "largest Width" row shows the size of the effect for this kernel: a
+        per-row or per-column launch uses only the grid's x dimension, which is by far the roomiest.
       </p>
-      <Today checked="2026-11-20 (notes/today/ch03-facts.md, D1, B3, C4; ch05-facts.md, A5)">
+      <Today checked="2026-11-20 (notes/today/ch03-facts.md, C4; ch05-facts.md, A5; ch08-facts.md, B1)">
         <p>
           NVIDIA documents a grid of at most 2³¹ − 1 blocks in x and 65,535 in y and z for every listed compute
-          capability. AMD's current HIP documentation states no limits; read <code>hipDeviceProp_t</code>. We found no
-          documented maximum compute grid size for Metal.
+          capability. AMD's table gives 2³² − 1 in x and 65,535 in y and z for the generations it lists; read{' '}
+          <code>hipDeviceProp_t</code> on a newer one. We found no documented maximum compute grid size for Metal.
         </p>
       </Today>
       <p>
         A different limit arrives much sooner, and it is in the kernel's own arithmetic. Every index on lines 08 and 10
-        is an <code>int</code>. Real backends deal with this explicitly: PyTorch's elementwise launcher asserts that
-        the element count fits in an int32, llama.cpp computes its flat offsets in <code>int64_t</code>, and MLX
-        switches to 64-bit offsets when an array is large enough to need them.
+        is an <code>int</code>, and the question below finds where that runs out.
       </p>
-      <Today checked="2026-11-20 (notes/today/ch03-facts.md, A11)">
-        <p>
-          PyTorch: a <code>TORCH_INTERNAL_ASSERT</code> that <code>N &lt;= std::numeric_limits&lt;int32_t&gt;::max()</code>.
-          llama.cpp: <code>const int64_t dst_idx = …</code>. MLX: <code>large = out.data_size() &gt; UINT32_MAX</code>.
-        </p>
-      </Today>
       <Ask q={questionsS34['ch03/3.4/q-limit']} label="Work it out" />
 
       <h2>Libraries exist</h2>
@@ -1563,8 +1561,8 @@ export function S34() {
 
       <h2>What this kernel leaves on the table</h2>
       <p>
-        Two counts to carry into chapter 5, with no analysis attached yet. Every thread makes 2 · Width trips to global
-        memory, and every row of M is fetched again by every thread that shares that row. Chapter 5 asks what that
+        Two counts to carry into chapter 5, with no analysis attached yet. Every thread makes 2 · Width reads from
+        global memory (and one store), and every row of M is fetched again by every thread that shares that row. Chapter 5 asks what that
         costs and removes most of it; chapter 15 finishes the job.
       </p>
       <Beyond title="Our counts">
@@ -1577,6 +1575,42 @@ export function S34() {
         Now write it. <a href={href('ch03', 'labs')}>Lab 3.3</a> is this kernel for any shape, with its launch, on
         every backend you have. Lab 3.4 is the per-row and per-column kernels, timed against it.
       </p>
+
+      <h2>In real backends</h2>
+      <p>
+        Where the choices of this page turn up in code you will read later. None of it is needed for the labs.
+      </p>
+      <ul data-list="backends">
+        <li>
+          <b>The mapping.</b> PyTorch's Metal kernel <code>naive_bmm</code> (<code>mps/kernels/Matmul.metal</code>)
+          maps threads to output elements as this page does: column from x, row from y, a guard on the write, 16 × 16
+          groups. Despite its name, its inner product is the tiled one of chapter 5.
+        </li>
+        <li>
+          <b>The second operand.</b> llama.cpp's <code>ggml_mul_mat</code> reads both operands along a row, as{' '}
+          <code>nn.Linear</code> does; its header calls the second one "k columns, m rows (i.e. we transpose it
+          internally)". When llama.cpp hands its row-major buffers to cuBLAS, which stores matrices column by column,
+          it copies nothing: it calls <code>cublasSgemm(…, CUBLAS_OP_T, CUBLAS_OP_N, …)</code>, and the same call
+          reaches hipBLAS on AMD through a rename.
+        </li>
+        <li>
+          <b>The grid limit.</b> llama.cpp's <code>pad.cu</code>, whose launch{' '}
+          <a href={href('ch03', '3.1')}>section 3.1</a> shows, caps its grid at
+          65,535 blocks in y and in z and has each thread stride over whatever the grid could not cover.
+        </li>
+        <li>
+          <b>The <code>int</code> index.</b> PyTorch's elementwise launcher asserts{' '}
+          <code>N &lt;= std::numeric_limits&lt;int32_t&gt;::max()</code>. llama.cpp computes flat offsets as{' '}
+          <code>const int64_t dst_idx = …</code>. MLX switches to 64-bit offsets when{' '}
+          <code>out.data_size() &gt; UINT32_MAX</code>.
+        </li>
+      </ul>
+      <Today checked="2026-11-20 (notes/today/ch03-facts.md, D1, D2, D5, A7, A11; ch05-facts.md, B9)">
+        <p>
+          Read in the projects' sources on the check date. Which matmul path a given <code>torch.matmul</code> call
+          takes on MPS was not traced.
+        </p>
+      </Today>
     </>
   );
 }

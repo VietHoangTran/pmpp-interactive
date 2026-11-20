@@ -14,9 +14,9 @@ struct pmpp_emu_event {
 };
 
 // ---- memory ---------------------------------------------------------------------
-// cudaMalloc takes void**, so `cudaMalloc(&floatPtr, n)` needs a (void**) cast here
-// as it does with nvcc. cudaMallocHost and cudaMallocManaged also have the
-// templated T** forms of the toolkit's C++ interface.
+// cudaMalloc, cudaMallocHost and cudaMallocManaged come in the C form taking void**
+// and the toolkit's templated T** form, so both `cudaMalloc((void**)&p, n)` and
+// `cudaMalloc(&p, n)` compile, as they do with nvcc (ch02-facts A2).
 inline cudaError_t cudaMalloc(void** devPtr, size_t size) {
   *devPtr = std::malloc(size ? size : 1);
   if (*devPtr) std::memset(*devPtr, 0xA5, size);            // device memory is not zeroed
@@ -28,6 +28,9 @@ inline cudaError_t cudaHostAlloc(void** pHost, size_t size, unsigned int /*flags
 inline cudaError_t cudaFreeHost(void* ptr) { std::free(ptr); return cudaSuccess; }
 inline cudaError_t cudaMallocManaged(void** devPtr, size_t size, unsigned int /*flags*/ = cudaMemAttachGlobal) {
   return cudaMalloc(devPtr, size);
+}
+template <class T> inline cudaError_t cudaMalloc(T** devPtr, size_t size) {
+  return cudaMalloc(reinterpret_cast<void**>(devPtr), size);
 }
 template <class T> inline cudaError_t cudaMallocHost(T** ptr, size_t size, unsigned int /*flags*/ = 0) {
   return cudaMalloc(reinterpret_cast<void**>(ptr), size);

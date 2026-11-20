@@ -4,8 +4,10 @@ import {
   DECODE_ITEMS,
   LUMA,
   OPS,
+  OP_NOTE,
   ORDERS,
   binCounts,
+  binItems,
   classify,
   classifyDeps,
   classifyItem,
@@ -23,6 +25,7 @@ import {
   runThreads,
   sampleData,
   shape,
+  stageItems,
   threadOrder,
   timesRead,
   underOrders,
@@ -212,7 +215,7 @@ describe('the four bins', () => {
   });
   it('the eleven operations of a decode step', () => {
     expect(DECODE_ITEMS.map((i) => i.id)).toEqual([
-      'residual', 'bias', 'scale', 'gelu', 'linear', 'layernorm', 'softmax', 'argmax', 'cumprob', 'kvappend', 'genloop',
+      'residual', 'bias', 'scale', 'gelu', 'linear', 'layernorm', 'kvappend', 'softmax', 'argmax', 'cumprob', 'genloop',
     ]);
     const got = Object.fromEntries(DECODE_ITEMS.map((i) => [i.id, classifyItem(i.id)]));
     expect(got).toEqual({
@@ -233,6 +236,26 @@ describe('the four bins', () => {
     // The linear layer is the only one whose per-output reads grow with the size.
     expect(DECODE_ITEMS.filter((i) => i.deps.reads(4096) > i.deps.reads(8)).map((i) => i.id)).toEqual(['linear']);
     expect(DECODE_ITEMS.find((i) => i.id === 'linear')!.deps.reads(4096)).toBe(8192);
+  });
+  it('by stage: what the closing summary of the sort says', () => {
+    // The list runs forward pass, then sampling, then the loop around the step.
+    expect(DECODE_ITEMS.map((i) => i.stage)).toEqual([
+      'forward', 'forward', 'forward', 'forward', 'forward', 'forward', 'forward', 'sampling', 'sampling', 'sampling', 'loop',
+    ]);
+    expect(stageItems('forward').length).toBe(7);
+    // "5 of the 7 operations inside the forward pass are per element."
+    expect(binCounts('forward')).toEqual({ elementwise: 5, manyreads: 1, combine: 1, chain: 0 });
+    expect(binCounts('sampling')).toEqual({ elementwise: 0, manyreads: 0, combine: 2, chain: 1 });
+    expect(binCounts('loop')).toEqual({ elementwise: 0, manyreads: 0, combine: 0, chain: 1 });
+    // The bins the summary names item by item.
+    expect(binItems('manyreads')).toEqual(['linear']);
+    expect(binItems('combine')).toEqual(['layernorm', 'softmax', 'argmax']);
+    expect(binItems('chain')).toEqual(['cumprob', 'genloop']);
+  });
+  it('softmax in the decode list combines two values (max, then sum); the explorer keeps the plain formula with one', () => {
+    expect(DECODE_ITEMS.find((i) => i.id === 'softmax')!.deps.combines).toBe(2);
+    expect(depsOf('softmax').combines).toBe(1);
+    expect(OP_NOTE.softmax).toContain('row maximum');
   });
 });
 

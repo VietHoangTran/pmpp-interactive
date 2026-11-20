@@ -1,0 +1,1 @@
+Now look at what is left of the loop header. The starting value and the increment are gone, replaced by those 2 built in numbers. The test survives. It moves inside the kernel, as a guard: is i less than n? Threads 10 and 11 fail it, and do nothing.

@@ -93,13 +93,12 @@ export const questionsS40: Record<string, Question> = {
     ),
     options: [
       {
-        label:
-          'A GPU is built for instruction throughput across many threads, a CPU for the latency of one instruction stream. Caches and predictors mostly buy latency.',
+        label: 'A GPU is built for instruction throughput across many threads, and caches and predictors mostly buy latency.',
         correct: true,
       },
-      { label: 'GPU programs do not branch and do not reuse data, so neither would help.', why: 'Kernels branch (every range test is one) and reuse data constantly.' },
-      { label: 'GPU memory is fast enough that a cache would add nothing.', why: 'The opposite: an access to global memory is the slow operation of this chapter.' },
-      { label: 'Simple cores run each thread faster than a complex one would.', why: 'Each thread runs slower. There are many more of them.' },
+      { label: 'GPU programs rarely branch and rarely reuse data, so caches and predictors would sit idle.', why: 'Kernels branch (every range test is one) and reuse data constantly.' },
+      { label: 'GPU memory is fast enough that a cache would add nothing a kernel could measure.', why: 'The opposite: an access to global memory is the slow operation of this chapter.' },
+      { label: 'Simple cores run each thread faster than a complex core would, so the area is better spent.', why: 'Each thread runs slower. There are many more of them.' },
     ],
     explain: (
       <p>
@@ -218,12 +217,12 @@ export function S40() {
       <h2>What you will measure</h2>
       <p>
         Four <a href={href('ch04', 'labs')}>labs</a> go with the chapter: ask the device for its sizes and derive a
-        launch from them; measure what a divergent warp costs; hunt misplaced barriers; and sweep the block size of a
+        launch from them; measure what a divergent warp costs; hunt three defects around a barrier; and sweep the block size of a
         kernel that spends its time waiting on memory.
       </p>
       <p>
         One limit to know before you start. The CPU emulators run your kernel's logic: they catch wrong results, a
-        barrier in the wrong place, a race. They do not execute warps and they do not wait on memory, so they cannot
+        barrier in the wrong place, a race. They do not run the threads of a warp in step and they do not wait on memory, so they cannot
         show what divergence or low occupancy costs. Those two measurements need a GPU, and the numbers you get belong
         to that GPU.
       </p>

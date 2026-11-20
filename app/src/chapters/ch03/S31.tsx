@@ -37,6 +37,7 @@ import {
   type Limits,
   type Target,
   type Unchecked,
+  type Verdict,
 } from '../../sim/grid';
 
 // ---------------------------------------------------------------- small helpers
@@ -138,13 +139,22 @@ function uncheckedNote(u: Unchecked, kind: Kind): string {
   return `This record has no figure for ${u === 'block-threads' ? 'the threads in a block' : u === 'block-dim' ? 'a single dimension of a block' : 'the size of the grid'}, so it is not tested.`;
 }
 
-function errorNote(kind: Kind): string {
+// What the course emulator itself does with a launch (labs/common/include/pmpp/emu/emu_runtime.h,
+// launch_impl; checked by labs/ch03/snippets/check.py): it rejects a block of more than 1024
+// threads, a zero grid or block dimension, and dynamic shared memory over its limit. It does not
+// enforce the per-dimension caps or the grid caps it reports.
+const EMU_ENFORCES =
+  'Of the limits it reports, the emulator enforces only the 1024-thread total. It also rejects a zero dimension and too much dynamic shared memory. It does not enforce the per-dimension or grid caps.';
+
+function errorNote(kind: Kind, v: Verdict): string {
   const e = kind === 'hip' ? LAUNCH_ERROR.hip : LAUNCH_ERROR.cuda;
   switch (kind) {
     case 'book':
       return 'The book stops here. What a device does with such a launch is the subject of "What happens when you break a limit", further down this page.';
     case 'emu':
-      return `The emulator sets ${e.name} (${e.value}) and prints a line, but only for a block of more than 1024 threads. It does not enforce the other numbers it reports.`;
+      return v.violations.some((x) => x.clause === 'zero' || x.clause === 'block-threads')
+        ? `The emulator rejects this launch too: it sets ${e.name} (${e.value}) and prints a line. ${EMU_ENFORCES}`
+        : `The emulator would run this launch anyway. ${EMU_ENFORCES}`;
     case 'metal':
       return 'Apple documents no error for a threadgroup over its limit. Do not rely on any particular behaviour.';
     default:
@@ -411,7 +421,7 @@ function GridExplorer() {
                 ))}
               </ul>
               <p className="muted" style={{ margin: 0 }} data-out="error">
-                {errorNote(choice.kind)}
+                {errorNote(choice.kind, verdict)}
               </p>
             </>
           )}
@@ -1407,8 +1417,9 @@ export function S31() {
       <Simplification>
         <p>
           Nothing is launched. A verdict says only that six numbers pass or fail a table of limits. Limits that depend
-          on more than the two shapes are not tested: shared memory per block, and on Metal the thread limit of each
-          compiled kernel. Large shapes are drawn in part.
+          on more than the two shapes are not tested: shared memory per block, the registers a kernel uses (a CUDA
+          launch under 1024 threads can fail for that reason), and on Metal the thread limit of each compiled kernel.
+          Large shapes are drawn in part.
         </p>
       </Simplification>
       <p>
@@ -1487,14 +1498,16 @@ export function S31() {
       <Code
         tabs={[{ label: 'CUDA', code: checked ?? '// loading…', status: 'front-end-checked', tiers: CODE_TIERS }]}
         highlight={[11, 12]}
-        caption="Asking after the launch. On the course's CPU emulator, blockShapeIsRejected returns true and the buffer is left untouched (emulator-checked). The emulator also prints a line of its own; the documentation describes no message from a device."
+        caption="Asking after the launch. On the course's CPU emulator, blockShapeIsRejected returns true and the buffer is left untouched (emulator-checked: python3 labs/ch03/snippets/check.py). The emulator also prints a line of its own; the documentation describes no message from a device."
       />
       <p>
         PyTorch does this after every launch. Its CUDA kernels are followed by the macro{' '}
         <code>C10_CUDA_KERNEL_LAUNCH_CHECK()</code>, which is defined as <code>C10_CUDA_CHECK(cudaGetLastError())</code>
-        . Do the same in your own launch functions. One caution about the course's emulator: it enforces the 1024
-        total and nothing else. A block of (1, 1, 128) runs there (emulator-checked) and is documented to fail on a
-        CUDA device, so a shape that passes in the emulator is not thereby legal.
+        . Do the same in your own launch functions. One caution about the course's emulator. Of the limits it reports,
+        it enforces only the 1024-thread total; it also rejects a zero dimension and too much dynamic shared memory,
+        and it does not enforce the per-dimension or grid caps. A block of (1, 1, 128) runs there (emulator-checked by
+        the same script) and is documented to fail on a CUDA device, so a shape that passes in the emulator is not
+        thereby legal.
       </p>
       <Ask q={questionsS31['ch03/3.1/q-silent']} />
 
@@ -1568,10 +1581,13 @@ export function S31() {
             <td>
               <b>Threads in a block or group</b>
             </td>
-            <td>1024; per dimension 1024, 1024, 64; the same for every kernel</td>
             <td>
-              not in the current documentation; read <code>maxThreadsPerBlock</code> and <code>maxThreadsDim</code>{' '}
-              from <code>hipDeviceProp_t</code>
+              1024 for the device; per dimension 1024, 1024, 64. A kernel that uses many registers can fail below 1024
+              with <code>cudaErrorLaunchOutOfResources</code>
+            </td>
+            <td>
+              1024; per dimension 1024, 1024, 1024 in AMD's table (read <code>maxThreadsDim</code> on a newer device).
+              A kernel compiled with <code>__launch_bounds__</code> refuses a larger block
             </td>
             <td>
               set for each compiled kernel: <code>maxTotalThreadsPerThreadgroup</code> of the pipeline state
@@ -1585,7 +1601,7 @@ export function S31() {
               x up to 2<sup>31</sup> − 1; y and z up to 65,535
             </td>
             <td>
-              not in the current documentation; read <code>maxGridSize</code>
+              x up to 2<sup>32</sup> − 1, y and z up to 65,535 in AMD's table; read <code>maxGridSize</code>
             </td>
             <td>not documented</td>
           </tr>
@@ -1604,15 +1620,20 @@ export function S31() {
         </tbody>
       </table>
       <p>
-        Two rows deserve a second look. On Metal the thread limit that counts belongs to the compiled kernel, not to
-        the device, so the question "is this shape legal" has no answer until you have a pipeline state to ask. And the
-        four Metal parameters in the third row are, in the order listed, <code>gridDim</code>, <code>blockDim</code>,{' '}
-        <code>blockIdx</code> and <code>threadIdx</code>. Metal writes positions x first and has no (z, y, x) labels.
+        Two rows deserve a second look. The thread limit is a ceiling for the device, and on all three backends one
+        kernel can sit below it. A CUDA kernel that needs many registers per thread can fail to launch with fewer than
+        1024 threads. A HIP kernel compiled with a launch bound refuses a larger block. A Metal pipeline state reports
+        the limit for its own compiled kernel. So "is this shape legal" is a question about a kernel as well as a
+        device; section 4.7 comes back to registers. And the four Metal parameters in the third row are, in the order
+        listed, <code>gridDim</code>, <code>blockDim</code>, <code>blockIdx</code> and <code>threadIdx</code>. Metal
+        writes positions x first and has no (z, y, x) labels.
       </p>
-      <Today checked="2026-11-20">
+      <Today checked="2026-11-20 (notes/today/ch08-facts.md, A4, B1, B4; ch03-facts.md, B3, C4)">
         <p>
-          AMD's runtime source also requires <code>gridDim</code> times <code>blockDim</code> to fit in 32 bits in each
-          dimension, a rule CUDA does not document. On AMD, query the device and check the error.
+          NVIDIA: <code>cudaErrorLaunchOutOfResources</code> covers "too many threads for the kernel's register
+          count". AMD: a launch is checked against the kernel's <code>__launch_bounds__</code>, and{' '}
+          <code>gridDim</code> times <code>blockDim</code> must fit in 32 bits per dimension. Apple: the pipeline's
+          limit "varies depending on the complexity of the function".
         </p>
       </Today>
       <Ask q={questionsS31['ch03/3.1/q-metal-size']} />

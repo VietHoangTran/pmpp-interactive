@@ -70,9 +70,17 @@ describe('numbers the lesson states', () => {
   it('fractionNeeded(10, 50) is about 0.918', () => {
     expect(fractionNeeded(10, 50)).toBeCloseTo(0.918, 3);
   });
-  it('q-ceiling100: an unbounded part needs 99% for 100x and 99.9% for 1,000x', () => {
+  it('the explorer task: an unbounded part needs 99% for 100x and 99.9% for 1,000x', () => {
     expect(fractionNeeded(100, Infinity)).toBeCloseTo(0.99, 12);
     expect(fractionNeeded(1000, Infinity)).toBeCloseTo(0.999, 12);
+  });
+  it('q-fivehundred: a part made 1,000x faster gives about 500x at 99.9%, and only 91x at the 99% of the task', () => {
+    expect(fractionNeeded(500, 1000)).toBeCloseTo(0.998999, 6);
+    expect(Number((100 * fractionNeeded(500, 1000)!).toFixed(1))).toBe(99.9);
+    expect(speedup(0.999, 1000)).toBeCloseTo(500.25, 2);
+    expect(speedup(0.99, 1000)).toBeCloseTo(90.99, 2);
+    // at 99.9% the untouched 0.1% takes as long as the accelerated work
+    expect(untouchedShare(0.999, 1000)).toBeCloseTo(0.5, 3);
   });
 });
 

@@ -206,16 +206,67 @@ await pause(120);
 check('numeric question accepts two waves', (await q.evaluate((e) => e.textContent)).includes('Correct.'));
 
 // ---- the two remaining questions
-q = await question('every chain ten times longer');
+q = await question('which design finishes each job first');
+const jobX = race(a, b, 8, 1000);
+const jobY = race(a, b, 1024, 5);
+check('pieces, not arithmetic: job X has more operations than Y and fewer chains', 8 * 1000 > 1024 * 5 && jobX.winner === 'a' && jobY.winner === 'b');
 t = await choose(q, 0);
-check('chain length: "favours the fast units" is rejected', t.includes('Not quite.') && t.includes('already sequential'));
+check('pieces, not arithmetic: "both on A" is rejected with the model\'s times for Y', t.includes('Not quite.') && t.includes(`done at ${nf(jobY.a.last)}`) && t.includes(`done at ${nf(jobY.b.last)}`), t.slice(-300));
 t = await choose(q, 1);
-check('chain length: "nothing, both grow tenfold" is accepted', t.includes('Correct.') && t.includes('cancels'));
+check('pieces, not arithmetic: "both on B" is rejected with the model\'s times for X', t.includes('Not quite.') && t.includes(`done at ${nf(jobX.b.last)}`) && t.includes(`done at ${nf(jobX.a.last)}`), t.slice(-300));
+t = await choose(q, 2);
+check('pieces, not arithmetic: "X on A, Y on B" is accepted', t.includes('Correct.') && t.includes('Count the independent pieces') && t.includes('the job with more arithmetic goes to the latency design'));
+await setChains(8);
+await setLength(1000);
+check('the explorer confirms job X: A first, by 2', (await outText('verdict')) === verdictFor(jobX) && jobX.factor === 2, await outText('verdict'));
+await setChains(1024);
+await setLength(5);
+check('the explorer confirms job Y: B first, by 4', (await outText('verdict')) === verdictFor(jobY) && jobY.factor === 4, await outText('verdict'));
+await setLength(100);
 q = await question('token by token');
 t = await choose(q, 2);
 check('tokens: "a GPU cannot help" is rejected', t.includes('Not quite.') && t.includes('inside one turn of the loop'));
 t = await choose(q, 1);
 check('tokens: independence inside each step is accepted, and marked as ours', t.includes('Correct.') && t.includes('This mapping is ours') && t.includes('our analysis'));
+
+// ---- phone width: the drawings are made at their size, so their text stays legible
+const minFont = (sel) =>
+  page.$$eval(sel, (svgs) =>
+    Math.min(
+      ...svgs.flatMap((svg) => {
+        const vb = svg.viewBox.baseVal;
+        const k = svg.getBoundingClientRect().width / (vb && vb.width ? vb.width : svg.getBoundingClientRect().width);
+        return [...svg.querySelectorAll('text')].map((t) => Number(t.getAttribute('fontSize') ?? t.getAttribute('font-size') ?? 12) * k);
+      }),
+    ),
+  );
+check('at desktop width the redrawn figure is one drawing', (await page.$eval('figure', (f) => f.dataset.stacked)) === '0' && (await page.$$('figure svg')).length === 1);
+await page.setViewport({ width: 390, height: 900, deviceScaleFactor: 1 });
+await pause(400);
+const phone = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, client: document.documentElement.clientWidth }));
+check('at 390 px the page does not scroll sideways', phone.scroll <= phone.client, JSON.stringify(phone));
+check('at 390 px the figure stacks its two chips, still drawing 4 and 64 units', (await page.$eval('figure', (f) => f.dataset.stacked)) === '1' && (await page.$$('figure svg')).length === 2 && (await page.$$('figure svg rect[rx]')).length === a.units + b.units);
+const figFont = await minFont('figure svg');
+check(`at 390 px the figure's smallest text is at least 10 px (${figFont.toFixed(1)})`, figFont >= 10, String(figFont));
+const plotW = await page.$eval(`${B} svg[aria-label^="Time to the last result"]`, (s) => s.getBoundingClientRect().width);
+const plotFont = await minFont(`${B} svg[aria-label^="Time to the last result"]`);
+check(`at 390 px the plot is drawn to fit (${Math.round(plotW)} px) with text of at least 10 px (${plotFont.toFixed(1)})`, plotW <= 360 && plotW >= 260 && plotFont >= 10, `${plotW} ${plotFont}`);
+const plotLabels = await page.$$eval(`${B} svg[aria-label^="Time to the last result"]`, (svgs) => {
+  const svg = svgs[0];
+  const box = svg.getBoundingClientRect();
+  return [...svg.querySelectorAll('text')].filter((t) => { const r = t.getBoundingClientRect(); return r.left < box.left - 0.5 || r.right > box.right + 0.5; }).map((t) => t.textContent);
+});
+check('at 390 px no label of the plot runs off its edge', plotLabels.length === 0, plotLabels.join(' | '));
+await setChains(4096);
+const edgeLabels = await page.$$eval(`${B} svg[aria-label^="Time to the last result"]`, (svgs) => {
+  const svg = svgs[0];
+  const box = svg.getBoundingClientRect();
+  return [...svg.querySelectorAll('text')].filter((t) => { const r = t.getBoundingClientRect(); return r.left < box.left - 0.5 || r.right > box.right + 0.5; }).map((t) => t.textContent);
+});
+check('at 390 px and 4,096 chains the labels of the last point turn inwards', edgeLabels.length === 0, edgeLabels.join(' | '));
+if (out) await page.screenshot({ path: out + '-phone.png', fullPage: true });
+await page.setViewport({ width: 1440, height: 1000, deviceScaleFactor: 1 });
+await pause(300);
 
 // ---- progress would have been saved under the stable ids
 await pause(900);

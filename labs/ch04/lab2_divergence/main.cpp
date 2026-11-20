@@ -2,15 +2,19 @@
 // decides. You do not need to edit this file; your work goes in work/.
 //
 // The patterns are built from the device's own width, never from a literal:
-//   CUDA, HIP  warpSize from the device properties. The cut of a block into
-//              warps is documented there (linear thread order, consecutive
-//              runs), so a thread's warp and lane are computed.
+//   CUDA, HIP  warpSize from the device properties. A thread's warp and lane are
+//              computed: warp = linear index in the block / width, lane = the
+//              remainder. NVIDIA documents that cut (linear thread order,
+//              consecutive runs, thread 0 in warp 0). AMD documents the linear
+//              order and computes a lane as threadIdx.x % warpSize in its own
+//              examples, but states no rule in one sentence
+//              (notes/today/ch04-facts.md, A8 and B6).
 //   Metal      threadExecutionWidth of the compiled pipeline. The cut of a
 //              threadgroup into SIMD-groups is "implementation-defined", so a
 //              provided probe kernel (provided/simd_probe.metal) is dispatched
 //              in the same shape first and reports each thread's SIMD-group and
 //              lane. Read that file's comment for what this does not establish.
-//   emulator   has no warps and no cost model. The tests still run every
+//   emulator   runs no warp in step and has no cost model. The tests still run every
 //              pattern, for three pretend widths, to check the kernels' logic.
 //
 // How a write past the array is caught: on the emulator the buffers are exactly
@@ -197,8 +201,8 @@ static const Layout& layoutFor(int threadsPerBlock, int threads, int width) {
     for (int i = 0; i < threads && L.consecutive; ++i)
       L.consecutive = L.group[(size_t)i] == (uint32_t)(i / L.width) && L.lane[(size_t)i] == (uint32_t)(i % L.width);
 #else
-  // The documented cut: threads in linear order, consecutive runs of `width`,
-  // starting again in every block.
+  // Threads in linear order, consecutive runs of `width`, starting again in
+  // every block: documented by NVIDIA, implied by AMD's lane arithmetic.
   L.width = width;
   L.group.resize((size_t)threads); L.lane.resize((size_t)threads);
   const int perBlock = (threadsPerBlock + width - 1) / width;
@@ -342,7 +346,7 @@ static int tests(const pmpp::Args& a) {
   pmpp::Tests t(a);
   const int width = deviceWidth(), maxBlock = maxThreadsPerBlock();
   if (width <= 0 || maxBlock <= 0) {
-    t.check("the device reports a width and a block-size limit", [&] {
+    t.check("the kernels build, and the device reports a width and a block-size limit", [&] {
       const std::string e = pmpp::take_error();
       return e.empty() ? std::string("could not read ") + kWidthSource : e;
     });
@@ -350,7 +354,7 @@ static int tests(const pmpp::Args& a) {
   }
   const std::vector<Shape> shapes = testShapes(maxBlock);
 #if defined(PMPP_BACKEND_EMU)
-  std::printf("patterns built for pretend widths 4, 32 and 64 (the emulator has no warps)\n");
+  std::printf("patterns built for pretend widths 4, 32 and 64 (the emulator runs no warp in step)\n");
 #else
   std::printf("patterns built for width %d (%s)\n", width, kWidthSource);
 #endif

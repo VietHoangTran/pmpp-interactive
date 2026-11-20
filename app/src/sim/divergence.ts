@@ -28,6 +28,10 @@
 //    neither (facts C4). Lab 4.2 measures it.
 //  - The compiler. A short branch may be compiled into a select with no divergence
 //    at all; nothing documents when (facts A9). Here a branch is always a branch.
+//  - Branch overhead. The test is one step; the branch itself costs nothing. So select()
+//    is never cheaper than ifElse() here (one step more in a split warp), and whether a
+//    select wins for short paths on a device is outside the model. No vendor documents
+//    that cost.
 //  - Loop overhead. A loop costs its body only; the test and the jump are not
 //    counted as steps.
 //  - Scheduling. "Interleaved" alternates the two paths one instruction at a time.

@@ -1,0 +1,1 @@
+No trip needs the result of another trip. So nothing forces them to wait in line. Lift each trip out of the loop and give it to a thread of its own. Now there are 10 threads, and each one holds its own private copy of i.

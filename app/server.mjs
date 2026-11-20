@@ -106,6 +106,10 @@ async function content(req, res, url) {
     res.writeHead(200, { 'Content-Type': type, 'Content-Length': stat.size, 'Accept-Ranges': 'bytes', 'Cache-Control': 'no-store' });
     fs.createReadStream(p).pipe(res);
   } catch {
+    // A chapter whose narration is not generated yet has no manifest. That is a normal
+    // state, not an error: answer null so the browser logs nothing and the player runs
+    // silently on estimated timings.
+    if (/\/narration\/manifest\.json$/.test(p)) return send(res, 200, null);
     send(res, 404, { error: 'not found' });
   }
 }

@@ -1,0 +1,1 @@
+Part 2. One statement launches the kernel, and it returns at once. The host does not wait for the device to finish, or even to start. For now, treat the device as a closed box that fills C. [short pause] Section 2.5 opens the box.

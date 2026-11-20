@@ -4,7 +4,8 @@
 // The driver compiles kernel.metal at run time, and a library compiled from a
 // source string has no search path for your own headers ("the source may only
 // import the Metal default library", Apple's documentation of
-// newLibraryWithSource). So the driver pastes this file in place of the line
+// newLibraryWithSource; notes/today/ch05-facts.md, C7). So the driver pastes
+// this file in place of the line
 //     #include "paths.metal.h"
 // before it compiles kernel.metal.
 #ifndef PMPP_LAB42_PATHS_METAL_H

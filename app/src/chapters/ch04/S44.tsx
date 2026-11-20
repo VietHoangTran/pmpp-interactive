@@ -5,6 +5,7 @@ import { benchRows, num, useReports, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import { STRAIGHT_LINE, finished, startWarp, step, type WarpRun } from '../../sim/divergence';
 import {
+  BOOK_MAX_THREADS,
   coordOf,
   cut,
   dims,
@@ -145,6 +146,8 @@ interface Probe {
   /** The one width every row reported, or null when they differ. */
   width: number | null;
   consecutive: boolean | null;
+  /** maxTotalThreadsPerThreadgroup of the probe's pipeline, if the lab recorded it. */
+  cap: number | null;
 }
 const LAB1 = 'ch04/lab1_launchconfig';
 /** The "probe" rows lab 4.1's driver writes after running the probe kernel on a Metal device, if it has run. */
@@ -152,7 +155,8 @@ function metalProbe(reports: Reports): Probe | null {
   const run = reports['metal'];
   if (!run) return null;
   for (const variant of ['work', 'solution']) {
-    const rows = benchRows(run, LAB1, variant)
+    const all = benchRows(run, LAB1, variant);
+    const rows = all
       .filter((r) => r.name === 'probe')
       .flatMap((r): ProbeRow[] => {
         const width = num(r.width_in_kernel);
@@ -168,6 +172,7 @@ function metalProbe(reports: Reports): Probe | null {
         rows,
         width: rows.every((r) => r.width === rows[0].width) ? rows[0].width : null,
         consecutive: rows.every((r) => r.consecutive === true) ? true : rows.some((r) => r.consecutive === false) ? false : null,
+        cap: num(all.find((r) => r.name === 'queried')?.probe_maxTotalThreadsPerThreadgroup) ?? null,
       };
   }
   return null;
@@ -187,7 +192,8 @@ function WarpLab() {
   const { reports } = useReports();
   const choices = useMemo(() => widthChoices(reports), [reports]);
   const probe = useMemo(() => metalProbe(reports), [reports]);
-  const [d, setD] = useState<Dims>(dims(8, 8));
+  // Opens on 16 x 16, not on the 8 x 8 of the prediction above it, so the drawing does not answer that prediction.
+  const [d, setD] = useState<Dims>(dims(16, 16));
   const [key, setKey] = useState('book');
   const [pick, setPick] = useState<number | null>(null);
   const [n, setN] = useState(0);
@@ -196,7 +202,8 @@ function WarpLab() {
   const metal = key === 'metal';
   const chosen = choices.find((c) => c.key === key) ?? choices[0];
   const width = metal ? (probe && probe.consecutive === true ? probe.width : null) : chosen.width;
-  const cap = metal ? 1024 : chosen.maxThreads;
+  // On Metal the cap belongs to a pipeline: the probe's, if lab 4.1 recorded it, else the book's example.
+  const cap = metal ? (probe?.cap ?? BOOK_MAX_THREADS) : chosen.maxThreads;
   const threads = threadsIn(d);
   const valid = AXIS.every((a) => Number.isInteger(d[a]) && d[a] >= 1);
   const over = valid && threads > cap;
@@ -232,7 +239,12 @@ function WarpLab() {
         foot={
           <>
             Each shade is one warp; a number in a cell is its warp. Hatched cells are lanes with no thread. Point at a thread, in either
-            drawing, to see its arithmetic. {metal ? '' : chosen.note}
+            drawing, to see its arithmetic.{' '}
+            {!metal
+              ? chosen.note
+              : probe
+                ? `On Metal a threadgroup is capped at ${cap} here: ${probe.cap != null ? "the maxTotalThreadsPerThreadgroup of the probe's pipeline, as lab 4.1 recorded it" : "the book's example, because lab 4.1 recorded no pipeline limit"}.`
+                : ''}
           </>
         }
       >
@@ -243,7 +255,7 @@ function WarpLab() {
               <input type="number" min={1} step={1} value={d[a] || ''} aria-label={`blockDim.${a}`} style={{ width: '5.2rem' }} onChange={(e) => setAxis(a, e.target.value)} />
             </label>
           ))}
-          <label className="field">
+          <label className="field" style={{ maxWidth: '100%', minWidth: 0 }}>
             Warp width
             <select value={key} aria-label="Warp width" onChange={(e) => setKey(e.target.value)}>
               {choices.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
@@ -253,9 +265,9 @@ function WarpLab() {
         </div>
         <div className="row" style={{ marginBottom: '0.9rem' }}>
           <span className="muted">Presets</span>
-          <span className="seg" role="group" aria-label="Presets">
+          <span className="seg" role="group" aria-label="Presets" style={{ flexWrap: 'wrap' }}>
             {PRESETS.map((p) => (
-              <button key={p.label} aria-pressed={p.d.x === d.x && p.d.y === d.y && p.d.z === d.z} onClick={() => setD(p.d)}>{p.label}</button>
+              <button key={p.label} aria-pressed={p.d.x === d.x && p.d.y === d.y && p.d.z === d.z} onClick={() => setD(p.d)} style={{ whiteSpace: 'nowrap' }}>{p.label}</button>
             ))}
           </span>
         </div>
@@ -267,21 +279,23 @@ function WarpLab() {
                 <p style={{ margin: '0 0 0.5em' }}>
                   On <b>{probe.device}</b>, {probe.whose} in lab 4.1 recorded this, one line per threadgroup shape it was dispatched with:
                 </p>
-                <table className="threads" style={{ width: 'auto', marginBottom: '0.5em' }}>
-                  <thead>
-                    <tr><th>threadgroup</th><th>threads in a SIMD-group</th><th>SIMD-groups</th><th>consecutive runs of the linear index</th></tr>
-                  </thead>
-                  <tbody>
-                    {probe.rows.map((r, i) => (
-                      <tr key={i} data-probe-row="">
-                        <td>{r.tx} × {r.ty}</td>
-                        <td>{r.width}</td>
-                        <td>{r.groups ?? 'not recorded'}</td>
-                        <td>{r.consecutive == null ? 'not recorded' : r.consecutive ? 'yes' : 'no'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div style={{ overflowX: 'auto', marginBottom: '0.5em' }}>
+                  <table className="threads" style={{ width: 'auto' }}>
+                    <thead>
+                      <tr><th>threadgroup</th><th>threads in a SIMD-group</th><th>SIMD-groups</th><th>consecutive runs of the linear index</th></tr>
+                    </thead>
+                    <tbody>
+                      {probe.rows.map((r, i) => (
+                        <tr key={i} data-probe-row="">
+                          <td>{r.tx} × {r.ty}</td>
+                          <td>{r.width}</td>
+                          <td>{r.groups ?? 'not recorded'}</td>
+                          <td>{r.consecutive == null ? 'not recorded' : r.consecutive ? 'yes' : 'no'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
                 {width != null
                   ? `The drawing below applies consecutive runs of ${width} to your block${probe.rows.some((r) => r.tx === d.x && r.ty === d.y && d.z === 1) ? ', which is one of the shapes the probe ran' : ', a shape the probe did not run'}. It is what one pipeline did on one device in these dispatches, not a rule Apple documents.`
                   : 'The groups were not all consecutive runs of one width, so no rule here can draw them. The table is the result.'}
@@ -289,9 +303,9 @@ function WarpLab() {
             ) : (
               <>
                 Nothing to draw. Metal says a threadgroup is cut into SIMD-groups "in an implementation-defined fashion" and documents no
-                width, so a drawing made from a rule would be invented. Run lab 4.1 with its benchmark (
-                <code>python3 labs/pmpp.py run 4.1 --bench</code>, then <code>./verify.sh</code>) and this choice will show what the probe
-                kernel recorded on your device.
+                width, so a drawing made from a rule would be invented. Write the probe kernel of lab 4.1, then run{' '}
+                <code>python3 labs/pmpp.py run 4.1 --bench</code>. Once the lab passes its tests, the run records what the probe saw on
+                your device, and this choice shows it.
               </>
             )}
           </div>
@@ -317,7 +331,7 @@ function WarpLab() {
                     ? 'warp boundaries fall inside rows'
                     : k.rowsPerWarp >= 1
                       ? `one warp covers ${count(k.rowsPerWarp, 'row')} of the block`
-                      : `one row of the block is ${count(1 / k.rowsPerWarp, 'warp')}`}
+                      : `one row of the block is ${count(Math.round(d.x / width), 'warp')}`}
               </span>
             </div>
             <div className="narrate" role="status" data-readout="thread" style={{ marginBottom: '0.9rem', minHeight: '2.6em' }}>
@@ -442,7 +456,7 @@ function FetchStepper() {
       }
     >
       <div className="row" style={{ marginBottom: '0.8rem' }}>
-        <label className="field">
+        <label className="field" style={{ maxWidth: '100%', minWidth: 0 }}>
           Width of a warp
           <select value={lanes} aria-label="Width of a warp" onChange={(e) => reset(Number(e.target.value))}>
             {LANE_CHOICES.map((c) => <option key={c.v} value={c.v}>{c.label}</option>)}
@@ -464,7 +478,7 @@ function FetchStepper() {
                 <ol style={{ margin: '0.2rem 0 0', paddingLeft: '1.4rem' }} className="mono">
                   {STRAIGHT_LINE.map((ins, k) => (
                     <li key={k} data-pc={k === w.pc ? '' : undefined} style={{ fontWeight: k === w.pc - 1 ? 700 : 400, color: k < w.pc ? 'var(--ink)' : 'var(--ink-2)' }}>
-                      {ins.text} <span className="muted" style={{ fontWeight: 400 }}>({ins.meaning}){k === w.pc - 1 ? ' : just executed' : k === w.pc ? ' : next' : ''}</span>
+                      {ins.text} <span className="muted" style={{ fontWeight: 400 }}>({ins.meaning}){k === w.pc - 1 ? ' ◂ just executed' : k === w.pc ? ' ◂ next' : ''}</span>
                     </li>
                   ))}
                 </ol>
@@ -555,10 +569,10 @@ export const questionsS44: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: '2 warps with 16 idle lanes on the first; 1 warp with 16 idle lanes on the second.', correct: true },
       { label: '2 warps with 16 idle lanes on both.', why: 'At 64 wide, 48 threads fit in one warp.' },
       { label: '1.5 warps on the first and 0.75 of a warp on the second, with nothing idle.', why: 'Warps are whole. A warp that is not full still occupies all of its lanes.' },
-      { label: '2 warps on the first and 1 on the second, with nothing idle.', why: 'The lanes are there whether or not a thread fills them: 64 − 48 on the first device, and 64 − 48 on the second.' },
+      { label: '2 warps with 16 idle lanes on the first; 1 warp with 16 idle lanes on the second.', correct: true },
+      { label: '2 warps on the first and 1 on the second, with nothing idle.', why: 'The lanes are there whether or not a thread fills them: 2 · 32 − 48 on the first device, and 64 − 48 on the second.' },
     ],
     explain: (
       <p>
@@ -575,8 +589,8 @@ export const questionsS44: Record<string, Question> = {
     id: 'ch04/4.4/q-rows',
     prompt: <>A block is 16 × 16. How many rows of the block does one warp cover when warps are 32 wide, and when they are 64 wide?</>,
     options: [
-      { label: 'Two rows, and four rows.', correct: true },
       { label: 'One row, and two rows.', why: 'A row of this block is 16 threads, half of a 32-wide warp.' },
+      { label: 'Two rows, and four rows.', correct: true },
       { label: 'Two rows at both widths.', why: 'A wider warp takes a longer run of the same linear order.' },
       { label: 'Eight rows, and four rows.', why: 'Those are the numbers of warps in the block, not of rows in a warp.' },
     ],
@@ -599,13 +613,13 @@ export const questionsS44: Record<string, Question> = {
       </>
     ),
     options: [
+      { label: 'Nothing changes: lanes are numbered 0 to 31 on every device, whatever its width.', why: 'On that device the lanes run from 0 to 63.' },
+      { label: 'It fails to compile: the compiler rejects a lane count of 32 for a 64-wide target.', why: 'It is ordinary integer arithmetic. It compiles everywhere, which is why the mistake survives.' },
+      { label: 'It runs as written: the device switches to 32-wide warps for a kernel built that way.', why: 'The width belongs to the hardware. A kernel cannot set it.' },
       {
-        label: 'It compiles and runs, but it treats each 64-wide warp as two groups of 32: logic built on that lane number is wrong or uses half of the hardware, and a 32-bit mask cannot name lanes 32 to 63.',
+        label: 'It runs, but treats each warp as two groups of 32, and its masks cannot name lanes 32 to 63.',
         correct: true,
       },
-      { label: 'Nothing changes: lanes are numbered 0 to 31 on every device.', why: 'On that device the lanes run from 0 to 63.' },
-      { label: 'It fails to compile.', why: 'It is ordinary integer arithmetic. It compiles everywhere, which is why the mistake survives.' },
-      { label: 'The device switches to 32-wide warps for this kernel.', why: 'The width belongs to the hardware. A kernel cannot set it.' },
     ],
     explain: (
       <>
@@ -629,10 +643,10 @@ export function S44() {
   return (
     <>
       <p>
-        Section 4.3 gave you the rule for correctness inside a block: assume the threads run in any order whatever, and
-        when one phase must finish before the next starts, say so with a barrier. That rule stands. This section is
-        about something the rule lets you ignore and performance does not: how the hardware in fact groups the threads
-        of a block when it runs them.
+        Section 4.3 gave you the barrier. The book opens this section with the rule it serves: inside a block, assume
+        the threads run in any order whatever, and when one phase must finish before the next starts, say so with a
+        barrier. That rule stands. This section is about something the rule lets you ignore and performance does not:
+        how the hardware in fact groups the threads of a block when it runs them.
       </p>
       <Source section="4.4" pages="74" />
 
@@ -696,10 +710,8 @@ export function S44() {
       </ul>
       <Aside>
         <p>
-          The formula is ours. The book states the rule in words; NVIDIA documents it as strides (“threadIdx.y has a
-          stride of blockDim.x, and threadIdx.z has a stride of blockDim.x * blockDim.y”) and says each warp holds
-          consecutive, increasing thread IDs starting with thread 0. Neither prints the three lines above.
-          (notes/today/ch04-facts.md A8)
+          The formula is ours. The book states the rule in words; NVIDIA gives the strides, blockDim.x for y and
+          blockDim.x * blockDim.y for z (facts A8).
         </p>
       </Aside>
       <p>
@@ -722,7 +734,7 @@ export function S44() {
         {(v) => (
           <>
             <p data-reveal={P_ID}>
-              {v === P_AT.warp ? 'Yes: ' : `It is warp ${P_AT.warp}. `}
+              {v === P_AT.warp ? 'Yes: ' : `It is warp ${P_AT.warp}: `}
               the linear index is {linearWorking(3, 5, 0, P_BLOCK)}, and {P_AT.index} / 32 rounded down is {P_AT.warp}, with
               lane {P_AT.index} mod 32 = {P_AT.lane}. Rows 0 to 3 fill warp 0, so everything from row 4 on is in warp 1.
               The marked cell is the thread.
@@ -732,8 +744,9 @@ export function S44() {
         )}
       </Predict>
       <p>
-        Now change the shape and the width yourself. Try the presets first, then switch the width to 64 with the 8 × 8
-        and the 16 × 16 block still selected, and watch which threads change company.
+        Now change the shape and the width yourself. The painter opens on a 16 × 16 block; the 8 × 8 preset is the
+        block of the prediction. Try the presets first, then switch the width to 64 with the 8 × 8 and the 16 × 16
+        block still selected, and watch which threads change company.
       </p>
       <Simplification>
         <p>
@@ -854,8 +867,8 @@ export function S44() {
       <h2>Warp-level primitives, by name only</h2>
       <p>
         The book ends the section by naming a family of API functions that let the threads of one warp exchange values
-        and synchronise among themselves, without shared memory. Code written with them treats the warp as a level of
-        its own between the block and the thread. They can pay off substantially, and chapters 10, 11 and 12 are where
+        and synchronise among themselves. Code written with them treats the warp as a level of its own between the
+        block and the thread. They can pay off substantially, and chapters 10, 11 and 12 are where
         the book uses them; nothing in this chapter needs them.
       </p>
       <Source section="4.4" pages="77–78" />

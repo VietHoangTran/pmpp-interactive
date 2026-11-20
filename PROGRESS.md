@@ -21,8 +21,12 @@ pages, and commits. Per-chapter hints given to the designers are in the wave's `
       CLAUDE.md (done); shared labs-page kit `app/src/components/LabKit.tsx`; emulator
       extension (warps, warp intrinsics, atomics, constant memory, cooperative groups,
       streams, a ThreadSanitizer `race` backend); `notes/today/infra-facts.md`.
-- [ ] Wave 1 (running, run id wf_ec5c6999-f65, ports 5300+): ch02, ch03, ch04 (Deep); ch01, ch24 (Condensed).
-- [ ] Wave 2 (running, run id wf_450b41fe-79b, ports 5600+, script `build-chapters-v2.js`): ch06 (Deep), ch07 (Standard), ch08 (Condensed), ch09 (Standard), ch10 (Deep), appC (Standard).
+- [x] Wave 1 (run wf_ec5c6999-f65, finished on Opus 5.5): ch02, ch03, ch04 (Deep); ch01, ch24
+      (Condensed). Built, reviewed and fixed; 13 labs (2.1–2.4, 3.1–3.5, 4.1–4.4); every
+      browser check for ch01–ch05 and ch24 passes. Narration audio is committed separately.
+- [ ] Wave 2 (running, run id wf_52b4ecac-e87; the first run wf_450b41fe-79b produced nothing before the usage limit, ports 5600+, script `build-chapters-v2.js`): ch06 (Deep), ch07 (Standard), ch08 (Condensed), ch09 (Standard), ch10 (Deep), appC (Standard).
+- Builder agents run on Opus 5.5 (the reader's request, 2026-11-20). Agents inherit the
+  session model; new wave scripts should also pass `model: 'opus'` to every agent() call.
 - [ ] Wave 3: ch15, ch11, ch12 (Deep), ch14 (Standard), ch13 (Condensed).
 - [ ] Wave 4: ch20 (Deep), ch22, ch19, appA (Standard), x1 sampling (Deep).
 - [ ] Wave 5: x2 quantised kernels (Deep), x3 reading real backends (Standard),
@@ -30,6 +34,10 @@ pages, and commits. Per-chapter hints given to the designers are in the wave's `
 - [ ] Final pass to-do list (collected along the way):
       lab 5.5's prediction compares GFLOP/s at different matrix widths (2048 vs lab 5.2's
       adaptive width): make the two benchmarks use the same width or reword the prompt;
+      deferred wave 1 requests (optional): a shared lab-status helper in lib/reports.ts,
+      a choice-type Predict, a source label and custom line numbers for Code, emulator
+      enforcement of per-dimension block and grid limits, condensed ASan reports in
+      pmpp.py, lab 4.1's kernel named like lab 3.3's;
       the labs page uses two wordings for the same statuses (table vs tabs) and the
       kernel.cu tab says "no run" when a run failed; `app-review.mjs` only visits
       chapter 5 routes: extend to every built chapter.
@@ -81,6 +89,17 @@ settings follow AMD's and CMake's documentation (facts file, B6 and B7).
   so nothing was checked in a visible browser window.
 
 ### Decisions
+- 2026-11-20: condensed chapters may carry more than one or two pages of interactives
+  (ch01 and ch24 do), on the reader's word that more content is welcome. Their reviewers
+  flagged the extra density; it is accepted, not a defect.
+- 2026-11-20: shared fixes from wave 1 requests: scene part buttons wrap on phones; a
+  scene drawing keeps a readable width and scrolls in its frame below 640 px unless its
+  svg has data-layout="narrow"; a missing narration manifest is served as null (no 404);
+  a benchmark-only run keeps the last test result when the sources hash the same; the
+  emulator and the front-end stub accept the typed `cudaMalloc(T**, size_t)` that the
+  CUDA runtime reference lists (ch02-facts A2; it was wrongly removed during the pilot).
+- 2026-11-20: the dev server serves a not-yet-written section as a module that throws, so
+  one half-built chapter cannot take the app down while builders work.
 - 2026-11-20: captions on narrated animations are an option, off by default and
   remembered (reader's instruction).
 - 2026-11-20: narration model is `eleven_v4` through the MCP tool. The reader asked for

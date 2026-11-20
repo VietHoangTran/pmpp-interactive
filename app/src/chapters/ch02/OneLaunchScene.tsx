@@ -88,8 +88,10 @@ const STATE_WORD: Record<BlockState, string> = {
 function Stage(f: Frame) {
   const lines = [f.statement, HOST_LINES[1], HOST_LINES[2]];
   const shownBlocks = f.blocks.map((s, b) => ({ s, b })).filter((x) => x.s !== 'hidden');
+  // On a phone the drawing keeps a legible size and scrolls sideways inside its frame.
   return (
-    <svg viewBox={`0 0 ${VW} 392`} role="img" aria-label="Animation of one kernel launch" style={{ width: '100%', maxWidth: VW, display: 'block' }}>
+    <div style={{ overflowX: 'auto' }}>
+    <svg viewBox={`0 0 ${VW} 392`} role="img" aria-label="Animation of one kernel launch" style={{ width: '100%', minWidth: 600, maxWidth: VW, display: 'block' }}>
       {/* host thread */}
       <rect x={10} y={8} width={476} height={86} rx="3" fill="var(--cell)" stroke="var(--rule)" />
       <text x={20} y={24} fontSize="11" fontWeight="600" style={{ fill: 'var(--ink-2)' }}>host thread</text>
@@ -196,6 +198,7 @@ function Stage(f: Frame) {
       </text>
       {f.headline ? <text x={X0} y={382} fontSize="13" fontWeight="600">{f.headline}</text> : null}
     </svg>
+    </div>
   );
 }
 

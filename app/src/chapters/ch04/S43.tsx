@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code } from '../../components/Code';
 import { Aside, Bench, Beyond, Simplification, Source, Today, type Tier } from '../../components/notes';
@@ -94,13 +94,37 @@ const SNIPPETS: Record<KernelId, string> = {
 }`,
 };
 const TIERS: Record<string, Tier> = { s: 'shared', data: 'global', i: 'reg', k: 'reg', mine: 'reg' };
+// The files parse with the CUDA front end; none of them is built or run. Two of them have a
+// legal barrier (labs/ch04/snippets/README.md), so only the other four are "wrong on purpose".
 const SNIPPET_STATUS = 'front-end-checked; wrong on purpose, never run';
+const SNIPPET_STATUS_LEGAL = 'front-end-checked; never run';
+const statusOf = (id: KernelId) => (id === 'barrier_uniform' || id === 'barrier_guarded' ? SNIPPET_STATUS_LEGAL : SNIPPET_STATUS);
 
 const f1 = (v: number) => v.toFixed(1);
 const round1 = (v: number) => Math.round(v * 10) / 10;
 const list = (a: number[]) => (a.length <= 1 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]);
 const plural = (a: number[], one: string) => `${one}${a.length === 1 ? '' : 's'} ${list(a)}`;
 const wait = (a: number[]) => (a.length === 1 ? 'waits' : 'wait');
+
+/**
+ * Width of an element in CSS pixels, so a drawing can use it as its viewBox and keep
+ * its text at reading size on a phone. (Chapter 1 has the same helper; a shared one
+ * would serve both.)
+ */
+function useWidth(initial: number, min = 280, max = 640): [RefObject<HTMLDivElement | null>, number] {
+  const ref = useRef<HTMLDivElement>(null);
+  const [w, setW] = useState(initial);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const read = () => setW(Math.max(min, Math.min(max, Math.round(el.clientWidth))));
+    read();
+    const ro = new ResizeObserver(read);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [min, max]);
+  return [ref, w];
+}
 
 // ---------------------------------------------------------------- barrier timeline
 const AXIS = 5.5; // microseconds shown
@@ -111,9 +135,10 @@ function TimelineView({ durations, onChange }: { durations: readonly number[]; o
   const hatch = useId();
   const svg = useRef<SVGSVGElement>(null);
   const [drag, setDrag] = useState<number | null>(null);
-  const W = 600;
-  const L = 60;
-  const R = 92;
+  const [box, W] = useWidth(600, 290, 600);
+  const narrow = W < 440;
+  const L = narrow ? 54 : 60;
+  const R = narrow ? 84 : 92;
   const row = 24;
   const H = durations.length * row + 30;
   const x = (t: number) => L + (t / AXIS) * (W - L - R);
@@ -123,6 +148,7 @@ function TimelineView({ durations, onChange }: { durations: readonly number[]; o
     return Math.max(0.1, Math.min(5, round1(((px - L) / (W - L - R)) * AXIS)));
   };
   return (
+    <div ref={box}>
     <svg ref={svg} viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Threads reaching a barrier at different times"
       style={{ width: '100%', maxWidth: W, display: 'block', touchAction: onChange ? 'none' : undefined }}
       onPointerMove={(e) => { if (drag != null) onChange?.(drag, timeAt(e.clientX)); }}
@@ -161,6 +187,7 @@ function TimelineView({ durations, onChange }: { durations: readonly number[]; o
       })}
       <line x1={x(tl.release)} x2={x(tl.release)} y1={0} y2={durations.length * row} stroke="var(--ink)" strokeWidth="2" />
     </svg>
+    </div>
   );
 }
 
@@ -364,7 +391,7 @@ function BugHunt() {
       foot="Each kernel runs in a block of 4 threads. In kernels 4 and '4, rewritten' the last thread of the block is past the end of the data."
     >
       <div className="row" style={{ marginBottom: '0.8rem' }}>
-        <span className="seg" role="group" aria-label="Kernel">
+        <span className="seg" role="group" aria-label="Kernel" style={{ flexWrap: 'wrap', rowGap: '0.3rem' }}>
           {CASES.map((k, i) => (
             <button key={k.id} aria-pressed={i === sel} onClick={() => setSel(i)}>
               {k.tab}
@@ -374,10 +401,9 @@ function BugHunt() {
         </span>
         <span className="muted score" aria-live="polite">{answered} of 5 marked, {score} right</span>
       </div>
-      <div className="cols" style={{ gridTemplateColumns: 'minmax(0, 6fr) minmax(0, 5fr)' }}>
-        <div>
-          <Code tabs={[{ label: c.id + '.cu', code: SNIPPETS[c.id], tiers: TIERS, status: SNIPPET_STATUS }]} highlight={hl} />
-        </div>
+      {/* The listing gets the full width: its comments say which phase each line belongs to. */}
+      <Code tabs={[{ label: c.id + '.cu', code: SNIPPETS[c.id], tiers: TIERS, status: statusOf(c.id) }]} highlight={hl} />
+      <div className="cols" style={{ gridTemplateColumns: 'minmax(0, 3fr) minmax(0, 2fr)' }}>
         <div>
           {c.verdict != null && !marks[c.id] ? (
             <div className="panel mark">
@@ -409,8 +435,10 @@ function BugHunt() {
               <p style={{ margin: 0 }}>{c.why}</p>
             </div>
           )}
+        </div>
+        <div>
           {marked ? (
-            <table className="threads" aria-label="Threads of the block" style={{ marginTop: '0.8rem', width: '100%' }}>
+            <table className="threads" aria-label="Threads of the block" style={{ width: '100%' }}>
               <thead>
                 <tr><th>thread</th><th>state</th></tr>
               </thead>
@@ -496,7 +524,7 @@ function WavesExplorer() {
   const mine = Object.keys(reports).filter(isGpuBackend).map((b) => deviceFromReport(b, reports[b].device)).filter((d) => d.units != null);
   const preset = (b: number, un: number, sl: number) => { setBlocks(b); setUnits(un); setSlots(sl); };
 
-  const W = 600;
+  const [box, W] = useWidth(600, 290, 600);
   const H = 190;
   const L = 44;
   const top = 16;
@@ -547,7 +575,7 @@ function WavesExplorer() {
         </span>
       </div>
       <div className="cols plot">
-        <div>
+        <div ref={box}>
           <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Blocks in progress over time" style={{ width: '100%', maxWidth: W, display: 'block' }}>
             <defs>
               <pattern id={hatch} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
@@ -607,7 +635,7 @@ export const questionsS43: Record<string, Question> = {
       { label: 'All four wait at the call on line 5, and later all four at the call on line 9.', why: 'A thread takes one branch. No thread reaches both calls.' },
       { label: 'Nobody waits for long: each pair is complete at its own barrier, so both pairs are released at once.', why: 'A barrier counts the whole block, not the threads that happened to take its branch.' },
       {
-        label: 'Threads 0 and 2 wait at the call on line 5, threads 1 and 3 at the call on line 9. Neither call is reached by all four, so the behaviour is undefined and the block may hang.',
+        label: 'Threads 0 and 2 wait at the call on line 5, 1 and 3 at line 9; neither call has all four, so it may hang.',
         correct: true,
       },
       { label: 'The compiler merges the two calls into one barrier after the if, so all four meet there.', why: 'It does not. Two calls in the source are two barriers.' },
@@ -671,9 +699,9 @@ export const questionsS43: Record<string, Question> = {
     id: 'ch04/4.3/q-gridbarrier',
     prompt: <>A grid-wide barrier limits how large the grid may be. A block-wide barrier puts no limit on the grid. Why the difference?</>,
     options: [
-      { label: 'A grid-wide barrier is implemented in software and is too slow for large grids.', why: 'It is heavier, but the limit is not about speed.' },
+      { label: 'A grid-wide barrier is implemented in software, and its cost grows too fast for large grids.', why: 'It is heavier, but the limit is not about speed.' },
       {
-        label: 'Every thread in a barrier\'s scope must be resident to reach it. A block is resident whole by construction; a grid usually is not, so the whole grid has to fit on the device at once.',
+        label: 'Every thread in a barrier\'s scope must be resident to reach it: a block always is, a large grid is not.',
         correct: true,
       },
       { label: 'A grid-wide barrier needs every block to be in the same cluster, and a cluster has a size limit.', why: 'Clusters have their own barrier. The grid-wide one does not go through them.' },
@@ -695,12 +723,12 @@ export const questionsS43: Record<string, Question> = {
     prompt: <>Which habit breaks transparent scalability?</>,
     options: [
       { label: 'Asking the device for its SM count and choosing the number of blocks from it.', why: 'That tunes a launch to a device. The kernel is still correct on any other.' },
-      { label: 'Calling __syncthreads() several times in one kernel.', why: 'Barriers stay inside a block, which is the condition for scalability, not a threat to it.' },
+      { label: 'Calling __syncthreads() several times in one kernel, so that blocks stop at many barriers.', why: 'Barriers stay inside a block, which is the condition for scalability, not a threat to it.' },
       {
-        label: 'Code that assumes how many blocks run at once, or in what order: reading another block\'s output, or sizing scratch space by "blocks running now".',
+        label: 'Code that assumes how many blocks run at once, or in what order, such as reading another block\'s output.',
         correct: true,
       },
-      { label: 'Launching more blocks than the device can run at once.', why: 'That is the normal case. The runtime\'s list absorbs it.' },
+      { label: 'Launching more blocks than the device can run at once, so that some wait for a free SM.', why: 'That is the normal case. The runtime\'s list absorbs it.' },
     ],
     explain: (
       <p>
@@ -713,6 +741,10 @@ export const questionsS43: Record<string, Question> = {
     source: 'ch. 4 §4.3, pp. 73–74',
   },
 };
+
+/** Blocks in a sampling kernel's grid: one vocabulary, 256 threads per block, `perThread` elements each (ours). */
+const SAMPLE_THREADS = 256;
+const sampleBlocks = (vocabulary: number, perThread: number) => Math.ceil(vocabulary / (SAMPLE_THREADS * perThread));
 
 export function S43() {
   const q = questionsS43;
@@ -770,6 +802,10 @@ export function S43() {
           </>
         )}
       </Predict>
+      <p>
+        The timeline below takes any eight times: drag the end of a bar or type a time, and it draws when each thread
+        arrives and how long it waits.
+      </p>
       <Simplification>
         <p>
           The timeline knows only the times you give it. It says nothing about what the barrier itself costs, and real
@@ -927,15 +963,19 @@ export function S43() {
       <WavesExplorer />
       <Ask q={q['ch04/4.3/q-tail']} label="Work it out" />
       <p>
-        One case from LLM inference sits at the other end. Sampling works on a single vector the size of the
-        vocabulary, which at a few hundred threads per block is a small grid. On a large device that can be a fraction
-        of one wave: set the explorer to 100 blocks on the book's {cap}. No choice of block count fills such a device,
-        and the tail arithmetic stops being the question.
+        One case from LLM inference can sit at the other end. Sampling works on a single vector the size of the
+        vocabulary, so its grid has vocabulary ÷ (threads per block × elements per thread) blocks, rounded up. A
+        vocabulary of 32,000 at 256 threads per block and one element per thread is {sampleBlocks(32000, 1)} blocks:{' '}
+        {fmt(waves(sampleBlocks(32000, 1), cap), 2)} of a wave on the book's {cap}. Set the explorer to{' '}
+        {sampleBlocks(32000, 1)} blocks and look at the idle slots. No choice of block count fills such a device, and the
+        tail is not the question. It is not always so small: a vocabulary of 128,000 at one element per thread is{' '}
+        {sampleBlocks(128000, 1)} blocks, {fmt(waves(sampleBlocks(128000, 1), cap), 2)} waves, and the tail arithmetic
+        applies again, until each thread takes four elements and the grid is back to {sampleBlocks(128000, 4)} blocks.
       </p>
       <Beyond>
         <p>
-          Ours. The book does not discuss sampling; the observation follows from its wave count applied to a small
-          grid.
+          Ours. The book does not discuss sampling; the counts are its wave arithmetic applied to vocabularies we chose
+          as round numbers.
         </p>
       </Beyond>
       <Ask q={q['ch04/4.3/q-scal']} />
@@ -947,20 +987,23 @@ export function S43() {
       </p>
       <Beyond>
         <p>
-          Not in the book. Checked against vendor documentation on 2026-11-20 (notes/today/ch04-facts.md, A6, A7, B3,
-          B11, C3). Nothing in this table has been run on CUDA or HIP hardware by this course.
+          The table is ours, checked against vendor documentation on 2026-11-20 (notes/today/ch04-facts.md, A6, A7,
+          B3, B11, C3; ch05-facts.md C2). Nothing in this table has been run on CUDA or HIP hardware by this course.
         </p>
       </Beyond>
       <table className="data wide" style={{ maxWidth: '58rem' }} aria-label="Barriers across backends">
         <thead>
-          <tr><th>What</th><th>CUDA</th><th>HIP on AMD</th><th>Metal</th></tr>
+          <tr><th style={{ width: '18%' }}>What</th><th>CUDA</th><th>HIP on AMD</th><th>Metal</th></tr>
         </thead>
         <tbody>
           <tr>
             <td>Block-wide barrier</td>
             <td><code>__syncthreads()</code></td>
             <td>same spelling</td>
-            <td><code>threadgroup_barrier(mem_flags::mem_threadgroup)</code></td>
+            <td>
+              <code>threadgroup_barrier(mem_flags::…)</code>. The flag names the memory to order:{' '}
+              <code>mem_threadgroup</code> for threadgroup memory, <code>mem_device</code> for device buffers
+            </td>
           </tr>
           <tr>
             <td>Rule for a barrier under a condition</td>

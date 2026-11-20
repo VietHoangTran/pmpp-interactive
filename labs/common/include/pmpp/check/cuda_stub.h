@@ -231,6 +231,9 @@ int __cudaPushCallConfiguration(dim3 gridSize, dim3 blockSize, size_t sharedSize
 // ---- runtime functions, C++ forms [R group__CUDART__HIGHLEVEL] ------------------------------------------
 // (The C forms of the next six take `const void* func` / `const void* symbol`; the
 // C++ templates below are what a .cu file normally reaches.)
+// Typed allocation: the runtime reference lists template<class T> cudaMalloc(T **devPtr,
+// size_t size), so cudaMalloc(&floatPtr, bytes) compiles without a cast (ch02-facts A2).
+template <class T> __host__ cudaError_t cudaMalloc(T** devPtr, size_t size);
 template <class T> __host__ cudaError_t cudaMallocHost(T** ptr, size_t size, unsigned int flags = 0);
 template <class T> __host__ cudaError_t cudaMallocManaged(T** devPtr, size_t size, unsigned int flags = 0x01);
 template <class T> __host__ cudaError_t cudaMemcpyToSymbol(const T& symbol, const void* src, size_t count, size_t offset = 0,

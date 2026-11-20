@@ -1,0 +1,1 @@
+Part 3. The host asks for C back. That copy is queued behind the kernel, so the host waits, first for the kernel, then for 32 more bytes to cross. Then the three device arrays are freed. The caller sees only its own C, filled in.

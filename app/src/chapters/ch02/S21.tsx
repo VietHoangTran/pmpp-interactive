@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Ask, type Question } from '../../components/Ask';
 import { Aside, Bench, Beyond, Simplification, Source } from '../../components/notes';
 import { href } from '../../lib/router';
@@ -19,6 +19,7 @@ import {
   defaults,
   reads,
   shape,
+  stageItems,
   timesRead,
   underOrders,
   type Bin,
@@ -89,6 +90,23 @@ function describe(op: Op, pick: Pick, p: Params): { text: string; bad: boolean }
   };
 }
 
+/**
+ * At phone widths the drawing is wider than its panel and scrolls inside it.
+ * Keep x (in viewBox units) in view, so the picked cell is never off to the side.
+ */
+function useKeepInView(x: number, viewBoxWidth: number) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    const svg = el?.querySelector('svg');
+    if (!el || !svg || el.scrollWidth <= el.clientWidth + 1) return;
+    const px = (x / viewBoxWidth) * svg.getBoundingClientRect().width;
+    el.scrollLeft = Math.max(0, px - el.clientWidth / 2);
+  }, [x, viewBoxWidth]);
+  return ref;
+}
+
+const WRAP = { whiteSpace: 'normal' } as const;
 const VBW = 760;
 const LEFT = 104;
 const CH = 30;
@@ -206,11 +224,13 @@ function ReadExplorer() {
   const outLen = s.output.length;
   if (pick.row === 'out' && r) {
     const fromX = mid(outLen, pick.i, true);
+    // Without a combine row the inputs carry a count under each cell; stop the lines below it.
+    const below = s.combine ? 0 : 15;
     r.inputs.forEach((a) => {
       const ai = s.inputs.findIndex((x) => x.name === a.array);
       a.indices.forEach((i) =>
         lines.push(
-          <line key={`l-${a.array}-${i}`} x1={fromX} y1={outY} x2={mid(s.inputs[ai].length, i, false)} y2={inY(ai) + CH}
+          <line key={`l-${a.array}-${i}`} x1={fromX} y1={outY} x2={mid(s.inputs[ai].length, i, false)} y2={inY(ai) + CH + below}
             stroke="var(--global)" strokeWidth="1.3" opacity="0.75" />,
         ),
       );
@@ -249,6 +269,10 @@ function ReadExplorer() {
     setOp(next);
     setPicked({ row: 'out', i: Math.min(5, shape(next).output.length - 1) });
   };
+  const scroller = useKeepInView(
+    pick.row === 'combine' && s.combine ? mid(s.combine.length, pick.i, true) : mid(outLen, pick.i, true),
+    VBW,
+  );
 
   return (
     <Bench
@@ -266,7 +290,8 @@ function ReadExplorer() {
         </div>
         <div className="row" style={{ marginBottom: '0.6rem', minHeight: '2.4rem' }}>
           <span>
-            <span className="muted">for each k:</span> <code data-out="body">{OP_BODY[op]}</code>
+            {s.output.length > 1 ? <span className="muted">for each k: </span> : null}
+            <code data-out="body">{OP_BODY[op]}</code>
             {OP_NOTE[op] ? <span className="muted"> ({OP_NOTE[op]})</span> : null}
           </span>
           {op === 'blur' ? (
@@ -292,7 +317,7 @@ function ReadExplorer() {
           ) : null}
         </div>
 
-        <div className="panel" style={{ overflowX: 'auto' }}>
+        <div className="panel" style={{ overflowX: 'auto' }} ref={scroller}>
           <svg viewBox={`0 0 ${VBW} ${height}`} role="group" aria-label={`Cells of ${OP_LABEL[op]}: inputs above, outputs below`}
             style={{ width: '100%', minWidth: 620, maxWidth: VBW, display: 'block' }}>
             <defs>
@@ -368,21 +393,21 @@ function ReadExplorer() {
             <table className="threads">
               <tbody>
                 <tr>
-                  <td>Inputs it reads itself</td>
+                  <td style={WRAP}>Inputs it reads itself</td>
                   <td>
                     <output data-out="inputs">{c ? c.inputs : combineReads(op, pick.i, p).indices.length}</output>
                   </td>
                 </tr>
                 {s.combine ? (
                   <tr>
-                    <td>Combined values needed first</td>
+                    <td style={WRAP}>Combined values needed first</td>
                     <td>
                       <output data-out="combines">{c ? c.combines : 0}</output>
                     </td>
                   </tr>
                 ) : null}
                 <tr>
-                  <td>Outputs needed first</td>
+                  <td style={WRAP}>Outputs needed first</td>
                   <td>
                     <output data-out="outputs-first" className={c && c.outputsFirst ? 't-fail' : undefined}>
                       {c ? c.outputsFirst : 0}
@@ -390,13 +415,13 @@ function ReadExplorer() {
                   </td>
                 </tr>
                 <tr>
-                  <td>Shape of the operation</td>
-                  <td>
+                  <td style={WRAP}>Shape of the operation</td>
+                  <td style={WRAP}>
                     <output data-out="bin" data-bin={bin}>{BIN_LABEL[bin]}</output>
                   </td>
                 </tr>
                 <tr>
-                  <td>One thread per output, {orders.length} thread orders</td>
+                  <td style={WRAP}>One thread per output, {orders.length} thread orders</td>
                   <td>
                     <output data-out="orders" data-match={allMatch ? 'all' : 'some'}>
                       {allMatch ? (
@@ -472,9 +497,10 @@ const PLACED: Record<string, (it: DecodeItem) => ReactNode> = {
   ),
   softmax: (it) => (
     <>
-      Each output reads {it.deps.reads(50000)} logit of its own and needs {it.deps.combines} value combined from the
-      whole vocabulary first, the sum of the exponentials. That sum is a reduction: {course('ch10', 'chapter 10')},
-      milestone M4.
+      Each output reads {it.deps.reads(50000)} logit of its own and needs {it.deps.combines} values combined from the
+      whole vocabulary first: the largest logit m, subtracted before the exponential so that no exponential
+      overflows, and then the sum of the exponentials. Each is a reduction: {course('ch10', 'chapter 10')},
+      milestone M4. The explorer above uses the plain formula, which needs only the sum.
     </>
   ),
   argmax: (it) => (
@@ -500,9 +526,9 @@ const PLACED: Record<string, (it: DecodeItem) => ReactNode> = {
   ),
   genloop: () => (
     <>
-      Token t is computed from tokens 0 to t − 1, so no kernel can run step t before step t − 1 has finished. Kernels
-      make each step faster. {course('ch20', 'Chapter 20')} covers what can be kept between steps and how to batch
-      across sequences.
+      Token t is computed from tokens 0 to t − 1, so no kernel can run step t before step t − 1 has finished. This
+      is the loop around the step, not an operation inside it: kernels make each step faster, and the steps stay in
+      order. {course('ch20', 'Chapter 20')} covers what can be kept between steps and how to batch across sequences.
     </>
   ),
 };
@@ -543,10 +569,13 @@ function SortDecodeStep() {
   const [picks, setPicks] = useState<Record<string, Bin | undefined>>({});
   const placed = DECODE_ITEMS.filter((it) => picks[it.id] === classifyDeps(it.deps)).length;
   const tally = binCounts();
+  const forward = stageItems('forward').length;
+  const sampling = stageItems('sampling').length;
+  const inForward = binCounts('forward');
   return (
     <Bench
       title="Sort a decode step"
-      task="Eleven operations of one decode step. Put each in the bin that describes what one of its outputs needs."
+      task={`Eleven items from one decode step, in order: ${forward} operations of the forward pass, ${sampling} of sampling, and the loop around the step. Put each in the bin that describes what one of its outputs needs.`}
       foot="The list and the sorting are ours, not the book's. The numbers in the feedback come from the same dependency model as the explorer above."
     >
       <div data-sort>
@@ -564,7 +593,7 @@ function SortDecodeStep() {
         </div>
         <div className="panel">
           <div className="row" style={{ justifyContent: 'space-between', marginBottom: '0.2rem' }}>
-            <b>Eleven operations</b>
+            <b>Eleven items</b>
             <span className="muted" data-sort-score>
               {placed} of {DECODE_ITEMS.length} placed
             </span>
@@ -613,9 +642,12 @@ function SortDecodeStep() {
           <div className="panel" style={{ marginTop: '0.8rem' }} data-sort-done>
             <p style={{ margin: 0 }}>
               <b>All eleven placed.</b> Count the bins: {tally.elementwise} per element, {tally.manyreads} with many
-              reads, {tally.combine} that combine first, {tally.chain} chains. By number of operations, most of a
-              forward pass is the kernel shape of this chapter. The one operation in the second bin is where the time
-              goes, and it takes three chapters. Sampling is where the last two bins live.
+              reads, {tally.combine} that combine first, {tally.chain} chains. Of the {forward} operations inside the
+              forward pass, {inForward.elementwise} are per element: by number of operations, most of the forward pass
+              is the kernel shape of this chapter. The one operation with many reads, the matmul, is where the time
+              goes, and it takes three chapters. The combine bin holds the reductions: layer norm inside the forward
+              pass, and the softmax and argmax of sampling. The chain bin holds the running sum for top-p and the
+              generation loop, which is the loop around the step rather than an operation inside it.
             </p>
           </div>
         ) : null}
@@ -642,8 +674,12 @@ export const questionsS21: Record<string, Question> = {
       },
       {
         label: 'No iteration reads a location that another iteration writes.',
+        why: 'Only half of it. The loop for i: m = x[i] meets it, since nothing it reads is written, yet every iteration writes m, and the value left there depends on which thread ran last.',
+      },
+      {
+        label: 'Each iteration writes only locations that no other iteration reads or writes.',
         correct: true,
-        why: 'Then no thread can see a value that depends on when another thread ran.',
+        why: 'Then nothing a thread reads can change under it, and nothing it writes can be overwritten, so the result cannot depend on when any thread ran.',
       },
       {
         label: 'Every iteration does the same amount of work.',
@@ -658,7 +694,9 @@ export const questionsS21: Record<string, Question> = {
       <p>
         In the book's picture every output has its own arrows from the input and no arrow runs from one output to
         another. Reads may overlap as much as they like, because a read changes nothing. The condition is about
-        writes: each iteration writes only its own output, and nothing it reads is written by another iteration.
+        writes, and it has two halves: each iteration writes only its own output, and nothing it reads is written by
+        another iteration. Drop the first half and two threads can write the same location, so the last one to run
+        decides what stays there.
       </p>
     ),
     source: '§2.1, pp. 21–23 (Fig. 2.2); the wording of the test is ours',
@@ -861,8 +899,8 @@ export function S21() {
         a matrix-vector multiplication: two tasks, and task parallelism if the two can run independently. Data
         transfers and I/O are tasks as well. Of the two kinds, the book says data parallelism is the main source of
         speed and of scalability. It grows with the data: twice the pixels is twice the independent work, while the
-        number of tasks stays what it was. In your world, a batch is data parallelism, and tokenising the next
-        request while the previous step runs on the GPU is task parallelism.
+        number of tasks stays what it was. In inference terms (our example, not the book's), a batch is data
+        parallelism, and tokenising the next request while the previous step runs on the GPU is task parallelism.
       </p>
       <Source section="2.1" pages="23" />
 

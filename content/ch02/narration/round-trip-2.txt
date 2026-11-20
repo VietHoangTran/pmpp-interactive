@@ -1,0 +1,1 @@
+To use the device, the data has to be in its memory. Three allocations appear there. Nobody cleared them, so their contents are unknown. The host now holds three addresses, one for each array. It can hand them to the runtime and to a kernel. It cannot read through them itself.

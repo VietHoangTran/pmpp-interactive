@@ -1,0 +1,1 @@
+Nobody hands a thread its i. Each thread is given 2 numbers instead: the index of its block, and its own index inside that block. Block index times 4, plus thread index. Block 0, thread 1 gives 1. Block 1, thread 2 gives 6. Block 2, thread 3 gives 11.

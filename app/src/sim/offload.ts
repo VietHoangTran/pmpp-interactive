@@ -7,7 +7,9 @@
 //   run(program, upTo, env)   the state of both memories after `upTo` calls
 //   mutate(program, defect)   the same stub with exactly one defect
 //   outcome(defect, env)      what that defect produces, classified
+//   lanes(program)            who waits for whom: host and device, call by call
 //   boundaryTraffic(...)      transfers and bytes for a chain of elementwise ops
+//   phaseTimes / chainTimes   reading the reader's own lab 2.2 and 2.3 benchmark rows
 //
 // What the model is faithful about: which bytes are where after each call, how
 // many of them crossed between host memory and device memory, which calls make
@@ -444,8 +446,9 @@ function exec(w: Work, p: Program, call: Call, step: number, env: Env) {
       if (!matches && env !== 'emu') {
         // "dst and src pointers that do not match the direction of the copy results in an undefined behavior"
         note(w, step, 'undefined-per-docs', 'the pointers do not match the copy kind', env);
-        const d = o.dst.side === 'device' ? w.device[o.dst.array] : null;
-        if (d) d.cells.fill('undetermined');
+        // After undefined behaviour neither array the call was handed has known contents.
+        dst?.fill('undetermined');
+        src?.fill('undetermined');
         w.says = 'The destination is a device pointer and the source a host pointer, but the kind says device to host. The documentation calls that undefined behaviour and promises no error code.';
         return;
       }
@@ -549,6 +552,8 @@ function pointersOf(w: Work, p: Program): PointerVar[] {
 function hostReadOf(w: Work, p: Program): HostRead {
   if (p.memory === 'separate') {
     const values = w.host!.C.slice();
+    if (w.finding?.kind === 'undefined-per-docs')
+      return { status: 'stale', values, why: 'A call with undefined behaviour was handed C_h. Nothing about its contents is known after that.' };
     if (w.copiedBack === 'no')
       return {
         status: 'impossible', values,
@@ -622,6 +627,28 @@ export function run(p: Program, upTo: number = p.calls.length, env: Env = p.back
 /** What the caller ends up holding: C_h, or the contents of buffer C when the data lives in buffers. */
 export function result(s: State): Cell[] {
   return s.host ? s.host.C : s.consumed ?? s.device.C?.cells ?? [];
+}
+
+/** One call of the stub on the two lanes of a timeline: the host thread and the device. */
+export interface LaneStep {
+  id: string;
+  group: Group;
+  /** What the host thread does during this call. */
+  host: 'running' | 'blocked';
+  /** Device work that finishes while the host is inside this call. */
+  finishes: string[];
+  /** Device work issued and still not waited for when the call returns. */
+  pending: string[];
+  /** Bytes that have crossed (separate memory) or been copied (shared memory) once the call returns. */
+  bytesMoved: number;
+}
+
+/** Who waits for whom, call by call. The model has no durations: this is order only. */
+export function lanes(p: Program, env: Env = p.backend): LaneStep[] {
+  return p.calls.map((c, i) => {
+    const s = run(p, i + 1, env);
+    return { id: c.id, group: c.group, host: s.hostThread, finishes: s.ran, pending: s.queue, bytesMoved: s.bytesMoved };
+  });
 }
 
 // ---------------------------------------------------------------- defects
@@ -836,10 +863,18 @@ export function outcome(defect: Defect, env: Env, n: number = N): Outcome {
   };
 }
 
-// ---------------------------------------------------------------- lab 2.2 phases
+// ---------------------------------------------------------------- lab 2.2 and 2.3 benchmark rows
+// The lessons show the reader's own measurements beside the model and never a
+// modelled time. These helpers only read benchmark rows (reports/runs/*.json).
+type Row = Record<string, string | number>;
+
 /**
  * Which step group a benchmark column belongs to, by its name. Lab 2.2 reports
  * one time per phase of the stub; the stepper shows each beside its steps.
+ *   CUDA, HIP:  alloc_s, h2d_s, kernel_s, d2h_s, free_s
+ *   Metal:      wrap_s (create the buffers and copy the inputs in), encode_s,
+ *               wait_s, readback_s
+ * total_s, gpu_s (the GPU time inside the wait) and the percentages are not phases.
  */
 export function groupOfKey(key: string): Group | null {
   const k = key.toLowerCase();
@@ -847,10 +882,52 @@ export function groupOfKey(key: string): Group | null {
   if (/free/.test(k)) return 'free';
   if (/alloc|malloc|newbuffer/.test(k)) return 'allocate';
   if (/d2h|back|out|download|todevicehost/.test(k)) return 'copy back';
-  if (/h2d|copy_in|copyin|upload|in_ms$|^in_/.test(k)) return 'copy in';
-  if (/kernel|launch|compute|wait/.test(k)) return 'launch';
+  if (/h2d|copy_?in|upload|wrap|(^|_)in_/.test(k)) return 'copy in';
+  if (/wait|sync/.test(k)) return 'wait';
+  if (/kernel|launch|compute|encode|commit/.test(k)) return 'launch';
   if (/fill/.test(k)) return 'fill';
+  if (/read/.test(k)) return 'read';
   return null;
+}
+
+/** A time column's value in seconds, from the unit its name ends with; null when it is not a time. */
+export function toSeconds(key: string, value: unknown): number | null {
+  if (typeof value !== 'number' || !isFinite(value) || value < 0) return null;
+  const k = key.toLowerCase();
+  if (/_us$/.test(k)) return value * 1e-6;
+  if (/(_ms|ms)$/.test(k)) return value * 1e-3;
+  if (/(_s|seconds)$/.test(k)) return value;
+  return null;
+}
+
+/** Seconds per step group from one 'phases' row of lab 2.2. Columns of the same group add up. */
+export function phaseTimes(row: Row): Partial<Record<Group, number>> {
+  const out: Partial<Record<Group, number>> = {};
+  for (const [key, value] of Object.entries(row)) {
+    const g = groupOfKey(key);
+    const s = toSeconds(key, value);
+    if (g == null || s == null) continue;
+    out[g] = (out[g] ?? 0) + s;
+  }
+  return out;
+}
+
+/**
+ * The two times of one 'chain' row of lab 2.3, in seconds: the chain with its
+ * data kept on the device, and the same chain as one round trip per operation.
+ * Null unless the row has both.
+ */
+export function chainTimes(row: Row): { resident: number; roundTrips: number } | null {
+  let resident: number | null = null;
+  let roundTrips: number | null = null;
+  for (const [key, value] of Object.entries(row)) {
+    const s = toSeconds(key, value);
+    if (s == null) continue;
+    const k = key.toLowerCase();
+    if (/resident/.test(k)) resident = s;
+    else if (/round|trip|transparent/.test(k)) roundTrips = s;
+  }
+  return resident != null && roundTrips != null ? { resident, roundTrips } : null;
 }
 
 // ---------------------------------------------------------------- boundary traffic

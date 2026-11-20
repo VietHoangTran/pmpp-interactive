@@ -221,6 +221,10 @@ describe('find the n that breaks it', () => {
     expect(verdict('plus-one', 255, 256).wastes).toBe(false);
     expect(verdict('plus-one', 256, 256)).toMatchObject({ blocks: 2, passes: true, wastes: true });
   });
+  it('a test at n = 1024 cannot tell any of the three from the right count', () => {
+    expect((['trunc', 'ceil-trunc', 'plus-one'] as ExprKey[]).map((k) => verdict(k, 1024, 256).passes)).toEqual([true, true, true]);
+    expect((['trunc', 'ceil-trunc', 'plus-one'] as ExprKey[]).map((k) => verdict(k, 1024, 256).blocks)).toEqual([4, 4, 5]);
+  });
   it('the right forms never fail and never waste', () => {
     for (const key of ['int-ceil', 'book-ceil'] as ExprKey[]) {
       expect(smallestFailing(key, 256, 5000)).toBeNull();
@@ -300,6 +304,31 @@ describe('order and concurrency', () => {
     expect(run.after[0].slice(8, 16).every(Number.isNaN)).toBe(true);
     expect(run.final.length).toBe(22);
     expect(run.matches).toBe(true);
+  });
+  it("the explorer's whole range: 24 settings, the independent kernel the same in all, the chained one in exactly 1", () => {
+    // Section 2.6, "Any order, any device": blocks of 2, 3 or 4 threads, 4 to 12 blocks, at most 32 elements.
+    for (const B of [2, 3, 4])
+      for (let n = 3 * B + 1; n <= Math.min(12 * B, 32); n++) {
+        const blocks = ceilDiv(n, B);
+        expect(blocks).toBeGreaterThanOrEqual(4);
+        expect(blocks).toBeLessThanOrEqual(12);
+        const d = makeData(n, B);
+        for (const seed of [1, 2, 3, 4, 5]) {
+          let same = 0;
+          let chainedSame = 0;
+          for (const order of ORDERS)
+            for (let S = 1; S <= 8; S++) {
+              const s = schedule(blocks, S, order, seed);
+              if (runKernel('independent', s, d).matches) same++;
+              if (runKernel('chained', s, d).matches) {
+                chainedSame++;
+                expect([order, S]).toEqual(['ascending', 1]);
+              }
+            }
+          expect(same).toBe(24);
+          expect(chainedSame).toBe(1);
+        }
+      }
   });
   it('all orders of a few blocks', () => {
     expect(permutations(3).length).toBe(6);

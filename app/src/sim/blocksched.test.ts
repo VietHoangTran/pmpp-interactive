@@ -124,6 +124,11 @@ describe('levels in each vendor\'s words', () => {
     expect(row(d, 'device')).toMatchObject({ name: 'MTLDevice', count: 1, provenance: 'reported' });
     expect(row(d, 'onchip').name).toBe('threadgroup memory');
   });
+  it('a row without a vendor name still says which of the book\'s levels it stands for', () => {
+    const ls = levels(deviceFromReport('metal', { name: 'Apple GPU' }));
+    expect(ls.filter((l) => l.name == null).map((l) => l.bookName)).toEqual(['GPC', 'SM', 'processing block', 'streaming processor']);
+    expect(levels(BOOK_DEVICE).every((l) => l.bookName.length > 0)).toBe(true);
+  });
 });
 
 describe('waves, in closed form (pp. 73-74)', () => {

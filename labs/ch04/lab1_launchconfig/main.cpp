@@ -86,7 +86,7 @@ struct Layer {
     for (size_t i = n; i < got.size(); ++i) past += !(got[i] == kCanary);
     auto add = [&](const std::string& s) { msg += (msg.empty() ? "" : "; ") + s; };
     if (unwritten) add(std::to_string(unwritten) + " of " + std::to_string(n) + " outputs were never written");
-    if (past) add(std::to_string(past) + " values were stored past the end of Y");
+    if (past) add(std::to_string(past) + (past == 1 ? " value was" : " values were") + " stored past the end of Y");
     return msg;
   }
 };
@@ -127,10 +127,37 @@ void encodeProbe(id<MTLComputeCommandEncoder>, id<MTLComputePipelineState>, id<M
 static id<MTLComputePipelineState> linearPipeline() { return pmpp::metal::pipeline(PMPP_METAL_SOURCE, "linear_layer"); }
 static id<MTLComputePipelineState> probePipeline() { return pmpp::metal::pipeline(PMPP_METAL_SOURCE, "simd_probe"); }
 
+// linear_layer compiled a second time with its thread limit set to `limit`
+// through the pipeline descriptor (MTLComputePipelineDescriptor's
+// maxTotalThreadsPerThreadgroup, notes/today/ch04-facts.md C5). Its limit then
+// differs from the device's maxThreadsPerThreadgroup, so code that reads the
+// device where the pipeline was meant fails the tests on any machine. nil if
+// Metal does not build it.
+static id<MTLComputePipelineState> limitedLinearPipeline(NSUInteger limit) {
+  static std::map<NSUInteger, id<MTLComputePipelineState>> cache;
+  auto it = cache.find(limit);
+  if (it != cache.end()) return it->second;
+  id<MTLDevice> dev = pmpp::metal::device();
+  NSError* err = nil;
+  NSString* src = [NSString stringWithContentsOfFile:[NSString stringWithUTF8String:PMPP_METAL_SOURCE]
+                                            encoding:NSUTF8StringEncoding error:&err];
+  id<MTLLibrary> lib = src ? [dev newLibraryWithSource:src options:[MTLCompileOptions new] error:&err] : nil;
+  id<MTLFunction> fn = lib ? [lib newFunctionWithName:@"linear_layer"] : nil;
+  id<MTLComputePipelineState> pso = nil;
+  if (fn) {
+    MTLComputePipelineDescriptor* desc = [MTLComputePipelineDescriptor new];
+    desc.computeFunction = fn;
+    desc.maxTotalThreadsPerThreadgroup = limit;
+    pso = [dev newComputePipelineStateWithDescriptor:desc options:MTLPipelineOptionNone reflection:nil error:&err];
+  }
+  cache[limit] = pso;
+  return pso;
+}
+
 // Your encodeLinear, `repeat` times in one compute pass. `used` receives the
 // threadgroup size it returned.
-static pmpp::Timing runDerived(Layer& L, int repeat, MTLSize* used) {
-  auto pso = linearPipeline();
+static pmpp::Timing runDerived(Layer& L, int repeat, MTLSize* used, id<MTLComputePipelineState> pso = nil) {
+  if (!pso) pso = linearPipeline();
   if (!pso) return {0, 0};
   return pmpp::run([&](void* v) {
     auto* pass = (pmpp::metal::Pass*)v;
@@ -264,10 +291,21 @@ static int tests(const pmpp::Args& a) {
     return t.finish();
   }
 
-  t.check("queryMetal: every field equals the driver's own reading (pipeline: linear_layer)", [&]() -> std::string {
+  // The pipelines the tests hand to your code: the two kernels of kernel.metal,
+  // and linear_layer again with its limit set to two widths, below the device's.
+  struct Pipe { id<MTLComputePipelineState> pso; std::string label; };
+  std::vector<Pipe> pipes = {{lin, "linear_layer"}, {probe, "simd_probe"}};
+  id<MTLComputePipelineState> limited = limitedLinearPipeline(2 * lin.threadExecutionWidth);
+  if (limited && limited.maxTotalThreadsPerThreadgroup < dev.maxThreadsPerThreadgroup.width)
+    pipes.push_back({limited, "linear_layer with its limit set to " + std::to_string(limited.maxTotalThreadsPerThreadgroup) +
+                                  " threads, below the device's"});
+  std::string names;
+  for (const Pipe& p : pipes) names += (names.empty() ? "" : "; ") + p.label;
+
+  t.check("queryMetal: every field equals the driver's own reading (pipelines: " + names + ")", [&]() -> std::string {
     std::string msg;
-    id<MTLComputePipelineState> both[2] = {lin, probe};   // two pipelines: the last two fields must follow the argument
-    for (id<MTLComputePipelineState> pso : both) {
+    for (const Pipe& pipe : pipes) {   // the last two fields must follow the pipeline argument
+      id<MTLComputePipelineState> pso = pipe.pso;
       MetalInfo m = queryMetal(dev, pso);
       m.name[sizeof(m.name) - 1] = '\0';
       auto num = [&](const char* field, unsigned long yours, unsigned long mine) {
@@ -281,31 +319,36 @@ static int tests(const pmpp::Args& a) {
       num("hasUnifiedMemory", m.hasUnifiedMemory, dev.hasUnifiedMemory);
       num("threadExecutionWidth", m.threadExecutionWidth, pso.threadExecutionWidth);
       num("maxTotalThreadsPerThreadgroup", m.maxTotalThreadsPerThreadgroup, pso.maxTotalThreadsPerThreadgroup);
-      if (!msg.empty()) break;
+      if (!msg.empty()) { msg = "pipeline " + pipe.label + ": " + msg; break; }
     }
     return msg;
   });
 
-  for (const LayerShape& s : kTestLayers) {
-    char name[200];
-    std::snprintf(name, sizeof name, "encodeLinear: batch %d, %d inputs, %d outputs  (%s)", s.batch, s.in, s.out, s.why);
-    t.check(name, [&]() -> std::string {
-      Layer L(s.batch, s.in, s.out, 4100 + s.batch * 31 + s.out);
-      MTLSize tg = MTLSizeMake(0, 0, 0);
-      runDerived(L, 1, &tg);
-      std::string msg = L.check();
-      char shape[96];
-      std::snprintf(shape, sizeof shape, "threadgroup %lu x %lu x %lu", (unsigned long)tg.width, (unsigned long)tg.height,
-                    (unsigned long)tg.depth);
-      const NSUInteger n = tg.width * tg.height * tg.depth, width = lin.threadExecutionWidth, most = lin.maxTotalThreadsPerThreadgroup;
-      auto rule = [&](const char* r, const std::string& why) { append(msg, std::string(shape) + ": rule \"" + r + "\": " + why); };
-      if (n == 0) { append(msg, std::string(shape) + ": encodeLinear returned an empty threadgroup size"); return msg; }
-      if (n > most) rule("within maxTotalThreadsPerThreadgroup", std::to_string(n) + " threads, the pipeline allows " + std::to_string(most));
-      if (n % width != 0) rule("multiple of threadExecutionWidth", std::to_string(n) + " threads, the width is " + std::to_string(width));
-      if (tg.height > (NSUInteger)s.batch) rule("no taller than the rows", std::to_string(tg.height) + " rows of threads for " + std::to_string(s.batch) + " rows of Y");
-      if (tg.depth != 1) rule("two-dimensional", "depth must be 1");
-      return msg;
-    });
+  for (const Pipe& pipe : pipes) {
+    if (pipe.pso == probe) continue;
+    for (const LayerShape& s : kTestLayers) {
+      char name[300];
+      std::snprintf(name, sizeof name, "encodeLinear, pipeline %s: batch %d, %d inputs, %d outputs  (%s)", pipe.label.c_str(),
+                    s.batch, s.in, s.out, s.why);
+      t.check(name, [&]() -> std::string {
+        Layer L(s.batch, s.in, s.out, 4100 + s.batch * 31 + s.out);
+        MTLSize tg = MTLSizeMake(0, 0, 0);
+        runDerived(L, 1, &tg, pipe.pso);
+        std::string msg = L.check();
+        char shape[96];
+        std::snprintf(shape, sizeof shape, "threadgroup %lu x %lu x %lu", (unsigned long)tg.width, (unsigned long)tg.height,
+                      (unsigned long)tg.depth);
+        const NSUInteger n = tg.width * tg.height * tg.depth, width = pipe.pso.threadExecutionWidth,
+                         most = pipe.pso.maxTotalThreadsPerThreadgroup;
+        auto rule = [&](const char* r, const std::string& why) { append(msg, std::string(shape) + ": rule \"" + r + "\": " + why); };
+        if (n == 0) { append(msg, std::string(shape) + ": encodeLinear returned an empty threadgroup size"); return msg; }
+        if (n > most) rule("within maxTotalThreadsPerThreadgroup", std::to_string(n) + " threads, the pipeline allows " + std::to_string(most));
+        if (n % width != 0) rule("multiple of threadExecutionWidth", std::to_string(n) + " threads, the width is " + std::to_string(width));
+        if (tg.height > (NSUInteger)s.batch) rule("no taller than the rows", std::to_string(tg.height) + " rows of threads for " + std::to_string(s.batch) + " rows of Y");
+        if (tg.depth != 1) rule("two-dimensional", "depth must be 1");
+        return msg;
+      });
+    }
   }
 
   // The probe. Shapes are sized from the probe pipeline's own width and limit.
@@ -356,7 +399,18 @@ static int bench(const pmpp::Args& a) {
   // ---- the linear layer of lab 5.3, derived against fixed ----
   const int in = 1024, out = 4096;
   std::printf("linear layer %d -> %d, best of %d runs\n", in, out, a.reps);
-  std::printf("  %5s  %-22s %-14s %12s %10s\n", "batch", "configuration", "threadgroup", "time (ms)", "GFLOP/s");
+  std::printf("  %5s  %-22s %-14s %-16s %12s %10s\n", "batch", "configuration", "threadgroup", "threadgroups", "time (ms)", "GFLOP/s");
+  // The grid is given to dispatchThreads in threads (out x batch). The number of
+  // threadgroups Metal makes of it, partial ones at the edges included, is the
+  // counterpart of a CUDA grid.
+  auto groups = [&](NSUInteger tw, NSUInteger th, int batch, std::string* text) {
+    if (tw == 0 || th == 0) { *text = "?"; return std::make_pair(0ul, 0ul); }
+    const unsigned long gx = (out + tw - 1) / tw, gy = (batch + th - 1) / th;
+    char b[40];
+    std::snprintf(b, sizeof b, "%lu x %lu", gx, gy);
+    *text = b;
+    return std::make_pair(gx, gy);
+  };
   for (int batch : {1, 64}) {
     Layer L(batch, in, out, 4000 + batch);
     const bool fixedFits = lin.maxTotalThreadsPerThreadgroup >= 256;
@@ -385,16 +439,21 @@ static int bench(const pmpp::Args& a) {
     }
     char shape[48];
     std::snprintf(shape, sizeof shape, "%lu x %lu", (unsigned long)tg.width, (unsigned long)tg.height);
-    std::printf("  %5d  %-22s %-14s %12.4f %10.2f\n", batch, "derived (yours)", shape, derived * 1e3, L.flop() / derived / 1e9);
+    std::string gridText;
+    const auto g = groups(tg.width, tg.height, batch, &gridText);
+    std::printf("  %5d  %-22s %-14s %-16s %12.4f %10.2f\n", batch, "derived (yours)", shape, gridText.c_str(), derived * 1e3,
+                L.flop() / derived / 1e9);
     pmpp::bench_row(a, "linear").s("config", "derived").n("batch", batch).n("in", in).n("out", out)
-        .n("block_x", (double)tg.width).n("block_y", (double)tg.height).n("launches_per_run", repeat)
-        .n("seconds", derived).n("gflops", L.flop() / derived / 1e9).emit();
+        .n("block_x", (double)tg.width).n("block_y", (double)tg.height).n("grid_x", (double)g.first).n("grid_y", (double)g.second)
+        .n("launches_per_run", repeat).n("seconds", derived).n("gflops", L.flop() / derived / 1e9).emit();
     if (!fixedFits) { std::printf("  %5d  fixed 16 x 16 skipped: this pipeline allows fewer than 256 threads per threadgroup\n", batch); continue; }
-    std::printf("  %5d  %-22s %-14s %12.4f %10.2f\n", batch, "fixed", "16 x 16", fixed * 1e3, L.flop() / fixed / 1e9);
+    const auto gf = groups(16, 16, batch, &gridText);
+    std::printf("  %5d  %-22s %-14s %-16s %12.4f %10.2f\n", batch, "fixed", "16 x 16", gridText.c_str(), fixed * 1e3,
+                L.flop() / fixed / 1e9);
     std::printf("  %5s  derived is %.2fx the speed of fixed 16 x 16\n", "", fixed / derived);
     pmpp::bench_row(a, "linear").s("config", "fixed16").n("batch", batch).n("in", in).n("out", out)
-        .n("block_x", 16).n("block_y", 16).n("launches_per_run", repeat)
-        .n("seconds", fixed).n("gflops", L.flop() / fixed / 1e9).emit();
+        .n("block_x", 16).n("block_y", 16).n("grid_x", (double)gf.first).n("grid_y", (double)gf.second)
+        .n("launches_per_run", repeat).n("seconds", fixed).n("gflops", L.flop() / fixed / 1e9).emit();
     pmpp::bench_row(a, "speedup").n("batch", batch).n("derived_over_fixed", fixed / derived).emit();
   }
   std::printf("  (dispatchThreads clips a threadgroup at the edge of the grid: at batch 1 a 16 x 16 request runs as 16 x 1)\n");
@@ -501,9 +560,21 @@ static std::string brokenRules(const DeviceInfo& d, int rows, int cols, const La
   return msg.empty() ? msg : shapeText(s) + ": " + msg;
 }
 
+// Whether any block within the device's limits satisfies every rule for this
+// problem. Found by trying them all, each with the smallest grid that covers
+// the problem, so the expected answer does not depend on any one strategy.
+static bool configurationExists(const DeviceInfo& d, int rows, int cols) {
+  for (int h = 1; h <= rows && h <= d.maxThreadsDim[1] && h <= d.maxThreadsPerBlock; ++h)
+    for (int w = 1; w <= d.maxThreadsDim[0] && (long long)w * h <= d.maxThreadsPerBlock; ++w) {
+      const LaunchShape s = {{(unsigned)((cols + w - 1) / w), (unsigned)((rows + h - 1) / h), 1u}, {(unsigned)w, (unsigned)h, 1u}};
+      if (brokenRules(d, rows, cols, s).empty()) return true;
+    }
+  return false;
+}
+
 // Descriptions of devices nobody has to own. The numbers are chosen to
 // exercise one rule each; none describes a product.
-struct Synthetic { const char* label; DeviceInfo d; bool impossible; };
+struct Synthetic { const char* label; DeviceInfo d; };
 static DeviceInfo synthetic(int warp, int perBlock, int dimX, int dimY, int dimZ, int threadSlots, int blockSlots,
                             int gridX, int gridY, int gridZ) {
   DeviceInfo d;
@@ -560,43 +631,50 @@ static int tests(const pmpp::Args& a) {
   const int kMaxX = 2147483647, kMaxYZ = 65535;   // large enough never to bind
   const std::vector<Synthetic> devices = {
       {"width 32, 1024 threads per block, 2048 thread slots, 32 block slots (the book's example limits)",
-       synthetic(32, 1024, 1024, 1024, 64, 2048, 32, kMaxX, kMaxYZ, kMaxYZ), false},
+       synthetic(32, 1024, 1024, 1024, 64, 2048, 32, kMaxX, kMaxYZ, kMaxYZ)},
       {"width 32, 1024 threads per block, 1536 thread slots, 16 block slots",
-       synthetic(32, 1024, 1024, 1024, 64, 1536, 16, kMaxX, kMaxYZ, kMaxYZ), false},
+       synthetic(32, 1024, 1024, 1024, 64, 1536, 16, kMaxX, kMaxYZ, kMaxYZ)},
       {"width 64, 256 threads per block, 2048 thread slots, 32 block slots",
-       synthetic(64, 256, 256, 256, 256, 2048, 32, kMaxX, kMaxYZ, kMaxYZ), false},
+       synthetic(64, 256, 256, 256, 256, 2048, 32, kMaxX, kMaxYZ, kMaxYZ)},
       {"width 32, maxThreadsDim 128 x 128 x 64 under a 1024-thread limit, 2048 thread slots, 32 block slots",
-       synthetic(32, 1024, 128, 128, 64, 2048, 32, kMaxX, kMaxYZ, kMaxYZ), false},
+       synthetic(32, 1024, 128, 128, 64, 2048, 32, kMaxX, kMaxYZ, kMaxYZ)},
+      {"width 32, maxThreadsDim 32 x 8 x 64 under a 1024-thread limit, 2048 thread slots, 32 block slots: one row cannot fill the slots",
+       synthetic(32, 1024, 32, 8, 64, 2048, 32, kMaxX, kMaxYZ, kMaxYZ)},
       {"width 32, 1024 threads per block, thread slots and block slots not reported (0)",
-       synthetic(32, 1024, 1024, 1024, 64, 0, 0, kMaxX, kMaxYZ, kMaxYZ), false},
+       synthetic(32, 1024, 1024, 1024, 64, 0, 0, kMaxX, kMaxYZ, kMaxYZ)},
+      {"width 64, 1024 threads per block, thread slots and block slots not reported (0)",
+       synthetic(64, 1024, 1024, 1024, 64, 0, 0, kMaxX, kMaxYZ, kMaxYZ)},
       {"width 32, 1024 threads per block, 1536 thread slots, block slots not reported (0)",
-       synthetic(32, 1024, 1024, 1024, 64, 1536, 0, kMaxX, kMaxYZ, kMaxYZ), false},
-      {"width 32, 1024 threads per block, grid limit 2 x 2 x 1: no configuration exists",
-       synthetic(32, 1024, 1024, 1024, 64, 2048, 32, 2, 2, 1), true},
+       synthetic(32, 1024, 1024, 1024, 64, 1536, 0, kMaxX, kMaxYZ, kMaxYZ)},
+      {"width 32, 1024 threads per block, grid limit 2 x 2 x 1: only the smallest problem fits",
+       synthetic(32, 1024, 1024, 1024, 64, 2048, 32, 2, 2, 1)},
   };
   struct Problem { int rows, cols; };
   const Problem problems[] = {{1, 4096}, {3, 40}, {64, 4096}, {1000, 1000}};
   for (const Synthetic& dev : devices) {
     t.check(std::string("chooseLaunch: ") + dev.label, [&]() -> std::string {
       std::string msg;
-      int refused = 0, asked = 0;
+      int refused = 0, possible = 0;
       for (const Problem& p : problems) {
-        if (dev.impossible && p.rows == 3) continue;   // 3 x 40 does fit in a 2 x 2 grid; the other three do not
-        ++asked;
         char what[48];
         std::snprintf(what, sizeof what, "%d x %d: ", p.rows, p.cols);
         LaunchShape s;
         std::memset(&s, 0, sizeof s);
         const bool ok = chooseLaunchShape(dev.d, p.rows, p.cols, &s);
-        if (dev.impossible) {
-          if (ok) append(msg, std::string(what) + "returned true with " + shapeText(s) + "; no block within the limits covers it with a 2 x 2 grid");
+        if (!configurationExists(dev.d, p.rows, p.cols)) {
+          if (ok) {
+            const std::string broken = brokenRules(dev.d, p.rows, p.cols, s);
+            append(msg, std::string(what) + "returned true, but no block within this device's limits satisfies every rule for this "
+                        "problem, so the answer is false. It returned " + (broken.empty() ? shapeText(s) : broken));
+          }
           continue;
         }
+        ++possible;
         if (!ok) { ++refused; append(msg, std::string(what) + "returned false, but a configuration that satisfies every rule exists"); continue; }
         const std::string broken = brokenRules(dev.d, p.rows, p.cols, s);
         if (!broken.empty()) append(msg, what + broken);
       }
-      if (!dev.impossible && refused == asked) return "returned false for every problem, but configurations that satisfy every rule exist";
+      if (possible > 1 && refused == possible) return "returned false for every problem, but configurations that satisfy every rule exist";
       return msg;
     });
   }

@@ -1400,7 +1400,7 @@ export function S32() {
 
       <h2>One thread per pixel</h2>
       <p>
-        The book's example is a picture of 62 rows and 76 columns, converted from colour to gray by one thread per
+        The book's example is a picture of 62 rows and 76 columns, converted from colour to grey by one thread per
         pixel. The book writes sizes with the vertical dimension first, so "62 × 76" is 62 down and 76 across, the order
         of the subscripts in <code>P[y][x]</code>. Launch sizes go the other way, x first. The book itself calls this a
         source of confusion, and one of the questions below is built on it.
@@ -1432,7 +1432,7 @@ export function S32() {
         id="ch03/3.2/p-offsets"
         prompt={
           <>
-            The gray output is one flat array, one byte per pixel, with the picture's rows stored one after another.
+            The grey output is one flat array, one byte per pixel, with the picture's rows stored one after another.
             Section 3.1's labels are (y, x). Which element of that array does Thread (0,0) of Block (1,0) write?
           </>
         }
@@ -1454,6 +1454,10 @@ export function S32() {
           </>
         )}
       </Predict>
+      <p>
+        The animation lays the book's launch over the picture block by block, follows one thread to its pixel and into
+        the flat output, and ends by sorting the blocks into kinds.
+      </p>
       <Simplification>
         <p>
           The animation shows ownership only: which thread gets which pixel, and where that pixel is stored. Blocks do
@@ -1581,22 +1585,14 @@ export function S32() {
       <Beyond title="Bridge: PyTorch">
         <p>
           Ours, not the book's. From the PyTorch 2.15 documentation of <code>Tensor.stride</code> and{' '}
-          <code>torch.memory_format</code>, and from <code>CUDALoops.cuh</code> in PyTorch's source, read on 2026-11-20
-          (notes/today/ch03-facts.md, D6 and A2).
+          <code>torch.memory_format</code>, read on 2026-11-20 (notes/today/ch03-facts.md, D6).
         </p>
       </Beyond>
-      <p>
-        One more fact from PyTorch's source is worth keeping. Its CUDA kernels for elementwise operations, the ones
-        under <code>a + b</code> or <code>torch.relu</code>, launch a one-dimensional grid whatever the tensor's shape,
-        and each thread computes flat indices only. NVIDIA's guide says why that costs nothing: multidimensional blocks
-        and grids are for convenience and do not affect performance. A 2D grid hands you <code>row</code> and{' '}
-        <code>col</code> without a division. When the operation does not care which row it is in, flatten first.
-      </p>
 
       <h2>The grayscale kernel</h2>
       <p>
-        Now the whole kernel. A colour pixel is three consecutive bytes, red, green and blue, and a gray pixel is one
-        byte. The thread computes its gray offset as above, then multiplies by three to find its pixel in the colour
+        Now the whole kernel. A colour pixel is three consecutive bytes, red, green and blue, and a grey pixel is one
+        byte. The thread computes its grey offset as above, then multiplies by three to find its pixel in the colour
         input, because every pixel before it took three bytes: <code>rgbOffset = grayOffset*CHANNELS</code>. It reads
         the three bytes, forms a weighted sum and stores one byte. The book's text gives the weights: L = 0.299·r +
         0.587·g + 0.114·b.
@@ -1604,7 +1600,7 @@ export function S32() {
       <Source section="3.2" pages="52–54" figs="Fig. 3.4" />
       <Code
         tabs={[
-          { label: 'CUDA and HIP', code: GRAY_CU, tiers: TIERS, status: 'emulator-checked and front-end-checked; unverified on CUDA or HIP hardware' },
+          { label: 'CUDA and HIP', code: GRAY_CU, tiers: TIERS, status: 'front-end-checked; emulator-checked (python3 labs/ch03/snippets/check.py); unverified on CUDA or HIP hardware' },
           { label: 'Metal kernel', code: GRAY_METAL, tiers: TIERS, status: 'unverified: compiles with xcrun metal, not run' },
         ]}
         caption={
@@ -1612,7 +1608,8 @@ export function S32() {
             <code>labs/ch03/snippets/grayscale_kernel.cu</code> and <code>.metal</code>. This is a corrected kernel: it
             differs from the page in the cast, the constants, the argument order of the call and one spelling, which
             you will find for yourself below. The launch also rounds up with integers where the book writes{' '}
-            <code>ceil(m/16.0)</code>; NVIDIA's guide uses the integer form. Lab 3.1 has you write and run this kernel.
+            <code>ceil(m/16.0)</code>; NVIDIA's guide uses the integer form. Lab 3.1 has you write and run this kernel,
+            renamed <code>colorToGrayscaleKernel</code> and taking the input first, as its launch does.
           </>
         }
       />
@@ -1675,7 +1672,7 @@ export function S32() {
         <p>
           The tester evaluates each version on the CPU in single precision, one rounded operation at a time, left to
           right. It reproduces the host-compiled values recorded in the facts file. A GPU compiler that fuses or
-          reorders the operations can differ by one gray level.
+          reorders the operations can differ by one grey level.
         </p>
       </Simplification>
       {predictedRed ? (
@@ -1687,7 +1684,7 @@ export function S32() {
         The corrected line is{' '}
         <code>{'Pout[grayOffset] = (unsigned char)(0.299f*r + 0.587f*g + 0.114f*b);'}</code>. It differs from the page
         in the parentheses and in the constants, which are the ones the book's own text states. They sum to 1, so white
-        stays 255. The conversion to a byte drops the fraction, so the stored value can change by one gray level with
+        stays 255. The conversion to a byte drops the fraction, so the stored value can change by one grey level with
         the order in which the three products are added, which is why lab 3.1 compares against its CPU reference with a
         tolerance of 1.
       </p>
@@ -1775,10 +1772,7 @@ export function S32() {
         number of threadgroups, like a CUDA grid: you round up and you guard. <code>dispatchThreads</code> takes the
         size of the grid in threads. Metal then makes the threadgroups along the edges smaller, creates exactly the
         threads you asked for, and Apple's documentation says the position check is not needed. The four kinds of block
-        exist only under the first call. Both are in real use. llama.cpp's Metal backend and PyTorch's MPS matmul call{' '}
-        <code>dispatchThreadgroups</code>. MLX calls <code>dispatchThreads</code> and flattens the position itself as{' '}
-        <code>index.x + grid_dim.x * index.y</code>, which is <code>row*width + col</code> with the grid's own width as
-        the stride.
+        exist only under the first call. Both are in real use; the list at the end of this page says where.
       </p>
       <Ask q={questionsS32['ch03/3.2/q-noguard']} />
       <p>
@@ -1795,6 +1789,31 @@ export function S32() {
         three and gives each thread a loop. On the <a href={href('ch03', 'labs')}>labs page</a>, lab 3.1 has you write
         this kernel and run it on your own GPU, and lab 3.5 hides four index defects for you to find.
       </p>
+
+      <h2>In real backends</h2>
+      <p>
+        Where the choices of this page turn up in code you will read later. None of it is needed for the labs.
+      </p>
+      <ul data-list="backends">
+        <li>
+          <b>Elementwise operations.</b> PyTorch's CUDA kernels under <code>a + b</code> or <code>torch.relu</code>{' '}
+          launch a one-dimensional grid whatever the tensor's shape, and each thread computes flat indices only.
+          NVIDIA's guide: "The use of multi-dimensional thread blocks and grids is for convenience only and does not
+          affect performance." A 2D grid hands you <code>row</code> and <code>col</code> without a division; when the
+          operation does not care which row an element is in, flatten first.
+        </li>
+        <li>
+          <b>The two Metal launches.</b> llama.cpp's Metal backend and PyTorch's MPS matmul call{' '}
+          <code>dispatchThreadgroups</code>, so they round up and guard. MLX calls <code>dispatchThreads</code> and
+          flattens the position itself as <code>index.x + grid_dim.x * index.y</code>, which is{' '}
+          <code>row*width + col</code> with the grid's own width as the stride.
+        </li>
+      </ul>
+      <Today checked="2026-11-20 (notes/today/ch03-facts.md, A2, C3, D3, D4, D5, D6)">
+        <p>
+          Read in the projects' sources on the check date. The quotation is from NVIDIA's programming guide.
+        </p>
+      </Today>
     </>
   );
 }

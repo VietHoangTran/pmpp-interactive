@@ -14,3 +14,4 @@ labs/build*/
 .vite/
 # per-machine results the app reads; verify reports themselves are meant to be committed
 reports/runs/
+__pycache__/

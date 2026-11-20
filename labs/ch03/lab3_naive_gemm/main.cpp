@@ -103,6 +103,25 @@ struct Guarded {
   }
 };
 
+// The CPU reference: C = A B, A is j x k, B is k x l, C is j x l, all row-major. Sums in
+// double; `mag` gets the sum of |products| per element, which the comparison uses to
+// scale its tolerance to the size of the terms.
+static void cpu_gemm(const std::vector<float>& A, const std::vector<float>& B, int j, int k, int l,
+                     std::vector<float>& C, std::vector<float>& mag) {
+  C.assign((size_t)j * l, 0.f);
+  mag.assign((size_t)j * l, 0.f);
+  for (int row = 0; row < j; ++row)
+    for (int col = 0; col < l; ++col) {
+      double acc = 0, am = 0;
+      for (int i = 0; i < k; ++i) {
+        const double p = (double)A[(size_t)row * k + i] * B[(size_t)i * l + col];
+        acc += p; am += std::fabs(p);
+      }
+      C[(size_t)row * l + col] = (float)acc;
+      mag[(size_t)row * l + col] = (float)am;
+    }
+}
+
 // y = x W^T, with W as PyTorch stores a linear layer's weight: (out_features,
 // in_features), row-major. Row b of x and row o of W are both read along a row.
 static void cpu_linear(const std::vector<float>& x, const std::vector<float>& W, int batch, int in, int out,
@@ -149,7 +168,7 @@ static int tests(const pmpp::Args& a) {
       auto av = pmpp::random_floats((size_t)s.j * s.k, seed);
       auto bv = pmpp::random_floats((size_t)s.k * s.l, seed + 1);
       std::vector<float> ref, mag;
-      pmpp::cpu_gemm(av.data(), bv.data(), s.j, s.k, s.l, ref, &mag);
+      cpu_gemm(av, bv, s.j, s.k, s.l, ref, mag);
       Guarded g(av, bv, s.j, s.k, s.l);
       return g.run(ref, mag);
     });

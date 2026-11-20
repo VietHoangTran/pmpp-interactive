@@ -11,6 +11,7 @@ import {
   type OrderName,
   type Params,
 } from '../../sim/depend';
+import { useNarrow } from './narrow';
 
 // "Same loop, another order": two loops over 8 numbers, each run with one thread
 // per iteration in loop order and then backwards. Every number drawn comes from
@@ -33,10 +34,54 @@ const clamp = (v: number) => Math.max(0, Math.min(1, v));
 const ramp = (p: number, a: number, b: number) => clamp((p - a) / (b - a));
 
 const MONO = { fontVariationSettings: "'MONO' 1, 'CASL' 0" };
-const C = 56; // cell width
-const H = 34; // cell height
-const X0 = 222; // left edge of the cells
-const W = 720;
+
+// Two layouts. Wide: row labels to the left of the cells. Narrow (a phone): labels
+// above the rows and narrower cells, so the drawing is scaled down far less and
+// its text stays legible. Both draw the same numbers from the same model.
+interface Geo {
+  narrow: boolean;
+  /** viewBox width and height */
+  W: number;
+  height: number;
+  /** cell width and height, and the left edge of the cells */
+  C: number;
+  H: number;
+  X0: number;
+  headY: number;
+  /** y of the three rows of a loop, and of the three rows of the summary */
+  rows: [number, number, number];
+  sumRows: [number, number, number];
+  footY: number;
+  /** longest line of the heading or the footer before it wraps, in characters */
+  wrap: number;
+}
+const WIDE: Geo = { narrow: false, W: 720, height: 300, C: 56, H: 34, X0: 222, headY: 24, rows: [50, 128, 206], sumRows: [56, 140, 206], footY: 288, wrap: 999 };
+const NARROW: Geo = { narrow: true, W: 364, height: 346, C: 42, H: 32, X0: 14, headY: 22, rows: [66, 156, 256], sumRows: [66, 146, 226], footY: 316, wrap: 46 };
+
+/** Lines of at most `max` characters, each but the last keeping its trailing space, so that they join back to `text`. */
+export function wrapText(text: string, max: number): string[] {
+  const out: string[] = [];
+  let line = '';
+  for (const word of text.split(' ')) {
+    const next = line ? line + ' ' + word : word;
+    if (line && next.length > max) {
+      out.push(line + ' ');
+      line = word;
+    } else line = next;
+  }
+  if (line) out.push(line);
+  return out;
+}
+
+function Lines({ x, y, text, max }: { x: number; y: number; text: string; max: number }) {
+  return (
+    <text x={x} y={y} fontSize="13" fontWeight="600">
+      {wrapText(text, max).map((l, i) => (
+        <tspan key={i} x={x} dy={i ? 16 : 0}>{l}</tspan>
+      ))}
+    </text>
+  );
+}
 
 interface CellLook {
   text: string;
@@ -47,13 +92,25 @@ interface CellLook {
   width?: number;
 }
 
-function Row({ y, label, sub, cells }: { y: number; label: string; sub?: string; cells: CellLook[] }) {
+function Row({ g, y, label, sub, cells }: { g: Geo; y: number; label: string; sub?: string; cells: CellLook[] }) {
+  const { C, H, X0 } = g;
   return (
     <g>
-      <text x={X0 - 12} y={y + (sub ? 15 : 21)} fontSize="12.5" fontWeight="600" textAnchor="end">{label}</text>
-      {sub ? (
-        <text x={X0 - 12} y={y + 29} fontSize="10.5" textAnchor="end" style={{ fill: 'var(--ink-2)' }}>{sub}</text>
-      ) : null}
+      {g.narrow ? (
+        <>
+          <text x={X0 + 1} y={y - 8} fontSize="12.5" fontWeight="600">{label}</text>
+          {sub ? (
+            <text x={X0 + cells.length * C - 3} y={y - 8} fontSize="11" textAnchor="end" style={{ fill: 'var(--ink-2)' }}>{sub}</text>
+          ) : null}
+        </>
+      ) : (
+        <>
+          <text x={X0 - 12} y={y + (sub ? 15 : 21)} fontSize="12.5" fontWeight="600" textAnchor="end">{label}</text>
+          {sub ? (
+            <text x={X0 - 12} y={y + 29} fontSize="10.5" textAnchor="end" style={{ fill: 'var(--ink-2)' }}>{sub}</text>
+          ) : null}
+        </>
+      )}
       {cells.map((c, i) => (
         <g key={i}>
           <rect x={X0 + i * C + 1} y={y} width={C - 4} height={H} rx="2" fill={c.fill ?? 'var(--cell)'}
@@ -66,13 +123,13 @@ function Row({ y, label, sub, cells }: { y: number; label: string; sub?: string;
   );
 }
 
-function Frame({ children, head, foot }: { children: ReactNode; head: ReactNode; foot?: ReactNode }) {
+function Frame({ g, children, head, foot }: { g: Geo; children: ReactNode; head: string; foot?: string }) {
   return (
-    <svg viewBox={`0 0 ${W} 300`} role="img" aria-label="Animation of two loops run by threads in two orders"
-      style={{ width: '100%', maxWidth: W, display: 'block' }}>
-      <text x={16} y={24} fontSize="13" fontWeight="600">{head}</text>
+    <svg viewBox={`0 0 ${g.W} ${g.height}`} role="img" aria-label="Animation of two loops run by threads in two orders"
+      data-layout={g.narrow ? 'narrow' : 'wide'} style={{ width: '100%', maxWidth: g.W, display: 'block' }}>
+      <Lines x={16} y={g.headY} text={head} max={g.wrap} />
       {children}
-      {foot ? <text x={16} y={288} fontSize="13" fontWeight="600">{foot}</text> : null}
+      {foot ? <Lines x={16} y={g.footY} text={foot} max={g.wrap} /> : null}
     </svg>
   );
 }
@@ -81,7 +138,9 @@ const plain = (v: number): CellLook => ({ text: Number.isNaN(v) ? '' : String(v)
 const muted = (v: number): CellLook => ({ text: String(v), ink: 'var(--ink-3)' });
 
 /** One loop under one thread order, `p` of the way through. */
-function running(op: Loop, order: OrderName, p: number): ReactNode {
+function Running({ op, order, p }: { op: Loop; order: OrderName; p: number }) {
+  const g = useNarrow() ? NARROW : WIDE;
+  const { C, H, X0 } = g;
   const ord = threadOrder(order, N);
   const done = Math.min(N, Math.floor(ramp(p, 0.1, 0.9) * (N + 0.999)));
   const state = runThreads(op, DATA, ord.slice(0, done), params(op));
@@ -111,11 +170,7 @@ function running(op: Loop, order: OrderName, p: number): ReactNode {
     };
   };
 
-  const head = (
-    <>
-      {op === 'neighbour' ? 'Loop 1' : 'Loop 2'}: {OP_BODY[op]}
-    </>
-  );
+  const head = `${op === 'neighbour' ? 'Loop 1' : 'Loop 2'}: ${OP_BODY[op]}`;
   const foot =
     done === 0
       ? `threads will run in this order: ${ord.join(' ')}`
@@ -124,63 +179,70 @@ function running(op: Loop, order: OrderName, p: number): ReactNode {
         : wrong === 0
           ? 'all 8 threads done: the same answer as the loop'
           : `all 8 threads done: ${wrong} of 8 results differ from the loop`;
+  const [y1, y2, y3] = g.rows;
 
   if (op === 'neighbour')
     return (
-      <Frame head={head} foot={foot}>
-        <Row y={50} label="x" sub="never written"
+      <Frame g={g} head={head} foot={foot}>
+        <Row g={g} y={y1} label="x" sub="never written"
           cells={SCENE_X.map((v, i) =>
             readIdx.has(i) ? { text: String(v), fill: 'var(--global)', stroke: 'var(--global)', ink: 'var(--page)', bold: true } : plain(v),
           )} />
-        <Row y={128} label="y" sub="one element per thread" cells={SCENE_X.map((_, k) => result(k))} />
-        <Row y={206} label="what the loop gives" cells={want.map(muted)} />
+        <Row g={g} y={y2} label="y" sub="one element per thread" cells={SCENE_X.map((_, k) => result(k))} />
+        <Row g={g} y={y3} label="what the loop gives" cells={want.map(muted)} />
       </Frame>
     );
 
   // In place: the neighbour read is either a value some thread already wrote, or the original.
   const left = last != null && last > 0 ? last - 1 : null;
   const leftWasWritten = left != null && ord.slice(0, done - 1).includes(left);
+  // The note under the arrow is centred on it, kept inside the drawing on a narrow screen.
+  const noteX = left == null ? 0 : g.narrow ? Math.max(126, Math.min(g.W - 126, X0 + left * C + C)) : X0 + left * C + C;
   return (
-    <Frame head={head} foot={foot}>
-      <Row y={50} label="x at the start" cells={SCENE_X.map(muted)} />
-      <Row y={128} label="x in memory now" sub="read and written"
+    <Frame g={g} head={head} foot={foot}>
+      <Row g={g} y={y1} label="x at the start" cells={SCENE_X.map(muted)} />
+      <Row g={g} y={y2} label="x in memory now" sub="read and written"
         cells={SCENE_X.map((_, k) => {
           const c = result(k);
           return k === left ? { ...c, stroke: 'var(--ink)', width: 2.2 } : c;
         })} />
       {left != null && last != null ? (
         <g>
-          <path d={`M ${X0 + left * C + C / 2} ${128 + H + 3} q ${C / 2} 16 ${C - 4} 0`} fill="none" stroke="var(--ink)" strokeWidth="1.6" />
-          <text x={X0 + left * C + C} y={128 + H + 30} fontSize="11.5" textAnchor="middle">
+          <path d={`M ${X0 + left * C + C / 2} ${y2 + H + 3} q ${C / 2} 16 ${C - 4} 0`} fill="none" stroke="var(--ink)" strokeWidth="1.6" />
+          <text x={noteX} y={y2 + H + 30} fontSize="11.5" textAnchor="middle">
             {leftWasWritten ? `thread ${last} read what thread ${left} wrote` : `thread ${last} read x[${left}] before thread ${left} ran`}
           </text>
         </g>
       ) : null}
-      <Row y={206} label="what the loop gives" cells={want.map(muted)} />
+      <Row g={g} y={y3} label="what the loop gives" cells={want.map(muted)} />
     </Frame>
   );
 }
 
-function intro(p: number): ReactNode {
-  const show2 = ramp(p, 0.32, 0.5);
+function Intro({ p }: { p: number }) {
+  const g = useNarrow() ? NARROW : WIDE;
+  // Wide: name, then the loop on the same line. Narrow: the loop on its own line below the name.
+  const at = g.narrow
+    ? { name: [124, 196], code: { x: 16, dy: 18 }, note: 36 }
+    : { name: [140, 204], code: { x: 76, dy: 0 }, note: 20 };
+  const loop = (n: 0 | 1, op: Loop, note: string, opacity: number) => (
+    <g opacity={opacity}>
+      <text x={16} y={at.name[n]} fontSize="13" fontWeight="600">Loop {n + 1}</text>
+      <text x={at.code.x} y={at.name[n] + at.code.dy} fontSize="13" style={MONO}>for each k: {OP_BODY[op]}</text>
+      <text x={at.code.x} y={at.name[n] + at.note} fontSize="11.5" style={{ fill: 'var(--ink-2)' }}>{note} ({OP_NOTE[op]})</text>
+    </g>
+  );
   return (
-    <Frame head="8 numbers and two loops" foot={p > 0.7 ? 'one thread per value of k: does the order of the threads matter?' : undefined}>
-      <Row y={50} label="x" cells={SCENE_X.map(plain)} />
-      <g opacity={ramp(p, 0.12, 0.3)}>
-        <text x={16} y={140} fontSize="13" fontWeight="600">Loop 1</text>
-        <text x={76} y={140} fontSize="13" style={MONO}>for each k: {OP_BODY.neighbour}</text>
-        <text x={76} y={160} fontSize="11.5" style={{ fill: 'var(--ink-2)' }}>writes a second array, y ({OP_NOTE.neighbour})</text>
-      </g>
-      <g opacity={show2}>
-        <text x={16} y={204} fontSize="13" fontWeight="600">Loop 2</text>
-        <text x={76} y={204} fontSize="13" style={MONO}>for each k: {OP_BODY.inplace}</text>
-        <text x={76} y={224} fontSize="11.5" style={{ fill: 'var(--ink-2)' }}>writes back into x ({OP_NOTE.inplace})</text>
-      </g>
+    <Frame g={g} head="8 numbers and two loops" foot={p > 0.7 ? 'one thread per value of k: does the order of the threads matter?' : undefined}>
+      <Row g={g} y={g.rows[0]} label="x" cells={SCENE_X.map(plain)} />
+      {loop(0, 'neighbour', 'writes a second array, y', ramp(p, 0.12, 0.3))}
+      {loop(1, 'inplace', 'writes back into x', ramp(p, 0.32, 0.5))}
     </Frame>
   );
 }
 
-function summary(p: number): ReactNode {
+function Summary({ p }: { p: number }) {
+  const g = useNarrow() ? NARROW : WIDE;
   const rev = (op: Loop) => runThreads(op, DATA, threadOrder('reversed', N), params(op));
   const cells = (op: Loop, got: number[]): CellLook[] =>
     got.map((v, k) =>
@@ -189,25 +251,26 @@ function summary(p: number): ReactNode {
         : { text: String(v), fill: 'var(--fail-wash)', stroke: 'var(--fail)', ink: 'var(--fail)' },
     );
   const bad = rev('inplace').filter((v, k) => v !== SCENE_WANT.inplace[k]).length;
+  const [y1, y2, y3] = g.sumRows;
   return (
-    <Frame head="Run backwards, compared with what each loop gives"
+    <Frame g={g} head="Run backwards, compared with what each loop gives"
       foot={p > 0.5 ? 'the test: does any thread read what another thread writes?' : undefined}>
-      <Row y={56} label="loop 1, backwards" sub="reads overlap, nobody writes x" cells={cells('neighbour', rev('neighbour'))} />
+      <Row g={g} y={y1} label="loop 1, backwards" sub="reads overlap, nobody writes x" cells={cells('neighbour', rev('neighbour'))} />
       <g opacity={ramp(p, 0.15, 0.3)}>
-        <Row y={140} label="loop 2, backwards" sub={`${bad} of 8 differ`} cells={cells('inplace', rev('inplace'))} />
-        <Row y={206} label="loop 2, in loop order" cells={SCENE_WANT.inplace.map(muted)} />
+        <Row g={g} y={y2} label="loop 2, backwards" sub={`${bad} of 8 differ`} cells={cells('inplace', rev('inplace'))} />
+        <Row g={g} y={y3} label="loop 2, in loop order" cells={SCENE_WANT.inplace.map(muted)} />
       </g>
     </Frame>
   );
 }
 
 const beats: Beat[] = [
-  { clip: 'order-1', label: 'Two loops', draw: intro },
-  { clip: 'order-2', label: 'Loop 1 in order', draw: (p) => running('neighbour', 'forward', p) },
-  { clip: 'order-3', label: 'Loop 1 backwards', draw: (p) => running('neighbour', 'reversed', p) },
-  { clip: 'order-4', label: 'Loop 2 in order', draw: (p) => running('inplace', 'forward', p) },
-  { clip: 'order-5', label: 'Loop 2 backwards', draw: (p) => running('inplace', 'reversed', p) },
-  { clip: 'order-6', label: 'The test', draw: summary },
+  { clip: 'order-1', label: 'Two loops', draw: (p) => <Intro p={p} /> },
+  { clip: 'order-2', label: 'Loop 1 in order', draw: (p) => <Running op="neighbour" order="forward" p={p} /> },
+  { clip: 'order-3', label: 'Loop 1 backwards', draw: (p) => <Running op="neighbour" order="reversed" p={p} /> },
+  { clip: 'order-4', label: 'Loop 2 in order', draw: (p) => <Running op="inplace" order="forward" p={p} /> },
+  { clip: 'order-5', label: 'Loop 2 backwards', draw: (p) => <Running op="inplace" order="reversed" p={p} /> },
+  { clip: 'order-6', label: 'The test', draw: (p) => <Summary p={p} /> },
 ];
 
 export function OrderScene() {

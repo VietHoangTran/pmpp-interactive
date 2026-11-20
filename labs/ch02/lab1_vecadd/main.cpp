@@ -40,6 +40,16 @@ static MetalSetup& metalSetup() {
   if (done) return s;
   done = true;
   s.device = pmpp::metal::device();
+  // dispatchThreads over exactly n threads needs a partial last threadgroup.
+  // Apple documents those for GPU family Apple4 and later and for the Metal 3
+  // family (notes/today/ch05-facts.md, C5); elsewhere the tests would fail for
+  // a reason that is not in your code.
+  bool nonuniform = [s.device supportsFamily:MTLGPUFamilyApple4];
+  if (@available(macOS 13.0, *)) nonuniform = nonuniform || [s.device supportsFamily:MTLGPUFamilyMetal3];
+  if (!nonuniform) {
+    s.error = "this GPU reports neither family Apple4 nor Metal 3, so dispatchThreads with a partial threadgroup is not documented for it";
+    return s;
+  }
   s.queue = [s.device newCommandQueue];
   if (!s.queue) { s.error = "newCommandQueue returned nil"; return s; }
   NSError* err = nil;
@@ -117,6 +127,22 @@ static void leaksExpected(bool on) { if (on) __lsan_disable(); else __lsan_enabl
 static void leaksExpected(bool) {}
 #endif
 
+// The book's snippet on p. 32 ends in exit(). A CHECK that keeps the exit ends
+// the whole test run inside vecAdd, with no verdict printed. This turns that
+// silence into a failed test case.
+static const char* g_insideCase = nullptr;
+static void exitedInsideVecAdd() {
+  if (!g_insideCase) return;
+  const char* why = "the process exited inside vecAdd: CHECK must make vecAdd return a non-zero value, not call exit()";
+  std::printf("  FAIL  %s  -> %s\n", g_insideCase, why);
+  pmpp::Json j;
+  j.s("kind", "test").s("lab", PMPP_LAB).s("variant", PMPP_VARIANT).s("backend", pmpp::backend())
+   .s("case", g_insideCase).b("pass", false).s("detail", why);
+  j.emit();
+  std::printf("FAILED: the run stopped here (%s, %s)\n", PMPP_VARIANT, pmpp::backend());
+  std::fflush(stdout);
+}
+
 // ---- one problem instance: host arrays, the reference, and the checks ----
 struct Problem {
   int n;
@@ -188,14 +214,18 @@ static int tests(const pmpp::Args& a) {
   // and returns nothing, so only code that asks the runtime finds out.
   if (maxT > 0) {
     const int tooMany = 2 * maxT;
-    t.check("a launch the device rejects (" + std::to_string(tooMany) + " threads per block), then a good one",
-            [&]() -> std::string {
+    static const std::string rejectName =
+        "a launch the device rejects (" + std::to_string(tooMany) + " threads per block), then a good one";
+    std::atexit(exitedInsideVecAdd);
+    t.check(rejectName, [&]() -> std::string {
       idleDevice();
       Problem p(1000, 11u);
       std::printf("  (the driver now asks for a block the device cannot run; an error message from your CHECK is expected)\n");
       std::fflush(stdout);
       leaksExpected(true);
+      g_insideCase = rejectName.c_str();
       const int bad = callVecAdd(p.a.data(), p.b.data(), p.c.data(), p.n, tooMany);
+      g_insideCase = nullptr;
       leaksExpected(false);
       if (bad == 0)
         return "vecAdd returned 0 for a launch the device rejected: the launch statement has no value, so ask the runtime right after it";
@@ -203,8 +233,8 @@ static int tests(const pmpp::Args& a) {
       p.reset();
       const int good = callVecAdd(p.a.data(), p.b.data(), p.c.data(), p.n, 256 <= maxT ? 256 : maxT);
       if (good != 0)
-        return "the rejected launch returned " + std::to_string(bad) + " as it should, but the valid call right after it returned " +
-               std::to_string(good) + ": the error of the first call was read without being cleared";
+        return "the rejected launch returned " + std::to_string(bad) + ", but the valid call right after it returned " +
+               std::to_string(good) + " too. If the cases above pass, the error of the first call was read without being cleared";
       return p.verify();
     });
   }

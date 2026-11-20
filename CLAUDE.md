@@ -148,9 +148,9 @@ Chapter 5 is the template: read `app/src/chapters/ch05/` and `labs/ch05/` before
   attention layer, a sampler, a quantised model. One concrete bridge per section at most.
 
 **Narration**
-- Authors write scripts and the `<Scene>` beats only. Audio is generated centrally by the
-  main session through the ElevenLabs MCP tool (`eleven_v4`, the fixed voice). Never
-  call a speech tool or API from a chapter build.
+- Authors write scripts and the `<Scene>` beats only. Audio is generated centrally, by the
+  main session or one narration agent it briefs, through the ElevenLabs MCP tool
+  (`eleven_v4`, the fixed voice). Never call a speech tool or API from a chapter build.
 - A script is 35 to 60 words per beat, written for the ear: short sentences, digits for
   numbers, no symbols read aloud, `[short pause]` sparingly, single letters for names
   (M, N, T) are fine.
@@ -169,7 +169,8 @@ Chapter 5 is the template: read `app/src/chapters/ch05/` and `labs/ch05/` before
 - Project milestones follow these conventions so later chapters can compose them:
   row-major `float` tensors unless the lab is about another type; batch dimension first;
   raw device pointers and explicit sizes as kernel arguments; a `launch<Name>` host
-  function beside each kernel; the CPU reference lives in `main.cpp`.
+  function beside each kernel; the CPU reference lives in `main.cpp`, or is a plain
+  loop shared through `harness.hpp` (such as `pmpp::cpu_gemm`) that the driver names.
 
 **Portability traps already established** (see `notes/today/infra-facts.md`, and its table
 "Where the backends really differ", before designing any lab past chapter 5)

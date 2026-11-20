@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PLAN } from '../chapters/registry';
 import type { Reports, RunResult } from '../lib/reports';
-import { GOALS, STEPS, goal, lanes, rollup, stepOf, stepsOf } from './booksteps';
+import { GOALS, STEPS, goal, gpuBackends, lanes, rollup, stepOf, stepsOf } from './booksteps';
 
 describe('the three steps of pp. 577–578', () => {
   it('chapters 2–6, 7–15 and 16–23', () => {
@@ -84,6 +84,14 @@ describe('rollup', () => {
     const reports: Reports = {
       emu: run('emu', [result('ch05/lab1_roofline', 'work', 'emu', true)], { 'ch05/lab1_roofline': 'edited' }),
     };
+    expect(rollup(PLAN, {}, reports).ch05).toEqual({ sectionsDone: 0, labs: 1, labsPassing: 0 });
+  });
+  it('ignores the race backend, which is the emulator under ThreadSanitizer', () => {
+    const reports: Reports = {
+      race: run('race', [result('ch05/lab4_racehunt', 'work', 'race', true)], { 'ch05/lab4_racehunt': 'edited' }),
+      metal: run('metal', [], {}),
+    };
+    expect(gpuBackends(reports)).toEqual(['metal']);
     expect(rollup(PLAN, {}, reports).ch05).toEqual({ sectionsDone: 0, labs: 1, labsPassing: 0 });
   });
   it('does not confuse chapter prefixes', () => {

@@ -391,7 +391,7 @@ export function makeData(n: number, B: number, initial = 0): KernelData {
     n,
     B,
     A: Array.from({ length: n }, (_, i) => (i * 7 + 3) % 10),
-    Bv: Array.from({ length: n }, (_, i) => (i * 3 + 1) % 10),
+    Bv: Array.from({ length: n }, (_, i) => (i * 4 + 1) % 9),
     C0: Array.from({ length: n }, () => initial),
   };
 }

@@ -65,7 +65,11 @@ The benchmark times one large picture with blocks of 8 by 8, 16 by 16, 32 by 32,
 256 by 1 and 1 by 256 threads, skipping any shape your device does not allow.
 
 A wide block (256 by 1) and a tall block (1 by 256) launch the same number of threads,
-and every thread does the same work. NVIDIA's programming guide says multidimensional
-blocks are a convenience and do not affect performance. Write down the ratio you
-expect, tall time divided by wide time, then run it. The benchmark prints the ratio it
-measured. Why it comes out as it does is the subject of chapters 4 and 6.
+and every thread does the same work. What differs is which pixels one block's threads
+hold: a run along a row, or a run down a column. NVIDIA's programming guide says "The use
+of multi-dimensional thread blocks and grids is for convenience only and does not affect
+performance"; that sentence is about writing one mapping in one, two or three dimensions.
+The same passage goes on: threads are numbered x fastest, and "This affects how threads
+are assigned to warps". Write down the ratio you expect, tall time divided by wide time,
+then run it. The benchmark prints the ratio it measured. Why it comes out as it does is
+the subject of chapters 4 and 6.

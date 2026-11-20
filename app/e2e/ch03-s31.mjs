@@ -251,8 +251,16 @@ for (const [key, label] of choices.slice(2)) {
   const foot = await text(bench(G) + ' > footer');
   if (key === 'metal')
     check(`explorer: by "${label}" the per-dimension caps pass and the page says the total is per kernel`, v.legal === 'true' && v.text.includes('maxTotalThreadsPerThreadgroup') && v.text.includes('Apple documents no limit on the size of a grid'), v.text);
-  else if (label.includes('emulator'))
-    check(`explorer: by "${label}" (32,32,2) is rejected and the page says what the emulator enforces`, v.legal === 'false' && v.text.includes('only for a block of more than 1024 threads') && foot.includes('not a GPU'), v.text);
+  else if (label.includes('emulator')) {
+    check(`explorer: by "${label}" (32,32,2) is rejected and the page says the emulator rejects it too`, v.legal === 'false' && v.text.includes('The emulator rejects this launch too') && v.text.includes('enforces only the 1024-thread total') && v.text.includes('rejects a zero dimension') && foot.includes('not a GPU'), v.text);
+    // A grid over the cap the emulator reports, with a legal block: it reports the cap but does not enforce it.
+    await preset('b8-16-4');
+    await setDim('gridDim', 'y', 65536);
+    v = await verdict();
+    check(`explorer: by "${label}" a grid over its reported cap is flagged, and the page says the emulator would run it anyway`, v.legal === 'false' && (await violations()).every((x) => x.includes('gridDim')) && v.text.includes('The emulator would run this launch anyway') && v.text.includes('does not enforce the per-dimension or grid caps'), v.text);
+    await setDim('gridDim', 'y', 2);
+    await preset('b32-32-2');
+  }
   else check(`explorer: by "${label}" there is a verdict and the footer says where the numbers come from`, ['true', 'false'].includes(v.legal) && foot.includes('./verify.sh'), v.text);
 }
 await judgeBy('cuda-doc');

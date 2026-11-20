@@ -284,6 +284,25 @@ await pickDefects(['area', 'area', 'area']); // challenge(2) is rowLo, colHi, ro
 await clickText(N, 'Check');
 t = await text(bench(N));
 check('wrong answers are corrected with the reason', (await attr(bench(N) + ' [data-score]', 'data-score')) === '0' && t.includes('it was: curRow >= 0 is missing') && t.includes('Only the top row is wrong'), t.slice(-300));
+check('both benches give the picture rows first: 7 by 6, 7 rows of 6',
+  (await text(bench(N) + ' > footer')).includes('7 by 6 picture (7 rows of 6)') && (await text(bench('Break the kernel') + ' > footer')).includes('7 by 6 picture (7 rows of 6)'),
+  await text(bench(N) + ' > footer'));
+// A missing outer guard: the explanation names the rows the model marks wrong, row 4 spared.
+{
+  const { challenge, blurImage, textured, withDefect, wrongSpan } = await import('../src/sim/blur.ts');
+  let seed = 2;
+  while (!challenge(seed).includes('outer')) seed++;
+  for (let s = 2; s < seed; s++) await clickText(N, 'New set');
+  const set = challenge(seed);
+  await pickDefects(set.map((d) => (d === 'outer' ? 'area' : d)));
+  await clickText(N, 'Check');
+  t = await text(bench(N));
+  const span = wrongSpan(blurImage(textured(6, 7), withDefect('outer')).wrong, 6);
+  check(`the outer-guard explanation lists the wrong rows from the model (set ${seed})`,
+    span.rows.join() === '1,2,3,5,6' && span.spared.join() === '4' &&
+    t.includes('Columns 0 and 1 are wrong in rows 1, 2, 3, 5 and 6.') && t.includes('Row 4 survives only because its own block runs after the block that wrote over it.') && !t.includes('from row 1 down'),
+    t.slice(-500));
+}
 
 // ---------------------------------------------------------------- questions
 const q = (needle) => page.evaluateHandle((needle) => [...document.querySelectorAll('.q')].find((e) => e.textContent.includes(needle)), needle);
@@ -318,6 +337,22 @@ if (labThere) {
   await pause(100);
   const metal = await page.evaluate(() => [...document.querySelectorAll('figure.code')].find((f) => f.textContent.includes('Metal host')).querySelector('pre').textContent);
   check('the Metal tab is the lab file', metal.includes('thread_position_in_grid') && metal.includes('curRow >= 0 && curRow < h && curCol >= 0 && curCol < w'));
+  // The status beside the tabs is the fixed vocabulary, computed from this machine's lab runs.
+  const reports = await page.evaluate(() => fetch('/api/reports').then((r) => r.json()));
+  const passed = (b) => {
+    const rs = (reports[b]?.results ?? []).filter((x) => x.lab === 'ch03/lab2_blur' && x.variant === 'solution' && x.tests.length);
+    return rs.length > 0 && rs.every((x) => x.built && x.test_rc === 0 && x.tests.every((t) => t.pass));
+  };
+  const wantMetal = passed('metal') ? 'verified on Metal' : 'unverified: no passing Metal run on this machine';
+  const wantCuda = (passed('emu') ? 'emulator-checked' : 'unverified: no passing emulator run on this machine') + '; ' +
+    (passed('cuda') ? 'verified on CUDA' : 'unverified on CUDA hardware');
+  const fig = '[...document.querySelectorAll("figure.code")].find((f) => f.textContent.includes("Metal host"))';
+  const statusMetal = await page.evaluate(`${fig}.querySelector('.tabs .status').textContent`);
+  await page.evaluate(`[...${fig}.querySelectorAll('.tabs button')].find((b) => b.textContent === 'CUDA (lab 3.2)').click()`);
+  await pause(100);
+  const statusCuda = await page.evaluate(`${fig}.querySelector('.tabs .status').textContent`);
+  check(`the lab 3.2 tabs carry statuses computed from the reports ("${wantCuda}" / "${wantMetal}")`,
+    statusMetal === wantMetal && statusCuda === wantCuda, `${statusCuda} / ${statusMetal}`);
 } else check('lab 3.2 is not built yet, and the page does not show a broken listing', !tabs.includes('CUDA (lab 3.2)'));
 
 // ---------------------------------------------------------------- narrow screen

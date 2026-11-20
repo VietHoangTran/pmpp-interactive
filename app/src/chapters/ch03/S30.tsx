@@ -187,7 +187,7 @@ export function S30() {
         <li>
           Work through <a href={href('ch03', 'labs')}>five labs</a> on your own GPU: grayscale, blur, a naive GEMM for
           a linear layer, one thread per element against one per row or column, and a hunt for four index defects.
-          The third is milestone M1 of the course project.
+          The third is the first half of milestone M1 of the course project.
         </li>
       </ul>
 

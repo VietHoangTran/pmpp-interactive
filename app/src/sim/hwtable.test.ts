@@ -1,6 +1,10 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   BOOK,
+  CONFIRMATIONS,
+  CORRECTIONS,
   DEFAULTS,
   DEVICES,
   LIMITS,
@@ -62,15 +66,37 @@ describe('Fig. 24.1 as printed (p. 578)', () => {
     ]);
   });
 
-  it('exactly two tickable cells are wrong as printed: the 638x ratio and the TB/s unit', () => {
+  it('the table contradicts itself in exactly two cells: the 638x ratio and the TB/s unit', () => {
     const cells = printedCells();
     expect(cells).toHaveLength(15);
-    expect(cells.filter((c) => c.wrong).map((c) => c.id)).toEqual(['tensor.ratio', 'nvlink.b200']);
+    expect(cells.filter((c) => c.kind === 'wrong').map((c) => c.id)).toEqual(['tensor.ratio', 'nvlink.b200']);
     // Read as printed, the NVLink cell is 225 times the same device's memory bandwidth.
     expect(cells.find((c) => c.id === 'nvlink.b200')!.arithmetic).toBe('1,800,000 GB/s / 8,000 GB/s = 225');
-    // The 2200 figure is not the wrong cell, though the table alone cannot say so.
-    expect(cells.find((c) => c.id === 'tensor.b200')!.wrong).toBe(false);
-    expect(cells.filter((c) => c.stands).map((c) => c.id)).toEqual(['tensor.b200']);
+  });
+
+  it("five cells pass the table's arithmetic but are corrected by NVIDIA's documents, each naming its facts item", () => {
+    const cells = printedCells();
+    const differs = cells.filter((c) => c.kind === 'differs');
+    // 80 TFLOPS (A8), the tensor-core label (A9), 86.4 GB/s (A3, A4), 192 GB (A11), Gen2 (A6).
+    expect(differs.map((c) => `${c.id}:${c.fact}`)).toEqual(['fp32.b200:A8', 'tensor.b200:A9', 'membw.g80:A3, A4', 'memcap.b200:A11', 'pcie.g80:A6']);
+    for (const c of differs) expect(c.verdict).toMatch(/NVIDIA/);
+    // The 2200 figure stands and its ratio is the error, but its label is corrected.
+    const tc = cells.find((c) => c.id === 'tensor.b200')!;
+    expect(tc.verdict).toContain('the figure stands and the ratio is the error');
+    expect(tc.verdict).toContain('TF32 on Tensor Cores, counted with sparsity');
+    expect(cells.find((c) => c.id === 'pcie.g80')!.verdict).toContain('Generation 1, 4 GB/s each way');
+    // Every ratio but 638x is consistent, and so are the four inputs NVIDIA bears out.
+    expect(cells.filter((c) => c.kind === 'consistent').map((c) => c.id)).toEqual([
+      'fp32.g80', 'fp32.ratio', 'membw.b200', 'membw.ratio', 'memcap.g80', 'memcap.ratio', 'pcie.b200', 'pcie.ratio',
+    ]);
+    // Every printed cell has exactly one verdict, and the corrections name only real cells.
+    for (const id of Object.keys(CORRECTIONS)) expect(cells.some((c) => c.id === id)).toBe(true);
+    for (const id of Object.keys(CONFIRMATIONS)) expect(cells.find((c) => c.id === id)!.kind).toBe('consistent');
+  });
+
+  it('every facts item the audit cites exists in the facts file', () => {
+    const facts = fs.readFileSync(path.resolve(__dirname, '../../../notes/today/ch24-facts.md'), 'utf8');
+    for (const c of printedCells()) for (const item of (c.fact ?? '').split(', ').filter(Boolean)) expect(facts).toContain(`### ${item}. `);
   });
 });
 
@@ -144,21 +170,22 @@ describe('ratios under each reading', () => {
 describe('the threshold of section 5.1 applied to the table', () => {
   const dev = (key: string) => DEVICES.find((d) => d.key === key)!;
   const thr = (key: string) => threshold(dev(key).peak, dev(key).bw);
-  it('thresholds: 3.993, 10, 275, 137.5, 4.5, 20.0', () => {
+  it("offers the book's two columns and NVIDIA's dense TF32 figure, nothing else", () => {
+    expect(DEVICES.map((d) => d.key)).toEqual(['book2007', 'book2025', 'book2025tc', 'book2025dense']);
+  });
+  it('thresholds: 3.993, 10, 275, 137.5, and 4.5 on the C870', () => {
     expect(thr('book2007').toFixed(3)).toBe('3.993');
     expect(thr('book2025')).toBe(10);
     expect(thr('book2025tc')).toBe(275);
     expect(thr('book2025dense')).toBe(137.5);
     expect(threshold(VENDOR.g80.fp32.value * 1000, VENDOR.g80.membw.value)).toBeCloseTo(4.5, 9);
-    expect(thr('ch5').toFixed(1)).toBe('20.0');
   });
-  it('tile widths: 16, 40, 1100, 550, 18, 80', () => {
+  it('tile widths: 16, 40, 1100, 550, and 18 on the C870', () => {
     expect(tileFor(thr('book2007'))).toBe(16);
     expect(tileFor(thr('book2025'))).toBe(40);
     expect(tileFor(thr('book2025tc'))).toBe(1100);
     expect(tileFor(thr('book2025dense'))).toBe(550);
     expect(tileFor(threshold(VENDOR.g80.fp32.value * 1000, VENDOR.g80.membw.value))).toBe(18);
-    expect(tileFor(thr('ch5'))).toBe(80);
   });
   it('on the printed 2007 figures T = 15 is memory-bound and T = 16 compute-bound', () => {
     expect(regime(tiledRatio(15), thr('book2007'))).toBe('memory-bound');
@@ -186,8 +213,9 @@ describe('the threshold of section 5.1 applied to the table', () => {
     expect(regime(m.out128, thr('book2025tc'))).toBe('memory-bound');
     expect(regime(m.out128, thr('book2025'))).toBe('compute-bound');
   });
-  it('a T x T pair of float tiles at T = 1100 needs about 9.7 MB of shared memory', () => {
+  it('a T x T pair of float tiles needs about 9.7 MB at T = 1100 and 2.4 MB at T = 550', () => {
     expect((8 * 1100 * 1100) / 1e6).toBeCloseTo(9.68, 2);
+    expect((8 * 550 * 550) / 1e6).toBeCloseTo(2.42, 2);
   });
 });
 
@@ -195,6 +223,15 @@ describe('what limits what', () => {
   it('each row of the table has exactly one card', () => {
     for (const row of LIMIT_ROWS) expect(LIMITS.filter((c) => c.row === row.id)).toHaveLength(1);
     expect(LIMITS).toHaveLength(5);
+  });
+  it('each card names the earlier chapters it draws on, as its source does', () => {
+    for (const c of LIMITS) {
+      const chapters = [...c.from.matchAll(/\d+/g)].map((m) => m[0]);
+      expect(chapters.length).toBeGreaterThan(0);
+      for (const n of chapters) expect(c.source).toContain(`ch. ${n} `);
+    }
+    // The all-reduce card pins the topology, so the host link is not a fair answer.
+    expect(LIMITS.find((c) => c.row === 'gpulink')!.card).toContain('NVLink');
   });
   it('question ids are stable and unique', () => {
     expect(LIMITS.map((c) => c.qid)).toEqual([

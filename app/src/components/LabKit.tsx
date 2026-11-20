@@ -412,7 +412,7 @@ export function WorkStatus({ lab: l }: { lab: Lab }) {
         else if (rs.some((x) => !x.built)) body = <span className="chip fail">does not build</span>;
         else if (s === 'none')
           body = (
-            <span className="muted" title="No result for this lab in the last ./verify.sh run on this machine">
+            <span className="muted" title="No recorded run of this lab on this machine">
               not started
             </span>
           );
@@ -497,8 +497,8 @@ export function LabResults({ lab: l, cols, filter, noBench }: LabResultsProps) {
       }
       foot={
         noBench
-          ? "From this machine's last ./verify.sh run."
-          : "From this machine's last ./verify.sh run. Measurements, not expected values: another device, or another run, gives other numbers."
+          ? "From this machine's recorded lab runs."
+          : "From this machine's recorded lab runs. Measurements, not expected values: another device, or another run, gives other numbers."
       }
     >
       <WorkStatus lab={l} />

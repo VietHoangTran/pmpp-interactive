@@ -1,0 +1,1 @@
+Start with the loop you would write on a CPU. One thread. A counter, i, goes from 0 up to 9. On each trip the thread reads one element of A and one element of B, adds them, and stores the sum in C. 10 trips, one after another.

@@ -21,6 +21,7 @@ import {
   trace,
   uniform,
   withDefect,
+  wrongSpan,
   type BlurOptions,
 } from './blur';
 
@@ -346,6 +347,12 @@ describe('the outer guard', () => {
     expect(r.wrong.filter((i) => Number.isNaN(r.out[i]))).toEqual([7, 13, 19, 31, 37]);
     // The order inside a block does not change which store comes last here; the order of blocks does.
     for (const order of ORDERS) expect(blurImage(pic, opts({ outerGuard: false, order })).wrong).toEqual(r.wrong);
+    // What "Name the defect" says about this picture: columns 0 and 1, rows 1 to 3 and 5 to 6, row 4 spared.
+    expect(wrongSpan(r.wrong, 6)).toEqual({ rows: [1, 2, 3, 5, 6], cols: [0, 1], spared: [4] });
+  });
+  it('wrongSpan of a clean result, and of one wrong row', () => {
+    expect(wrongSpan([], 6)).toEqual({ rows: [], cols: [], spared: [] });
+    expect(wrongSpan([0, 1, 2, 3, 4, 5], 6)).toEqual({ rows: [0], cols: [0, 1, 2, 3, 4, 5], spared: [] });
   });
 });
 

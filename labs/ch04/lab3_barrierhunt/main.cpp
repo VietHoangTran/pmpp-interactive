@@ -152,7 +152,7 @@ static int tests(const pmpp::Args& a) {
   pmpp::Tests t(a);
   const int width = deviceWidth(), maxBlock = maxThreadsPerBlock();
   if (width <= 0 || maxBlock <= 0) {
-    t.check("the device reports a width and a block-size limit", [&] {
+    t.check("the kernels build, and the device reports a width and a block-size limit", [&] {
       const std::string e = pmpp::take_error();
       return e.empty() ? std::string("could not read ") + kWidthSource : e;
     });
@@ -181,8 +181,9 @@ static int tests(const pmpp::Args& a) {
     // in either direction stays inside the buffer.
     const size_t guard = kExactBuffers ? 0 : (size_t)((2 * std::max(bs, 4 * width) + 63) / 64 * 64);
     // Whole blocks only. On a device the last length makes a grid of several
-    // thousand blocks: far more than run at once, which is where the order of
-    // execution within a block starts to vary from launch to launch.
+    // thousand blocks, so that a missing barrier has many blocks, as well as many
+    // launches, in which to show. That choice is ours: no vendor documents when
+    // a missing barrier shows.
     const std::vector<int> whole = kEmulated ? std::vector<int>{bs, 4 * bs} : std::vector<int>{bs, 4 * bs, 8192 * bs};
     // A short last slice. The first length leaves it one element short: a mirror
     // around the full block size then writes exactly one element past the array,

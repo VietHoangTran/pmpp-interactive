@@ -6,8 +6,14 @@
 // reason per chapter and that is all the map shows; it says nothing about how much
 // of a chapter a goal needs. Labs are counted from the run reports by the chapter
 // prefix of their id, so a chapter whose labs have never been run shows none.
-import { labStatus, realBackends, type Reports } from '../lib/reports';
+import { labStatus, type Reports } from '../lib/reports';
 import type { PlanRow } from '../chapters/types';
+
+/**
+ * Backends that are a GPU. Both emulators are left out: `emu` and its race-detection
+ * flavour `race` run on the CPU. (lib/reports' realBackends drops only `emu`.)
+ */
+export const gpuBackends = (r: Reports) => Object.keys(r).filter((b) => b !== 'emu' && b !== 'race');
 
 export type Step = 1 | 2 | 3 | 'outside';
 
@@ -70,7 +76,7 @@ export interface ChapterRecord {
 
 /**
  * The reader's record per chapter. Labs are matched by the "chNN/" prefix of the
- * lab id, never by name. The emulator does not count as a backend here, and an
+ * lab id, never by name. Neither emulator counts as a backend here, and an
  * untouched starter is "not started", not a pass or a failure.
  */
 export function rollup(
@@ -87,7 +93,7 @@ export function rollup(
     const passing = new Set<string>();
     for (const run of Object.values(reports))
       for (const x of run.results) if (x.lab.startsWith(prefix)) seen.add(x.lab);
-    for (const backend of realBackends(reports))
+    for (const backend of gpuBackends(reports))
       for (const lab of seen) if (labStatus(reports[backend], lab, 'work') === 'pass') passing.add(lab);
     out[r.id] = { sectionsDone, labs: seen.size, labsPassing: passing.size };
   }

@@ -33,3 +33,31 @@ describe('section 3.4 listings match the checked snippet', () => {
     expect(file.split('\n')[13]).toBe(lesson('LAUNCH').split('\n')[0]);
   });
 });
+
+// Book exercise 2's question shows four kernel bodies. Each is the body of one kernel in
+// labs/ch03/snippets/matvec_options.cu, which the CUDA front-end check parses and
+// labs/ch03/snippets/check.py runs on the emulator.
+const matvec = fs.readFileSync(path.join(repo, 'labs/ch03/snippets/matvec_options.cu'), 'utf8');
+const body = (n: number) => {
+  const lines = matvec.split('\n');
+  const start = lines.findIndex((l) => l.startsWith(`__global__ void matvecOption${n}(`));
+  if (start < 0) throw new Error(`no matvecOption${n} in matvec_options.cu`);
+  const end = lines.indexOf('}', start);
+  return lines
+    .slice(start + 1, end)
+    .map((l) => l.replace(/^ {4}/, ''))
+    .join('\n');
+};
+
+describe("exercise 2's options match the checked snippet", () => {
+  it.each([1, 2, 3, 4])('option %i is the body of matvecOption%i', (n) => {
+    expect(lesson(`MATVEC_${n}`)).toBe(body(n));
+  });
+  it('the options are offered in file order and only the second is marked correct', () => {
+    const q = /'ch03\/3\.4\/q-ex2': \{([\s\S]*?)\n {2}\},\n/.exec(src)?.[1] ?? '';
+    const order = [...q.matchAll(/\{MATVEC_(\d)\}/g)].map((m) => Number(m[1]));
+    expect(order).toEqual([1, 2, 3, 4]);
+    expect(/\{MATVEC_2\}<\/code>,\s*correct: true/.test(q)).toBe(true);
+    expect((q.match(/correct: true/g) ?? []).length).toBe(1);
+  });
+});

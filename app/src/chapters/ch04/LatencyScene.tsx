@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Scene, type Beat } from '../../components/Scene';
+import { SceneReadout, useNarrow } from './sceneText';
 import {
   PRESETS, busyFraction, runs, simulate, simulateSwitching, unitShares, utilisation, warpsNeeded, type Cell, type Timeline,
   type UnitCell,
@@ -11,6 +12,8 @@ import { BOOK, occupancy } from '../../sim/occupancy';
 // comes from sim/latency.ts, and the register file of beat 5 from sim/occupancy.ts.
 const W = 720;
 const H = 348;
+/** The strip at the bottom that holds the headline and the line under it. */
+const FOOT = 44;
 const clamp = (v: number) => Math.max(0, Math.min(1, v));
 const ramp = (p: number, a: number, b: number) => clamp((p - a) / (b - a));
 const pct = (v: number) => Math.round(v * 1000) / 10;
@@ -53,13 +56,20 @@ const LOADY = side(PRESETS.loadHeavy);
 const FILL: Record<Cell, string> = { exec: 'var(--ink)', wait: 'var(--global-wash)', ready: 'var(--rule)' };
 const STROKE: Record<Cell, string> = { exec: 'var(--ink)', wait: 'var(--global)', ready: 'var(--ink-3)' };
 
-function Frame({ children, headline, sub }: { children: ReactNode; headline?: ReactNode; sub?: ReactNode }) {
+/** `data` becomes data-* attributes on the drawing, so that the browser check can read what was drawn. */
+function Frame({ children, headline, sub, data = {} }: { children: ReactNode; headline?: ReactNode; sub?: ReactNode; data?: Record<string, string | number> }) {
+  const narrow = useNarrow();
+  const attrs = Object.fromEntries(Object.entries(data).map(([k, v]) => ['data-' + k, String(v)]));
+  // On a narrow screen the headline and the line under it are shown as text below the drawing (sceneText.tsx).
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Animation of warps taking turns on one execution unit" style={{ width: '100%', maxWidth: W, display: 'block' }}>
-      {children}
-      {headline ? <text x={24} y={H - 30} fontSize="13.5" fontWeight="600">{headline}</text> : null}
-      {sub ? <text x={24} y={H - 12} fontSize="11.5" style={{ fill: 'var(--ink-2)' }}>{sub}</text> : null}
-    </svg>
+    <>
+      <svg viewBox={`0 0 ${W} ${narrow ? H - FOOT : H}`} role="img" aria-label="Animation of warps taking turns on one execution unit" style={{ width: '100%', maxWidth: W, display: 'block' }} {...attrs}>
+        {children}
+        {!narrow && headline ? <text x={24} y={H - 30} fontSize="13.5" fontWeight="600">{headline}</text> : null}
+        {!narrow && sub ? <text x={24} y={H - 12} fontSize="11.5" style={{ fill: 'var(--ink-2)' }}>{sub}</text> : null}
+      </svg>
+      {narrow ? <SceneReadout headline={headline} notes={sub ? [sub] : []} /> : null}
+    </>
   );
 }
 
@@ -123,10 +133,14 @@ function Lanes({ x, y, tl, upto, cw, rh, labels = true, unit = true }: {
   );
 }
 
+/** Cycles drawn so far and how many of them the unit issued in. */
 const busySoFar = (tl: Timeline, upto: number) => {
-  const shown = Math.max(1, Math.min(tl.cycles, Math.floor(upto)));
+  const shown = Math.max(0, Math.min(tl.cycles, Math.floor(upto)));
   return { busy: Math.round(busyFraction(tl, 0, shown) * shown), shown };
 };
+/** The headline of beats 1 to 3: what the unit has done so far. */
+const busyLine = (busy: number, shown: number, prefix = 'execution unit busy for') =>
+  shown === 0 ? 'cycle 0: nothing issued yet' : `${prefix} ${busy} of ${shown} cycles: ${pct(busy / shown)}%`;
 /** The first wait of a warp: where it starts and where its data is back. */
 const firstWait = (tl: Timeline, w: number) => runs(tl.rows[w]).find((r) => r.state === 'wait')!;
 
@@ -189,8 +203,9 @@ const beats: Beat[] = [
       const wait = firstWait(ONE, 0);
       return (
         <Frame
-          headline={`execution unit busy for ${busy} of ${shown} cycles: ${pct(busy / shown)}%`}
+          headline={busyLine(busy, shown)}
           sub={`${SCENE.work} cycles of work, then a ${SCENE.latency}-cycle wait on global memory`}
+          data={{ beat: 1, warps: 1, shown, busy }}
         >
           <Legend x={LX} y={34} ready={false} />
           <Lanes x={LX} y={84} tl={ONE} upto={upto} cw={CW} rh={30} />
@@ -209,7 +224,7 @@ const beats: Beat[] = [
       const upto = ramp(p, 0.08, 0.9) * CYCLES;
       const { busy, shown } = busySoFar(THREE, upto);
       return (
-        <Frame headline={`execution unit busy for ${busy} of ${shown} cycles: ${pct(busy / shown)}%`} sub="when one warp waits, the scheduler issues from another that is ready">
+        <Frame headline={busyLine(busy, shown)} sub="when one warp waits, the scheduler issues from another that is ready" data={{ beat: 2, warps: 3, shown, busy }}>
           <Legend x={LX} y={34} />
           <Lanes x={LX} y={62} tl={THREE} upto={upto} cw={CW} rh={30} />
         </Frame>
@@ -227,8 +242,9 @@ const beats: Beat[] = [
       const meet = first.start + first.length; // the cycle warp 0's data is back
       return (
         <Frame
-          headline={`${NEEDED} warps: busy for ${busy} of ${shown} cycles, ${pct(busy / shown)}%`}
+          headline={busyLine(busy, shown, `${NEEDED} warps: busy for`)}
           sub={p > 0.55 ? 'latency tolerance: no warp got faster; the wait is hidden behind other warps' : `as warp ${NEEDED - 1} sends its request, warp 0's data arrives`}
+          data={{ beat: 3, warps: NEEDED, shown, busy, meet }}
         >
           <Legend x={LX} y={34} />
           <Lanes x={LX} y={56} tl={ENOUGH} upto={upto} cw={CW} rh={30} />
@@ -256,10 +272,12 @@ const beats: Beat[] = [
       let into = 0; // how many cycles of the current switch have been spent, this one included
       while (t - into >= 0 && COSTLY[t - into].kind === 'switch') into += 1;
       const loading = into > SWITCH_COST / 2;
+      const execSoFar = (unit: UnitCell[]) => unit.slice(0, Math.floor(upto)).filter((u) => u.kind === 'exec').length;
       return (
         <Frame
           headline={`the SM changed warps for free; the other design spent ${pct(shares.switch)}% of its cycles saving and loading`}
           sub={`the same ${NEEDED} warps and the same waits on both sides; a ${SWITCH_COST}-cycle switch is an illustrative price`}
+          data={{ beat: 4, shown: Math.floor(upto), 'gpu-exec': execSoFar(FREE), 'cpu-exec': execSoFar(COSTLY), 'switch-share': pct(shares.switch) }}
         >
           <text x={30} y={26} fontSize="12.5" fontWeight="600">an SM: every warp's state stays on the chip</text>
           {Array.from({ length: NEEDED }, (_, w) => <WarpState key={w} x={30} y={38 + w * 36} n={w} on={gpu.kind === 'exec' && gpu.warp === w} />)}
@@ -268,7 +286,7 @@ const beats: Beat[] = [
           <UnitStrip x={30} y={210} unit={FREE} upto={upto} cw={cw} />
 
           <text x={384} y={26} fontSize="12.5" fontWeight="600">a CPU core: one thread's state at a time</text>
-          <rect x={384} y={38} width={132} height={30} rx="3" fill={cpu.kind === 'exec' ? 'var(--reg)' : 'var(--reg-wash)'} stroke="var(--reg)" />
+          <rect x={384} y={38} width={156} height={30} rx="3" fill={cpu.kind === 'exec' ? 'var(--reg)' : 'var(--reg-wash)'} stroke="var(--reg)" />
           <text x={392} y={57} fontSize="10.5" style={{ fill: cpu.kind === 'exec' ? 'var(--page)' : 'var(--ink)' }}>
             {cpu.kind === 'switch' ? 'PC, registers: in transit' : `thread ${cpu.warp ?? 0}: PC, registers`}
           </text>
@@ -282,7 +300,7 @@ const beats: Beat[] = [
             </g>
           ))}
           {cpu.kind === 'switch' ? (
-            <text x={530} y={62} fontSize="11" fontWeight="600">{loading ? 'load ↑ the next thread' : 'save ↓ the old thread'}</text>
+            <text x={552} y={57} fontSize="11" fontWeight="600">{loading ? 'load ↑ the next thread' : 'save ↓ the old thread'}</text>
           ) : null}
           <text x={384} y={204} fontSize="10.5" style={{ fill: 'var(--ink-2)' }}>execution unit (grey: saving and loading)</text>
           <UnitStrip x={384} y={210} unit={COSTLY} upto={upto} cw={cw} />
@@ -321,6 +339,7 @@ const beats: Beat[] = [
         <Frame
           headline={`${regs} registers per thread: ${warps} of ${fits.warpSlots} warp slots filled, ${(warps * perWarp).toLocaleString('en-US')} of ${(BOOK.regs as number).toLocaleString('en-US')} registers`}
           sub={second ? `twice the registers per thread: ${FITS_B.residentWarps} warps fit where ${FITS_A.residentWarps} did` : "the book's example SM: the register file is shared out among the resident warps"}
+          data={{ beat: 5, regs, warps, fit: fits.residentWarps, slots: fits.warpSlots ?? 0 }}
         >
           <text x={X} y={40} fontSize="12.5" fontWeight="600">the register file of one SM (the book's example)</text>
           <text x={X} y={56} fontSize="10.5" style={{ fill: 'var(--ink-2)' }}>one cell = {REGS_PER_UNIT.toLocaleString('en-US')} registers; a numbered box is one resident warp's share</text>
@@ -338,6 +357,7 @@ const beats: Beat[] = [
         <Frame
           headline={`busy with ${warpsNeeded(PRESETS.computeHeavy.work, PRESETS.computeHeavy.latency)} warps on the left; ${warpsNeeded(PRESETS.loadHeavy.work, PRESETS.loadHeavy.latency)} needed on the right`}
           sub="token-by-token decoding looks like the right-hand kernel: little arithmetic per load"
+          data={{ beat: 6, rung: LADDER[i], left: pct(HEAVY[i].use), right: pct(LOADY[i].use) }}
         >
           <Side x={30} title="long compute between loads" sub={`${PRESETS.computeHeavy.work} cycles of work, then a ${PRESETS.computeHeavy.latency}-cycle wait`} rung={HEAVY[i]} />
           <Side x={384} title="a load every other instruction" sub={`${PRESETS.loadHeavy.work} cycles of work, then a ${PRESETS.loadHeavy.latency}-cycle wait`} rung={LOADY[i]} />

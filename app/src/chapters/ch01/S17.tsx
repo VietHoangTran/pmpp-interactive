@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useState, type KeyboardEvent } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Aside, Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
 import { href } from '../../lib/router';
@@ -577,7 +577,9 @@ function ReadingPath() {
                     ? `Chapters that build on chapter ${single}: ${list(builtOn)}.`
                     : single === 24
                       ? 'Chapter 24 has no arrows in the chart.'
-                      : `Nothing in the chart builds on chapter ${single}. It leads nowhere further.`}
+                      : `Nothing in the chart builds on chapter ${single}. It leads nowhere further${
+                          single === 14 ? ', reading the junction under it as starting at chapter 9' : ''
+                        }.`}
                 </p>
               ) : null}
             </>
@@ -639,156 +641,60 @@ function ReadingPath() {
   );
 }
 
-// ---------------------------------------------------------------- edition lookup
-function EditionLookup() {
-  const [n, setN] = useState(14);
-  const [text, setText] = useState('14');
-  const pick = (v: number) => {
-    setN(v);
-    setText(String(v));
-  };
-  const c4 = FOURTH_TO_FIFTH[n - 1];
-  const to = fifthFor(n);
-  const nowAtOldNumber = chapter(n);
-  const unchanged = FOURTH_TO_FIFTH.filter((c) => c.fate.kind === 'same').length;
-  const movedCount = FOURTH_TO_FIFTH.filter((c) => c.fate.kind === 'moved').length;
-  const removed = FOURTH_TO_FIFTH.filter((c) => c.fate.kind === 'removed').map((c) => c.n);
-  const cell = {
-    height: '1.9rem',
-    minWidth: '1.75rem',
-    display: 'grid',
-    placeItems: 'center',
-    padding: 0,
-    borderRadius: 2,
-    fontVariantNumeric: 'tabular-nums',
-  } as const;
-  const grid = { display: 'grid', gridTemplateColumns: '8.5rem repeat(24, minmax(1.75rem, 1fr))', gap: 2, alignItems: 'center', minWidth: '52rem' } as const;
+// ---------------------------------------------------------------- edition map
+/** Where each 4th-edition chapter is now. A static table: every row is visible at once. */
+function EditionMap() {
+  const from = firstRenumbered();
+  const kept = FOURTH_TO_FIFTH.filter((c) => c.fate.kind === 'same');
+  const changed = FOURTH_TO_FIFTH.filter((c) => c.fate.kind !== 'same');
+  const link = (n: number) => <a href={href(chapter(n).id)}>{n}. {chapter(n).title}</a>;
   return (
-    <Bench
-      title="Which edition is that page about?"
-      task="Type or click the chapter number a page written before 2026 cites."
-      foot={
-        <>
-          The 4th-edition contents are from the publisher's page. Pairing the two editions by title is our inference
-          (notes/today/ch01-facts.md, A15). The 5th-edition side is the printed book.
-        </>
-      }
-    >
-      <div className="row" style={{ marginBottom: '0.8rem' }}>
-        <label className="field">
-          4th-edition chapter (1 to {FOURTH_TO_FIFTH.length})
-          <input
-            type="number"
-            min="1"
-            max={FOURTH_TO_FIFTH.length}
-            step="1"
-            value={text}
-            aria-label="4th-edition chapter number"
-            onChange={(ev) => {
-              setText(ev.target.value);
-              const v = Number(ev.target.value);
-              if (Number.isInteger(v) && v >= 1 && v <= FOURTH_TO_FIFTH.length) setN(v);
-            }}
-          />
-        </label>
-      </div>
-      <div style={{ overflowX: 'auto', marginBottom: '0.9rem' }}>
-        <div style={grid} data-role="fourth">
-          <span className="muted">4th edition (2022)</span>
-          {FOURTH_TO_FIFTH.map((c) => (
-            <button
-              key={c.n}
-              className="quiet"
-              data-n={c.n}
-              data-fate={c.fate.kind}
-              aria-pressed={c.n === n}
-              aria-label={`4th edition, chapter ${c.n}`}
-              onClick={() => pick(c.n)}
-              style={{ ...cell, textDecoration: c.fate.kind === 'removed' ? 'line-through' : undefined }}
-            >
-              {c.n}
-            </button>
-          ))}
-          <span />
-        </div>
-        <div style={{ ...grid, marginTop: 4 }} data-role="fifth">
-          <span className="muted">5th edition</span>
-          {CHAPTERS.map((c) => {
-            const hit = to === c.n;
-            const isNew = NEW_IN_FIFTH.includes(c.n);
-            return (
-              <span
-                key={c.n}
-                data-n={c.n}
-                data-hit={hit ? '1' : undefined}
-                data-new={isNew ? '1' : undefined}
-                title={c.title}
-                style={{
-                  ...cell,
-                  border: `1px ${isNew ? 'dashed' : 'solid'} ${hit || isNew ? 'var(--ink)' : 'var(--rule)'}`,
-                  background: hit ? 'var(--ink)' : 'var(--cell)',
-                  color: hit ? 'var(--page)' : 'var(--ink)',
-                  fontWeight: hit ? 700 : 450,
-                }}
-              >
-                {c.n}
-              </span>
-            );
-          })}
-        </div>
-      </div>
-      <div className="cols">
-        <div className="panel" data-role="edition-result">
-          <p style={{ margin: '0 0 0.4rem' }}>
-            <b>4th edition, chapter {c4.n}:</b> {c4.title}
-          </p>
-          {c4.fate.kind === 'same' ? (
-            <p style={{ margin: 0 }}>
-              <b>Same number.</b> In the 5th edition it is chapter {c4.n}, {nowAtOldNumber.title}:{' '}
-              <a href={href(nowAtOldNumber.id)}>this course's chapter {c4.n}</a>. The number held; the content may not
-              have (see the table above).
-            </p>
-          ) : c4.fate.kind === 'moved' ? (
-            <p style={{ margin: 0 }}>
-              <b>New number: chapter {c4.fate.to}</b>, {chapter(c4.fate.to).title}:{' '}
-              <a href={href(chapter(c4.fate.to).id)}>this course's chapter {c4.fate.to}</a>. In the 5th edition,
-              chapter {c4.n} is {nowAtOldNumber.title}
-              {NEW_IN_FIFTH.includes(c4.n) ? ', a new chapter' : ''}.
-            </p>
-          ) : (
-            <p style={{ margin: 0 }}>
-              <b>Removed.</b> {c4.fate.note}{' '}
-              {c4.fate.foldedInto ? (
+    <table className="data wide" data-role="edition-map" style={{ maxWidth: '46rem' }}>
+      <thead>
+        <tr>
+          <th>4th edition (2022)</th>
+          <th>In the 5th edition</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr data-n={`1-${from - 1}`} data-fate="same">
+          <td>
+            1 to {from - 1}: {kept[0].title} to {kept[kept.length - 1].title}
+          </td>
+          <td>the same numbers</td>
+        </tr>
+        {changed.map((c) => (
+          <tr key={c.n} data-n={c.n} data-fate={c.fate.kind}>
+            <td>
+              {c.n}. {c.title}
+            </td>
+            <td>
+              {c.fate.kind === 'moved' ? (
+                link(c.fate.to)
+              ) : c.fate.kind === 'removed' ? (
                 <>
-                  See <a href={href(chapter(c4.fate.foldedInto).id)}>this course's chapter {c4.fate.foldedInto}</a>.{' '}
+                  removed
+                  {c.fate.foldedInto ? <>; some of it is now in {link(c.fate.foldedInto)}</> : null}
+                  {c.fate.appendix ? (
+                    <>
+                      ; its history of the CUDA memory model is now{' '}
+                      <a href={href('app' + c.fate.appendix)}>Appendix {c.fate.appendix}</a>
+                    </>
+                  ) : null}
                 </>
               ) : null}
-              {c4.fate.appendix ? (
-                <>
-                  See <a href={href('app' + c4.fate.appendix)}>Appendix {c4.fate.appendix}</a>.{' '}
-                </>
-              ) : null}
-              In the 5th edition, chapter {c4.n} is {nowAtOldNumber.title}.
-            </p>
-          )}
-        </div>
-        <div className="panel" data-role="edition-summary">
-          <p style={{ margin: '0 0 0.4rem' }}>
-            <b>Across the whole list</b>
-          </p>
-          <p style={{ margin: 0 }}>
-            Same number: chapters 1 to {firstRenumbered() - 1} ({unchanged}). New number: {movedCount}, every surviving
-            chapter from {firstRenumbered()} on. Removed: {removed.length} (struck through: {list(removed)}). New in the
-            5th edition, with no 4th-edition counterpart: {list(NEW_IN_FIFTH)} (dashed).
-          </p>
-        </div>
-      </div>
-    </Bench>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 
 // ---------------------------------------------------------------- questions
 const BEFORE_20 = chaptersBefore([20]);
+/** If the chart were a line: every chapter from 2 to 19. */
+const LINE_BEFORE_20 = CHAPTERS.filter((c) => c.n > 1 && c.n < 20).length;
 const PART2_BEFORE_14 = chaptersBefore([14]).filter((n) => chapter(n).part === 'II');
 
 export const questions17: Record<string, Question> = {
@@ -828,9 +734,10 @@ export const questions17: Record<string, Question> = {
     answer: fifthFor(16)!,
     explain: (
       <p>
-        A post from 2023 can only mean the 4th edition (2022), whose chapter 16 is Deep learning. That material is
-        chapter {fifthFor(16)} now, Convolutional neural networks. Chapter 16 of the 5th edition is wavefront
-        parallelism, which has nothing to do with the post.
+        In 2023 the newest edition was the 4th (2022), so start there, but check which edition the post names: older
+        editions number differently, and the map on this page covers the 4th only. The 4th edition's chapter 16 is
+        Deep learning, and the post's topic fits it. That material is chapter {fifthFor(16)} now, Convolutional neural
+        networks. Chapter 16 of the 5th edition is wavefront parallelism, which has nothing to do with the post.
       </p>
     ),
     source: 'Preface pp. xviii–xxii; notes/today/ch01-facts.md, A15',
@@ -859,118 +766,44 @@ export const questions17: Record<string, Question> = {
     id: 'ch01/1.7/q-portable',
     prompt: (
       <>
-        A kernel passes its tests unchanged on a second vendor's GPU and runs at a third of the speed you expected.
-        Which statement does this illustrate?
+        You move a kernel, unchanged, from one vendor's GPU to another's. The two specification sheets give the same
+        peak arithmetic rate and the same memory bandwidth. The kernel passes its tests on both, and on the second its
+        own run time is three times longer. What is the most likely explanation?
       </>
     ),
     options: [
       {
-        label: 'A program that is correct on every supporting device usually needs modification to perform well on a new one.',
+        label: 'The second GPU is the slower device, so a third of the speed is what its hardware allows.',
+        why: 'The specification sheets rule that out: the peaks are the same. The second device could do this work as fast; the kernel does not ask for it in a way that device does well.',
+      },
+      {
+        label: "Amdahl's law: on the new machine the work left on the host is a larger share.",
+        why: "Amdahl's law is about the whole run. The figure here is the kernel's own run time, and host work does not enter it.",
+      },
+      {
+        label: 'Choices that made the kernel fast on the first device, such as how its work is divided among threads, do not suit the second.',
         correct: true,
       },
       {
-        label: "Amdahl's law.",
-        why: 'Amdahl is about the share of the run you did not speed up. Nothing here says anything about that share.',
-      },
-      {
-        label: 'The port must contain a bug.',
-        why: 'The tests pass. A slow kernel with correct output is a tuning problem until shown otherwise.',
+        label: 'The port is broken: the same correct source on equally fast hardware has to run at the same speed.',
+        why: 'The output is right, so nothing is broken in the sense a test can see. Equal peaks do not make two devices the same design, and a slow kernel with correct output is a tuning problem until shown otherwise.',
       },
     ],
     explain: (
       <p>
-        The book makes the remark about OpenCL (p. 13). AMD says the same about bringing CUDA code to HIP: expect manual
-        porting and performance tuning. Correctness travels with the source. Performance has to be earned again on each
-        device, by measuring there.
+        The book makes the remark about OpenCL (p. 13): a program runs correctly on any device that supports it and
+        usually needs modification to perform well on a new one. AMD says the same about bringing CUDA code to HIP:
+        expect manual porting and performance tuning. One concrete reason, from AMD's documentation: AMD's data-centre
+        GPUs schedule threads in groups of 64 where NVIDIA's use 32, and code that assumes 32 runs on them using half
+        of the compute resources. Chapter 4 explains these groups. Correctness travels with the source. Performance
+        has to be earned again on each device, by measuring there.
       </p>
     ),
-    source: 'book p. 13; notes/today/ch01-facts.md, B2',
+    source: 'book p. 13; notes/today/ch01-facts.md, B2; ch05-facts.md, B5',
   },
 };
 /** The same record under the name the chapter-building rules use. */
 export const questionsS17 = questions17;
-
-// ---------------------------------------------------------------- what the 5th edition changed
-const CHANGES: { kind: string; what: ReactNode; change: ReactNode; you: ReactNode }[] = [
-  {
-    kind: 'New',
-    what: '12 Filtering',
-    change: 'Unstable and stable filter; warp voting; coalesced atomic operations.',
-    you: 'Keeping the top-k or top-p candidates is a filter.',
-  },
-  {
-    kind: 'New',
-    what: '15 Advanced optimizations for matrix multiplication',
-    change: 'Coarsening, register tiling, vector loads and stores, bank conflicts, software pipelining; a survey of tensor cores and asynchronous copies.',
-    you: 'Your first goal. The Preface calls matmul the most important computation GPUs are used for today.',
-  },
-  {
-    kind: 'New',
-    what: '16 Wavefront parallelism',
-    change: 'Data parallelism out of dynamic programming, with sequence alignment as the example.',
-    you: 'Condensed in this course.',
-  },
-  {
-    kind: 'New',
-    what: '20 Large language models',
-    change: 'Attention over tokens, KV caching, flash attention, batching.',
-    you: 'Your first goal again: the only attention kernels in the book.',
-  },
-  {
-    kind: 'Rewritten',
-    what: '6 Performance considerations',
-    change: 'A longer checklist: loop unrolling, vector loads and stores, bank conflicts, double buffering, warp-level primitives.',
-    you: 'The checklist the later chapters apply, 15 and 20 included.',
-  },
-  {
-    kind: 'Rewritten',
-    what: '11 Scan',
-    change: 'More on work efficiency and on optimising one scan design; new variants; a corrected lookback using C++ atomics.',
-    you: 'Cumulative probability for top-p is a scan.',
-  },
-  {
-    kind: 'Rewritten',
-    what: '23 Multi-GPU programming',
-    change: 'A new running example and three models: CUDA-aware MPI, NCCL, NVSHMEM.',
-    you: 'Condensed in this course, which keeps streams, asynchronous copies and pinned memory.',
-  },
-  {
-    kind: 'Updated',
-    what: '4 and 5',
-    change: 'Examples on the H100; thread block clusters; distributed shared memory; a fuller treatment of arithmetic intensity.',
-    you: "The execution and memory model everything else rests on. The device figures are the book's example, never yours.",
-  },
-  {
-    kind: 'Updated',
-    what: '9 Histogram',
-    change: 'The CUDA C++ atomics API, with scope and memory ordering; code in other chapters moved to it too.',
-    you: 'The spelling of atomics you will meet in every later listing.',
-  },
-  {
-    kind: 'Updated',
-    what: '10 Reduction',
-    change: 'Warp-level primitives, warp shuffle above all.',
-    you: 'Softmax normaliser, max and argmax; the shuffles the attention kernel uses.',
-  },
-  {
-    kind: 'Updated',
-    what: '14, 17, 18, 19',
-    change: 'Odd-even sort added, radix sort tied to the stable filter; a column-wise sparse format; one kernel for all levels of a graph search; the ML background of 19 moved to a new Appendix B.',
-    you: '14 gives sorted candidates. 19 is where convolution is lowered to GEMM.',
-  },
-  {
-    kind: 'Updated',
-    what: 'Appendix A',
-    change: 'Low-precision floating-point formats, motivated by quantisation of LLM parameters.',
-    you: "The anchor for this course's quantised-kernel module.",
-  },
-  {
-    kind: 'Removed',
-    what: 'Three chapters',
-    change: 'Iterative MRI reconstruction (parts folded into 21); dynamic parallelism; other advanced practices (its history of the CUDA memory model is now Appendix C).',
-    you: 'Older material that cites them has no chapter to open here.',
-  },
-];
 
 // ---------------------------------------------------------------- the section
 export function S17() {
@@ -1001,9 +834,9 @@ export function S17() {
       </p>
       <Aside>
         <p>
-          <b>Book</b> Fig. P.1, p. xxiii. The arrows are the authors' advice to instructors (p. xxv), not hard
-          dependencies. One junction of the chart is ambiguous in the PDF: the line from chapter 9 to chapters 17 and
-          21 passes directly under the box of chapter 14. The arrow from 9 to 10 is drawn dashed.
+          <b>Book</b> Fig. P.1, p. xxiii. The Preface presents the arrows as prerequisites, drawn to help instructors
+          skip or reorder chapters (p. xxv). One junction of the chart is ambiguous in the PDF: the line from chapter 9
+          to chapters 17 and 21 passes directly under the box of chapter 14. The arrow from 9 to 10 is drawn dashed.
         </p>
       </Aside>
       <Predict
@@ -1021,8 +854,8 @@ export function S17() {
             <b>{BEFORE_20.length}</b>: chapters {list(BEFORE_20)}.{' '}
             {v === BEFORE_20.length
               ? 'That is what you had.'
-              : v === 19
-                ? 'Nineteen would be right if the chart were a line. It is not: most of Part II and Part III sits on branches that chapter 20 never touches.'
+              : v === LINE_BEFORE_20
+                ? 'Eighteen would be right if the chart were a line: chapters 2 to 19. It is not: most of Part II and Part III sits on branches that chapter 20 never touches.'
                 : v === chaptersBefore([15]).length
                   ? 'Five is the answer for chapter 15, which needs Part I and nothing else. Chapter 20 adds convolution and CNNs.'
                   : v > BEFORE_20.length
@@ -1049,22 +882,24 @@ export function S17() {
       <ReadingPath />
       <p>
         Four things to find. Chapter 15, the fast matmul, needs five chapters and nothing from Part II: you can go from
-        chapter 6 straight to it. Chapter 20 needs seven. Sorting, chapter 14, pulls in ten, five of them in Part II,
-        which is why sampling is the longest of your roads. And five chapters lead nowhere further (14, 15, 20, 22 and
-        23), so nothing downstream waits on them.
+        chapter 6 straight to it. Chapter 20 needs seven. Sorting, chapter 14, pulls in ten, which is why sampling is
+        the longest of your roads. And five chapters lead nowhere further (14, 15, 20, 22 and 23, reading the junction
+        under chapter 14 as starting at 9), so nothing downstream waits on them.
       </p>
       <Ask q={questions17['ch01/1.7/q-postpone']} />
 
       <h3>Where this course does not follow the arrows</h3>
       <p>
         Switch the explorer to this course's order. It takes the book by what your goals need first: foundations,
-        matmul, the sampling chain, attention and batching, quantisation, then the rest. The arrows are advice, and in
-        three places this course does not take it. It also adds one prerequisite the chart does not have.
+        matmul, the sampling chain, attention and batching, quantisation, then the rest. In three places it reads a
+        chapter before something the chart puts first, and it adds one prerequisite the chart does not have.
       </p>
       <Beyond title="Ours, not the book's">
         <p>
-          The order is PLAN.md's. Inside a stage the explorer arranges chapters by the book's arrows, and every arrow
-          the order runs ahead of is drawn heavy, so you can overrule it. The reasons in the list are ours.
+          The book draws the arrows as prerequisites. Treating them as advice, which this course may overrule, is our
+          reading. The order is PLAN.md's. Inside a stage the explorer arranges chapters by the book's arrows, and
+          every arrow the order runs ahead of is drawn heavy, so you can overrule it in turn. The reasons in the list
+          are ours.
         </p>
       </Beyond>
       <ul>
@@ -1104,28 +939,23 @@ export function S17() {
           the current toolkit is CUDA 13.5. NVIDIA's compute capability table did not list the new generation yet.
         </p>
       </Today>
-      <p>Here is what the Preface says changed, with the part that concerns you.</p>
+      <p data-role="changes">
+        What changed, as the Preface lists it, with the part that concerns you. Four chapters are new: {list(NEW_IN_FIFTH)}.
+        Chapter 12, filtering, is how you keep the top-k or top-p candidates. Chapter 15 takes matrix multiplication
+        in depth, which the Preface calls the most important computation GPUs are used for today. Chapter 16 is
+        wavefront parallelism. Chapter 20 covers large language models: attention, KV caching, flash attention and
+        batching, the only attention kernels in the book. Three chapters were rewritten: 6, whose longer optimisation
+        checklist the later chapters apply; 11, scan, which top-p needs; and 23, multi-GPU programming.
+      </p>
       <Source pages="xviii–xxii" figs="Preface" />
-      <table className="data wide" data-role="changes">
-        <thead>
-          <tr>
-            <th style={{ width: '6rem' }}>Kind</th>
-            <th style={{ width: '13rem' }}>Chapter</th>
-            <th>What changed</th>
-            <th>Why it matters to you</th>
-          </tr>
-        </thead>
-        <tbody>
-          {CHANGES.map((c, i) => (
-            <tr key={i}>
-              <td>{i === 0 || CHANGES[i - 1].kind !== c.kind ? <b>{c.kind}</b> : null}</td>
-              <td>{c.what}</td>
-              <td>{c.change}</td>
-              <td>{c.you}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <p>
+        Among the updates, four matter to you. Chapter 9 introduces the CUDA C++ atomics API that later listings use.
+        Chapter 10 adds warp shuffles, which the attention kernel relies on. Chapter 19, where convolution is lowered
+        to matrix multiplication, moved its deep-learning background to a new Appendix B. And Appendix A now covers
+        low-precision formats, motivated by quantised LLM weights. Chapters 4 and 5 also take their examples from the
+        H100, which stays the book's example device, not yours. Three chapters were removed: iterative MRI
+        reconstruction, dynamic parallelism and "other advanced practices".
+      </p>
       <p>
         The consequence for anything written against an earlier edition: it has no chapter on attention and no chapter
         on GEMM in depth, and from chapter 12 onward its chapter numbers mean something else.
@@ -1145,9 +975,8 @@ export function S17() {
 
       <h3>Which edition is that page about?</h3>
       <p>
-        A chapter number with no edition attached is ambiguous from 12 upward. The lookup takes a 4th-edition chapter
-        number and shows where that material is now. Try 14, 16 and 21. The publisher's web page will not settle
-        the question for you; the note says why.
+        A chapter number with no edition attached is ambiguous from 12 upward. The map below takes the 4th edition's
+        numbers to this one's. The publisher's web page will not settle the question for you; the note says why.
       </p>
       <Today checked="2026-11-20 against the publisher's pages (notes/today/ch01-facts.md, A15)">
         <p>
@@ -1155,7 +984,11 @@ export function S17() {
           no LLM chapter. The printed book has 24 in three parts. Trust the book.
         </p>
       </Today>
-      <EditionLookup />
+      <EditionMap />
+      <p className="muted" style={{ fontSize: '0.85rem' }}>
+        The 4th-edition titles are from the publisher's page. Pairing the two editions by title is our inference
+        (notes/today/ch01-facts.md, A15). The 5th-edition side is the printed book.
+      </p>
       <Ask q={questions17['ch01/1.7/q-edition16']} />
 
       <h2>Where CUDA sits among other interfaces</h2>
@@ -1163,7 +996,8 @@ export function S17() {
         The book places CUDA against three others. <b>OpenMP</b>: you annotate loops with directives and a compiler and
         runtime produce the parallel code; it was born on CPUs and extended to GPUs, and it buys convenience at the
         price of control. <b>MPI</b>: for clusters whose nodes share no memory, so every exchange is an explicit
-        message; that is the level above one GPU, which this course condenses in chapter 23. <b>OpenCL</b>: close to
+        message; that is the level above one GPU, which this course leaves out (its chapter 23 keeps only streams,
+        asynchronous copies and pinned memory). <b>OpenCL</b>: close to
         CUDA in concepts, built more on API calls and less on language extensions; an OpenCL program runs unchanged on
         any device that supports it, and usually needs modification to run well on a new one.
       </p>
@@ -1208,10 +1042,12 @@ export function S17() {
               Device name <code>'cuda'</code>.
             </td>
             <td>
-              Device name <code>'cuda'</code> as well. The kernels are the CUDA sources, translated at build time.
+              Device name <code>'cuda'</code> as well. Mostly the CUDA sources run through a HIPify script, plus a few
+              AMD-only files.
             </td>
             <td>
-              A separate <code>'mps'</code> device with its own hand-written <code>.metal</code> kernels.
+              A separate <code>'mps'</code> device, built on Apple's Metal Performance Shaders and MPSGraph frameworks
+              and on hand-written <code>.metal</code> kernels of its own.
             </td>
           </tr>
           <tr>
@@ -1239,8 +1075,8 @@ export function S17() {
         </tbody>
       </table>
       <p>
-        Where an AMD backend exists it is the CUDA code under other names, and the Metal backend is a second code base
-        written by hand. So CUDA learned well covers two of the three, and Metal is where a port means a rewrite:{' '}
+        Where an AMD backend exists it is mostly the CUDA code under other names, and the Metal backend is a second
+        code base. So CUDA learned well covers two of the three, and Metal is where a port means a rewrite:{' '}
         <a href={href('x3')}>module X3</a> reads these directories.
       </p>
 
@@ -1254,9 +1090,11 @@ export function S17() {
           promises you a number.
         </li>
         <li>
-          <b>Correct functionality and reliability.</b> The habit: run your CUDA kernels through the CPU emulator,
-          which replays them under fixed thread orders, so a race is a schedule that fails every time you run it and
-          not a wrong result once a week.
+          <b>Correct functionality and reliability.</b> The habit: run your CUDA kernels through this course's CPU
+          emulators. The <code>emu</code> backend replays a kernel under three fixed thread orders, so a wrong index, a
+          missing barrier or an out-of-bounds access fails every time, not once a week. Unsynchronised updates, such as
+          a missing atomic, need the <code>race</code> backend, which reports them with source lines, but only for
+          schedules that actually occur.
         </li>
         <li>
           <b>Scalability across hardware generations.</b> The book's key to it is regular, local memory access. The
@@ -1267,9 +1105,11 @@ export function S17() {
         The book's preview of chapter 2 names a six-step recipe for moving a computation to a GPU (§1.7, p. 15): pick
         the part to parallelise, allocate device memory, copy the data over, write the kernel, launch it, copy the
         results back. Chapter 2 works through it, so it is only named here. Apple's host-side sequence for a Metal
-        compute kernel is the same steps under other names.
+        compute kernel covers the same ground under other names, without the two copies: on Apple silicon a buffer
+        in shared storage is visible to both processors (see the last question of the{' '}
+        <a href={href('ch01', 'wrap')}>summary</a>).
       </p>
-      <Today checked="2026-11-20 against Apple's Metal documentation (notes/today/ch01-facts.md, C1)">
+      <Today checked="2026-11-20 against Apple's Metal documentation (notes/today/ch01-facts.md, C1; ch05-facts.md, C6)">
         <p>
           Apple's wording: find a GPU, create a pipeline for the function, create data objects the GPU can access, then
           create a command buffer, write commands into it and commit it to a command queue. Matching that to the book's

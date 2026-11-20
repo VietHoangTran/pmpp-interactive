@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
 import { fmt } from '../../lib/reports';
@@ -12,6 +12,7 @@ import {
   ceiling,
   corners,
   fractionIndex,
+  fractionNeeded,
   kernelNeeded,
   levers,
   limits,
@@ -22,6 +23,7 @@ import {
   speedupCurve,
   untouchedShare,
 } from '../../sim/amdahl';
+import { useWidth } from './useWidth';
 
 // ---------------------------------------------------------------- formatting
 /** A speed-up: "1.42×", "1,000×", or "unbounded". Rounded first, so that 999.9999 reads as 1,000. */
@@ -37,24 +39,10 @@ const DEFAULT_P = 0.99;
 const DEFAULTS = { threads: 1000, rate: 1 / 4, cap: 10 };
 const book30 = BOOK_CASES[0];
 const book99 = BOOK_CASES[2];
+/** q-fivehundred: the part made this many times faster, and the overall figure asked for. */
+export const FIVE_HUNDRED = { s: 1000, target: 500 };
 
 // ---------------------------------------------------------------- plot helpers
-/** Width of an element in CSS pixels, so a plot can be drawn at its real size and keep its text legible. */
-function useWidth(initial: number): [RefObject<HTMLDivElement | null>, number] {
-  const ref = useRef<HTMLDivElement>(null);
-  const [w, setW] = useState(initial);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const read = () => setW(Math.max(260, Math.round(el.clientWidth)));
-    read();
-    const ro = new ResizeObserver(read);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-  return [ref, w];
-}
-
 const tick = (v: number) => (v >= 1000 ? v / 1000 + 'k' : String(v));
 const path = (pts: [number, number][]) => pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
 
@@ -768,25 +756,31 @@ function WhichChallenge() {
 
 // ---------------------------------------------------------------- questions
 export const questions13: Record<string, Question> = {
-  'ch01/1.3/q-ceiling100': {
+  'ch01/1.3/q-fivehundred': {
     kind: 'numeric',
-    id: 'ch01/1.3/q-ceiling100',
+    id: 'ch01/1.3/q-fivehundred',
     prompt: (
       <>
-        Suppose the parallel part can be made as fast as you like. What parallel fraction puts the overall ceiling at
-        exactly 100×?
+        No real kernel is infinitely fast. Say you make the parallel part {fmt(FIVE_HUNDRED.s)} times faster. What
+        parallel fraction p gives about {FIVE_HUNDRED.target}× overall? Give it to one decimal place.
       </>
     ),
-    answer: 99,
+    answer: Number((100 * fractionNeeded(FIVE_HUNDRED.target, FIVE_HUNDRED.s)!).toFixed(1)),
+    tol: 0.0001,
     unit: '%',
     explain: (
       <p>
-        The ceiling is 1 / (1 − p), so 1 − p = 1/100 and p = 99%. For 1,000× it is 99.9%, which is the figure the book
-        quotes: results above 100× come after enough optimisation and algorithm changes that more than 99.9% of the
-        work is in the parallel part.
+        {FIVE_HUNDRED.target}× overall means the run takes 1/{FIVE_HUNDRED.target} = {fmt(100 / FIVE_HUNDRED.target)}%
+        of its old time. The accelerated part, {fmt(FIVE_HUNDRED.s)} times faster, takes about p /{' '}
+        {fmt(FIVE_HUNDRED.s)}, close to 0.1%. That leaves about 0.1% for the part left alone, so p is about 99.9%
+        (to four places, {frac(fractionNeeded(FIVE_HUNDRED.target, FIVE_HUNDRED.s)!)}). The untouched 0.1% now takes
+        as long as all the accelerated work, as the untouched 1% did in your second prediction. So the 99% of the
+        task makes 100× possible only with a part of unbounded speed. With a real, finite speed-up, results of
+        several hundred times need the "more than 99.9%" the book quotes. Set the Amdahl explorer to 99.9% and{' '}
+        {times(FIVE_HUNDRED.s)}: it shows {times(speedup(0.999, FIVE_HUNDRED.s))}.
       </p>
     ),
-    source: 'ch. 1 §1.3, pp. 9–10',
+    source: "our numbers; the law and the 99.9% figure are the book's, ch. 1 §1.3, pp. 9–10",
   },
   'ch01/1.3/q-kernelneeded': {
     kind: 'numeric',
@@ -907,9 +901,9 @@ export function S13() {
 
       <h2>Speed-up</h2>
       <p>
-        The <b>speed-up</b> of one system over another is the time the slower one takes divided by the time the faster
-        one takes. The book's example: a program that needs 200 s on one system and 10 s on the other has a speed-up
-        of 200 / 10 = 20×.
+        The <b>speed-up</b> of system A over system B is the time B takes divided by the time A takes. The order
+        matters: a figure below 1 means A is the slower one. The book's example: 200 s on B and 10 s on A is a
+        speed-up of 200 / 10 = 20× for A over B.
       </p>
       <Source section="1.3" pages="9" />
       <p>
@@ -1009,11 +1003,11 @@ export function S13() {
       <p>
         This is the background to a remark the book makes right after its examples. Speed-ups above 100× have been
         reported, it says, but typically only after optimisation and algorithm changes that put more than 99.9% of the
-        work in the parallel part. The task in the explorer was the first half of the reason; the next question is the
-        second.
+        work in the parallel part. Why 99.9% and not the 99% of the task? The task was the first half of the reason:
+        it assumed a part of unbounded speed. The next question is the second half.
       </p>
       <Source section="1.3" pages="9–10" />
-      <Ask q={questions13['ch01/1.3/q-ceiling100']} />
+      <Ask q={questions13['ch01/1.3/q-fivehundred']} />
       <Ask q={questions13['ch01/1.3/q-kernelneeded']} />
 
       <h2>The same sum for a decode step</h2>
@@ -1065,9 +1059,9 @@ export function S13() {
         the CPUs of their day (p. 5). It states both tens and does not link them. You do not have to take either
         on trust. <a href={href('ch05', '5.1')}>Chapter 5</a> turns the remark about saturation into a calculation: its
         roofline gives a kernel's ceiling from its operations per byte and the device's bandwidth, and lab 5.1
-        measures the bandwidth of your own device. On the machine this course was built on, the book's model and the
-        measurement disagreed by a wide margin. So the course has you predict and then measure, and this rule of
-        thumb is no exception.
+        measures the bandwidth of your own device. Chapter 5 also shows a case where the model and a measurement
+        disagree by a wide margin, and why (<a href={href('ch05', '5.1')}>"When a measurement lands above the
+        roof"</a>). So the course has you predict and then measure, and this rule of thumb is no exception.
       </p>
       <Today checked="2026-11-20 against the CUDA programming guide and vendor specification pages (notes/today/ch01-facts.md, A8)">
         <p>
@@ -1085,8 +1079,8 @@ export function S13() {
       <p>
         Three things to notice. Past the point where memory saturates, more threads buy nothing: with a memory cap of{' '}
         {DEFAULTS.cap} and 99% of the time in the kernel, the result is {times(atDefaults.overall)} however many
-        threads run. Only raising the cap moves it, to {times(limits(DEFAULT_P, DEFAULTS.threads, DEFAULTS.rate, 100).overall)}{' '}
-        at a cap of 100. In a real kernel that means fewer bytes per operation, through reuse (chapters 5, 6 and 15) or
+        threads run. Raising the cap is the only change that moves it much: to{' '}
+        {times(limits(DEFAULT_P, DEFAULTS.threads, DEFAULTS.rate, 100).overall)} at a cap of 100. In a real kernel that means fewer bytes per operation, through reuse (chapters 5, 6 and 15) or
         through smaller values (quantisation). After that the kernel is no longer what holds you back, and only a
         larger parallel fraction helps. For a decode step, that means moving host work such as sampling onto the GPU.
       </p>

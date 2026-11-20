@@ -164,6 +164,8 @@ export interface Level {
   id: LevelId;
   /** The vendor's name for the level, or null where the vendor documents no such level. */
   name: string | null;
+  /** The book's (CUDA) short name for the level, so a row without a name can still say what is missing. */
+  bookName: string;
   /** How many, or null. */
   count: number | null;
   /** What the count is a count of, e.g. "on the device", "in each SM". */
@@ -214,6 +216,17 @@ const NAMES: Record<Vocabulary, Record<LevelId, string | null>> = {
   },
 };
 
+/** The book's short name for each level, used where another vendor has no name of its own. */
+export const BOOK_NAMES: Record<LevelId, string> = {
+  device: 'GPU',
+  cluster: 'GPC',
+  unit: 'SM',
+  group: 'processing block',
+  core: 'streaming processor',
+  onchip: 'on-chip memory',
+  global: 'global memory',
+};
+
 /**
  * The levels of a device in its own vendor's words, with a count where one is known,
  * where that count comes from, and how a program would ask for it.
@@ -223,7 +236,7 @@ export function levels(d: Device): Level[] {
   const t = TERMS[v];
   const from = (n: number | null): Provenance => (n == null ? 'none' : d.source === 'book' ? 'book' : 'reported');
   const undocumented = 'Apple documents threadgroups and SIMD-groups, which are software, and no hardware unit under the device.';
-  const rows: Record<LevelId, Omit<Level, 'id' | 'name'>> = {
+  const rows: Record<LevelId, Omit<Level, 'id' | 'name' | 'bookName'>> = {
     device: {
       count: d.source === 'none' ? null : 1,
       per: 'selected',
@@ -283,7 +296,7 @@ export function levels(d: Device): Level[] {
       ask: null,
       holds: v === 'metal' ? [] : [{ what: `one thread of that ${t.warp}, for one instruction`, where: '4.4' }],
       note:
-        v === 'cuda' ? 'Also sold as "CUDA cores". No property of a CUDA device reports how many an SM has.'
+        v === 'cuda' ? 'Also sold as "CUDA cores"; the pages of NVIDIA\'s current guide read for this course do not say "streaming processor". No property of a CUDA device reports how many an SM has.'
         : v === 'hip' ? 'AMD\'s description of its CDNA family: 16 lanes in each SIMD. Not a property of your device.'
         : undocumented,
     },
@@ -310,7 +323,7 @@ export function levels(d: Device): Level[] {
       note: 'Off the chip and shared by every thread of the grid. Every access to it is slow next to arithmetic.',
     },
   };
-  return LEVEL_ORDER.map((id) => ({ id, name: NAMES[v][id], ...rows[id] }));
+  return LEVEL_ORDER.map((id) => ({ id, name: NAMES[v][id], bookName: BOOK_NAMES[id], ...rows[id] }));
 }
 
 // ---------------------------------------------------------------- waves (closed form)

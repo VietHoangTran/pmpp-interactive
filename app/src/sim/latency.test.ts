@@ -45,6 +45,15 @@ describe('the numbers the lesson states', () => {
     expect(BOOK_OVERSUBSCRIPTION.threadsPerSm / BOOK_OVERSUBSCRIPTION.coresPerSm).toBe(BOOK_OVERSUBSCRIPTION.ratio);
     expect(BOOK_OVERSUBSCRIPTION.ratio).toBe(16);
   });
+  it("the book's example SM in the model (64 warps, 4 slots) stays busy while L is at most 15 c", () => {
+    for (const c of [1, 2, 3, 8, 30]) {
+      expect(warpsNeeded(c, 15 * c, 4)).toBe(64);
+      expect(utilisation(cfg(64, c, 15 * c, 4))).toBe(1);
+      expect(warpsNeeded(c, 15 * c + 1, 4)).toBeGreaterThan(64);
+      expect(utilisation(cfg(64, c, 15 * c + 1, 4))).toBeLessThan(1);
+    }
+    expect(64 / 4).toBe(BOOK_OVERSUBSCRIPTION.ratio);
+  });
 });
 
 describe('more warps than needed change nothing', () => {
@@ -64,6 +73,17 @@ describe('more warps than needed change nothing', () => {
     const w = measureWindow(c);
     const tl = simulate(c, w.to);
     for (const row of tl.rows) expect(tally(row, w.from, w.to).ready).toBe(0);
+  });
+  it('below the threshold no warp ever queues once the start-up has passed (what the explorer says)', () => {
+    for (const slots of [1, 2, 4])
+      for (const c of [1, 2, 3, 7, 16, 32])
+        for (const L of [1, 8, 30, 61, 120])
+          for (let R = 1; R < Math.min(warpsNeeded(c, L, slots), 65); R += 3) {
+            const k = cfg(R, c, L, slots);
+            const w = measureWindow(k);
+            const tl = simulate(k, w.to);
+            for (const row of tl.rows) expect(tally(row, w.from, w.to).ready, JSON.stringify(k)).toBe(0);
+          }
   });
 });
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Aside, Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
 import { href } from '../../lib/router';
@@ -30,38 +30,67 @@ function describe(s: Schedule, n: number): string {
   return `Time ${e.time}: block ${e.block} is assigned to SM ${e.unit}, slot ${e.slot}. All of its threads go there together.`;
 }
 
+/**
+ * Width of an element in CSS pixels, so a drawing can use it as its viewBox and keep
+ * its text at reading size on a phone. (Chapter 1 has the same helper; a shared one
+ * would serve both.)
+ */
+function useWidth(initial: number, min = 280, max = 640): [RefObject<HTMLDivElement | null>, number] {
+  const ref = useRef<HTMLDivElement>(null);
+  const [w, setW] = useState(initial);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const read = () => setW(Math.max(min, Math.min(max, Math.round(el.clientWidth))));
+    read();
+    const ro = new ResizeObserver(read);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [min, max]);
+  return [ref, w];
+}
+
 /** A strip per block: when it ran, and on which SM. */
 function Strips({ s, n, now }: { s: Schedule; n: number; now: number }) {
   const blocks = s.spec.blocks;
   const started = new Set(s.events.slice(0, n).filter((e) => e.kind === 'assign').map((e) => e.block));
-  const W = 560;
-  const L = 34;
-  const row = 13;
-  const H = blocks * row + 22;
+  const [box, W] = useWidth(520);
+  const L = 30;
+  const row = 16;
+  const H = blocks * row + 24;
   const span = Math.max(1, s.makespan);
   const x = (t: number) => L + (t / span) * (W - L - 8);
-  const ticks = Array.from({ length: Math.floor(span) + 1 }, (_, i) => i).filter((t) => span <= 12 || t % Math.ceil(span / 12) === 0);
+  const most = Math.max(2, Math.floor((W - L) / 34)); // ticks at least 34 px apart
+  const ticks = Array.from({ length: Math.floor(span) + 1 }, (_, i) => i).filter((t) => span <= most || t % Math.ceil(span / most) === 0);
   return (
+    <div ref={box}>
     <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="When each block runs" style={{ width: '100%', maxWidth: W, display: 'block' }}>
       {ticks.map((t) => (
         <g key={t}>
           <line x1={x(t)} x2={x(t)} y1={0} y2={blocks * row} stroke="var(--rule)" />
-          <text x={x(t)} y={blocks * row + 12} fontSize="9.5" textAnchor="middle" style={{ fill: 'var(--ink-2)' }}>{t}</text>
+          <text x={x(t)} y={blocks * row + 13} fontSize="10.5" textAnchor="middle" style={{ fill: 'var(--ink-2)' }}>{t}</text>
         </g>
       ))}
-      <text x={W - 8} y={blocks * row + 21} fontSize="9.5" textAnchor="end" style={{ fill: 'var(--ink-2)' }}>time</text>
+      <text x={W - 8} y={blocks * row + 23} fontSize="10.5" textAnchor="end" style={{ fill: 'var(--ink-2)' }}>time</text>
       {s.placements.map((p) => {
         const y = p.block * row;
         const on = started.has(p.block);
         const upto = Math.min(p.end, Math.max(p.start, now));
+        // The label goes inside the strip when it fits, after it when it does not; it is
+        // light only where the dark part of the strip is under all of it.
+        const LABEL = 30;
+        const inside = x(p.end) - x(p.start) >= LABEL + 4;
+        const light = inside && x(upto) - x(p.start) >= LABEL + 4;
+        const after = x(p.end) + 3 + LABEL <= W;
+        const lx = inside ? x(p.start) + 4 : after ? x(p.end) + 3 : x(p.start) - 3;
         return (
           <g key={p.block} data-strip={p.block} data-on={on ? '1' : '0'}>
-            <text x={L - 5} y={y + 9.5} fontSize="9.5" textAnchor="end" style={{ fill: on ? 'var(--ink)' : 'var(--ink-3)' }}>{p.block}</text>
+            <text x={L - 5} y={y + 11.5} fontSize="10.5" textAnchor="end" style={{ fill: on ? 'var(--ink)' : 'var(--ink-3)' }}>{p.block}</text>
             {on ? (
               <>
                 <rect x={x(p.start)} y={y + 1.5} width={x(p.end) - x(p.start) - 1} height={row - 3} rx="2" fill="var(--cell)" stroke="var(--ink-3)" />
                 <rect x={x(p.start)} y={y + 1.5} width={Math.max(0, x(upto) - x(p.start) - 1)} height={row - 3} rx="2" fill="var(--ink-2)" />
-                <text x={x(p.start) + 4} y={y + 9.5} fontSize="8.5" style={{ fill: upto - p.start >= 0.5 ? 'var(--page)' : 'var(--ink-2)' }}>SM {p.unit}</text>
+                <text x={lx} y={y + 11.5} fontSize="10" textAnchor={inside || after ? 'start' : 'end'} style={{ fill: light ? 'var(--page)' : 'var(--ink-2)' }}>SM {p.unit}</text>
               </>
             ) : null}
           </g>
@@ -69,6 +98,7 @@ function Strips({ s, n, now }: { s: Schedule; n: number; now: number }) {
       })}
       <line x1={x(now)} x2={x(now)} y1={0} y2={blocks * row} stroke="var(--ink)" strokeWidth="1.4" />
     </svg>
+    </div>
   );
 }
 
@@ -215,11 +245,11 @@ export const questionsS42: Record<string, Question> = {
     options: [
       { label: 'Correct: blocks are handed out in index order, so block b − 1 has written before block b reads.', why: 'The list may be handed out in index order and block b can still reach its read first, or run at the same moment on another SM.' },
       {
-        label: 'Wrong: nothing orders blocks, so block b may read out[b − 1] before block b − 1 has written it. The running total has to be a separate step.',
+        label: 'Wrong: nothing orders blocks, so block b may read out[b − 1] before block b − 1 has written it.',
         correct: true,
       },
       { label: 'Wrong only on a device with several SMs; on a single SM the blocks run one after another.', why: 'One SM holds several blocks at once, and no vendor promises an order even in series.' },
-      { label: 'Correct once a __syncthreads() is placed before the read.', why: 'That barrier stops at the edge of the block. It cannot make one block wait for another.' },
+      { label: 'Correct once a __syncthreads() is placed before the read, so that the write has landed.', why: 'That barrier stops at the edge of the block. It cannot make one block wait for another.' },
     ],
     explain: (
       <p>
@@ -256,12 +286,12 @@ export const questionsS42: Record<string, Question> = {
     id: 'ch04/4.2/q-whole',
     prompt: <>Why does the runtime never split one block across two SMs?</>,
     options: [
-      { label: 'A block is one warp, and a warp cannot be divided.', why: 'A block is usually many warps. Section 4.4 cuts it up.' },
+      { label: 'A block is one warp, and the hardware runs a warp as one unit, so it cannot be divided.', why: 'A block is usually many warps. Section 4.4 cuts it up.' },
       {
-        label: 'Its threads may meet at a barrier and share on-chip memory. Both live inside one SM, and the runtime secures room for all the threads before any of them starts.',
+        label: 'Its threads may meet at a barrier and share on-chip memory, and both live inside one SM.',
         correct: true,
       },
-      { label: 'It could, but moving threads between SMs is slow, so it avoids it when it can.', why: 'It is a guarantee of the model, not a preference of the scheduler.' },
+      { label: 'It could, but moving threads between SMs is slow, so the scheduler avoids it when it can.', why: 'It is a guarantee of the model, not a preference of the scheduler.' },
       { label: 'A block has at most 1024 threads and an SM holds more than that, so the question never comes up.', why: 'A smaller device, or a kernel that needs more per thread, would make it come up at once.' },
     ],
     explain: (
@@ -324,6 +354,10 @@ export function S42() {
           </p>
         )}
       </Predict>
+      <p>
+        The stepper below starts on that launch. Step it and watch the list of waiting blocks drain as running blocks
+        finish.
+      </p>
       <Simplification>
         <p>
           A block here is an atom that takes one slot. "Slots per SM" stands for whichever real limit binds
@@ -349,7 +383,6 @@ export function S42() {
         two blocks of one grid may be on different SMs, or not running at the same time at all.
       </p>
       <Source section="4.2" pages="69" />
-      <Ask q={q['ch04/4.2/q-whole']} />
       <Today checked="2026-11-20 (notes/today/ch04-facts.md, A5)">
         <p>
           NVIDIA's guide says a block runs to completion on its SM "in most cases": with dynamic parallelism a block can
@@ -357,6 +390,7 @@ export function S42() {
           and that no order is promised.
         </p>
       </Today>
+      <Ask q={q['ch04/4.2/q-whole']} />
       <Ask q={q['ch04/4.2/q-crossblock']} />
 
       <h2>Thread block clusters</h2>
@@ -388,8 +422,8 @@ export function S42() {
       </p>
       <Beyond>
         <p>
-          Not in the book. AMD's wording is in notes/today/ch04-facts.md, B2. The Metal sentence reports an absence in
-          the documents we read (C1, C2): unverified.
+          AMD's wording is in notes/today/ch04-facts.md, B2. The Metal sentence reports an absence in the documents
+          read for this course (C1, C2): unverified.
         </p>
       </Beyond>
     </>

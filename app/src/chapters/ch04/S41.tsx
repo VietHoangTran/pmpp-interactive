@@ -24,7 +24,7 @@ const VOCABS: Vocabulary[] = ['cuda', 'hip', 'metal'];
 const PROVENANCE: Record<Level['provenance'], string> = {
   book: 'the book states it',
   reported: 'your device reported it',
-  'vendor-doc': "AMD's documentation",
+  'vendor-doc': "AMD's documentation, CDNA family",
   none: 'nobody says',
 };
 const where = (w: string) => (w.startsWith('4.') ? href('ch04', w) : href('ch05', 'start'));
@@ -143,9 +143,10 @@ function LevelExplorer() {
       task="Switch the backend and the device. Which of these sizes can a program ask for?"
       foot={
         <>
-          The picture is a schematic with a fixed number of boxes; the table says how many there are. In an SM,{' '}
+          The picture is the book's Fig. 4.1 as a schematic with a fixed number of boxes, greyed where a vendor documents
+          no such level; the table says how many there are. In the book's picture,{' '}
           <span className="chip reg">registers</span> and <span className="chip shared">shared memory</span> are on the
-          chip; <span className="chip global">global memory</span> is off it.
+          chip and <span className="chip global">global memory</span> is off it.
         </>
       }
     >
@@ -172,8 +173,8 @@ function LevelExplorer() {
           <table className="data levels" style={{ margin: 0, background: 'var(--page)', width: '100%' }} aria-label="Levels of the device">
             <thead>
               <tr>
-                <th style={{ paddingLeft: '0.5rem' }}>Level</th>
-                <th>How many</th>
+                <th style={{ paddingLeft: '0.5rem', width: '36%' }}>Level</th>
+                <th style={{ width: '27%' }}>How many</th>
                 <th>A program asks with</th>
               </tr>
             </thead>
@@ -182,7 +183,7 @@ function LevelExplorer() {
                 <tr key={l.id} data-level={l.id} data-count={l.count ?? ''} style={l.id === sel ? { background: 'var(--rule-soft)' } : undefined}>
                   <td style={{ paddingLeft: '0.5rem' }}>
                     <button className="quiet" aria-pressed={l.id === sel} onClick={() => setSel(l.id)} style={{ whiteSpace: 'normal', textAlign: 'left' }}>
-                      {l.name ?? 'no counterpart documented'}
+                      {l.name ?? `no counterpart of the ${l.bookName} documented`}
                     </button>
                   </td>
                   <td>
@@ -204,7 +205,7 @@ function LevelExplorer() {
       </div>
       <div className="panel" style={{ marginTop: '1rem' }} data-selected={cur.id}>
         <p style={{ margin: '0 0 0.4rem' }}>
-          <b>{cur.name ?? 'No counterpart documented'}</b>
+          <b>{cur.name ?? `No counterpart of the ${cur.bookName} documented`}</b>
           {cur.holds.length ? ': what the rest of the chapter places here' : null}
         </p>
         {cur.holds.length ? (
@@ -234,13 +235,12 @@ export const questionsS41: Record<string, Question> = {
     ),
     options: [
       {
-        label:
-          'Cores bound what executes in one cycle, not what is in progress. An SM keeps many more threads resident (2048 per SM in the example) and switches among them, and the cores of a group execute one common instruction.',
+        label: 'Cores bound what executes in one cycle, not what is in progress: each SM keeps 2048 threads resident.',
         correct: true,
       },
       { label: 'No correction: one thread per core, and the rest of the grid waits on the runtime\'s list.', why: 'That is how you would size a CPU thread pool. An SM holds sixteen times more threads than it has cores in the example.' },
-      { label: 'Too high: one thread runs per SM, so 132 at a time.', why: 'An SM is not a core. It has 128 of them in the example.' },
-      { label: 'Too high: a block is limited to 1024 threads, so 1024 at a time.', why: 'That limit is per block. Many blocks are in progress at once.' },
+      { label: 'Too high: an SM runs one thread at a time, so at most 132 threads are in progress.', why: 'An SM is not a core. It has 128 of them in the example.' },
+      { label: 'Too high: a block holds at most 1024 threads, and the device runs one block at a time.', why: 'That limit is per block. Many blocks are in progress at once.' },
     ],
     explain: (
       <p>
@@ -262,13 +262,13 @@ export const questionsS41: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Cores on both, so the larger number is the larger device.', why: 'Neither is a core count.' },
+      { label: 'Cores on both: one field name, so the larger number is the larger device.', why: 'Neither is a core count.' },
       {
-        label: 'SMs on one; compute units on the other, or half of them in workgroup-processor mode. Neither is a core count, and the two are not comparable.',
+        label: 'SMs on one; compute units, or half of them, on the other. The two are not comparable.',
         correct: true,
       },
-      { label: 'SMs on both: HIP translates the AMD hardware into NVIDIA\'s units.', why: 'HIP keeps the field name. It fills it with AMD\'s own unit.' },
-      { label: 'The number of GPUs in the machine.', why: 'That is what cudaGetDeviceCount and hipGetDeviceCount return.' },
+      { label: 'SMs on both: HIP translates the AMD hardware into NVIDIA\'s units for this field.', why: 'HIP keeps the field name. It fills it with AMD\'s own unit.' },
+      { label: 'The number of GPUs in the machine, which both runtimes report the same way.', why: 'That is what cudaGetDeviceCount and hipGetDeviceCount return.' },
     ],
     explain: (
       <p>
@@ -297,7 +297,7 @@ export const questionsS41: Record<string, Question> = {
         label: 'In global memory, off the chip; every access goes out through the memory controllers.',
         correct: true,
       },
-      { label: 'In the registers of the thread that reads it.', why: 'A value lands in a register after it has been fetched. The array itself is elsewhere.' },
+      { label: 'In the registers of the threads that read it, filled when the kernel starts.', why:'A value lands in a register after it has been fetched. The array itself is elsewhere.' },
     ],
     explain: (
       <p>
@@ -328,6 +328,9 @@ export function S41() {
         since NVIDIA's Pascal generation a GPU may use one of the HBM variants, packaged with the GPU chip. The book
         calls all of it DRAM from here on, and so does this course. Using it well is chapter 6.
       </p>
+      <Today checked="2026-11-20 (notes/today/ch04-facts.md, A4)">
+        <p>On the book's example device, the H100, HBM3 is on the SXM5 variant only; the PCIe variant has HBM2e.</p>
+      </Today>
 
       <h2>The book's example</h2>
       <p>
@@ -336,16 +339,11 @@ export function S41() {
         <b>GPU processing clusters</b> (GPCs), {book.clusters} on this device. Treat every one of these as a property of
         that one device. Yours has other numbers, and the explorer below shows which of them it will tell you.
       </p>
-      <Today checked="2026-11-20 (notes/today/ch04-facts.md, A1, A2, A4)">
+      <Today checked="2026-11-20 (notes/today/ch04-facts.md, A1, A2)">
         <p>
-          The 132 is one variant of the H100 (SXM5); the PCIe variant has {BOOK_DEVICE_TODAY.unitsOtherVariant}. NVIDIA
-          has a level the book leaves out, the TPC of {BOOK_DEVICE_TODAY.unitsPerTpc} SMs: {BOOK_DEVICE_TODAY.tpcs}{' '}
-          TPCs make the 132. Neither 132 SMs nor 66 TPCs divide by 8, so the GPCs are not all the same size; the split
-          is not published (unverified).
-        </p>
-        <p>
-          NVIDIA expands GPC both as "GPU" and as "graphics" processing cluster, and its current guide never says
-          "streaming processor". HBM3 is on the SXM5 variant only.
+          The 132 is the H100 SXM5; the PCIe variant has {BOOK_DEVICE_TODAY.unitsOtherVariant}. A level the book leaves
+          out, the TPC of {BOOK_DEVICE_TODAY.unitsPerTpc} SMs: {BOOK_DEVICE_TODAY.tpcs} TPCs make the 132. Their split
+          over 8 GPCs is not published (unverified).
         </p>
       </Today>
       <Predict

@@ -15,6 +15,7 @@ import {
   type SweepPoint,
 } from '../../sim/designs';
 import { BUDGET, Plan, TwoDesignsScene } from './TwoDesignsScene';
+import { useWidth } from './useWidth';
 
 // ---------------------------------------------------------------- helpers
 const nf = (v: number) => v.toLocaleString('en-US', { maximumFractionDigits: 3 });
@@ -30,6 +31,14 @@ const describe = (d: Design) => `${plural(d.units, 'unit')}, speed ${d.speed}`;
 const FAST = design(BUDGET, 2);
 const MANY = design(BUDGET, 0);
 
+// q-chainlen: two jobs where the one with more arithmetic has fewer independent pieces.
+// Both fit the explorer's ranges, so the reader can check them there.
+export const LONG_FEW = { chains: 8, length: 1000 };
+export const SHORT_MANY = { chains: 1024, length: 5 };
+const longFew = race(FAST, MANY, LONG_FEW.chains, LONG_FEW.length);
+const shortMany = race(FAST, MANY, SHORT_MANY.chains, SHORT_MANY.length);
+const ops = (j: { chains: number; length: number }) => nf(j.chains * j.length);
+
 // ---------------------------------------------------------------- Fig. 1.1, redrawn
 /**
  * Our own drawing of the idea in the book's Fig. 1.1: the same chip area divided
@@ -38,6 +47,11 @@ const MANY = design(BUDGET, 0);
 function AreaFigure() {
   const W = 640;
   const chipW = 286;
+  const H = 262;
+  // Below this width the two chips are drawn one above the other, each at its own size,
+  // so that the labels stay legible on a phone.
+  const [ref, measured] = useWidth(W);
+  const stacked = measured < 600;
   const top = 34;
   const chip = (x: number, title: string, bands: [string, number][], d: Design, channels: number, channelNote: string) => {
     let y = top;
@@ -77,14 +91,32 @@ function AreaFigure() {
       </g>
     );
   };
+  const cpu = (x: number) =>
+    chip(x, 'Latency-oriented (a CPU)',
+      [['control logic and branch prediction', 48], ['large caches', 58], [`arithmetic: ${describe(FAST).replace(', speed', ' of speed')}`, 54]], FAST, 2, 'few channels to memory');
+  const gpu = (x: number) =>
+    chip(x, 'Throughput-oriented (a GPU)',
+      [['control', 18], ['small caches', 18], [`arithmetic: ${describe(MANY).replace(', speed', ' of speed')}`, 124]], MANY, 8, 'many channels to memory, each allowed to be slow');
+  const svgStyle = { width: '100%', display: 'block', fontFamily: 'var(--sans)' } as const;
   return (
-    <figure style={{ margin: '0.2rem 0 1.4rem' }}>
-      <svg viewBox={`0 0 ${W} 262`} role="img" aria-label="The same chip area divided two ways" style={{ width: '100%', maxWidth: W, display: 'block', fontFamily: 'var(--sans)' }}>
-        {chip(0, 'Latency-oriented (a CPU)',
-          [['control logic and branch prediction', 48], ['large caches', 58], [`arithmetic: ${describe(FAST).replace(', speed', ' of speed')}`, 54]], FAST, 2, 'few channels to memory')}
-        {chip(W - chipW, 'Throughput-oriented (a GPU)',
-          [['control', 18], ['small caches', 18], [`arithmetic: ${describe(MANY).replace(', speed', ' of speed')}`, 124]], MANY, 8, 'many channels to memory, each allowed to be slow')}
-      </svg>
+    <figure style={{ margin: '0.2rem 0 1.4rem' }} data-stacked={stacked ? '1' : '0'}>
+      <div ref={ref} style={{ width: '100%' }}>
+        {stacked ? (
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            <svg viewBox={`-2 0 ${chipW + 4} ${H}`} role="img" aria-label="Chip area of a latency-oriented design" style={{ ...svgStyle, maxWidth: 360 }}>
+              {cpu(0)}
+            </svg>
+            <svg viewBox={`-2 0 ${chipW + 4} ${H}`} role="img" aria-label="Chip area of a throughput-oriented design" style={{ ...svgStyle, maxWidth: 360 }}>
+              {gpu(0)}
+            </svg>
+          </div>
+        ) : (
+          <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="The same chip area divided two ways" style={{ ...svgStyle, maxWidth: W }}>
+            {cpu(0)}
+            {gpu(W - chipW)}
+          </svg>
+        )}
+      </div>
       <figcaption className="ui muted" style={{ fontSize: '0.8rem', marginTop: '0.4rem' }}>
         Where the area goes, redrawn from the idea of the book's Fig. 1.1. A schematic: the proportions are not
         measurements, and the unit counts are the two designs of the animation below.
@@ -142,9 +174,13 @@ function Strip({ d, chains, length, tMax, f }: { d: Design; chains: number; leng
 
 /** Finishing time of both designs against the number of chains, log scales, with the current point marked. */
 function CrossPlot({ pts, regs, chains, a, b }: { pts: SweepPoint[]; regs: Region[]; chains: number; a: Design; b: Design }) {
-  const W = 560;
-  const H = 330;
-  const pad = { l: 58, r: 70, t: 14, b: 44 }; // room on the right for the label of the last point
+  // Drawn at its measured width, so that its text keeps its size on a phone.
+  const [ref, W] = useWidth(560);
+  const narrow = W < 440;
+  // On a wide plot, room on the right for the label of the last point and the legend inside the frame.
+  // On a narrow one the label turns left and the legend moves under the axis, where no line runs.
+  const H = Math.round(Math.min(330, Math.max(250, W * 0.59))) + (narrow ? 40 : 0);
+  const pad = { l: 58, r: narrow ? 26 : 70, t: 14, b: narrow ? 84 : 44 };
   const lo = Math.min(pts[0].a, pts[0].b) / 1.7;
   const hi = Math.max(pts[pts.length - 1].a, pts[pts.length - 1].b) * 1.7;
   const lx = (v: number) => Math.log2(v) / Math.log2(MAX_CHAINS);
@@ -166,11 +202,12 @@ function CrossPlot({ pts, regs, chains, a, b }: { pts: SweepPoint[]; regs: Regio
   // where neither staircase runs.
   const cx = X(chains);
   const upper = cx < pad.l + 84 ? { dx: 9, anchor: 'start' as const } : { dx: -9, anchor: 'end' as const };
-  const lower = { dx: 9, dy: 18, anchor: 'start' as const };
+  const lower = cx > W - 90 ? { dx: -9, dy: 18, anchor: 'end' as const } : { dx: 9, dy: 18, anchor: 'start' as const };
   const lowest = Math.max(Y(cur.a), Y(cur.b));
-  const lg = { x: W - pad.r - 176, y: H - pad.b - 34 };
+  const lg = narrow ? { x: 20, y: H - pad.b + 56 } : { x: W - pad.r - 176, y: H - pad.b - 34 };
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Time to the last result against the number of independent chains" style={{ width: '100%', maxWidth: W, display: 'block' }}>
+    <div ref={ref} style={{ width: '100%', overflow: 'hidden' }}>
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Time to the last result against the number of independent chains" style={{ display: 'block' }}>
       <rect x={pad.l} y={pad.t} width={W - pad.l - pad.r} height={H - pad.t - pad.b} fill="var(--page)" stroke="var(--rule)" />
       {regs.filter((g) => g.winner === 'tie' && regs.length > 1).map((g) => (
         <rect key={g.from} x={X(g.from) - 1} y={pad.t} width={X(g.to) - X(g.from) + 2} height={H - pad.t - pad.b} fill="var(--rule-soft)" stroke="var(--rule)" />
@@ -187,7 +224,7 @@ function CrossPlot({ pts, regs, chains, a, b }: { pts: SweepPoint[]; regs: Regio
           <text x={pad.l - 6} y={Y(v) + 4} fontSize="11" textAnchor="end">{nf(v)}</text>
         </g>
       ))}
-      <text x={(W - pad.r + pad.l) / 2} y={H - 8} fontSize="11.5" textAnchor="middle">independent chains</text>
+      <text x={(W - pad.r + pad.l) / 2} y={H - pad.b + 36} fontSize="11.5" textAnchor="middle">independent chains</text>
       <text x={14} y={(H - pad.b + pad.t) / 2} fontSize="11.5" textAnchor="middle" transform={`rotate(-90 14 ${(H - pad.b + pad.t) / 2})`}>time to the last result</text>
       <polyline points={line('a')} fill="none" stroke="var(--ink)" strokeWidth="2.2" strokeLinejoin="round" />
       <polyline points={line('b')} fill="none" stroke="var(--ink)" strokeWidth="2.2" strokeDasharray="6 4" strokeLinejoin="round" />
@@ -211,6 +248,7 @@ function CrossPlot({ pts, regs, chains, a, b }: { pts: SweepPoint[]; regs: Regio
         </>
       )}
     </svg>
+    </div>
   );
 }
 
@@ -431,27 +469,36 @@ export const questions10: Record<string, Question> = {
     id: 'ch01/start/q-chainlen',
     prompt: (
       <>
-        In the explorer's model you make every chain ten times longer and change nothing else. What happens to the
-        ratio of the two designs' finishing times?
+        Two jobs for the animation's designs, A ({describe(FAST)}) and B ({describe(MANY)}). Job X is{' '}
+        {nf(LONG_FEW.chains)} independent chains of {nf(LONG_FEW.length)} operations: {ops(LONG_FEW)} operations in
+        all. Job Y is {nf(SHORT_MANY.chains)} independent chains of {nf(SHORT_MANY.length)} operations:{' '}
+        {ops(SHORT_MANY)} in all. In the explorer's model, which design finishes each job first?
       </>
     ),
     options: [
       {
-        label: 'It moves in favour of the fast units: longer chains mean more sequential work.',
-        why: 'Each chain was already sequential at any length. A longer chain keeps one unit busy for longer on both designs.',
+        label: `Both on A: its units are ${FAST.speed} times faster.`,
+        why: `For Y, A needs ${nf(shortMany.a.waves)} waves of ${nf(SHORT_MANY.length / FAST.speed)}, done at ${nf(shortMany.a.last)}. B needs ${nf(shortMany.b.waves)} waves of ${nf(SHORT_MANY.length)}, done at ${nf(shortMany.b.last)}.`,
       },
-      { label: 'Nothing. Both times grow tenfold.', correct: true },
       {
-        label: 'It moves in favour of the many units: there is more work to spread out.',
-        why: 'There is more work, but not more pieces. One chain cannot be spread over several units.',
+        label: `Both on B: it has ${MANY.throughput / FAST.throughput} times the peak rate.`,
+        why: `A peak rate needs every unit busy. For X, B can use only ${nf(LONG_FEW.chains)} of its ${MANY.units} units: one wave of ${nf(LONG_FEW.length)}, done at ${nf(longFew.b.last)}. A runs ${nf(longFew.a.waves)} waves of ${nf(LONG_FEW.length / FAST.speed)} and is done at ${nf(longFew.a.last)}.`,
+      },
+      { label: 'X on A, Y on B.', correct: true },
+      {
+        label: 'X on B, Y on A: the bigger job goes to the design with the higher peak rate.',
+        why: `That is each job on the design that suits it least: X takes ${nf(longFew.b.last)} on B against ${nf(longFew.a.last)} on A, and Y takes ${nf(shortMany.a.last)} on A against ${nf(shortMany.b.last)} on B.`,
       },
     ],
     explain: (
       <p>
-        Each finishing time is the number of waves times the length of a chain, divided by the speed of a unit. The
-        length appears in both and cancels in the ratio. The number of waves depends only on how many chains there are
-        and how many units. So when you size up a piece of work for a GPU, count its independent pieces first. The
-        total amount of arithmetic tells you how long it will take, not which design should do it.
+        Count the independent pieces before the operations. X has {nf(LONG_FEW.chains)}: more than A's {FAST.units}{' '}
+        units and far fewer than B's {MANY.units}. A finishes it in {nf(longFew.a.waves)} waves, at{' '}
+        {nf(longFew.a.last)}; B in one wave, at {nf(longFew.b.last)}. Y has {nf(SHORT_MANY.chains)}: B finishes in{' '}
+        {nf(shortMany.b.waves)} waves, at {nf(shortMany.b.last)}, while A needs {nf(shortMany.a.waves)}, until{' '}
+        {nf(shortMany.a.last)}. So the job with more arithmetic goes to the latency design. On one job the length of
+        a chain scales both designs' times alike: it sets how long the job takes, not which design should take it.
+        Both jobs fit the explorer above, if you want to check.
       </p>
     ),
     source: 'our model of the book\'s argument, ch. 1 §1.1, pp. 4–5',
@@ -547,7 +594,8 @@ export function S10() {
       </p>
       <Source pages="1–3" />
       <p>
-        The book's example of the second kind is NVIDIA's Hopper H100. It quotes peak rates, as of 2022, of 34, 67 and
+        The book's example of the second kind is NVIDIA's Hopper H100, with hundreds of thousands of threads on many
+        simple pipelines. It quotes peak rates, as of 2022, of 34, 67 and
         1,979 TFLOPS for 64-, 32- and 16-bit arithmetic (one TFLOPS is 10<sup>12</sup> floating-point operations per
         second), against "a few TFLOPS" for a server CPU of the same year. It adds its own caveat: these are peak
         rates of the hardware, not the speed of any application.
@@ -564,10 +612,6 @@ export function S10() {
         <p>
           NVIDIA's H100 page still prints all three figures, for the SXM variant. 34 and 67 are its plain FP64 and
           FP32 rows. 1,979 is the row "FP16 Tensor Core", footnoted "With sparsity".
-        </p>
-        <p>
-          The book also gives the H100 "hundreds of thousands of threads". Those are threads the hardware keeps
-          resident. Far fewer execute at any one instant; chapter 4 explains.
         </p>
       </Today>
 
@@ -680,9 +724,15 @@ export function S10() {
       <Source section="1.1" pages="5" />
       <p>
         Chapter 4 shows the mechanism (§4.6, pp. 82–85): the hardware keeps many more threads resident than it can
-        execute at one instant, and at each step it picks one that is not waiting. Those resident threads are the
-        "hundreds of thousands" quoted above.
+        execute at one instant, and at each step it picks one that is not waiting. The hundreds of thousands of
+        threads the book gives the H100 are threads of this kind: resident, with far fewer executing at any moment.
       </p>
+      <Today checked="2026-11-20 (notes/today/ch01-facts.md, A2)">
+        <p>
+          Two of NVIDIA's own H100 figures, multiplied together, give a count of that size for threads held resident.
+          The multiplication is ours.
+        </p>
+      </Today>
       <p>
         Neither design replaces the other. The sequential parts of a program stay on the CPU and the numerically
         heavy parts go to the GPU, which is why the programming model you meet in chapter 2 has a host and a device.

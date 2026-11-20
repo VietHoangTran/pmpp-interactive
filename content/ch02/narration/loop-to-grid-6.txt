@@ -1,0 +1,1 @@
+The same picture on Metal. Here the runtime passes each thread its position in the grid as an argument, so there is no index arithmetic to write. And the host can ask for a grid of exactly 10 threads. No spare threads, so nothing to guard against.

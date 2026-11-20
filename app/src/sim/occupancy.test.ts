@@ -1,4 +1,8 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { EX7_EXPECTED, EX8_EXPECTED, TABLE_1536, questionsS47, sizeTimes } from '../chapters/ch04/S47';
+import type { BenchRow } from '../lib/reports';
 import {
   BOOK, BOOK_BLOCK_SIZES, EX6, EX6_OPTIONS, EX7, EX7_ASSIGNMENTS, EX8, EX8_KERNELS, MAX_REGS_PER_THREAD, assignment,
   isSynthetic, limitsFromReport, notReported, occupancy, pct, regValues, regsAtFullOccupancy, scan, smallestFillingBlock,
@@ -184,6 +188,36 @@ describe('the staircase', () => {
   it('threadValues lists whole warps up to the largest block', () => {
     expect(threadValues(BOOK)).toHaveLength(32);
     expect(threadValues({ ...BOOK, width: 64 })).toHaveLength(16);
+  });
+});
+
+describe("section 4.7's answers come from this model", () => {
+  const num = (id: string) => {
+    const q = questionsS47[id];
+    if (q.kind !== 'numeric') throw new Error(id + ' is not numeric');
+    return q.answer;
+  };
+  it('the exercise checker expects 50, 50, 50, 100, 100 for exercise 7 and full, block slots, registers for 8', () => {
+    expect(EX7_EXPECTED).toEqual(['50', '50', '50', '100', '100']);
+    expect(EX8_EXPECTED).toEqual(['full', 'blocks', 'regs']);
+  });
+  it('the numeric questions: 87.5 for exercise 8(c), 100 for 768 threads on 1536 / 16, 50 at 64 registers', () => {
+    expect(num('ch04/4.7/q-ex8c')).toBe(87.5);
+    expect(num('ch04/4.7/q-768')).toBe(100);
+    expect(num('ch04/4.7/q-regs64')).toBe(50);
+    expect(TABLE_1536).toEqual({ threadSlots: 1536, blockSlots: 16, blockSlotsDerived: false, regs: 65536, shared: null, width: 32, maxThreadsPerBlock: 1024 });
+  });
+  it("the measured reveal reads lab 4.4's sweep rows, one per block size, and nothing else", () => {
+    const main = fs.readFileSync(path.join(path.resolve(__dirname, '../../..'), 'labs/ch04/lab4_blocksize/main.cpp'), 'utf8');
+    expect(main).toContain('bench_row(a, "sweep").n("threads_per_block"');
+    const rows: BenchRow[] = [
+      { name: 'problem', outputs: 1000, width: 32 },
+      { name: 'sweep', threads_per_block: 64, seconds: 0.002 },
+      { name: 'sweep', threads_per_block: 32, seconds: 0.004 },
+      { name: 'sweep', threads_per_block: 32, seconds: 0.009 }, // a repeat of a size keeps the first
+      { name: 'summary', fastest_threads_per_block: 64, fastest_seconds: 0.002 },
+    ];
+    expect(sizeTimes(rows)).toEqual([{ size: 32, seconds: 0.004 }, { size: 64, seconds: 0.002 }]);
   });
 });
 

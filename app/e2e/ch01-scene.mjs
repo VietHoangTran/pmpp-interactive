@@ -74,6 +74,15 @@ await pause(400);
 // ---- scripts
 check('five scripts exist, each 35 to 60 words', scripts.every((s) => { const w = s.split(/\s+/).length; return w >= 35 && w <= 60; }), scripts.map((s) => s.split(/\s+/).length).join(' '));
 check('scripts use digits for numbers the model produces', scripts[1].includes('time 4') && scripts[1].includes('time 16') && scripts[1].includes('63 others') && scripts[2].includes('16 waves of 4'));
+{
+  const A1 = design(64, 1);
+  const A2 = design(64, 2);
+  check("part 1's script walks the rule twice, with the model's numbers: one halving costs 4 times, two give speed 4 at 16 squares",
+    A1.unitPower === 4 && A2.speed === 4 && A2.unitPower === 16 && A2.units === 4 &&
+      scripts[0].includes(`costs ${A1.unitPower} times the power`) && scripts[0].includes('Halve it twice') &&
+      scripts[0].includes(`${A2.speed} times faster but costs ${A2.unitPower} squares`) && scripts[0].includes(`buys ${A2.units} fast units, or 64 plain ones`),
+    scripts[0]);
+}
 if (manifest) {
   check('manifest names the agreed model and voice', manifest.model === 'eleven_v4' && manifest.voice === 'tnSpp4vdxKPjI9w0GnoV', JSON.stringify([manifest.model, manifest.voice]));
 } else {

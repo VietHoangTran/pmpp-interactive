@@ -36,7 +36,9 @@ function WarpTimeline({ tl, label }: { tl: Timeline; label: string }) {
   const X = 44;
   const plotW = W - X - 8;
   const cw = plotW / tl.cycles;
-  const rh = Math.max(3, Math.min(16, Math.floor(232 / R)));
+  // Few warps get tall rows, so that the drawing stays legible when a narrow screen scales it down.
+  const rh = Math.max(3, Math.min(R <= 8 ? 26 : 16, Math.floor(232 / R)));
+  const ready = tl.rows.reduce((s, row) => s + row.filter((c) => c === 'ready').length, 0);
   const gap = rh >= 8 ? 2 : rh >= 5 ? 1 : 0.5;
   const top = 6;
   const uy = top + R * rh + 10;
@@ -59,6 +61,7 @@ function WarpTimeline({ tl, label }: { tl: Timeline; label: string }) {
       data-rows={R}
       data-cycles={tl.cycles}
       data-idle={idleCycles(tl)}
+      data-ready={ready}
       style={{ width: '100%', display: 'block' }}
     >
       {tl.rows.map((row, w) => (
@@ -78,8 +81,8 @@ function WarpTimeline({ tl, label }: { tl: Timeline; label: string }) {
         </g>
       ))}
       {labelled.map((w) => (
-        <text key={w} x={X - 6} y={top + w * rh + Math.max(rh / 2 + 3, 8)} fontSize="9.5" textAnchor="end" style={{ fill: 'var(--ink-2)' }}>
-          {R <= 16 ? `w${w}` : `w${w}`}
+        <text key={w} x={X - 6} y={top + w * rh + Math.max(rh / 2 + 3, 8)} fontSize={rh >= 20 ? 12 : 9.5} textAnchor="end" style={{ fill: 'var(--ink-2)' }}>
+          w{w}
         </text>
       ))}
       <text x={X - 6} y={uy + 11} fontSize="9.5" textAnchor="end" fontWeight="600">unit</text>
@@ -177,9 +180,11 @@ function WarpsExplorer() {
             </output>
           </p>
           <p style={{ margin: '0 0 0.6rem' }}>
-            Estimate by counting: min(1, R × c / ({cfg.slots > 1 ? 'slots × ' : ''}(c + L))) = min(1, {cfg.warps} × {cfg.work} / (
-            {cfg.slots > 1 ? `${cfg.slots} × ` : ''}
-            {period(cfg)})) ={' '}
+            Estimate by counting:{' '}
+            {cfg.slots > 1
+              ? `min(1, R × c / (slots × (c + L))) = min(1, ${cfg.warps} × ${cfg.work} / (${cfg.slots} × ${period(cfg)}))`
+              : `min(1, R × c / (c + L)) = min(1, ${cfg.warps} × ${cfg.work} / ${period(cfg)})`}{' '}
+            ={' '}
             <b>
               <span data-out="estimate" data-value={pct(est)}>
                 {pct(est)}%
@@ -197,8 +202,8 @@ function WarpsExplorer() {
             {short > 0 ? (
               <>
                 <b>{plural(short, 'warp')} short.</b> The unit has nothing to issue for {pct(1 - use)}% of its
-                {cfg.slots > 1 ? ' slots' : ' cycles'}. Every warp here is either executing or waiting; none is ever
-                kept waiting for the unit.
+                {cfg.slots > 1 ? ' slots' : ' cycles'}. Once the cold start has passed, every warp is either executing
+                or waiting on memory; none is kept waiting for the unit.
               </>
             ) : short === 0 ? (
               <>
@@ -267,8 +272,7 @@ export const questionsS46: Record<string, Question> = {
         why: 'Nothing is loaded, early or late. NVIDIA also says SMs do no speculative execution at all.',
       },
       {
-        label:
-          "Every resident warp's program counter and registers stay in on-chip registers for its whole life. The price is paid in register-file space, which is what limits how many warps fit.",
+        label: "Every resident warp's program counter and registers stay in on-chip registers for as long as it lives.",
         correct: true,
       },
       {
@@ -277,7 +281,7 @@ export const questionsS46: Record<string, Question> = {
       },
       {
         label: "The outgoing warp's state is saved to shared memory, which is fast enough for the cost to round to zero.",
-        why: 'Nothing is saved anywhere. Shared memory belongs to the kernel, and the hardware does not borrow it.',
+        why: 'Nothing is saved anywhere. The state of a resident warp never leaves the registers it lives in.',
       },
     ],
     explain: (
@@ -298,7 +302,7 @@ export const questionsS46: Record<string, Question> = {
     options: [
       {
         label:
-          'Large caches and branch prediction. A thread that waits on memory still waits just as long; other warps use the execution unit meanwhile.',
+          'Large caches and branch prediction. A thread that waits on memory still waits just as long; other warps use the unit meanwhile.',
         correct: true,
       },
       {
@@ -310,7 +314,7 @@ export const questionsS46: Record<string, Question> = {
         why: 'The other way round: arithmetic units are what the saved area is spent on.',
       },
       {
-        label: 'Memory channels. With enough warps resident, slow memory no longer matters to anyone.',
+        label: 'Memory channels. With enough warps resident, a slow memory no longer matters to any thread or to the SM.',
         why: 'Memory channels are the other thing the area is spent on. Hiding a wait is not the same as removing the traffic; chapter 5 is about that limit.',
       },
     ],
@@ -337,11 +341,11 @@ export const questionsS46: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Its warps compute for many cycles on values already in registers between one memory access and the next, so a few of them keep the execution units busy. The matrix-vector kernel waits on memory after almost every step.',
+        label: 'Its warps compute for many cycles on values already in registers between memory accesses, so a few keep the units busy.',
         correct: true,
       },
       {
-        label: 'Matrix multiplication has no control divergence, so each warp needs fewer cycles.',
+        label: 'Matrix multiplication has no control divergence, so each of its warps needs fewer cycles per result.',
         why: 'Neither kernel diverges much. Divergence is about passes within a warp, not about how many warps are needed to cover a wait.',
       },
       {
@@ -349,7 +353,7 @@ export const questionsS46: Record<string, Question> = {
         why: 'That would favour low occupancy for the memory-bound kernel too, and it is the one that wants the SM full.',
       },
       {
-        label: 'Large blocks are scheduled first, so a 256-thread block is never kept waiting for an SM.',
+        label: 'Large blocks are scheduled first, so a 256-thread block is never kept waiting for a free SM.',
         why: 'No vendor documents an order of that kind, and it would not explain utilisation inside the SM.',
       },
     ],
@@ -391,9 +395,9 @@ export function S46() {
 
       <h2>What the extra warps are for</h2>
       <p>
-        Some instructions take a long time to deliver their result. The slowest common one is a read from global
-        memory: the request leaves the SM, goes to off-chip memory, and the data comes back many cycles later. A warp
-        whose next instruction needs that data can do nothing useful until it arrives.
+        Some instructions take a long time to deliver their result. The book's main example is a read from global
+        memory: the request leaves the SM for the off-chip DRAM of section 4.1, and the data comes back many cycles
+        later. A warp whose next instruction needs that data can do nothing useful until it arrives.
       </p>
       <p>
         The SM does not wait with it. A warp that is waiting on an earlier operation is not selected. Every other warp
@@ -420,9 +424,10 @@ export function S46() {
       <h2>Why the switch is free</h2>
       <p>
         On a CPU, moving a core from one thread to another is a context switch. The program counter and registers of
-        the outgoing thread are saved to memory and those of the incoming thread are loaded, and that takes time. It
-        is why an operating system switches threads thousands of instructions apart, not every instruction.
+        the outgoing thread are saved to memory and those of the incoming thread are loaded, and that takes time. A
+        design that paid that price at every switch could not afford to switch at every instruction.
       </p>
+      <Source section="4.6" pages="84" figs="and its sidebar on context switching" />
       <p>
         An SM never does it. The execution state of every warp assigned to it stays in hardware registers from the
         moment the warp arrives until it finishes. Selecting a different warp changes where the next instruction comes
@@ -431,11 +436,10 @@ export function S46() {
       </p>
       <Today checked="2026-11-20 against the CUDA 13.5 guide (ch04-facts.md, A11)">
         <p>
-          NVIDIA says the same: each warp's execution context is "maintained on-chip throughout the warp's lifetime",
-          so switching costs nothing. It adds that SMs issue instructions in order, with no branch prediction and no
-          speculative execution.
+          NVIDIA: each warp's context is "maintained on-chip throughout the warp's lifetime", so switching costs
+          nothing; SMs issue in order, with no branch prediction or speculation. How a ready warp is chosen is not
+          documented.
         </p>
-        <p>How the scheduler chooses among ready warps is not documented.</p>
       </Today>
       <p>
         Free in time is not free in space. Every resident warp holds its registers for as long as it is resident,
@@ -444,12 +448,11 @@ export function S46() {
       </p>
       <Beyond title="On HIP and Metal">
         <p>
-          AMD documents the same mechanism for a compute unit: single-cycle switching between warps, all contexts
-          resident. It also publishes its policy: the oldest warp fetches first, and issue goes round the pools in
-          turn.
+          AMD documents the same for a compute unit (single-cycle switching, all contexts resident) and publishes its
+          policy: oldest warp fetches first, issue goes round the pools in turn. No Apple statement found: for Metal
+          this is unverified.
         </p>
-        <p>We found no Apple statement on any of this. For Metal it is unverified.</p>
-        <p className="muted">Checked 2026-11-20 (ch04-facts.md, B8; nothing found for Metal).</p>
+        <p className="muted">Checked 2026-11-20 (ch04-facts.md, B8).</p>
       </Beyond>
       <Ask q={questionsS46['ch04/4.6/q-zero']} />
 
@@ -528,13 +531,14 @@ export function S46() {
         Below the threshold the unit idles, and every warp you add is put to full use. At the threshold the idling
         stops. Past it, extra warps change nothing you can measure at the unit: their data comes back and they wait
         for a turn. And the threshold itself is set by the ratio of waiting to working, which belongs to the kernel.
-        The book's 16 to 1 is that ratio for its example device: with all 64 warp slots in use on four processing
-        blocks, a kernel stays busy as long as its warps wait no more than 15 cycles for each cycle they work.
+        The last preset puts the book's example SM into the model: 64 warp slots, four processing blocks. There it
+        stays busy as long as a warp waits no more than 15 cycles for each cycle it works, which is the book's 16 to
+        1 seen from the kernel's side.
       </p>
       <p>
         One limit the model leaves out matters for the kernels you care about. More waiting warps means more requests
         in flight, and memory can serve only so many bytes per second. Once that bandwidth is used up, adding warps
-        stops helping however idle the execution units are. That ceiling was chapter 5's roofline.
+        stops helping however idle the execution units are. Chapter 5 calls that ceiling the roofline.
       </p>
 
       <h2>Which kernels need a full SM</h2>

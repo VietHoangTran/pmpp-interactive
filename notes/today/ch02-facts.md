@@ -11,7 +11,7 @@ How to read this file:
 - The NVIDIA runtime API reference moved: `https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__MEMORY.html` now redirects to `https://docs.nvidia.com/cuda/cuda-runtime-api/cuda_runtime_api/group__CUDART__MEMORY.html`. The URLs below are the ones the server finally answered with.
 - Not checked: anything by running code on hardware. Every statement is from documentation, headers or project source.
 
-Totals: 31 CONFIRMED, 0 WRONG, 7 PARTLY, 3 COULD NOT VERIFY (41 items). The PARTLY items are A1, A2, A7, A13, A14, A15, A18. The COULD NOT VERIFY items are A19, A21, B8. Sub-claims that could not be found are called out inside A2, A5, A8 and B7.
+Totals: 32 CONFIRMED, 0 WRONG, 7 PARTLY, 3 COULD NOT VERIFY (42 items; C9 was added later the same day). The PARTLY items are A1, A2, A7, A13, A14, A15, A18. The COULD NOT VERIFY items are A19, A21, B8. Sub-claims that could not be found are called out inside A2, A5, A8 and B7.
 
 ---
 
@@ -755,6 +755,40 @@ For the course: teach the original `MTLCommandQueue` / `MTLCommandBuffer` / `MTL
 - https://developer.apple.com/documentation/metal/understanding-the-metal-4-core-api
 - https://developer.apple.com/documentation/metal/mtl4computecommandencoder
 
+### C9. Several dispatches in one compute encoder: do they run in order and see each other's writes?
+
+Added 2026-11-20, after review of lab 2.3, whose Metal reference solution puts three dependent dispatches in one encoder. Read the same day in Apple's documentation (JSON behind each page) and in the macOS 27.0 SDK headers.
+
+**Verdict: CONFIRMED.** The encoder returned by the plain `computeCommandEncoder` call is serial by Apple's documentation, and buffers created from the device are hazard-tracked by default, which Apple documents as holding a later command back until an earlier write has finished. Either fact alone is enough for lab 2.3's chain; both hold there.
+
+Quotes:
+
+- `makeComputeCommandEncoder()` (Objective-C `computeCommandEncoder`), discussion: "The encoder this method returns dispatches its compute commands serially (see serial). To create a compute command encoder that dispatches commands concurrently (see concurrent), use the makeComputeCommandEncoder(dispatchType:) or makeComputeCommandEncoder(descriptor:) method."
+- `MTLDispatchType.serial`: "Sets a command encoder to dispatch encoded commands serially during your pass." Header (`MTLCommandBuffer.h`, lines 223 to 238): "MTLDispatchTypeSerial Command encoder dispatches are executed in dispatched order." "MTLDispatchTypeConcurrent Command encoder dispatches are executed in parallel with each other."
+- `MTLDispatchType.concurrent`: "If you encode multiple commands that access a single resource, you're responsible for synchronizing the memory operations to that resource."
+- `MTLComputePassDescriptor.dispatchType`: "The default dispatch type is serial."
+- "Resource synchronization": "By default, an MTLComputeCommandEncoder encodes a compute pass that runs its commands serially, However, you can create one that encodes a concurrent compute pass by configuring an MTLComputePassDescriptor instance's dispatchType property to concurrent." (Apple's punctuation.)
+- Same page: "The Metal framework automatically synchronizes resource access conflicts for the commands you submit to an MTLCommandQueue instance, and only for the resources that: You configure its hazardTrackingMode property to tracked; You directly bind that resource to an encoder type that adopts the MTLCommandEncoder protocol". "Resources you create from an MTLDevice instance default to tracked, and the resources you create from an MTLHeap instance default to untracked."
+- `MTLHazardTrackingMode.tracked`: "When at least one command writes to a tracked resource, the framework takes the following actions: Delay write operations until all previous read operations finish; Prevent subsequent commands from running until write operations finish".
+- `MTLHazardTrackingMode`: "Metal doesn't apply hazard tracking to commands you submit to an MTL4CommandQueue, even when those commands use tracked resources."
+
+What this settles, and what it does not:
+
+- Lab 2.3's `blockTail` on Metal: one plain compute encoder, three dispatches, buffers from `newBufferWithBytes`/`newBufferWithLength` bound with `setBuffer`. Each dispatch sees the previous one's writes. No barrier, fence or second encoder is needed.
+- An encoder made with `MTLDispatchTypeConcurrent`, buffers from an `MTLHeap`, or the `MTL4` command types (C8) would need explicit synchronisation. The course's labs use none of these.
+- Not settled: whether two command buffers on one queue that share no resource run one after the other or overlap. infra-facts C12 found no Apple statement either way.
+
+Sources:
+
+- https://developer.apple.com/documentation/metal/mtlcommandbuffer/makecomputecommandencoder()
+- https://developer.apple.com/documentation/metal/mtldispatchtype/serial
+- https://developer.apple.com/documentation/metal/mtldispatchtype/concurrent
+- https://developer.apple.com/documentation/metal/mtlcomputepassdescriptor/dispatchtype
+- https://developer.apple.com/documentation/metal/resource-synchronization
+- https://developer.apple.com/documentation/metal/mtlhazardtrackingmode
+- https://developer.apple.com/documentation/metal/mtlhazardtrackingmode/tracked
+- Local headers: `MTLCommandBuffer.h` (lines 223 to 238, 392 to 402), `MTLComputePass.h` (line 79)
+
 ---
 
 ## Group D: how llama.cpp, MLX and PyTorch do the same things
@@ -877,6 +911,7 @@ Items where the book, or a commonly assumed fact, turned out PARTLY right, out o
 | Launch | `k<<<blocks, threads>>>(args)` | Same syntax | Command buffer, encoder, `setComputePipelineState`, `setBuffer`, `dispatchThreads`, `endEncoding`, `commit` |
 | Block-count arithmetic | `(n + B - 1) / B`, or `cuda::ceil_div` | `(n + B - 1) / B`; zero blocks returns `hipErrorInvalidValue` | Not needed with `dispatchThreads`; same arithmetic with `dispatchThreadgroups` |
 | Does the launch wait? | No. `cudaDeviceSynchronize()` | No. `hipDeviceSynchronize()` | No (`commit` is asynchronous). `[commandBuffer waitUntilCompleted]` |
+| Two kernels back to back: does the second see the first's writes? | Yes, in one stream (the default stream is in order) | Yes, in one stream | Yes, in one plain compute encoder (serial by default) on device-created buffers (hazard-tracked by default) (C9) |
 | Error reporting | `cudaError_t` from every call; `cudaGetLastError()` after a launch; `cudaGetErrorString` | `hipError_t` (`[[nodiscard]]` in C++17); `hipGetLastError()`; `hipGetErrorString` | nil returns, `NSError**` on compile steps, `commandBuffer.status` and `.error` after the wait |
 | Out-of-bounds write in a kernel | Not reliably reported | Not checked here | Reported only with Shader Validation enabled |
 | Threads per block or group | 1024 (ch05 A5) | "typically 1024"; query the device | Up to 1024; read `maxTotalThreadsPerThreadgroup` from the pipeline (ch05 C3) |

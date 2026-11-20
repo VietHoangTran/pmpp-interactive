@@ -1,0 +1,1 @@
+Start with no GPU at all. One host thread walks along A and B, adds each pair, and writes the sum into C. All three arrays sit in host memory. The device on the right has a memory of its own, and so far nothing in it is ours.

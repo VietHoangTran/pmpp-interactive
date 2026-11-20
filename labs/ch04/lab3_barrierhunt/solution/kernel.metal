@@ -33,8 +33,8 @@ kernel void reverse_blocks(device float* a [[buffer(0)]],
     // FIX 1: no thread may write before every thread of the threadgroup has read.
     // The array is device memory, so the flag is mem_device: it "ensures the GPU
     // correctly orders the memory operations to device memory for threads in the
-    // threadgroup" (MSL specification, section 6.10.1). Chapter 5's kernels pass
-    // mem_threadgroup because their phases meet in threadgroup memory.
+    // threadgroup or SIMD-group" (MSL specification, section 6.10.1). Chapter 5's
+    // kernels pass mem_threadgroup because their phases meet in threadgroup memory.
     //
     // Every thread reaches this line, including the ones past the end of the
     // array. The specification's rule is that all threads of a threadgroup

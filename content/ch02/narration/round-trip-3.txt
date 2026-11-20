@@ -1,0 +1,1 @@
+Part 1. A and B cross the boundary, element by element. While each copy runs, the host thread is blocked inside the call. Watch the counter. Each array is 8 floats of 4 bytes, so 32 bytes per copy. 64 bytes have crossed before any arithmetic has happened.

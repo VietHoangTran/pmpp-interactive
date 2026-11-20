@@ -113,6 +113,18 @@ describe('compute both, then select (ours; facts B7)', () => {
   it('against a uniform warp a select always costs the other path as well', () => {
     expect(run(select(W, 2, 2)).spent - run(ifElse(W, maskBelow(W, W), 2, 2)).spent).toBe(3);
   });
+  it('never cheaper than the branch, at any length of path (section 4.5 says so: the model gives a branch no cost of its own)', () => {
+    for (const cost of [1, 2, 3, 8])
+      for (const T of [0, 1, 16, 24, 31, 32]) {
+        const s = run(select(W, cost, cost)).spent;
+        const b = run(ifElse(W, maskBelow(W, T), cost, cost)).spent;
+        expect(s).toBeGreaterThan(b);
+        // A split warp pays both paths already, so the select adds exactly its own instruction.
+        if (T > 0 && T < W) expect(s - b).toBe(1);
+      }
+    // The cases the lesson's list sends the reader to: paths of 1 and of 8 at T = 24.
+    expect([1, 8].map((c) => [run(ifElse(W, maskBelow(W, 24), c, c)).spent, run(select(W, c, c)).spent])).toEqual([[4, 5], [18, 19]]);
+  });
 });
 
 describe('Fig. 4.10: a loop with trip counts from data (p. 81)', () => {

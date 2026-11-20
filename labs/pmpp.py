@@ -15,6 +15,7 @@ Standard library only. Needs cmake >= 3.21 and a C++17 compiler.
 import argparse
 import datetime
 import filecmp
+import hashlib
 import json
 import os
 import platform
@@ -167,6 +168,18 @@ def work_state(lab):
     return "untouched"
 
 
+def source_hash(lab, variant):
+    """Hash of what a run of this lab variant compiled: the variant's files and the driver.
+    Lets a run without tests keep the last test result only when nothing has changed."""
+    h = hashlib.sha256()
+    d = lab_dir(lab)
+    for f in [os.path.join(variant, x) for x in STUDENT_FILES] + ["main.cpp"]:
+        p = os.path.join(d, f)
+        if os.path.exists(p):
+            h.update(f.encode() + b"\0" + open(p, "rb").read() + b"\0")
+    return h.hexdigest()[:16]
+
+
 def resolve_lab(cfg, token):
     labs = sorted({t["lab"] for t in cfg["targets"] if t["lab"] != "devinfo"})
     m = re.fullmatch(r"(\d+)\.(\d+)", token)
@@ -246,6 +259,8 @@ def exercise(t, do_test, do_bench, timeout=900):
     """Build one target, then test and/or benchmark it."""
     r = dict(t)
     r.update({"built": False, "tests": [], "bench": [], "test_rc": None, "log": "", "tsan": []})
+    if t["variant"] in ("work", "solution", "starter"):
+        r["src"] = source_hash(t["lab"], t["variant"])
     ok, out = build(t["target"])
     r["built"] = ok
     if not ok:
@@ -310,6 +325,14 @@ def save_runs(results, states, devs=None):
             if not r.get("bench") and prev and prev.get("bench") and passed(r):
                 r["bench"] = prev["bench"]
                 r["bench_from"] = prev.get("bench_from") or data.get("generated")
+            # Likewise a benchmark-only run (--no-test) keeps the last test result, but only
+            # when the sources it compiled are the ones that result was tested on.
+            if (r["built"] and r["test_rc"] is None and prev and prev.get("test_rc") is not None
+                    and r.get("src") and prev.get("src") == r.get("src")):
+                for k in ("tests", "test_rc", "tsan", "test_text"):
+                    if k in prev:
+                        r[k] = prev[k]
+                r["tests_from"] = prev.get("tests_from") or data.get("generated")
         data["results"] = [r for r in data.get("results", []) if key(r) not in fresh] + new
         data["results"].sort(key=lambda r: (r["lab"], r["variant"], r["tile"]))
         data["generated"] = now

@@ -21,8 +21,11 @@
 //    scheduling, no memory, and a "legal" verdict says only that the numbers pass
 //    the chosen table.
 //  - Limits that depend on more than the two dim3 values are not modelled: shared
-//    memory per block, HIP's rule that gridDim times blockDim fits in 32 bits per
-//    dimension, Metal's per-pipeline thread limit.
+//    memory per block; the registers a kernel uses, which can make a CUDA launch
+//    under 1024 threads fail with cudaErrorLaunchOutOfResources (ch08-facts A4), and
+//    on HIP the block-size bound a kernel is compiled for (ch08-facts B4); HIP's rule
+//    that gridDim times blockDim fits in 32 bits per dimension; Metal's per-pipeline
+//    thread limit.
 //  - A dim3 field is treated as an unsigned 32-bit integer. What a compiler does
 //    with a negative or fractional argument is not modelled.
 //  - The ceil form is evaluated in double precision, as C++ would, and then taken

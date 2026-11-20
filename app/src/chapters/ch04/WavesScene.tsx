@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Scene, type Beat } from '../../components/Scene';
+import { SceneReadout, useNarrow } from './sceneText';
 import {
   FIG45,
   TAIL_EXAMPLE,
@@ -21,6 +22,8 @@ import {
 // Every block position, count and percentage drawn comes from sim/blocksched.ts.
 const W = 720;
 const H = 348;
+/** The strip at the bottom that holds the headline and the line under it. */
+const FOOT = 44;
 const clamp = (v: number) => Math.max(0, Math.min(1, v));
 const ramp = (p: number, a: number, b: number) => clamp((p - a) / (b - a));
 
@@ -45,7 +48,7 @@ function Block({ x, y, w = 34, h = 24, n, on = false, inside = false, faded = fa
   x: number; y: number; w?: number; h?: number; n: number; on?: boolean; inside?: boolean; faded?: boolean;
 }) {
   return (
-    <g opacity={faded ? 0.35 : 1}>
+    <g opacity={faded ? 0.35 : 1} data-block={n}>
       <rect x={x} y={y} width={w} height={h} rx="3" fill={on ? 'var(--ink-2)' : 'var(--cell)'} stroke="var(--ink)" strokeWidth="1.2" />
       {inside ? (
         <>
@@ -68,7 +71,7 @@ function Pending({ x, y, s, t, shown = 1 }: { x: number; y: number; s: Schedule;
   const waiting = s.spec.order.filter((b) => s.placements[b].start > t);
   const visible = Math.ceil(waiting.length * shown);
   return (
-    <g>
+    <g data-part="pending">
       <text x={x} y={y - 8} fontSize="11.5" fontWeight="600">not started</text>
       {waiting.slice(0, visible).map((b, i) => <Block key={b} x={x + (i % 2) * 38} y={y + Math.floor(i / 2) * 28} n={b} />)}
       {waiting.length === 0 ? <text x={x} y={y + 14} fontSize="11" style={{ fill: 'var(--ink-2)' }}>nothing left</text> : null}
@@ -86,31 +89,40 @@ function DeviceRun({ x, y, s, t, name, dim = false }: { x: number; y: number; s:
   const rowH = 30;
   const col = (unit: number, slot: number) => slot * s.spec.units + unit;
   return (
-    <g opacity={dim ? 0.5 : 1}>
+    <g opacity={dim ? 0.5 : 1} data-part="device" data-capacity={cap}>
       <text x={x} y={y - 8} fontSize="11.5" fontWeight="600">{name}</text>
       <rect x={x - 5} y={y} width={cap * cw + 8} height={34} rx="4" fill="var(--bench)" stroke="var(--ink-3)" />
       {Array.from({ length: cap }, (_, k) => (
         <rect key={k} x={x + k * cw} y={y + 5} width={cw - 4} height={24} rx="3" fill="none" stroke="var(--ink-3)" strokeDasharray="3 3" />
       ))}
-      {s.placements.filter((p) => p.start <= t && t < p.end && t < s.makespan).map((p) => (
-        <Block key={'r' + p.block} x={x + col(p.unit, p.slot) * cw} y={y + 5} w={cw - 4} n={p.block} on />
-      ))}
+      <g data-part="running">
+        {s.placements.filter((p) => p.start <= t && t < p.end && t < s.makespan).map((p) => (
+          <Block key={'r' + p.block} x={x + col(p.unit, p.slot) * cw} y={y + 5} w={cw - 4} n={p.block} on />
+        ))}
+      </g>
       <line x1={x - 14} x2={x - 14} y1={y + 46} y2={y + 46 + s.makespan * rowH} stroke="var(--ink-3)" />
       <text x={x - 18} y={y + 58} fontSize="9.5" textAnchor="end" style={{ fill: 'var(--ink-2)' }}>time</text>
-      {s.placements.filter((p) => p.start <= t).map((p) => (
-        <Block key={p.block} x={x + col(p.unit, p.slot) * cw} y={y + 46 + p.start * rowH} w={cw - 4} n={p.block} on={t < p.end} />
-      ))}
+      <g data-part="history">
+        {s.placements.filter((p) => p.start <= t).map((p) => (
+          <Block key={p.block} x={x + col(p.unit, p.slot) * cw} y={y + 46 + p.start * rowH} w={cw - 4} n={p.block} on={t < p.end} />
+        ))}
+      </g>
     </g>
   );
 }
 
 function Frame({ children, headline, sub }: { children: ReactNode; headline?: ReactNode; sub?: ReactNode }) {
+  const narrow = useNarrow();
+  // On a narrow screen the headline and the line under it are shown as text below the drawing (sceneText.tsx).
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Animation of a grid of blocks draining through a device" style={{ width: '100%', maxWidth: W, display: 'block' }}>
-      {children}
-      {headline ? <text x={24} y={H - 30} fontSize="13.5" fontWeight="600">{headline}</text> : null}
-      {sub ? <text x={24} y={H - 12} fontSize="11.5" style={{ fill: 'var(--ink-2)' }}>{sub}</text> : null}
-    </svg>
+    <>
+      <svg viewBox={`0 0 ${W} ${narrow ? H - FOOT : H}`} role="img" aria-label="Animation of a grid of blocks draining through a device" style={{ width: '100%', maxWidth: W, display: 'block' }}>
+        {children}
+        {!narrow && headline ? <text x={24} y={H - 30} fontSize="13.5" fontWeight="600">{headline}</text> : null}
+        {!narrow && sub ? <text x={24} y={H - 12} fontSize="11.5" style={{ fill: 'var(--ink-2)' }}>{sub}</text> : null}
+      </svg>
+      {narrow ? <SceneReadout headline={headline} notes={sub ? [sub] : []} /> : null}
+    </>
   );
 }
 
@@ -129,7 +141,7 @@ function Field({ x, y, s, t }: { x: number; y: number; s: Schedule; t: number })
           width={cw - 2} height={ch - 1.5} rx="1.5" fill={on ? 'var(--ink-2)' : 'var(--cell)'} stroke={on ? 'var(--ink)' : 'var(--ink-3)'} strokeWidth="0.7" />,
       );
     }
-  return <g>{cells}</g>;
+  return <g data-part="field" data-busy={busy.size} data-slots={cells.length}>{cells}</g>;
 }
 const busyAt = (s: Schedule, t: number) => s.placements.filter((p) => p.start <= t && t < p.end).length;
 
@@ -161,7 +173,7 @@ const beats: Beat[] = [
     label: 'The list',
     draw: (p) => (
       <Frame headline={`${SMALL.spec.blocks} blocks have not started`} sub="each needs a free slot on an SM for all of its threads">
-        <Pending x={40} y={48} s={SMALL} t={-1} shown={ramp(p, 0.05, 0.5)} />
+        <Pending x={40} y={48} s={SMALL} t={-1} shown={ramp(p, -0.15, 0.45)} />
         <g opacity={ramp(p, 0.6, 0.8)}>
           <text x={300} y={40} fontSize="11.5" fontWeight="600">a device</text>
           <rect x={295} y={48} width={300} height={60} rx="4" fill="var(--bench)" stroke="var(--ink-3)" />
@@ -230,7 +242,7 @@ const beats: Beat[] = [
               <DeviceRun x={200} y={48} s={SHUFFLED} t={p < 0.58 ? -1 : t} name={`${SHUFFLED.capacity} slots, the list shuffled`} />
               <text x={440} y={40} fontSize="11.5" fontWeight="600">output, one part per block</text>
               {Array.from({ length: FIG45.blocks }, (_, b) => (
-                <g key={b}>
+                <g key={b} data-part="output" data-written={finished.has(b) ? '1' : '0'}>
                   <rect x={440 + (b % 4) * 62} y={48 + Math.floor(b / 4) * 40} width={56} height={32} rx="3"
                     fill={finished.has(b) ? 'var(--ok-wash)' : 'var(--cell)'} stroke={finished.has(b) ? 'var(--ok)' : 'var(--ink-3)'} />
                   <text x={468 + (b % 4) * 62} y={68 + Math.floor(b / 4) * 40} fontSize="10.5" textAnchor="middle"

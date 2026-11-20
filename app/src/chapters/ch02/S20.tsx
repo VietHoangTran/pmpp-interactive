@@ -162,11 +162,12 @@ export function S20() {
   return (
     <>
       <p>
-        In PyTorch, <code>c = a + b</code> on two CUDA tensors is one line. Under it are four things you have never
-        had to write: memory allocated on the device for <code>c</code>, possibly a copy of data across the boundary
-        between the CPU's memory and the GPU's, a function whose whole body is one addition, and a call that starts
-        one thread for every element. This chapter is those four things written by hand, for the simplest computation
-        there is.
+        In PyTorch, <code>c = a + b</code> on two CUDA tensors is one line. Under it, and under the{' '}
+        <code>.to("cuda")</code> that put <code>a</code> and <code>b</code> on the GPU in the first place, are four
+        things you have never had to write: memory allocated on the device, a copy of data across the boundary between
+        the CPU's memory and the GPU's, a function that does the addition on the GPU, and a call that starts the GPU
+        threads that run it. This chapter writes those four things by hand, in their simplest form: one thread for
+        every element.
       </p>
       <Source pages="21" />
       <p>
@@ -181,17 +182,29 @@ export function S20() {
           The PyTorch connection is ours. Two parts of it were read in PyTorch's source: its CUDA allocator ends in{' '}
           <code>cudaMalloc</code>, under a caching layer so that most tensors never reach it, and{' '}
           <code>tensor.to("cuda")</code> ends in a memory copy of the host-to-device kind. Both calls are taught in{' '}
-          <a href={href('ch02', '2.4')}>section 2.4</a>. Read on 2026-11-20.
+          <a href={href('ch02', '2.4')}>section 2.4</a>. How PyTorch's own addition kernel shares the elements out
+          among threads was not part of that reading. Read on 2026-11-20 (ch02-facts D4).
         </p>
       </Beyond>
 
       <h2>The kernel you will be able to write</h2>
       <p>
         This is where the chapter ends up. Every thread runs this function once. It works out which element is its
-        own, checks that the element exists, and adds one pair of numbers. Do not study it yet. Notice only how
-        little there is, and that there is no loop.
+        own, checks that the element exists, and adds one pair of numbers.
       </p>
       <Source section="2.5" pages="35" figs="Fig. 2.10" />
+      <p>
+        Do not study it yet. Notice only how little there is, and that there is no loop anywhere in it. The colours
+        on the names say where each piece of data lives, in this listing and in every other listing of the course.
+      </p>
+      <Aside>
+        <p>
+          <b>Colour in this course</b> means where data lives. This chapter uses two of the four:{' '}
+          <span className="chip reg">register</span> for a thread's private variables and{' '}
+          <span className="chip global">global memory</span> for arrays on the device. Red always means something
+          failed.
+        </p>
+      </Aside>
       <Code
         tabs={[{ label: 'CUDA', code: kernel?.code ?? file ?? '// loading labs/' + LAB1, tiers: VEC_TIERS }]}
         firstLine={kernel?.firstLine ?? 1}
@@ -203,14 +216,6 @@ export function S20() {
           </>
         }
       />
-      <Aside>
-        <p>
-          <b>Colour in this course</b> means where data lives. This chapter uses two of the four:{' '}
-          <span className="chip reg">register</span> for a thread's private variables and{' '}
-          <span className="chip global">global memory</span> for arrays on the device. Red always means something
-          failed.
-        </p>
-      </Aside>
 
       <h2>The road through the chapter</h2>
       <ul>
@@ -248,21 +253,20 @@ export function S20() {
       <p>
         On AMD's HIP the program keeps this structure exactly: the kernel is spelled the same, and the allocation
         and copy calls are the same calls with <code>hip</code> in place of <code>cuda</code>. On Apple silicon a
-        Metal buffer in shared storage is one piece of memory that the CPU and the GPU both see, so the two copy
-        steps have nothing to do and disappear.
+        Metal buffer in shared storage is one piece of memory that the CPU and the GPU both see. When the data is
+        written into such a buffer from the start, the two copy steps have nothing to do and disappear.
       </p>
       <Beyond>
         <p>
           The book covers CUDA only. Each section of this chapter says where HIP and Metal differ, checked against
-          AMD's and Apple's documentation on 2026-11-20.
+          AMD's and Apple's documentation on 2026-11-20 (here: ch02-facts B1, B4, C3; ch05-facts C6).
         </p>
       </Beyond>
 
       <h2>What the labs ask of you</h2>
       <p>
-        If you have done the labs of chapter 5, expect a difference. There the lab driver allocated the buffers and
-        moved the data, and you wrote a kernel and its launch. Here the host side is yours too: allocation, both
-        copies, the launch, the error checks and the free. There are <a href={href('ch02', 'labs')}>four labs</a>:
+        In these labs the host side is yours as well as the kernel: allocation, both copies, the launch, the error
+        checks and the free. There are <a href={href('ch02', 'labs')}>four labs</a>:
       </p>
       <ul>
         <li>2.1, vector addition from the first allocation to the last free;</li>

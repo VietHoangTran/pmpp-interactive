@@ -203,6 +203,7 @@ check('at 99.9% the ceiling is 1,000×', (await aOut('overall')) === '1,000×');
 await setUnbounded(false);
 await setRange(S, sIndex(1000));
 check('at 99.9% a finite s for 100× exists and the readout gives the model\'s value', (await aOut('needed')) === times(m.kernelNeeded(100, 0.999)), await aOut('needed'));
+check('at 99.9% and 1,000× the explorer shows 500×, the case of q-fivehundred', (await aOut('overall')) === '500×' && times(m.speedup(0.999, 1000)) === '500×', await aOut('overall'));
 if (out) await page.screenshot({ path: out + '-amdahl-999.png' });
 
 // ------------------------------------------------------------ explorer 2: what caps the kernel
@@ -316,6 +317,11 @@ check('"Start again" clears the board', (await text(`${W} [data-which-score]`)) 
 const table = await text('table[data-challenges]');
 check('the four challenges are tabulated with the course\'s own modules', (await page.$$('table[data-challenges] tbody tr')).length === 4 && table.includes('X1 sampling') && table.includes('X2 quantised kernels') && table.includes('work efficiency'));
 const notes = await page.$$eval('.prose > aside.note', (n) => n.map((x) => x.textContent.replace(/\s+/g, ' ')));
+const prose = await text('.prose');
+check("speed-up has the book's direction: A over B is B's time over A's, and below 1 means A is slower",
+  prose.includes('The speed-up of system A over system B is the time B takes divided by the time A takes') && prose.includes('below 1 means A is the slower one'));
+check("the remark about a model and a measurement disagreeing links to chapter 5's case", prose.includes('When a measurement lands above the roof') && !!(await page.$('.prose a[href="#/ch05/5.1"]')) && !prose.includes('On the machine this course was built on'));
+check('the cap is the only change that moves the figure much, not the only one that moves it', prose.includes('Raising the cap is the only change that moves it much') && !prose.includes('Only raising the cap moves it'));
 check('the formula is labelled as ours', notes.some((n) => n.includes('Our formula') && n.includes('The book prints no formula')));
 check('both models state what they leave out', notes.filter((n) => n.includes('What this model leaves out')).length === 2);
 check('the dated claims carry a "Today" note with the check date', notes.filter((n) => n.startsWith('Today') && n.includes('Checked 2026-11-20')).length === 2);
@@ -328,8 +334,20 @@ const typeAnswer = async (needle, value) => {
   await pause(120);
   return qText(h);
 };
-check('q-ceiling100 accepts 99', (await typeAnswer('puts the overall ceiling at exactly 100×', 99)).includes('Correct.'));
-check('q-ceiling100 is the model\'s answer', Math.abs(m.fractionNeeded(100, Infinity) * 100 - 99) < 1e-9);
+t = await typeAnswer('gives about 500× overall', 99);
+check("q-fivehundred: the explorer task's 99% is not the answer here; 99.9 is", t.includes('Not quite. The answer is 99.9 %'), t);
+{
+  const h = await question('gives about 500× overall');
+  const input = await h.$('input[type=number]');
+  await input.focus();
+  await input.evaluate((e) => e.select());
+  await input.type('99.9');
+  await (await h.$('button.primary')).click();
+  await pause(120);
+  t = await qText(h);
+}
+check('q-fivehundred accepts 99.9 and explains it from the model', t.includes('Correct.') && t.includes(frac(m.fractionNeeded(500, 1000))) && t.includes('it shows 500×'), t.slice(-500));
+check("q-fivehundred is the model's answer, and differs from the task's", Number((100 * m.fractionNeeded(500, 1000)).toFixed(1)) === 99.9 && m.fractionNeeded(100, Infinity) === 0.99);
 t = await typeAnswer('kernels take 96% of the time', 20);
 check('q-kernelneeded marks 20 wrong and gives 96', t.includes('Not quite. The answer is 96 ×') && Math.abs(m.kernelNeeded(20, 0.96) - 96) < 1e-6 && m.kernelNeeded(20, 0.95) === Infinity, t);
 check('q-hostshare accepts 12.5', (await typeAnswer('take 8% of the time', 12.5)).includes('Correct.') && Math.abs(m.ceiling(0.92) - 12.5) < 1e-9);
@@ -352,14 +370,14 @@ check('q-saturated: "almost nothing" is right', (await qText(q)).includes('Corre
 const lastPut = puts[puts.length - 1] ?? {};
 check(
   'answers are written to the progress file with their ids',
-  lastPut.answers?.['ch01/1.3/q-ceiling100']?.correct === true &&
+  lastPut.answers?.['ch01/1.3/q-fivehundred']?.correct === true &&
     lastPut.answers?.['ch01/1.3/q-kernelneeded']?.correct === false &&
     lastPut.answers?.['ch01/1.3/q-hostshare']?.correct === true &&
     lastPut.answers?.['ch01/1.3/q-bigslice']?.correct === true &&
     lastPut.answers?.['ch01/1.3/q-saturated']?.correct === true,
   JSON.stringify(Object.keys(lastPut.answers ?? {})),
 );
-check('first answers enter the review schedule', ['q-ceiling100', 'q-kernelneeded', 'q-hostshare', 'q-bigslice', 'q-saturated'].every((k) => lastPut.review?.['ch01/1.3/' + k]));
+check('first answers enter the review schedule', ['q-fivehundred', 'q-kernelneeded', 'q-hostshare', 'q-bigslice', 'q-saturated'].every((k) => lastPut.review?.['ch01/1.3/' + k]));
 
 // ------------------------------------------------------------ narrow screen
 await page.setViewport({ width: 390, height: 900, deviceScaleFactor: 1 });

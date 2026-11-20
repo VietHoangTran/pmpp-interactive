@@ -1,5 +1,5 @@
-// Browser check for chapter 24's start page: the steps map, the "what limits what"
-// classification, the audit of Fig. 24.1 with its explorer, and the threshold strip.
+// Browser check for chapter 24's start page: the prerequisite check ("what limits what"),
+// the steps map, the audit of Fig. 24.1 with its explorer, and the threshold strip.
 // Usage: node e2e/ch24-start.mjs [screenshot-prefix]
 // E2E_WIDTH=390 runs the same checks at a phone width; E2E_THEME=light|dark fixes the theme.
 import { open, goto, BASE } from './browser.mjs';
@@ -58,10 +58,16 @@ const shot = async (name, sel) => {
 };
 
 const reports = await (await fetch(BASE + '/api/reports')).json();
-const real = Object.keys(reports).filter((b) => b !== 'emu');
+// GPU backends only: emu and race are both the CPU emulator.
+const real = Object.keys(reports).filter((b) => b !== 'emu' && b !== 'race');
+const narrow = Number(process.env.E2E_WIDTH || 1440) <= 600;
 
 await goto(page, 'ch24/start');
 if (theme) await page.evaluate((t) => { document.documentElement.dataset.theme = t; }, theme);
+
+// ---- 0. page order: the prerequisite check comes first, as on the template's start pages ----
+const h2 = await page.$$eval('.prose h2', (hs) => hs.map((h) => h.textContent.trim()));
+check('sections in order, starting with the prerequisite check', JSON.stringify(h2) === JSON.stringify(['Before you start', 'What you can now do', "The book's one table", 'Reading the table as a kernel writer', 'The same rows on AMD and Apple', 'The rest of the outlook']), JSON.stringify(h2));
 
 // ---- 1. the steps map ----
 const S = "The book's three steps";
@@ -106,19 +112,28 @@ check('built chapters are links, planned ones plain text', linked.every((c) => (
 await clickText(S, 'sampling');
 await shot('steps', bench(S));
 
-let q = await question('where is the material');
+let q = await question('min-p cut-off itself need');
+await (await q.$$('input[type=radio]'))[0].click();
+await (await q.$('button.primary')).click();
+await pause(150);
+let qc = squash(await q.evaluate((e) => e.textContent));
+check('q-compose: "sort then scan, as top-p" is wrong, and says why', qc.includes('Not quite.') && qc.includes('depends on one number, the largest probability'), qc);
 await (await q.$$('input[type=radio]'))[1].click();
 await (await q.$('button.primary')).click();
 await pause(150);
-check('q-compose: the material is step two, assembled in a module of ours', (await q.evaluate((e) => e.textContent)).includes('Correct.'));
+qc = squash(await q.evaluate((e) => e.textContent));
+check('q-compose: min-p needs a reduction and a filter, no sort; labelled as ours', qc.includes('Correct.') && qc.includes('No sort is needed') && qc.includes('Min-p is not in the book'), qc);
 
-// ---- 2. what limits what ----
+// ---- 2. what limits what (the prerequisite check) ----
 const L = 'What limits what';
 const place = async (qid, value) => {
   await page.select(`${bench(L)} [data-card="${qid}"] select`, value);
   await pause(40);
 };
 const P = 'ch24/start/q-limit-';
+const froms = await page.$$eval(`${bench(L)} [data-card] [data-from]`, (f) => f.map((x) => x.textContent.trim()));
+check('each card is labelled with the chapters it draws on', froms.join('|') === 'From chapter 2|From chapters 5 and 20|From chapter 20|From chapter 20|From chapter 23', froms.join('|'));
+check('the all-reduce card pins the topology to NVLink', (await text(`${bench(L)} [data-card="${P}allreduce"]`)).includes('joined to each other by NVLink'));
 check('Check is disabled until all five are placed', (await clickText(L, 'Check')) === false);
 await place(P + 'load', 'hostlink');
 await place(P + 'decode', 'compute'); // wrong on purpose
@@ -143,6 +158,8 @@ await shot('limits', bench(L));
 // ---- 3. check the table ----
 const T = 'Check the table';
 check('the table is hidden until the prediction is committed', !!(await page.$(bench(T) + ' [data-gate="table"]')) && !(await page.$('[data-printed-table]')));
+const proseBefore = squash(await text('.prose'));
+check('nothing outside the gate gives the host-link answer or the audit away', !proseBefore.includes('16x') && !proseBefore.includes('contradicts itself twice') && !(await question('what 2007 throughput would make 638x correct')).asElement(), '');
 q = await question('By what factor does it say the host link');
 check('the prediction hides its answer', !(await q.evaluate((e) => e.textContent)).includes('8 GB/s'));
 await (await q.$('input[type=number]')).type('100');
@@ -154,24 +171,38 @@ await page.waitForSelector('[data-printed-table]');
 const printed = await page.$$eval('[data-printed-table] [data-cell]', (c) => Object.fromEntries(c.map((x) => [x.dataset.cell, x.textContent.trim()])));
 check('15 tickable cells, printed verbatim', Object.keys(printed).length === 15 && printed['tensor.ratio'] === '638x' && printed['nvlink.b200'] === '1,800 TB/s' && printed['tensor.b200'] === '2200 TFLOPS (Tensor Core FP32)' && printed['memcap.g80'] === '1.5GB' && printed['pcie.g80'] === '8 GB/s (Gen2 x16, each way)', JSON.stringify(printed));
 check('the explorer is not shown before checking', !(await page.$(bench(T) + ' [data-explorer]')));
+check('the task says what the audit checks', squash(await text(bench(T) + ' header')).includes('Tick every cell the table itself contradicts: a ratio its two figures do not give, or a unit that cannot be meant'));
+check('before Check, the discussion below waits for it', !!(await page.$('.prose [data-gate="audit"]')) && !(await page.$('.prose [data-after-audit]')));
 const tick = (id) => page.$eval(`[data-printed-table] [data-cell="${id}"] input`, (e) => e.click());
-for (const id of ['fp32.ratio', 'tensor.b200', 'tensor.ratio', 'membw.ratio', 'memcap.ratio', 'pcie.ratio']) await tick(id);
+for (const id of ['fp32.ratio', 'tensor.b200', 'tensor.ratio', 'membw.ratio', 'memcap.ratio', 'pcie.g80']) await tick(id);
 await clickText(T, 'Check');
 r = squash(await text(bench(T) + ' [data-readout="audit"]'));
-check('two cells are wrong as printed; one found, five other ticks', r.includes('Two cells are wrong as printed.') && r.includes('You found 1 of 2') && r.includes('ticked 5 other cells'), r);
-const states = await page.$$eval('[data-printed-table] [data-cell]', (c) => c.filter((x) => x.dataset.state === 'wrong').map((x) => x.dataset.cell));
-check('the wrong cells are the 638x ratio and the TB/s unit', states.join() === 'tensor.ratio,nvlink.b200', states.join());
+check('the table contradicts itself in two cells; one found; of five other ticks two are corrected, three check out', r.includes('The table contradicts itself in two cells.') && r.includes('You found 1 of 2') && r.includes("ticked 5 other cells: 2 that NVIDIA's documents correct and 3 that check out."), r);
+const byState = await page.$$eval('[data-printed-table] [data-cell]', (c) => {
+  const o = {};
+  for (const x of c) if (x.dataset.state) (o[x.dataset.state] ??= []).push(x.dataset.cell);
+  return o;
+});
+check('red: the 638x ratio and the TB/s unit, and nothing else', byState.wrong?.join() === 'tensor.ratio,nvlink.b200', JSON.stringify(byState));
+check("neutral, not green: the 2200 label and the Gen2 host link, which NVIDIA's documents correct", byState.differs?.join() === 'tensor.b200,pcie.g80', JSON.stringify(byState));
+check('green: only the three consistent ratios ticked', byState.consistent?.join() === 'fp32.ratio,membw.ratio,memcap.ratio', JSON.stringify(byState));
+const washes = await page.$$eval('[data-printed-table] [data-cell]', (c) => Object.fromEntries(c.filter((x) => x.dataset.state).map((x) => [x.dataset.cell, x.style.background])));
+check('a corrected cell is never washed green', !washes['pcie.g80'].includes('ok-wash') && !washes['tensor.b200'].includes('ok-wash') && washes['fp32.ratio'].includes('ok-wash'), JSON.stringify(washes));
 const v = squash(await text(bench(T) + ' [data-verdicts]'));
 for (const a of ['80 / 0.345 = 232', '8000 / 86.4 = 93', '192 / 1.5 = 128', '64 / 8 = 8', '2200 / 0.345 = 6,377'])
   check(`a ticked cell gets its arithmetic: ${a}`, v.includes(a), v);
 check('638x would need 220 TFLOPS', squash(await text(`${bench(T)} [data-verdict="tensor.ratio"]`)).includes('would need 220 TFLOPS'));
-check('the 2200 figure stands', squash(await text(`${bench(T)} [data-verdict="tensor.b200"]`)).includes('the figure stands and the ratio is the error') && (await page.$eval('[data-cell="tensor.b200"]', (e) => e.dataset.state)) === 'stands');
-const okCells = await page.$$eval('[data-printed-table] [data-cell][data-state="ok"]', (c) => c.map((x) => x.dataset.cell));
-check('the four consistent ratios are confirmed', okCells.join() === 'fp32.ratio,membw.ratio,memcap.ratio,pcie.ratio', okCells.join());
+const tcv = squash(await text(`${bench(T)} [data-verdict="tensor.b200"]`));
+check('the 2200 figure stands, its label does not (A9)', tcv.includes("NVIDIA's documents differ") && tcv.includes('the figure stands and the ratio is the error') && tcv.includes('TF32 on Tensor Cores') && tcv.includes('[facts A9]'), tcv);
+const pcv = squash(await text(`${bench(T)} [data-verdict="pcie.g80"]`));
+check('the Gen2 cell: arithmetic holds, NVIDIA says generation 1 (A6)', pcv.startsWith("NVIDIA's documents differ") && pcv.includes("The table's arithmetic holds") && pcv.includes('Generation 1, 4 GB/s each way') && pcv.includes('[facts A6]'), pcv);
 const missed = squash(await text(`${bench(T)} [data-verdict="nvlink.b200"]`));
 check('the unit error is listed as missed, with its arithmetic', missed.startsWith('missed') && missed.includes('1,800,000 GB/s / 8,000 GB/s = 225') && missed.includes('1,800 GB/s'), missed);
-check('three printed ratios are right and one is off by ten', v.includes('4 of the 5 printed ratios do') && v.includes('Off by ten'), v.slice(-300));
+check('four printed ratios follow from their figures, one is off by ten; five cells are corrected', v.includes('4 of the 5 printed ratios follow') && v.includes('Off by ten') && v.includes("NVIDIA's documents correct 5 cells that are not contradictions"), v.slice(-400));
 await shot('audit', bench(T));
+// What the audit finds is discussed below it only now.
+const after = squash(await text('.prose [data-after-audit]'));
+check('after Check, the discussion counts two contradictions and two corrections', after.includes('The table contradicts itself twice') && squash(await text('.prose')).includes('Two more cells are wrong against NVIDIA') && squash(await text('.prose')).includes('about two orders of magnitude or more'), after);
 
 // The explorer: recomputed ratios under each reading.
 const ratios = () => page.$$eval('[data-recomputed] tbody tr', (rows) => Object.fromEntries(rows.map((x) => [x.dataset.row, x.querySelector('[data-ratio]').textContent.trim()])));
@@ -192,14 +223,17 @@ check('the host link grew least on the printed figures', (await order()).include
 await seg('Figures', "NVIDIA's documents");
 x = await ratios();
 check("NVIDIA's documents: 217x, 6,366x, 104x, 120x and 16x", [x.fp32, x.tensor, x.membw, x.memcap, x.pcie].join() === '217x,6,366x,104x,120x,16x', JSON.stringify(x));
-check('none of the five printed ratios survives', (await page.$$('[data-recomputed] [data-printed] .t-fail')).length === 5);
+const differs = await page.$$eval('[data-recomputed] [data-printed][data-differs]', (c) => c.map((x) => x.closest('tr').dataset.row + ':' + x.dataset.differs));
+check('none of the five printed ratios survives NVIDIA\'s figures', differs.length === 5, differs.join());
+check('only 638x, which its own figures contradict, takes the failure colour; the other four are marked neutrally', (await page.$$('[data-recomputed] [data-printed] .t-fail')).length === 1 && differs.join() === 'fp32:figures,tensor:contradicted,membw:figures,memcap:figures,pcie:figures', differs.join());
+check('the explorer says what its marks mean', (await order()).includes('“≠” marks a printed ratio that follows from the book\'s figures but not from the ones selected'), await order());
 check('the host link still grew least', (await order()).includes('Least growth: host link (PCIe x16, each way), 16x'), await order());
 await seg('Tensor-core figure', 'dense');
 check('dense TF32 gives 3,183x', (await ratios()).tensor === '3,183x', (await ratios()).tensor);
 await seg('PCIe generation of the 2007 board', '2');
 check('a Gen2 board against the Gen5 rate gives 8x', (await ratios()).pcie === '8x', (await ratios()).pcie);
 await seg('PCIe generation of the 2007 board', '1');
-const cells2025 = () => page.$$eval('[data-recomputed] tbody tr', (rows) => Object.fromEntries(rows.map((x) => [x.dataset.row, x.children[2].textContent.trim()])));
+const cells2025 = () => page.$$eval('[data-recomputed] tbody tr', (rows) => Object.fromEntries(rows.map((x) => [x.dataset.row, x.querySelector('[data-to]').textContent.trim()])));
 check('NVLink both directions is 1,800 GB/s', (await cells2025()).nvlink === '1,800 GB/s', (await cells2025()).nvlink);
 await seg('NVLink counted', 'each way');
 check('NVLink each way is 900 GB/s', (await cells2025()).nvlink === '900 GB/s', (await cells2025()).nvlink);
@@ -208,6 +242,11 @@ check('NVLink each way is about 14 times a Gen5 x16 link', (await order()).inclu
 const bars = await page.$$eval('[data-recomputed] tbody tr', (rows) => Object.fromEntries(rows.filter((x) => x.querySelector('[data-bar]')).map((x) => [x.dataset.row, x.querySelector('[data-bar]').getBoundingClientRect().width])));
 check('the host-link bar is the shortest of five', Object.keys(bars).length === 5 && Object.entries(bars).every(([k, w]) => k === 'pcie' || w > bars.pcie * 1.5), JSON.stringify(bars));
 check('bar lengths follow log10 of the ratio', Math.abs(bars.memcap / bars.pcie - Math.log10(120) / Math.log10(63.0153846 / 4)) < 0.03, JSON.stringify(bars));
+// Growth, printed ratio and bar stay in view: the table fits its panel at this width.
+const fit = await page.$eval('[data-recomputed]', (t) => ({ table: t.scrollWidth, panel: t.parentElement.clientWidth, growth: t.querySelector('tbody tr [data-ratio]').getBoundingClientRect().right, printed: t.querySelector('tbody tr [data-printed]').getBoundingClientRect().right, view: window.innerWidth }));
+check(`the explorer table fits its panel at ${narrow ? 'phone' : 'desktop'} width`, fit.table <= fit.panel + 1 && fit.printed <= fit.view, JSON.stringify(fit));
+check(narrow ? 'at phone width the 2007 and 2025 figures sit under the row name' : 'at desktop width the 2007 and 2025 figures have their own columns',
+  (await page.$$('[data-recomputed] thead th')).length === (narrow ? 4 : 6), String((await page.$$('[data-recomputed] thead th')).length));
 // Selecting a row shows how its number is built.
 const select = async (row) => {
   await page.$eval(`[data-recomputed] tr[data-row="${row}"] input[type=radio]`, (b) => b.click());
@@ -229,11 +268,13 @@ check('the book set: 86.4 GB/s at 900 MHz, another board', b.includes('900 MHz /
 b = await select('pcie');
 check('the book set returns to the printed Gen2: 8.0 GB/s', b.includes('5 GT/s × 8/10 encoding × 16 lanes / 8 = 8.0 GB/s') && (await ratios()).pcie === '8x', b);
 
-q = await question('What 2025 figure would make 638x correct');
-await (await q.$('input[type=number]')).type('220');
+q = await question('what 2007 throughput would make 638x correct');
+await (await q.$('input[type=number]')).type('3.45');
 await (await q.$('button.primary')).click();
 await pause(150);
-check('q-638: 220 TFLOPS would make the printed ratio right', (await q.evaluate((e) => e.textContent)).includes('Correct.'));
+const q638 = squash(await q.evaluate((e) => e.textContent));
+check('q-638: 3.45 TFLOPS in 2007 would make the printed ratio right; both inputs stand, so the ratio is the error', q638.includes('Correct.') && q638.includes('2200 / 638 = 3.45 TFLOPS') && q638.includes('345.6 GFLOPS') && q638.includes('6,377x'), q638);
+check('the audit and its explorer do not print the answer to q-638', !squash(await text(bench(T))).includes('3.45'));
 
 // ---- 4. where the threshold went ----
 const K = 'Where the threshold went';
@@ -279,42 +320,37 @@ await pause(100);
 k = await knee();
 check("dense TF32 from NVIDIA's documents: threshold 137.5, smallest T is 550", k.includes('threshold 137.5 FLOP/B') && (await need()) === '550', k);
 batch1.push(await regimeOf('lin1'));
-await device('ch5');
-k = await knee();
-check("the book's chapter 5 example: threshold 20, smallest T is 80", k.includes('threshold 20 FLOP/B') && (await need()) === '80', k);
-batch1.push(await regimeOf('lin1'));
-check('batch-1 generation is memory-bound on every published device', batch1.length === 5 && batch1.every((s) => s.includes('memory-bound')), batch1.join(' | '));
-check('batch 512 is compute-bound on the chapter 5 example', (await regimeOf('lin512')).includes('compute-bound'));
-// "Yours" is offered only for a real backend that lab 5.1 has benchmarked.
-const roof = (bk) => reports[bk].results.find((x) => x.lab === 'ch05/lab1_roofline' && x.variant === 'solution')?.bench.find((x) => x.name === 'roofline');
-const mine = real.filter((bk) => roof(bk)?.compute_gflops && roof(bk)?.bandwidth_gb_per_s);
+check('batch-1 generation is memory-bound in every column', batch1.length === 4 && batch1.every((s) => s.includes('memory-bound')), batch1.join(' | '));
+// The strip keeps to the book's columns; other devices are chapter 5's roofline.
 const offered = await page.$$eval(bench(K) + ' select option', (o) => o.map((x) => x.value));
-check('device list: four sets of published figures plus each measured backend', offered.join() === ['book2007', 'book2025', 'book2025tc', 'ch5', ...mine].join(), offered.join());
-if (mine.length) {
-  const row = roof(mine[0]);
-  const thr = row.compute_gflops / row.bandwidth_gb_per_s;
-  await device(mine[0]);
-  k = await knee();
-  check('my device: threshold is the measured compute over the measured bandwidth of lab 5.1', k.includes(`threshold ${Number(thr.toPrecision(3))} FLOP/B`) && (await need()) === String(Math.ceil(thr * 4)), k);
-  check('my device is labelled as measured, not a vendor peak', squash(await text(bench(K))).includes('It is not a vendor peak'));
-  check('batch-1 generation is memory-bound on my device too', (await regimeOf('lin1')).includes('memory-bound') === thr > 0.9988);
-  await shot('strip-mine', bench(K));
-} else {
-  check('with no measurement the strip says so', (await knee()).includes('lab 5.1 has not been benchmarked'));
-}
+check("device list: the book's 2007 column and its two 2025 figures, nothing else", offered.join() === 'book2007,book2025,book2025tc', offered.join());
+check('the strip points to the roofline of chapter 5 for other devices', !!(await page.$(`${bench(K)} footer a[href="#/ch05/5.1"]`)));
+check('the strip says the 16-bit marks are indicative', squash(await text('.prose')).includes('two linear-layer marks are 16-bit kernels set against FP32 and TF32 peaks'));
+// The whole strip, threshold and compute-bound side included, fits its box at this width.
+const strip = await page.$eval(bench(K) + ' [data-strip]', (s) => {
+  const r = s.getBoundingClientRect();
+  const label = s.querySelector('[data-threshold-label]').getBoundingClientRect();
+  const fs = parseFloat(getComputedStyle(s.querySelector('[data-mark] text')).fontSize) * (r.width / s.viewBox.baseVal.width);
+  return { w: r.width, box: s.parentElement.clientWidth, labelRight: label.right, right: r.right, fontPx: fs };
+});
+check(`the strip fits its box and its threshold label is in view (${narrow ? 'phone' : 'desktop'})`, strip.w <= strip.box + 1 && strip.labelRight <= strip.right + 1, JSON.stringify(strip));
+check('strip labels stay legible (at least 9 px)', strip.fontPx >= 9, JSON.stringify(strip));
 
-q = await question('How wide must T be');
-await (await q.$('input[type=number]')).type('1100');
+q = await question('How many megabytes would one block need');
+check('q-tile states T = 1,100 and asks for something the strip does not show', squash(await q.evaluate((e) => e.textContent)).includes('reaches only at T = 1,100'));
+await (await q.$('input[type=number]')).type('9.68');
 await (await q.$('button.primary')).click();
 await pause(150);
 const qt = squash(await q.evaluate((e) => e.textContent));
-check('q-tile: T = 1100, about 9.7 MB of shared memory, 16 on the 2007 figures', qt.includes('Correct.') && qt.includes('about 9.7 MB') && qt.includes('the answer was 16'), qt);
+check('q-tile: 2 x 1,100 x 1,100 x 4 bytes = 9.68 MB; 2.4 MB at T = 550; 2 KB at T = 16', qt.includes('Correct.') && qt.includes('= 9.68 MB per block') && qt.includes('T = 550 still needs 2.4 MB') && qt.includes('T = 16 needed 2 KB'), qt);
 
 // ---- the backends table and its question ----
 const rows = await page.$$eval('table[data-backends] tbody tr', (rs) => rs.map((x) => x.textContent));
 check('the backends table has five rows and three backends', rows.length === 5 && (await page.$$('table[data-backends] thead th')).length === 5);
 const all = rows.join(' ');
 check('identifiers are spelled as in the facts file', ['cuda::tiles', 'cuda_tile.h', 'mpp::tensor_ops::matmul2d', '<metal_simdgroup_matrix>', 'ncclXxx', 'mx.distributed', 'MFMA', 'Infinity Fabric'].every((s) => all.includes(s)), all);
+check("Apple's “Neural Accelerators” are named, with no link to MSL stated (C1)", all.includes('Neural Accelerators') && all.includes('no link to MSL stated'), all);
+check("the book's own §15.9 names WMMA and WGMMA for CUDA", all.includes("The book's §15.9 (p. 369) also names the WMMA and WGMMA instructions"), all);
 check('no AMD intrinsic spelling is printed', !(await text('.prose')).includes('__builtin_amdgcn'));
 q = await question('has no counterpart on Apple silicon');
 await (await q.$$('input[type=radio]'))[2].click();

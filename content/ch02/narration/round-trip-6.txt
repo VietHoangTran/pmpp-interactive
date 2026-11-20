@@ -1,0 +1,1 @@
+The bill. 8 additions were bought with 96 bytes across the boundary. That is 12 bytes for every element. [short pause] Now the same steps with one shared memory, as on Apple silicon. No boundary. Nothing crosses. Nothing is freed. One thing is left. The host still waits before it reads the result.

@@ -2,6 +2,7 @@ import { useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
 import { Aside, Bench, Beyond, Simplification, Source, type Tier } from '../../components/notes';
+import { labStatus, useReports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import {
   CLAUSES,
@@ -24,6 +25,7 @@ import {
   trace,
   uniform,
   withDefect,
+  wrongSpan,
   type BadAccess,
   type BlurOptions,
   type Clause,
@@ -413,7 +415,7 @@ function BreakTheKernel() {
       task="Untick one piece at a time. Before you look at the result: which pixels will be wrong, and will anything leave the buffer?"
       foot={
         <>
-          A {BW} by {BH} picture under 4 by 4 blocks: {r.gridW} by {r.gridH} blocks, {r.threads} threads, {r.surplus} of
+          A {BH} by {BW} picture ({BH} rows of {BW}) under 4 by 4 blocks: {r.gridW} by {r.gridH} blocks, {r.threads} threads, {r.surplus} of
           them surplus. Shades are stretched so that low values stay visible; the numbers are the data. A question mark
           is a pixel with no defined value.
         </>
@@ -554,15 +556,36 @@ function ThreeOrders() {
 }
 
 // ---------------------------------------------------------------- name the defect
-const WHY: Record<Defect, string> = {
+const WHY: Record<Exclude<Defect, 'outer'>, string> = {
   rowLo: 'Only the top row is wrong. Its threads read the row above the picture, which lies before the start of the buffer (the model reads 0 there, so the values are too low).',
   rowHi: 'Only the bottom row is wrong. Its threads read a row below the picture, past the end of the buffer.',
   colLo: 'Only the left-hand column is wrong. in[curRow*w - 1] is the last pixel of the row above, so each of those threads averaged in values from the far side of the picture.',
   colHi: 'Only the right-hand column is wrong. in[curRow*w + w] is the first pixel of the next row.',
   area: 'The whole border is too low and the interior is right: a border thread summed 4 or 6 values and divided by 9.',
-  outer: 'Columns 0 and 1 are wrong from row 1 down. The surplus threads at col 6 and 7 stored to out[row*6 + col], which is the start of the next row. A question mark is a thread that found no valid position and divided 0 by 0.',
   inPlace: 'Wrong all over, with no pattern tied to one edge: threads read neighbours that had already been replaced by averages.',
 };
+
+/** "4", "5 and 6", "1, 2, 3, 5 and 6". */
+const listOf = (xs: number[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+
+/**
+ * The explanation for a missing line 05, built from the pixels the model marks wrong, so that
+ * the rows it names are always the rows in the picture beside it.
+ */
+function whyOuter(wrong: number[], w: number): string {
+  const { rows, cols, spared } = wrongSpan(wrong, w);
+  if (!rows.length) return 'Nothing is wrong in this picture: every surplus store landed outside the buffer or was overwritten later.';
+  const extra = Array.from({ length: cols.length }, (_, k) => w + k);
+  return (
+    `${cols.length === 1 ? 'Column' : 'Columns'} ${listOf(cols)} ${cols.length === 1 ? 'is' : 'are'} wrong in rows ${listOf(rows)}. ` +
+    `The surplus threads at col ${listOf(extra)} stored to out[row*${w} + col], the start of the next row. ` +
+    (spared.length
+      ? `${spared.length === 1 ? 'Row' : 'Rows'} ${listOf(spared)} ${spared.length === 1 ? 'survives' : 'survive'} only because ${spared.length === 1 ? 'its' : 'their'} own block runs after the block that wrote over ${spared.length === 1 ? 'it' : 'them'}. `
+      : '') +
+    'A question mark is a thread that found no valid position and divided 0 by 0.'
+  );
+}
+const why = (d: Defect, wrong: number[]) => (d === 'outer' ? whyOuter(wrong, BW) : WHY[d]);
 
 function NameTheDefect() {
   const [seed, setSeed] = useState(1);
@@ -575,7 +598,7 @@ function NameTheDefect() {
     <Bench
       title="Name the defect"
       task="Each picture came from the kernel with exactly one thing wrong. Where the wrong pixels are tells you which."
-      foot="Same 6 by 7 picture, 4 by 4 blocks and in-order threads as the bench above. Red outlines mark pixels that differ from the reference."
+      foot={`The same ${BH} by ${BW} picture (${BH} rows of ${BW}), 4 by 4 blocks and in-order threads as the bench above. Red outlines mark pixels that differ from the reference.`}
     >
       <div className="cols" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
         <Pic title="reference" w={BW} h={BH} values={cases[0].r.reference} tier={false} />
@@ -593,7 +616,7 @@ function NameTheDefect() {
             {checked ? (
               <p style={{ margin: '0.5rem 0 0' }}>
                 {picks[i] === x.d ? <span className="chip ok">right</span> : <span className="chip fail">it was: {DEFECT_LABEL[x.d]}</span>}{' '}
-                {WHY[x.d]}
+                {why(x.d, x.r.wrong)}
               </p>
             ) : null}
           </div>
@@ -687,7 +710,7 @@ export const questionsS33: Record<string, Question> = {
         label: 'The 408 surplus threads run the loop as well, and each of them stores a byte at out[row*w + col], which is another thread\'s pixel or lies past the end of the buffer.',
         correct: true,
       },
-      { label: 'Every surplus thread divides by zero and the kernel stops.', why: 'Some of them find valid positions and divide by 2 or 3. The others divide 0 by 0 in floating point, which stops nothing.' },
+      { label: 'Every surplus thread divides by zero and the kernel stops.', why: 'Some of them find valid positions and divide by 1, 2 or 3. The others divide 0 by 0 in floating point, which stops nothing.' },
       { label: 'A compile error, because row and col are used unchecked.', why: 'The compiler has no idea how large the buffers are.' },
     ],
     explain: (
@@ -754,11 +777,20 @@ export const questionsS33: Record<string, Question> = {
 
 // ---------------------------------------------------------------- the page
 const missing = (s: string | null) => !s || s.startsWith('// could not load');
+const LAB2 = 'ch03/lab2_blur';
 
 export function S33() {
-  const cu = useLabFile('ch03/lab2_blur/solution/kernel.cu');
-  const metal = useLabFile('ch03/lab2_blur/solution/kernel.metal');
-  const mm = useLabFile('ch03/lab2_blur/solution/launch.mm');
+  const cu = useLabFile(LAB2 + '/solution/kernel.cu');
+  const metal = useLabFile(LAB2 + '/solution/kernel.metal');
+  const mm = useLabFile(LAB2 + '/solution/launch.mm');
+  // The status of the reference solution in the fixed vocabulary, read from this machine's lab runs.
+  const { reports } = useReports();
+  const st = (b: string) => labStatus(reports[b], LAB2, 'solution');
+  const cudaStatus =
+    (st('emu') === 'pass' ? 'emulator-checked' : 'unverified: no passing emulator run on this machine') +
+    '; ' +
+    (st('cuda') === 'pass' ? 'verified on CUDA' : 'unverified on CUDA hardware');
+  const metalStatus = st('metal') === 'pass' ? 'verified on Metal' : 'unverified: no passing Metal run on this machine';
   return (
     <>
       <p>
@@ -785,7 +817,7 @@ export function S33() {
       </p>
       <Source section="3.3" pages="56, 58" figs="Fig. 3.8" />
       <Code
-        tabs={[{ label: 'CUDA', code: KERNEL, tiers: BLUR_TIERS, status: 'front-end-checked; run as host C++ on the CPU; unverified on CUDA hardware' }]}
+        tabs={[{ label: 'CUDA', code: KERNEL, tiers: BLUR_TIERS, status: 'front-end-checked; emulator-checked (python3 labs/ch03/snippets/check.py); unverified on CUDA hardware' }]}
         firstLine={0}
         highlight={[5, 15, 22]}
         caption={
@@ -813,6 +845,7 @@ export function S33() {
         That trace works because pixel (25, 50) is in the middle of the picture. Take the thread of output pixel (0, 0)
         instead. Its loops produce the same nine offsets, and some of the positions they point at do not exist.
       </p>
+      <Source section="3.3" pages="58" />
       <Predict
         id="ch03/3.3/p-corner"
         prompt={
@@ -838,7 +871,6 @@ export function S33() {
           </>
         )}
       </Predict>
-      <Source section="3.3" pages="58" />
       <LoopStepper />
       <p>
         The six cases in the stepper are the five patches the book draws at the borders, plus one interior pixel. A
@@ -935,14 +967,16 @@ export function S33() {
       <p>
         What if you kept everything unsigned? In unsigned arithmetic 0 + (−1) is 4294967295. The clause{' '}
         <code>{'curRow >= 0'}</code> is then always true and does nothing, and it is <code>{'curRow < h'}</code> that
-        rejects the position, because 4294967295 is not less than any picture height. We compiled that variant as host
-        C++ and ran it against the kernel above: same output. So the unsigned kernel happens to work, with two clauses
-        that are dead code and comparisons between signed and unsigned values that the compiler flagged once warnings
-        were switched on. Write it signed, so that the source says what you mean.
+        rejects the position, because 4294967295 is not less than any picture height. We ran that variant on the
+        course's emulator against the kernel above, on six picture sizes: same output. So the unsigned kernel happens
+        to work, with two clauses that are dead code and comparisons between signed and unsigned values that the
+        compiler flagged once warnings were switched on. Write it signed, so that the source says what you mean.
       </p>
       <Aside>
         <p>
-          Host-tested only: Apple clang 21, C++17, on the CPU. Nothing in this paragraph was run on a GPU.
+          Emulator-checked: <code>labs/ch03/snippets/blur_unsigned.cu</code>, run and compiled with{' '}
+          <code>-Wall -Wextra</code> by <code>python3 labs/ch03/snippets/check.py</code>. Nothing in this paragraph
+          was run on a GPU.
         </p>
       </Aside>
 
@@ -1054,22 +1088,24 @@ export function S33() {
       {!missing(cu) && !missing(metal) && !missing(mm) ? (
         <Code
           tabs={[
-            { label: 'CUDA (lab 3.2)', code: cu!, tiers: BLUR_TIERS, status: 'lab 3.2 reference solution; status on the labs page' },
-            { label: 'Metal kernel', code: metal!, tiers: BLUR_TIERS, status: 'lab 3.2 reference solution; status on the labs page' },
-            { label: 'Metal host', code: mm!, tiers: {}, status: 'lab 3.2 reference solution; status on the labs page' },
+            { label: 'CUDA (lab 3.2)', code: cu!, tiers: BLUR_TIERS, status: cudaStatus },
+            { label: 'Metal kernel', code: metal!, tiers: BLUR_TIERS, status: metalStatus },
+            { label: 'Metal host', code: mm!, tiers: {}, status: metalStatus },
           ]}
           caption={
             <>
               The reference solution of lab 3.2, loaded from <code>labs/ch03/lab2_blur/solution/</code>. It differs
-              from the listing above in one way: the radius is a kernel argument, so the benchmark can vary it. Write
-              your own in the lab before studying this one.
+              from the listing above in three ways: the radius is a kernel argument, so the benchmark can vary it;{' '}
+              <code>in</code> is <code>const</code>; and it includes a launch, which the book does not print. The
+              status beside the tabs is read from this machine's recorded lab runs. Write your own in the lab before
+              studying this one.
             </>
           }
         />
       ) : null}
       <p>
         <a href={href('ch03', 'labs')}>Lab 3.2</a> has you write this kernel for a real picture and check it against a
-        CPU reference. Lab 3.5 hands you four kernels with index defects of the kind you just produced in the bench,
+        CPU reference. Lab 3.5 hands you one kernel with four index defects of the kind you just produced in the bench,
         and asks you to find them from their output. Next, <a href={href('ch03', '3.4')}>section 3.4</a> replaces the
         patch by a row and a column: matrix multiplication.
       </p>

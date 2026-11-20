@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Scene, type Beat } from '../../components/Scene';
+import { SceneReadout, useNarrow } from './sceneText';
 import {
   FIG49,
   STRAIGHT_LINE,
@@ -27,6 +28,8 @@ const Y0 = 56; // top of the first row
 const ROW = 22;
 const VIEW_W = 720;
 const VIEW_H = 348;
+/** On a narrow screen the counters and the headline move out of the drawing, which ends below the last row. */
+const VIEW_H_NARROW = 248;
 
 const clamp = (v: number) => Math.max(0, Math.min(1, v));
 const ramp = (p: number, a: number, b: number) => clamp((p - a) / (b - a));
@@ -62,6 +65,7 @@ interface Frame {
 }
 
 function Stage(f: Frame) {
+  const narrow = useNarrow();
   const laneX = (i: number) => X0 + i * CELL;
   let y = Y0;
   const rowY: number[] = [];
@@ -72,65 +76,72 @@ function Stage(f: Frame) {
   });
   const last = f.rows.length - 1;
   return (
-    <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} role="img" aria-label="Animation of one warp executing instructions, one row per instruction" style={{ width: '100%', maxWidth: VIEW_W, display: 'block' }}>
-      <defs>
-        <pattern id="wb-wait" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-          <line x1="0" y1="0" x2="0" y2="5" stroke="var(--ink-3)" strokeWidth="1.2" />
-        </pattern>
-      </defs>
-      <text x={12} y={18} fontSize="12" fontWeight="600">one instruction stream</text>
-      <text x={X0} y={18} fontSize="12" fontWeight="600">one warp: {W} lanes, each a thread with its own registers</text>
-      {[0, 8, 16, 24, 31].map((i) => (
-        <text key={i} x={laneX(i) + CELL / 2 - 1} y={34} fontSize="10" textAnchor="middle" style={{ fill: 'var(--ink-2)' }}>{i}</text>
-      ))}
-      {f.wants ? (
-        <g>
-          <text x={X0 - 8} y={48} fontSize="10.5" textAnchor="end" style={{ fill: 'var(--ink-2)' }}>{f.wantsLabel}</text>
-          {f.wants.map((w, i) => (
-            <text key={i} x={laneX(i) + CELL / 2 - 1} y={48} fontSize="10" textAnchor="middle" fontWeight="600">{w}</text>
-          ))}
-        </g>
-      ) : null}
-      {f.threshold != null && f.threshold > 0 && f.threshold < W ? (
-        <line x1={laneX(f.threshold) - 1} x2={laneX(f.threshold) - 1} y1={38} y2={Math.max(Y0 + ROW, y) - 4} stroke="var(--ink)" strokeWidth="1.5" strokeDasharray="4 3" />
-      ) : null}
-      {f.rows.map((r, i) => (
-        <g key={i} data-row={i}>
-          <text x={X0 - 8} y={rowY[i] + 12} fontSize="11.5" textAnchor="end" fontWeight={i === last ? 650 : 400}
-            style={{ fill: i === last ? 'var(--ink)' : 'var(--ink-2)' }}>
-            {i === last ? '▸ ' : ''}{f.labels?.[i] ?? rowLabel(r)}
-          </text>
-          {r.active.map((on, l) => (
-            <g key={l}>
-              <rect x={laneX(l)} y={rowY[i]} width={CELL - 2} height={ROW - 6} rx="1.5"
-                fill={on ? (r.part === 'B' ? 'var(--ink-2)' : 'var(--ink)') : 'var(--cell)'} stroke={on ? 'none' : 'var(--rule)'} />
-              {on ? null : <rect x={laneX(l)} y={rowY[i]} width={CELL - 2} height={ROW - 6} rx="1.5" fill="url(#wb-wait)" />}
-            </g>
-          ))}
-          <text x={laneX(W) + 8} y={rowY[i] + 12} fontSize="11" style={{ fill: 'var(--ink-2)' }}>
-            {r.count === W ? `all ${W}` : `${r.count} run, ${W - r.count} wait`}
-          </text>
-        </g>
-      ))}
-      {f.barrierBefore != null && f.barrierBefore <= last ? (
-        <g>
-          <rect x={X0} y={rowY[f.barrierBefore] - 17} width={W * CELL - 2} height={13} rx="2" fill="var(--ink)" />
-          <text x={X0 + (W * CELL) / 2} y={rowY[f.barrierBefore] - 7} fontSize="10.5" textAnchor="middle" style={{ fill: 'var(--page)' }}>
-            warp barrier: every lane arrives before any goes on
-          </text>
-        </g>
-      ) : null}
-      {f.counters?.map((c, i) => (
-        <g key={c.label}>
-          <text x={12} y={282 + i * 18} fontSize="12" style={{ fill: 'var(--ink-2)' }}>{c.label}</text>
-          <text x={X0 + 60} y={282 + i * 18} fontSize="12.5" fontWeight="650">{c.value}</text>
-        </g>
-      ))}
-      {f.side?.map((s, i) => (
-        <text key={i} x={X0 + 190} y={282 + i * 18} fontSize="12">{s}</text>
-      ))}
-      {f.headline ? <text x={12} y={338} fontSize="13" fontWeight="600">{f.headline}</text> : null}
-    </svg>
+    <>
+      <svg viewBox={`0 0 ${VIEW_W} ${narrow ? VIEW_H_NARROW : VIEW_H}`} role="img" aria-label="Animation of one warp executing instructions, one row per instruction" style={{ width: '100%', maxWidth: VIEW_W, display: 'block' }}>
+        <defs>
+          <pattern id="wb-wait" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="5" stroke="var(--ink-3)" strokeWidth="1.2" />
+          </pattern>
+        </defs>
+        <text x={X0} y={18} fontSize="12" fontWeight="600">one warp: {W} lanes, each a thread with its own registers</text>
+        <text x={X0 - 8} y={34} fontSize="10.5" textAnchor="end" style={{ fill: 'var(--ink-2)' }}>instruction issued</text>
+        {[0, 8, 16, 24, 31].map((i) => (
+          <text key={i} x={laneX(i) + CELL / 2 - 1} y={34} fontSize="10" textAnchor="middle" style={{ fill: 'var(--ink-2)' }}>{i}</text>
+        ))}
+        {f.wants ? (
+          <g data-wants={f.wants.join(' ')}>
+            <text x={X0 - 8} y={48} fontSize="10.5" textAnchor="end" style={{ fill: 'var(--ink-2)' }}>{f.wantsLabel}</text>
+            {f.wants.map((w, i) => (
+              <text key={i} x={laneX(i) + CELL / 2 - 1} y={48} fontSize="10" textAnchor="middle" fontWeight="600">{w}</text>
+            ))}
+          </g>
+        ) : null}
+        {f.threshold != null && f.threshold > 0 && f.threshold < W ? (
+          <line data-threshold={f.threshold} x1={laneX(f.threshold) - 1} x2={laneX(f.threshold) - 1} y1={38} y2={Math.max(Y0 + ROW, y) - 4} stroke="var(--ink)" strokeWidth="1.5" strokeDasharray="4 3" />
+        ) : null}
+        {f.rows.map((r, i) => (
+          <g key={i} data-row={i} data-count={r.count} data-part={r.part}>
+            <text x={X0 - 8} y={rowY[i] + 12} fontSize="11.5" textAnchor="end" fontWeight={i === last ? 650 : 400}
+              style={{ fill: i === last ? 'var(--ink)' : 'var(--ink-2)' }}>
+              {i === last ? '▸ ' : ''}{f.labels?.[i] ?? rowLabel(r)}
+            </text>
+            {r.active.map((on, l) => (
+              <g key={l}>
+                <rect x={laneX(l)} y={rowY[i]} width={CELL - 2} height={ROW - 6} rx="1.5"
+                  fill={on ? (r.part === 'B' ? 'var(--ink-2)' : 'var(--ink)') : 'var(--cell)'} stroke={on ? 'none' : 'var(--rule)'} />
+                {on ? null : <rect x={laneX(l)} y={rowY[i]} width={CELL - 2} height={ROW - 6} rx="1.5" fill="url(#wb-wait)" />}
+              </g>
+            ))}
+            <text x={laneX(W) + 8} y={rowY[i] + 12} fontSize="11" style={{ fill: 'var(--ink-2)' }}>
+              {r.count === W ? `all ${W}` : `${r.count} run, ${W - r.count} wait`}
+            </text>
+          </g>
+        ))}
+        {f.barrierBefore != null && f.barrierBefore <= last ? (
+          <g data-barrier={f.barrierBefore}>
+            <rect x={X0} y={rowY[f.barrierBefore] - 17} width={W * CELL - 2} height={13} rx="2" fill="var(--ink)" />
+            <text x={X0 + (W * CELL) / 2} y={rowY[f.barrierBefore] - 7} fontSize="10.5" textAnchor="middle" style={{ fill: 'var(--page)' }}>
+              warp barrier: every lane arrives before any goes on
+            </text>
+          </g>
+        ) : null}
+        {narrow ? null : (
+          <>
+            {f.counters?.map((c, i) => (
+              <g key={c.label} data-counter={c.label}>
+                <text x={12} y={282 + i * 18} fontSize="12" style={{ fill: 'var(--ink-2)' }}>{c.label}</text>
+                <text x={X0 + 60} y={282 + i * 18} fontSize="12.5" fontWeight="650" data-value="">{c.value}</text>
+              </g>
+            ))}
+            {f.side?.map((s, i) => (
+              <text key={i} x={X0 + 190} y={282 + i * 18} fontSize="12" data-side="">{s}</text>
+            ))}
+            {f.headline ? <text x={12} y={338} fontSize="13" fontWeight="600" data-headline="">{f.headline}</text> : null}
+          </>
+        )}
+      </svg>
+      {narrow ? <SceneReadout headline={f.headline} items={f.counters} notes={f.side} /> : null}
+    </>
   );
 }
 
@@ -234,7 +245,7 @@ const beats: Beat[] = [
   },
   {
     clip: 'warp-branch-7',
-    label: 'No promised order',
+    label: 'Order',
     draw: (p) => {
       const mixed = MIXED.issues.slice(1, -1);
       const n = Math.max(1, shown(p, 0.1, 0.52, mixed.length));

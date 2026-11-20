@@ -71,6 +71,8 @@ export const OP_NOTE: Partial<Record<Op, string>> = {
   inplace: 'x[-1] counts as 0',
   blur: 'r is the radius',
   biasadd: 'd is the width of a row',
+  softmax:
+    'the plain formula; real kernels first subtract the row maximum for numerical stability, a second value combined from the row, as in chapter 10 and milestone M4',
 };
 
 /** The grayscale weights of the book's Eq. 2.1 (p. 22): L = 0.299 r + 0.587 g + 0.114 b. */
@@ -481,6 +483,12 @@ export function elements(...dims: number[]): number {
 // same three dependency facts. The list and the mapping are ours; the book's
 // section 2.1 uses images only. `where` names the chapters of this course in
 // which the kernel shape is written (PLAN.md, curriculum map and milestones).
+//
+// The list is ordered by stage: the operations inside the forward pass, then
+// the sampling that turns logits into a token, then the generation loop, which
+// is the loop around the step rather than an operation inside it.
+export type Stage = 'forward' | 'sampling' | 'loop';
+
 export interface DecodeItem {
   id: string;
   label: string;
@@ -489,6 +497,8 @@ export interface DecodeItem {
   /** What "size" means for this item when reads() is evaluated. */
   sizeName: string;
   deps: Deps;
+  /** Where in a decode step it happens. */
+  stage: Stage;
   /** Chapter ids where this course writes the kernel shape. */
   where: string[];
 }
@@ -500,6 +510,7 @@ export const DECODE_ITEMS: DecodeItem[] = [
     body: 'y[i] = x[i] + r[i]',
     sizeName: 'hidden size',
     deps: { reads: () => 2, combines: 0, prior: false },
+    stage: 'forward',
     where: ['ch02'],
   },
   {
@@ -508,6 +519,7 @@ export const DECODE_ITEMS: DecodeItem[] = [
     body: 'y[t][j] = x[t][j] + b[j]',
     sizeName: 'hidden size',
     deps: { reads: () => 2, combines: 0, prior: false },
+    stage: 'forward',
     where: ['ch02'],
   },
   {
@@ -516,6 +528,7 @@ export const DECODE_ITEMS: DecodeItem[] = [
     body: 'y[i] = a * x[i]',
     sizeName: 'hidden size',
     deps: { reads: () => 1, combines: 0, prior: false },
+    stage: 'forward',
     where: ['ch02'],
   },
   {
@@ -524,6 +537,7 @@ export const DECODE_ITEMS: DecodeItem[] = [
     body: 'y[i] = gelu(x[i])',
     sizeName: 'hidden size',
     deps: { reads: () => 1, combines: 0, prior: false },
+    stage: 'forward',
     where: ['ch02'],
   },
   {
@@ -532,6 +546,7 @@ export const DECODE_ITEMS: DecodeItem[] = [
     body: 'y[j] = W[j][0]*x[0] + W[j][1]*x[1] + ... + W[j][d-1]*x[d-1]',
     sizeName: 'input width d',
     deps: { reads: (d) => 2 * d, combines: 0, prior: false },
+    stage: 'forward',
     where: ['ch03', 'ch05', 'ch15'],
   },
   {
@@ -540,14 +555,28 @@ export const DECODE_ITEMS: DecodeItem[] = [
     body: 'y[i] = g[i] * (x[i] - mean) / sqrt(var + eps) + b[i]',
     sizeName: 'hidden size',
     deps: { reads: () => 3, combines: 2, prior: false },
+    stage: 'forward',
     where: ['ch10'],
   },
   {
+    id: 'kvappend',
+    label: 'Appending to the KV cache',
+    body: 'cache[t][j] = k_new[j]',
+    sizeName: 'hidden size',
+    deps: { reads: () => 1, combines: 0, prior: false },
+    stage: 'forward',
+    where: ['ch02', 'ch20'],
+  },
+  {
+    // As kernels compute it: the row maximum is subtracted first, for numerical
+    // stability, so two values are combined from the whole vocabulary. The
+    // explorer's 'softmax' keeps the plain formula, with one (see OP_NOTE).
     id: 'softmax',
     label: 'Softmax over the vocabulary',
-    body: 'p[v] = exp(z[v]) / (sum of exp(z[u]) over the vocabulary)',
+    body: 'p[v] = exp(z[v] - m) / (sum of exp(z[u] - m) over the vocabulary), where m is the largest z',
     sizeName: 'vocabulary size',
-    deps: { reads: () => 1, combines: 1, prior: false },
+    deps: { reads: () => 1, combines: 2, prior: false },
+    stage: 'sampling',
     where: ['ch10'],
   },
   {
@@ -556,6 +585,7 @@ export const DECODE_ITEMS: DecodeItem[] = [
     body: 'token = index of the largest z[v]',
     sizeName: 'vocabulary size',
     deps: { reads: () => 0, combines: 1, prior: false },
+    stage: 'sampling',
     where: ['ch10'],
   },
   {
@@ -564,22 +594,16 @@ export const DECODE_ITEMS: DecodeItem[] = [
     body: 'c[i] = c[i-1] + p[i]',
     sizeName: 'vocabulary size',
     deps: { reads: () => 1, combines: 0, prior: true },
+    stage: 'sampling',
     where: ['ch11', 'x1'],
   },
   {
-    id: 'kvappend',
-    label: 'Appending to the KV cache',
-    body: 'cache[t][j] = k_new[j]',
-    sizeName: 'hidden size',
-    deps: { reads: () => 1, combines: 0, prior: false },
-    where: ['ch02', 'ch20'],
-  },
-  {
     id: 'genloop',
-    label: 'The token-by-token generation loop',
+    label: 'The generation loop around the step',
     body: 'token[t] = decode(token[0], ..., token[t-1])',
     sizeName: 'tokens so far',
     deps: { reads: () => 0, combines: 0, prior: true },
+    stage: 'loop',
     where: ['ch20'],
   },
 ];
@@ -590,9 +614,19 @@ export function classifyItem(id: string): Bin {
   return classifyDeps(item.deps);
 }
 
-/** How many of the decode items fall in each bin. */
-export function binCounts(): Record<Bin, number> {
+/** How many of the decode items fall in each bin; only those of one stage when `stage` is given. */
+export function binCounts(stage?: Stage): Record<Bin, number> {
   const out: Record<Bin, number> = { elementwise: 0, manyreads: 0, combine: 0, chain: 0 };
-  for (const item of DECODE_ITEMS) out[classifyDeps(item.deps)]++;
+  for (const item of DECODE_ITEMS) if (!stage || item.stage === stage) out[classifyDeps(item.deps)]++;
   return out;
+}
+
+/** The decode items of one stage. */
+export function stageItems(stage: Stage): DecodeItem[] {
+  return DECODE_ITEMS.filter((i) => i.stage === stage);
+}
+
+/** The ids of the decode items in one bin, in list order. */
+export function binItems(bin: Bin): string[] {
+  return DECODE_ITEMS.filter((i) => classifyDeps(i.deps) === bin).map((i) => i.id);
 }

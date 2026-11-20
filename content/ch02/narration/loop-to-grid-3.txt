@@ -1,0 +1,1 @@
+A GPU does not take loose threads. Threads come in blocks, and every block of a launch has the same size. With 4 threads per block, 10 threads need 3 blocks. [short pause] And 3 blocks of 4 is 12 threads. That is 2 more than the loop had trips.

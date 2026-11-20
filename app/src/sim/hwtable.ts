@@ -14,6 +14,13 @@
 //   - The tensor-core figure is TF32 arithmetic counted with sparsity, and applies
 //     only to matmul-shaped work (facts A9).
 //   - Kernel ratios count the traffic a kernel asks for. Caches are ignored.
+//   - The two linear-layer marks are 16-bit kernels set against FP32 and TF32 peaks.
+//     A 16-bit kernel on tensor cores faces a higher 16-bit peak that the book's table
+//     does not give, so read their regime as indicative; batch 1 is memory-bound on
+//     any peak.
+//   - The audit separates two questions: whether the table contradicts itself (a ratio
+//     its two figures do not give, a unit that cannot be meant) and whether NVIDIA's
+//     documents give a different figure or label. Only the first is "wrong" here.
 
 // ---------------------------------------------------------------- arithmetic behind the cells
 
@@ -114,7 +121,7 @@ export const VENDOR = {
     nvlinkBoth: { value: 1800, unit: 'GB/s', how: '18 links, 1.8 TB/s in total for both directions', fact: 'A13' } as Figure,
     nvlinkEachWay: { value: 900, unit: 'GB/s', how: '900 GB/s in each direction', fact: 'A13' } as Figure,
   },
-  /** The 8800 GTX, where the book's 86.4 GB/s comes from (768 MB card, 900 MHz memory clock). */
+  /** The 8800 GTX, whose 384-bit bus at 900 MHz gives the book's 86.4 GB/s (768 MB card; facts A3). */
   gtx: { busBits: 384, memClockMHz: 900, fact: 'A3' },
 };
 
@@ -210,21 +217,63 @@ export function auditPrinted(): RatioAudit[] {
 }
 
 export type Column = 'g80' | 'b200' | 'ratio';
+/**
+ * What the audit says about a cell:
+ *   wrong       the table contradicts itself here (a ratio its own figures do not give, or a unit that cannot be meant);
+ *   differs     the table's arithmetic does not catch it, but NVIDIA's documents give another figure or label;
+ *   consistent  the table's arithmetic holds and no facts item corrects the cell.
+ */
+export type CellKind = 'wrong' | 'differs' | 'consistent';
 export interface CellVerdict {
   /** "tensor.ratio" */
   id: string;
   row: RowId;
   col: Column;
   text: string;
-  /** Wrong as printed: a ratio its own inputs contradict, or a unit that cannot be meant. */
-  wrong: boolean;
-  /** An input of a contradicted ratio that the vendor's documents confirm: a fair tick, but not the error. */
-  stands: boolean;
+  kind: CellKind;
+  /** Facts items (notes/today/ch24-facts.md) behind a correction, for kind 'differs'. */
+  fact?: string;
   /** The check that settles it. */
   arithmetic: string;
   /** What the check shows about this cell. */
   verdict: string;
 }
+
+/**
+ * Cells the table's own arithmetic cannot catch but NVIDIA's documents correct, with the
+ * facts items that say so. Ratios are not listed: each follows from its two printed
+ * figures, and the explorer recomputes them on NVIDIA's figures.
+ */
+export const CORRECTIONS: Record<string, { fact: string; text: string }> = {
+  'fp32.b200': {
+    fact: 'A8',
+    text: "80 matches NVIDIA's GB200 NVL72 rack figure divided by 72 (5760 / 72). For a B200 on an HGX B200 board NVIDIA prints 75 TFLOPS.",
+  },
+  'tensor.b200': {
+    fact: 'A9',
+    text: 'NVIDIA prints 2.2 petaFLOPS for this row, so the figure stands and the ratio is the error. The label does not: NVIDIA lists the figure as TF32 on Tensor Cores, counted with sparsity, and dense is half.',
+  },
+  'membw.g80': {
+    fact: 'A3, A4',
+    text: "NVIDIA's pages we read do not print 86.4 GB/s. It matches the 768 MB GeForce 8800 GTX's 384-bit bus at 900 MHz; the 1.5 GB board in the row below gives 76.8 GB/s by the same formula.",
+  },
+  'memcap.b200': {
+    fact: 'A11',
+    text: '192 GB matches the "up to" of one NVIDIA technical brief. Shipped HGX and DGX B200 boards have 180 GB per GPU.',
+  },
+  'pcie.g80': {
+    fact: 'A6',
+    text: "NVIDIA's board specification for the 1.5 GB Tesla C870 says PCI Express Generation 1, 4 GB/s each way. On that figure the host link grew about 16x.",
+  },
+};
+
+/** The input cells NVIDIA's documents bear out, with the items that say so. */
+export const CONFIRMATIONS: Record<string, { fact: string; text: string }> = {
+  'fp32.g80': { fact: 'A2', text: 'NVIDIA prints the factors, not the product: 128 multiply-adds per clock × 2 × 1.35 GHz = 345.6 GFLOPS.' },
+  'membw.b200': { fact: 'A10', text: 'NVIDIA prints "up to 8 TB/s" in two documents, and 7.7 TB/s in a third.' },
+  'memcap.g80': { fact: 'A4', text: "NVIDIA's board specification for the Tesla C870 gives 1536 MB." },
+  'pcie.b200': { fact: 'A5, A12', text: "Generation 5 x16 is NVIDIA's; 64 GB/s is that link's rate before encoding overhead, 63.0 after." },
+};
 
 /** Every cell a reader can tick, with the check that settles it. */
 export function printedCells(): CellVerdict[] {
@@ -234,27 +283,38 @@ export function printedCells(): CellVerdict[] {
     const cols: [Column, string | null][] = [['g80', r.g80], ['b200', r.b200], ['ratio', r.ratio]];
     for (const [col, text] of cols) {
       if (text == null || text === 'N/A' || text === '-') continue;
+      const id = `${r.id}.${col}`;
       const a = audits[r.id];
       if (r.id === 'nvlink') {
         const times = r.to / bookRow('membw').to;
         out.push({
-          id: `${r.id}.${col}`, row: r.id, col, text, wrong: true, stands: false,
+          id, row: r.id, col, text, kind: 'wrong',
           arithmetic: `${fmtInt(r.to)} GB/s / ${fmtInt(bookRow('membw').to)} GB/s = ${fmtInt(times)}`,
           verdict: `Every other bandwidth in the table is in GB/s. Read as printed, this link would carry ${fmtInt(times)} times the device's own memory bandwidth. NVIDIA's figure is ${fmtInt(VENDOR.b200.nvlinkBoth.value)} GB/s.`,
         });
         continue;
       }
-      if (a.matches) {
-        out.push({ id: `${r.id}.${col}`, row: r.id, col, text, wrong: false, stands: false, arithmetic: a.arithmetic, verdict: 'The printed ratio follows from the two printed figures.' });
+      if (!a.matches && col === 'ratio') {
+        // The one ratio its inputs contradict.
+        out.push({
+          id, row: r.id, col, text, kind: 'wrong', arithmetic: a.arithmetic,
+          verdict: `Off by ten. ${a.printed}x would need ${a.wouldMatch} ${r.unit} in the 2025 column, and no NVIDIA document we read prints that.`,
+        });
         continue;
       }
-      // The one ratio its inputs contradict: the ratio is the wrong cell, the input is NVIDIA's.
+      const c = CORRECTIONS[id];
+      if (c) {
+        const lead = a.matches
+          ? "The table's arithmetic holds."
+          : 'This figure and the ratio beside it cannot both be right, and the table alone does not say which.';
+        out.push({ id, row: r.id, col, text, kind: 'differs', fact: c.fact, arithmetic: a.arithmetic, verdict: `${lead} ${c.text}` });
+        continue;
+      }
+      const ok = CONFIRMATIONS[id];
       out.push({
-        id: `${r.id}.${col}`, row: r.id, col, text, wrong: col === 'ratio', stands: col !== 'ratio', arithmetic: a.arithmetic,
-        verdict:
-          col === 'ratio'
-            ? `Off by ten. ${a.printed}x would need ${a.wouldMatch} ${r.unit} in the 2025 column, and no NVIDIA document we read prints that.`
-            : `This figure and the ratio beside it cannot both be right, and the table alone does not say which. NVIDIA prints 2.2 petaFLOPS for this row, so the figure stands and the ratio is the error.`,
+        id, row: r.id, col, text, kind: 'consistent', arithmetic: a.arithmetic,
+        ...(ok ? { fact: ok.fact } : {}),
+        verdict: ok ? `The table's arithmetic holds. ${ok.text}` : 'The printed ratio follows from the two printed figures.',
       });
     }
   }
@@ -363,13 +423,16 @@ export interface Device {
   note: string;
 }
 const col = (id: RowId) => bookRow(id);
-/** The published devices the strip offers. All are the book's figures except the dense tensor-core one. */
+/**
+ * The published figures the strip offers: the book's two columns, and NVIDIA's dense
+ * TF32 figure as the one alternative to the printed tensor-core peak. Other devices,
+ * the reader's own among them, are chapter 5's roofline (§5.1), not this chapter's.
+ */
 export const DEVICES: Device[] = [
   { key: 'book2007', label: "The book's table, 2007 column", peak: col('fp32').from! * 1000, bw: col('membw').from!, note: 'Fig. 24.1, p. 578: 0.345 TFLOPS over 86.4 GB/s.' },
   { key: 'book2025', label: "The book's table, 2025 column, FP32", peak: col('fp32').to * 1000, bw: col('membw').to, note: 'Fig. 24.1, p. 578: 80 TFLOPS over 8,000 GB/s.' },
-  { key: 'book2025tc', label: "The book's table, 2025 column, tensor-core figure", peak: col('tensor').to * 1000, bw: col('membw').to, note: 'Fig. 24.1, p. 578: 2200 TFLOPS over 8,000 GB/s. The compute figure is TF32 with sparsity.' },
-  { key: 'book2025dense', label: "2025 column, dense TF32 from NVIDIA's documents", peak: VENDOR.b200.tensorDense.value * 1000, bw: col('membw').to, note: "NVIDIA's dense TF32 figure, 1.1 petaFLOPS, over the book's 8,000 GB/s." },
-  { key: 'ch5', label: "The book's chapter 5 example", peak: 66900, bw: 3350, note: 'Ch. 5 section 5.1, p. 94: 66.9 TFLOPS over 3.35 TB/s.' },
+  { key: 'book2025tc', label: "The book's table, 2025 column, tensor-core figure", peak: col('tensor').to * 1000, bw: col('membw').to, note: 'Fig. 24.1, p. 578: 2200 TFLOPS over 8,000 GB/s. The compute figure is TF32 with sparsity, and applies only to matmul-shaped work.' },
+  { key: 'book2025dense', label: "2025 column, dense TF32 from NVIDIA's documents", peak: VENDOR.b200.tensorDense.value * 1000, bw: col('membw').to, note: "NVIDIA's dense TF32 figure, 1.1 petaFLOPS, over the book's 8,000 GB/s. It applies only to matmul-shaped work." },
 ];
 
 export interface Mark {
@@ -407,6 +470,8 @@ export const LIMIT_ROWS: { id: LimitId; name: string; bookRow: string }[] = [
 export interface LimitCard {
   /** Question id in the progress file. */
   qid: string;
+  /** The earlier chapters the card draws on, as the prerequisite check labels it. */
+  from: string;
   card: string;
   row: LimitId;
   why: string;
@@ -415,6 +480,7 @@ export interface LimitCard {
 export const LIMITS: LimitCard[] = [
   {
     qid: 'ch24/start/q-limit-load',
+    from: 'From chapter 2',
     card: "Copying a model's weights from host memory to device memory with cudaMemcpy.",
     row: 'hostlink',
     why: 'A host-to-device copy has to cross the link between the two memories, and it cannot go faster than that link.',
@@ -422,6 +488,7 @@ export const LIMITS: LimitCard[] = [
   },
   {
     qid: 'ch24/start/q-limit-decode',
+    from: 'From chapters 5 and 20',
     card: 'Generating one token at batch 1 with a KV cache: every weight is read once for a matrix-vector product.',
     row: 'membw',
     why: 'Each weight is fetched once and used once, so the ratio stays near 1 FLOP/B and the kernel waits on memory, which is what the book says of generation.',
@@ -429,6 +496,7 @@ export const LIMITS: LimitCard[] = [
   },
   {
     qid: 'ch24/start/q-limit-prefill',
+    from: 'From chapter 20',
     card: 'Prefill of a long prompt: one pass of large matrix-matrix products.',
     row: 'compute',
     why: 'Matrix-matrix products reuse every operand many times, so the ratio is high and the arithmetic units set the pace: the book calls prefill typically compute-bound.',
@@ -436,6 +504,7 @@ export const LIMITS: LimitCard[] = [
   },
   {
     qid: 'ch24/start/q-limit-fit',
+    from: 'From chapter 20',
     card: 'Whether the weights plus the KV cache of every live sequence fit on the device.',
     row: 'memcap',
     why: 'Each sequence in a batch needs its own KV cache, so the batch you can serve is capped by bytes of device memory, not by any rate.',
@@ -443,9 +512,10 @@ export const LIMITS: LimitCard[] = [
   },
   {
     qid: 'ch24/start/q-limit-allreduce',
-    card: 'An all-reduce between the GPUs of one node through NCCL.',
+    from: 'From chapter 23',
+    card: 'An all-reduce through NCCL among the GPUs of one node, which are joined to each other by NVLink.',
     row: 'gpulink',
-    why: 'The collective moves data from device to device over whatever joins them; the book lists PCIe and NVLINK among the interconnects NCCL uses (p. 564).',
+    why: "The collective moves each GPU's data to the others over what joins them, here NVLink. The book calls NCCL topology-aware and lists PCIe and NVLINK among the interconnects it uses (p. 564).",
     source: "ch. 23 §23.4, pp. 563–568, for NCCL; NCCL's documentation for all-reduce (notes/today/ch24-facts.md, A16)",
   },
 ];

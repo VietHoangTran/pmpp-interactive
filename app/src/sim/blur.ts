@@ -351,6 +351,20 @@ export function blurImage(pic: Picture, o: BlurOptions): BlurResult {
   };
 }
 
+/**
+ * Where the wrong pixels of a result are, for the explanations: the rows and columns
+ * that hold at least one, and the rows strictly between the first and last wrong row
+ * that hold none. All sorted.
+ */
+export function wrongSpan(wrong: number[], w: number): { rows: number[]; cols: number[]; spared: number[] } {
+  const sorted = (xs: number[]) => [...new Set(xs)].sort((a, b) => a - b);
+  const rows = sorted(wrong.map((i) => Math.floor(i / w)));
+  const cols = sorted(wrong.map((i) => i % w));
+  const spared: number[] = [];
+  for (let r = (rows[0] ?? 0) + 1; r < (rows[rows.length - 1] ?? 0); r++) if (!rows.includes(r)) spared.push(r);
+  return { rows, cols, spared };
+}
+
 /** Counts of bad accesses by operation and kind, for display. */
 export function tally(accesses: BadAccess[]) {
   const n = (op: BadAccess['op'], kind: BadAccess['kind']) => accesses.filter((a) => a.op === op && a.kind === kind).length;

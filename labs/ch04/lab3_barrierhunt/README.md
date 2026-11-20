@@ -42,8 +42,9 @@ multiples of it and with lengths that are not.
    elements, each shape is launched 40 times on fresh data, and a failing case says in how
    many of the 40 it was wrong.
 
-The Metal barrier takes a flag that names the memory whose accesses it orders. Chapter 5's
-kernels pass `mem_flags::mem_threadgroup`. Decide whether that is the right flag here.
+The Metal barrier takes a flag that names the memory whose accesses it orders. Kernels that
+exchange data through threadgroup memory pass `mem_flags::mem_threadgroup`. Decide whether
+that is the right flag here.
 
 ## The experiment (exercise 5)
 
@@ -70,8 +71,11 @@ what the next device is entitled to do:
   capability 7.0 on, each thread has its own program counter, and NVIDIA's advice is to
   synchronise explicitly (A10). AMD does promise lockstep within a warp (B5). Apple says
   nothing either way (C2).
-- A block wider than one warp is several warps, and no vendor orders them against each
-  other without a barrier.
+- A block wider than one warp is several warps, and nothing but a barrier orders them
+  against each other. NVIDIA: "different warps execute independently" (A9). AMD: the
+  compute unit switches to another resident warp whenever one stalls (B8). Apple:
+  SIMD-groups "make independent forward progress with respect to each other, in the
+  absence of threadgroup barrier operations" (C2).
 
 A case that passed 40 times showed you 40 schedules. It did not show you that the kernel
 is correct. The emulator's three orders are schedules too, chosen to be unkind.

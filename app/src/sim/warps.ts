@@ -83,10 +83,12 @@ export const warpsPerBlock = (d: Dims, width: number): number => Math.ceil(threa
 export const paddedLanes = (d: Dims, width: number): number => warpsPerBlock(d, width) * width - threadsIn(d);
 
 /**
- * How many whole rows of the block one warp covers, when a warp is a whole number of
- * rows (blockDim.x divides the width). Null when warps cut through rows.
+ * How many rows of the block one warp covers: a whole number when blockDim.x divides the
+ * width, and the fraction 1/k when a row is exactly k warps (the width divides
+ * blockDim.x). Null when warp boundaries fall inside rows in any other way.
  */
-export const rowsPerWarp = (d: Dims, width: number): number | null => (width % d.x === 0 ? width / d.x : null);
+export const rowsPerWarp = (d: Dims, width: number): number | null =>
+  width % d.x === 0 || d.x % width === 0 ? width / d.x : null;
 
 export interface Cut {
   threads: number;

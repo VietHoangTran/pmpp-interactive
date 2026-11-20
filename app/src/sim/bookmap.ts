@@ -9,8 +9,11 @@
 //     arrows carry `uncertain`. The arrow from 9 to 10 is drawn dashed in the
 //     figure; the notes do not record what the book means by that, so the
 //     closure does not follow it unless asked to.
-//   - The arrows are the authors' advice to instructors who want to skip or
-//     reorder chapters (p. xxv). They are not hard dependencies.
+//   - The Preface presents the arrows as prerequisites, drawn to help
+//     instructors skip or reorder chapters (p. xxv). Treating them as advice
+//     that this course's order may overrule is our reading, not the book's.
+//   - "Leads nowhere further" for chapter 14 holds only under our reading of
+//     the ambiguous junction (the line starts at 9, not at 14).
 //   - GOALS (which chapters a goal of this reader needs), COURSE_STAGES (the
 //     order of PLAN.md section 9), COURSE_LINKS (prerequisites this course adds)
 //     and the tiers are this course's, not the book's.

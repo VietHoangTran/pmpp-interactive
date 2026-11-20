@@ -1,5 +1,5 @@
 // Browser check for section 1.7: the prediction about chapter 20, the "Reading path"
-// explorer, the edition lookup and the questions. Everything shown is compared with
+// explorer, the edition map and the questions. Everything shown is compared with
 // the tested model in src/sim/bookmap.ts.
 // Usage: node e2e/ch01-s17.mjs [screenshot-prefix]
 import { open, goto } from './browser.mjs';
@@ -50,21 +50,22 @@ const and = (xs) => (xs.length <= 1 ? xs.join('') : xs.slice(0, -1).join(', ') +
 
 await goto(page, 'ch01/1.7');
 const P = 'Reading path';
-const E = 'Which edition is that page about?';
 await page.waitForSelector(bench(P));
-await page.waitForSelector(bench(E));
 
 // ---- the prediction ----
 const before20 = bm.chaptersBefore([20]);
 let q = await question('how many chapters must you have read');
 check('prediction hides its answer until committed', !(await q.evaluate((e) => e.textContent)).includes(and(before20)));
-await (await q.$('input[type=number]')).type('19');
+await (await q.$('input[type=number]')).type('18');
 await (await q.$('button.primary')).click();
 await pause(150);
 const pred = await q.evaluate((e) => e.textContent);
+// A line would put chapters 2 to 19 before chapter 20: eighteen of them.
+const line = bm.CHAPTERS.filter((c) => c.n > 1 && c.n < 20).length;
 check(
-  'committing reveals 7 and the chapters, and reacts to a guess of 19',
-  before20.length === 7 && pred.includes('You predicted 19') && pred.includes(`${before20.length}: chapters ${and(before20)}`) && pred.includes('if the chart were a line'),
+  'committing reveals 7 and the chapters, and reacts to a guess of 18, the count for a line',
+  line === 18 && before20.length === 7 && pred.includes('You predicted 18') && pred.includes(`${before20.length}: chapters ${and(before20)}`) &&
+    pred.includes('Eighteen would be right if the chart were a line: chapters 2 to 19.'),
   pred,
 );
 
@@ -117,6 +118,7 @@ const clickChapter = async (n) => {
 await clickChapter(14);
 st = await states();
 check('clicking chapter 14: ten chapters before it, five of them in Part II', (await stat('before')) === 10 && chaptersIn(st, 'pre').filter((n) => bm.chapter(n).part === 'II').join() === '9,10,11,12,13' && (await text(`${bench(P)} [data-role=selection]`)).includes('Chapter 14: Sorting'), JSON.stringify(st));
+check('chapter 14 leads nowhere further only under our reading of the junction, and says so', (await text(`${bench(P)} [data-role=leads]`)).includes('reading the junction under it as starting at chapter 9'), await text(`${bench(P)} [data-role=leads]`));
 await clickChapter(22);
 check('clicking chapter 22: twelve before it', (await stat('before')) === 12 && bm.chaptersBefore([22]).length === 12);
 await clickChapter(10);
@@ -160,50 +162,17 @@ const tiers = await page.$$eval(`${bench(P)} svg g[data-ch]`, (g) => Object.from
 check('shading: each box carries the model\'s tier, and deep chapters are filled', bm.CHAPTERS.every((c) => tiers[c.n][0] === c.tier && (tiers[c.n][1] === 'var(--ink)') === (c.tier === 'Deep')) && !!(await page.$(`${bench(P)} [data-legend=tier]`)), JSON.stringify(tiers));
 if (out) await page.screenshot({ path: out + '-path-tiers.png' });
 
-// ---- edition lookup ----
-const result = async () => (await text(`${bench(E)} [data-role=edition-result]`)).replace(/\s+/g, ' ');
-const pickFourth = async (n) => {
-  await page.click(`${bench(E)} [data-role=fourth] button[data-n="${n}"]`);
-  await pause(80);
-};
-const hit = () => page.$$eval(`${bench(E)} [data-role=fifth] span[data-hit="1"]`, (s) => s.map((x) => Number(x.dataset.n)));
-check('lookup offers 23 chapters of the 4th edition and 24 of the 5th', (await page.$$(`${bench(E)} [data-role=fourth] button`)).length === 23 && (await page.$$(`${bench(E)} [data-role=fifth] span[data-n]`)).length === 24);
-await pickFourth(16);
-let r = await result();
-check('4th-edition chapter 16 is Deep learning, now chapter 19, linked to this course', bm.fifthFor(16) === 19 && r.includes('chapter 16: Deep learning') && r.includes('New number: chapter 19') && r.includes('chapter 16 is Dynamic programming and wavefront parallelism') && (await hit()).join() === '19' && !!(await page.$(`${bench(E)} [data-role=edition-result] a[href="#/ch19"]`)), r);
-await pickFourth(14);
-r = await result();
-check('4th-edition chapter 14 is Sparse matrix computation, now chapter 17', r.includes('Sparse matrix computation') && r.includes('New number: chapter 17') && (await hit()).join() === '17', r);
-await pickFourth(12);
-check('4th-edition chapter 12 is Merge, now chapter 13', (await result()).includes('chapter 12: Merge') && (await hit()).join() === '13');
-// Typing works too.
-const typeFourth = async (v) => {
-  const input = await page.$(`${bench(E)} input[type=number]`);
-  await input.focus();
-  await input.evaluate((el) => el.select());
-  await input.type(String(v));
-  await pause(80);
-};
-await typeFourth(5);
-r = await result();
-check('typing 5: same number, linked to chapter 5', r.includes('Same number') && (await hit()).join() === '5' && !!(await page.$(`${bench(E)} [data-role=edition-result] a[href="#/ch05"]`)), r);
-await typeFourth(21);
-r = await result();
-check('typing 21: dynamic parallelism was removed, nothing is highlighted in the 5th edition', r.includes('CUDA dynamic parallelism') && r.includes('Removed.') && (await hit()).length === 0 && bm.fifthFor(21) === null, r);
-await typeFourth(22);
-check('typing 22: removed, with a link to Appendix C', (await result()).includes('Removed.') && !!(await page.$(`${bench(E)} [data-role=edition-result] a[href="#/appC"]`)));
-await typeFourth(17);
-check('typing 17: removed, folded into chapter 21', !!(await page.$(`${bench(E)} [data-role=edition-result] a[href="#/ch21"]`)));
-await typeFourth(0);
-check('a number outside 1 to 23 leaves the last valid answer in place', (await result()).includes('chapter 17:'));
-const fates = await page.$$eval(`${bench(E)} [data-role=fourth] button`, (b) => b.map((x) => x.dataset.fate));
-check('every strip button carries the model\'s verdict', fates.join() === bm.FOURTH_TO_FIFTH.map((c) => c.fate.kind).join());
-const news = await page.$$eval(`${bench(E)} [data-role=fifth] span[data-new="1"]`, (s) => s.map((x) => Number(x.dataset.n)));
-const summary = (await text(`${bench(E)} [data-role=edition-summary]`)).replace(/\s+/g, ' ');
-check('summary: 1 to 11 unchanged, 9 renumbered, 3 removed, 12, 15, 16 and 20 new', news.join() === bm.NEW_IN_FIFTH.join() && summary.includes('chapters 1 to 11 (11)') && summary.includes('New number: 9') && summary.includes('Removed: 3 (struck through: 17, 21 and 22)') && summary.includes('12, 15, 16 and 20'), summary);
-check('the footer says where the 4th-edition list comes from and that the pairing is ours', (await text(`${bench(E)} > footer`)).includes("publisher's page") && (await text(`${bench(E)} > footer`)).includes('our inference'));
-await pickFourth(16);
-if (out) await (await page.$(bench(E))).screenshot({ path: out + '-edition.png' });
+// ---- edition map (static) ----
+const mapRows = await page.$$eval('table[data-role=edition-map] tbody tr', (trs) => trs.map((tr) => ({ n: tr.dataset.n, fate: tr.dataset.fate, text: tr.textContent.replace(/\s+/g, ' '), links: [...tr.querySelectorAll('a')].map((a) => a.getAttribute('href')) })));
+const changed = bm.FOURTH_TO_FIFTH.filter((c) => c.fate.kind !== 'same');
+check('the edition map has one row for chapters 1 to 11 and one for each chapter after', mapRows.length === 1 + changed.length && mapRows[0].n === `1-${bm.firstRenumbered() - 1}` && mapRows[0].text.includes('the same numbers'), JSON.stringify(mapRows.map((r) => r.n)));
+check("every row carries the model's verdict", mapRows.slice(1).every((r, i) => Number(r.n) === changed[i].n && r.fate === changed[i].fate.kind), JSON.stringify(mapRows.map((r) => r.fate)));
+const mapRow = (n) => mapRows.find((r) => r.n === String(n));
+check('4th-edition chapter 16 is Deep learning, now chapter 19, linked to this course', bm.fifthFor(16) === 19 && mapRow(16).text.includes('16. Deep learning') && mapRow(16).links.join() === '#/ch19', JSON.stringify(mapRow(16)));
+check('4th-edition chapter 14 is Sparse matrix computation, now chapter 17', mapRow(14).text.includes('Sparse matrix computation') && mapRow(14).links.join() === '#/ch17');
+check('removed chapters: 17 points to chapter 21, 21 to nothing, 22 to Appendix C', mapRow(17).text.includes('removed') && mapRow(17).links.join() === '#/ch21' && mapRow(21).text.includes('removed') && mapRow(21).links.length === 0 && mapRow(22).links.join() === '#/appC' && bm.fifthFor(21) === null);
+check('the note under the map says the pairing is our inference', (await page.$eval('table[data-role=edition-map] + p', (e) => e.textContent)).includes('our inference'));
+if (out) await (await page.$('table[data-role=edition-map]')).screenshot({ path: out + '-edition.png' });
 
 // ---- questions ----
 q = await question('Which chapter of the 5th edition do you open');
@@ -221,22 +190,39 @@ await (await q.$('input[type=number]')).type('5');
 await (await q.$('button.primary')).click();
 await pause(150);
 check('sort question: 5 is correct and the explanation names the chapters', (await q.evaluate((e) => e.textContent)).includes('Correct.') && (await q.evaluate((e) => e.textContent)).includes('9, 10, 11, 12 and 13'));
-q = await question('runs at a third of the speed you expected');
-await (await q.$$('input[type=radio]'))[1].click();
-await (await q.$('button.primary')).click();
+q = await question('own run time is three times longer');
+const portable = async (i) => {
+  await (await q.$$('input[type=radio]'))[i].click();
+  await (await q.$('button.primary')).click();
+  await pause(150);
+  return (await q.evaluate((e) => e.textContent)).replace(/\s+/g, ' ');
+};
+let pt = await portable(0);
+check('portability question: "slower hardware" is ruled out by the equal peaks', pt.includes('Not quite.') && pt.includes('the peaks are the same'), pt.slice(-300));
+pt = await portable(1);
+check("portability question: Amdahl is marked wrong, because the figure is the kernel's own time", pt.includes('Not quite.') && pt.includes("kernel's own run time"), pt.slice(-300));
+pt = await portable(2);
 await pause(600);
-check('portability question: Amdahl is marked wrong with its reason', (await q.evaluate((e) => e.textContent)).includes('Not quite.') && (await q.evaluate((e) => e.textContent)).includes('share of the run you did not speed up'));
+check("portability question: retuning is right, with AMD's documented example", pt.includes('Correct.') && pt.includes('half of the compute resources') && pt.includes('B5'), pt.slice(-400));
 const last = puts.at(-1) ?? {};
 check(
   'answers and the prediction are written to the progress file under their ids',
-  last.answers?.['ch01/1.7/p-before20']?.value === 19 && last.answers?.['ch01/1.7/q-edition16']?.correct === false && last.answers?.['ch01/1.7/q-postpone']?.correct === true &&
-    last.answers?.['ch01/1.7/q-sortneeds']?.correct === true && last.answers?.['ch01/1.7/q-portable']?.correct === false,
+  last.answers?.['ch01/1.7/p-before20']?.value === 18 && last.answers?.['ch01/1.7/q-edition16']?.correct === false && last.answers?.['ch01/1.7/q-postpone']?.correct === true &&
+    last.answers?.['ch01/1.7/q-sortneeds']?.correct === true && last.answers?.['ch01/1.7/q-portable']?.correct === true,
   JSON.stringify(last.answers),
 );
 check('first answers enter the review schedule', ['q-edition16', 'q-postpone', 'q-sortneeds', 'q-portable'].every((k) => last.review?.['ch01/1.7/' + k]));
 
 // ---- the page as a whole ----
-check('the two tables are there: what the 5th edition changed, and three backends', (await page.$$('table[data-role=changes] tbody tr')).length >= 12 && (await page.$$('table[data-role=backends] tbody tr')).length === 3);
+const body = (await page.$eval('.prose', (e) => e.textContent)).replace(/\s+/g, ' ');
+check('what the 5th edition changed is a paragraph naming the four new chapters', (await text('p[data-role=changes]')).replace(/\s+/g, ' ').includes(`Four chapters are new: ${and(bm.NEW_IN_FIFTH)}.`) && !(await page.$('table[data-role=changes]')));
+check('one explorer on the page, and the backends table has three rows', (await page.$$('section.bench')).length === 1 && (await page.$$('table[data-role=backends] tbody tr')).length === 3);
+const pytorch = (await page.$eval('table[data-role=backends] tbody tr', (tr) => tr.textContent)).replace(/\s+/g, ' ');
+check("PyTorch row: mostly HIPified CUDA plus AMD-only files; MPS on Apple's frameworks and its own kernels", pytorch.includes('HIPify') && pytorch.includes('AMD-only files') && pytorch.includes('MPSGraph') && pytorch.includes('.metal'), pytorch);
+check("the arrows are the book's prerequisites; treating them as advice is marked as ours", body.includes('The Preface presents the arrows as prerequisites') && body.includes('Treating them as advice, which this course may overrule, is our reading'));
+check('MPI is left out of this course, whose chapter 23 keeps streams, copies and pinned memory', body.includes('which this course leaves out (its chapter 23 keeps only streams'));
+check('the emulator habit separates emu (fixed orders) from race (missing atomics)', body.includes('three fixed thread orders') && body.includes('a missing atomic, need the race backend') && body.includes('only for schedules that actually occur'), body.slice(body.indexOf('Correct functionality'), body.indexOf('Correct functionality') + 500));
+check("Apple's sequence is the same ground without the two copies, linked to the summary", body.includes('without the two copies') && !!(await page.$('.prose a[href="#/ch01/wrap"]')));
 check('the page itself does not scroll sideways', await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
 check('no console or page errors', errors.length === 0, errors.join(' | '));
 await browser.close();
