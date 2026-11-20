@@ -171,6 +171,27 @@ Chapter 5 is the template: read `app/src/chapters/ch05/` and `labs/ch05/` before
   raw device pointers and explicit sizes as kernel arguments; a `launch<Name>` host
   function beside each kernel; the CPU reference lives in `main.cpp`.
 
+**Portability traps already established** (see `notes/today/infra-facts.md`, and its table
+"Where the backends really differ", before designing any lab past chapter 5)
+- "One `.cu` file compiles for HIP unchanged" is true for threads, blocks, shared memory,
+  barriers, legacy atomics and runtime calls (through `pmpp/vendors/hip.h`). It is NOT
+  true for: warp `_sync` intrinsics (HIP needs a 64-bit lane mask on every target and
+  returns 64-bit ballots: use a typed mask, never a `0xffffffff` literal), cooperative
+  groups and half-precision headers (different include paths: guard with `#if`), CUB
+  functors (spellings changed and differ), tensor/matrix-core intrinsics (different
+  libraries). Say exactly this in lessons; do not repeat the simple claim past chapter 9.
+- Warp width: 32 on NVIDIA, 64 or 32 on AMD, read from the pipeline on Metal. Never a
+  literal 32 outside a comment explaining the book's assumption.
+- Metal has SIMD-group functions (`simd_shuffle_down`, `simd_sum`, `simd_ballot`, ...) and
+  integer and float atomics, but no lane masks, no cooperative groups, no documented
+  per-SM occupancy, cache or bank figures, no `double`, and no documented unroll or
+  inline controls. Where Metal has no counterpart, say so with the facts-file item.
+- The book's `float*` to `float4*` cast for vector loads is documented by no vendor
+  (A6, B6, C7). Present it as the book's technique, measure it, and show Metal's
+  documented alternative (declare the buffer `device float4*`).
+- NVIDIA now calls `atomicAdd` and friends "legacy" and recommends `cuda::atomic_ref`,
+  which is what the book's 5th edition uses.
+
 **Running the app while building**
 - Start your own server on your own port and point checks at it:
   `cd app && PORT=<port> node server.mjs &` then `APP_URL=http://localhost:<port> node e2e/NN-x.mjs`.
