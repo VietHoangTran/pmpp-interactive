@@ -5,12 +5,14 @@
 //   content/<chapter>/narration/manifest.json   clip -> { file, sha256 of the script, duration, ... }
 //
 //   node tools/narration.mjs status [chapter]            which clips are missing or stale
-//   node tools/narration.mjs add <chapter> <clip> <audio-file> [--take N]
+//   node tools/narration.mjs add <chapter> <clip> <audio-file> [--take N] [--model ID]
 //                                                        register audio generated for the clip's current script
 //
-// Audio is generated only with the ElevenLabs MCP speech tool (model and voice below);
-// this script never calls any API. A clip is STALE when its script changed after its
-// audio was made, and only stale or missing clips need regenerating.
+// Audio comes from ElevenLabs with one voice (VOICE below) and one of the MODELS below:
+// eleven_v4 through the MCP speech tool, or eleven_v4_turbo through the API with
+// tools/tts-api.mjs when credits run low (the reader's decision, 2026-11-20). Each clip
+// records its model. This script never calls any API. A clip is STALE when its script
+// changed after its audio was made, and only stale or missing clips need regenerating.
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -19,7 +21,8 @@ import { fileURLToPath } from 'node:url';
 
 const REPO = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const CONTENT = path.join(REPO, 'content');
-export const MODEL = 'eleven_v4';
+export const MODEL = 'eleven_v4'; // the default, and the manifest's chapter-wide value
+export const MODELS = ['eleven_v4', 'eleven_v4_turbo'];
 export const VOICE = 'tnSpp4vdxKPjI9w0GnoV';
 
 const dirOf = (chapter) => path.join(CONTENT, chapter, 'narration');
@@ -62,18 +65,20 @@ function status(only) {
       let state = 'ok';
       if (!entry || !fs.existsSync(path.join(dirOf(chapter), entry.file))) state = 'MISSING';
       else if (entry.sha256 !== hash(text)) state = 'STALE';
-      else if (m.model !== MODEL || m.voice !== VOICE) state = 'STALE (model or voice changed)';
+      else if (!MODELS.includes(entry.model ?? m.model) || m.voice !== VOICE) state = 'STALE (model or voice changed)';
       if (state !== 'ok') pending++;
-      console.log(`${state.padEnd(8)} ${chapter}/${clip}  (${normalise(text).split(/\s+/).length} words${entry?.duration ? `, ${entry.duration}s` : ''})`);
+      const model = entry ? ` ${entry.model ?? m.model}` : '';
+      console.log(`${state.padEnd(8)} ${chapter}/${clip}  (${normalise(text).split(/\s+/).length} words${entry?.duration ? `, ${entry.duration}s` : ''}${model})`);
     }
     for (const clip of Object.keys(m.clips))
       if (!scripts.includes(clip + '.txt')) console.log(`ORPHAN   ${chapter}/${clip}  (audio without a script)`);
   }
-  console.log(pending ? `\n${pending} clip(s) need generating with model ${MODEL}, voice ${VOICE}.` : '\nAll narration is up to date.');
+  console.log(pending ? `\n${pending} clip(s) need generating with voice ${VOICE} and model ${MODELS.join(' or ')}.` : '\nAll narration is up to date.');
   return pending ? 1 : 0;
 }
 
-function add(chapter, clip, audio, take) {
+function add(chapter, clip, audio, take, model = MODEL) {
+  if (!MODELS.includes(model)) throw new Error(`model ${model} is not one of ${MODELS.join(', ')}`);
   const script = path.join(dirOf(chapter), clip + '.txt');
   if (!fs.existsSync(script)) throw new Error(`no script at ${path.relative(REPO, script)}`);
   if (!fs.existsSync(audio)) throw new Error(`no audio file at ${audio}`);
@@ -88,18 +93,24 @@ function add(chapter, clip, audio, take) {
     duration: duration(dest),
     bytes: fs.statSync(dest).size,
     generated: new Date().toISOString().slice(0, 10),
+    model,
     ...(take ? { take } : {}),
   };
   writeManifest(chapter, m);
   console.log(`registered ${chapter}/${clip}: ${m.clips[clip].duration ?? '?'}s, ${m.clips[clip].bytes} bytes`);
 }
 
-const [cmd, ...rest] = process.argv.slice(2);
-if (cmd === 'status') process.exit(status(rest[0]));
+// Command line, only when run directly (tools/tts-api.mjs imports MODELS and VOICE).
+const isMain = process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
+const [cmd, ...rest] = isMain ? process.argv.slice(2) : ['--imported'];
+if (cmd === '--imported') {
+  // imported as a module: nothing to run
+} else if (cmd === 'status') process.exit(status(rest[0]));
 else if (cmd === 'add' && rest.length >= 3) {
   const t = rest.indexOf('--take');
-  add(rest[0], rest[1], rest[2], t >= 0 ? Number(rest[t + 1]) : undefined);
+  const mo = rest.indexOf('--model');
+  add(rest[0], rest[1], rest[2], t >= 0 ? Number(rest[t + 1]) : undefined, mo >= 0 ? rest[mo + 1] : MODEL);
 } else {
-  console.error('usage: node tools/narration.mjs status [chapter] | add <chapter> <clip> <audio-file> [--take N]');
+  console.error('usage: node tools/narration.mjs status [chapter] | add <chapter> <clip> <audio-file> [--take N] [--model ID]');
   process.exit(2);
 }

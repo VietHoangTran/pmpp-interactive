@@ -68,13 +68,20 @@ shows it passing. Never write "verified" for anything else.
 
 ## Narration
 
-- Only the ElevenLabs MCP speech tool, model `eleven_v4`, voice `tnSpp4vdxKPjI9w0GnoV`
-  (the reader's decision on 2026-11-20 after `eleven_v4_turbo` proved unavailable through
-  the MCP server). Never another model or voice, never the API directly. If the tool is
-  unavailable, stop and say so.
+- One voice, `tnSpp4vdxKPjI9w0GnoV`, always. The default is the ElevenLabs MCP speech tool
+  with model `eleven_v4` (the reader's decision on 2026-11-20 after `eleven_v4_turbo`
+  proved unavailable through the MCP server).
+- When credits run low, the reader's decision of 2026-11-20 allows the ElevenLabs API
+  directly with `eleven_v4_turbo` (the fast v4 model; there is no "v4 flash"):
+  `ELEVENLABS_API_KEY=... node tools/tts-api.mjs <chapter> <clip>`. The key comes from the
+  environment only: never write it into the repository or print it. No other model or
+  voice, and no other API use.
 - Script `content/chNN/narration/<clip>.txt` beside `<clip>.mp3`; register with
-  `node tools/narration.mjs add <chapter> <clip> <audio-file>`. Regenerate only clips the
-  status command reports as stale. Commit the audio.
+  `node tools/narration.mjs add <chapter> <clip> <audio-file> [--take N] [--model ID]`
+  (the manifest records each clip's model). Regenerate only clips the status command
+  reports as stale. Commit the audio.
+- Pick between takes by transcribing them locally (whisper-cli) against the script; a
+  word heard as a different word in both takes means the script needs rewording.
 - Write for the ear: short sentences, no symbols read aloud, numbers spelled the way they
   are said.
 

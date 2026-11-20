@@ -113,6 +113,14 @@ settings follow AMD's and CMake's documentation (facts file, B6 and B7).
   so nothing was checked in a visible browser window.
 
 ### Decisions
+- 2026-11-20: when ElevenLabs credits run low, narration may use `eleven_v4_turbo` through
+  the API directly (tools/tts-api.mjs), same voice (the reader's instruction, asking for a
+  'v4 flash': the API has no such model; `eleven_v4_turbo` is the fast v4). Measured on
+  one 228-character clip: 48 credits through the API with turbo, about 219 per take
+  through the MCP tool with eleven_v4; a 25-character test cost 6 (turbo) and 11
+  (eleven_v4) through the API. The supplied key can generate speech but lacks user_read
+  and models_read, so the balance is read through the MCP tool. The key lives only in the
+  session scratchpad and the environment of the commands that use it.
 - 2026-11-20: choice options are shown in a stable shuffled order per question id
   (components/Ask.tsx displayOrder; `fixedOrder` keeps a scale in order). Builders had put
   the right answer first in up to 81% of a chapter's questions. Answers are stored by the
