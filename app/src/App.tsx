@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { href, useRoute } from './lib/router';
 import { useProgress } from './lib/progress';
-import { isDue } from './lib/review';
-import { CHAPTERS, chapterById } from './chapters/registry';
-import type { Chapter, Section } from './chapters/types';
+import { dueCount } from './lib/review';
+import { useChapter } from './chapters/registry';
+import type { Chapter, Section, SectionModule } from './chapters/types';
 import { Home } from './pages/Home';
 import { Review } from './pages/Review';
 
@@ -29,17 +29,10 @@ function useTheme(): [string, () => void] {
   return [dark ? 'dark' : 'light', () => setTheme(dark ? 'light' : 'dark')];
 }
 
-export function dueCount(progress: ReturnType<typeof useProgress>['progress']): number {
-  let n = 0;
-  for (const ch of CHAPTERS)
-    for (const id of Object.keys(ch.questions)) if (progress.review[id] && isDue(progress.review[id])) n++;
-  return n;
-}
-
-function Rail({ chapter, section }: { chapter?: Chapter; section?: string }) {
+function Rail({ chapter, section }: { chapter?: Chapter | null; section?: string }) {
   const { progress, saveError } = useProgress();
   const [theme, toggle] = useTheme();
-  const due = dueCount(progress);
+  const due = dueCount(progress.review);
   return (
     <aside className="rail">
       <a className="book" href={href()}>
@@ -49,7 +42,8 @@ function Rail({ chapter, section }: { chapter?: Chapter; section?: string }) {
       {chapter ? (
         <>
           <h4>
-            Chapter {chapter.num}: {chapter.title}
+            {/^\d/.test(chapter.num) ? 'Chapter ' : chapter.num.startsWith('X') ? 'Module ' : 'Appendix '}
+            {chapter.num}: {chapter.title}
           </h4>
           <nav aria-label="Sections">
             {chapter.sections.map((s) => (
@@ -94,6 +88,18 @@ function Rail({ chapter, section }: { chapter?: Chapter; section?: string }) {
 function SectionPage({ chapter, section }: { chapter: Chapter; section: Section }) {
   const { progress, visit, setDone, loaded } = useProgress();
   const key = `${chapter.id}/${section.id}`;
+  const [mod, setMod] = useState<SectionModule | null>(null);
+  const [failed, setFailed] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    section.load().then(
+      (m) => live && setMod(m),
+      (e) => live && setFailed(String(e?.message ?? e)),
+    );
+    return () => {
+      live = false;
+    };
+  }, [section]);
   useEffect(() => {
     if (loaded) visit(key);
   }, [key, loaded, visit]);
@@ -101,16 +107,16 @@ function SectionPage({ chapter, section }: { chapter: Chapter; section: Section 
   const prev = chapter.sections[i - 1];
   const next = chapter.sections[i + 1];
   const done = !!progress.sections[key]?.done;
-  const Body = section.component;
   return (
-    <article className="page">
+    // data-ready tells the browser checks that the section's own code has rendered.
+    <article className="page" data-ready={mod ? '' : undefined}>
       <header className="section-head">
         <span className="num">{section.num}</span>
         <h1>{section.title}</h1>
         <p className="lede">{section.lede}</p>
       </header>
       <div className="prose">
-        <Body />
+        {mod ? <mod.Component /> : failed ? <p className="t-fail">This section failed to load: {failed}</p> : <p className="muted">Loading…</p>}
       </div>
       <footer className="row ui" style={{ marginTop: '3rem', justifyContent: 'space-between', maxWidth: 'var(--measure)' }}>
         <span>{prev ? <a href={href(chapter.id, prev.id)}>Back: {prev.title}</a> : null}</span>
@@ -125,18 +131,31 @@ function SectionPage({ chapter, section }: { chapter: Chapter; section: Section 
 
 export function App() {
   const route = useRoute();
-  const chapter = route[0] ? chapterById(route[0]) : undefined;
+  const isStudy = !route[0] || route[0] === 'review';
+  const chapter = useChapter(isStudy ? undefined : route[0]);
   const section = chapter ? (chapter.sections.find((s) => s.id === route[1]) ?? chapter.sections[0]) : undefined;
   return (
     <div className="frame">
       <Rail chapter={chapter} section={section?.id ?? (route[0] === 'review' ? 'review' : 'home')} />
       <main className="main">
-        {chapter && section ? (
-          <SectionPage key={chapter.id + '/' + section.id} chapter={chapter} section={section} />
-        ) : route[0] === 'review' ? (
+        {route[0] === 'review' ? (
           <Review />
-        ) : (
+        ) : isStudy || chapter === null ? (
           <Home />
+        ) : chapter === undefined ? (
+          <article className="page">
+            <p className="muted">Loading…</p>
+          </article>
+        ) : section ? (
+          <SectionPage key={chapter.id + '/' + section.id} chapter={chapter} section={section} />
+        ) : (
+          <article className="page" data-ready="">
+            <header className="section-head">
+              <span className="num">{chapter.num}</span>
+              <h1>{chapter.title}</h1>
+              <p className="lede">This chapter is planned and not built yet. The plan is on the home page.</p>
+            </header>
+          </article>
         )}
       </main>
     </div>

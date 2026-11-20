@@ -25,3 +25,7 @@ export function schedule(prev: ReviewState | undefined, correct: boolean, now = 
 }
 
 export const isDue = (s: ReviewState | undefined, now = today()) => !s || s.due <= now;
+
+/** How many scheduled questions are due today. Needs only the progress file, not the questions. */
+export const dueCount = (review: Record<string, ReviewState>, now = today()) =>
+  Object.values(review).filter((s) => s.due <= now).length;

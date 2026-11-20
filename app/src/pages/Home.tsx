@@ -1,16 +1,18 @@
-import { CHAPTERS, PLAN } from '../chapters/registry';
+import { PLAN, useAllChapters } from '../chapters/registry';
 import { href } from '../lib/router';
 import { useProgress } from '../lib/progress';
+import { dueCount } from '../lib/review';
 import { useReports } from '../lib/reports';
-import { dueCount } from '../App';
 
 export function Home() {
   const { progress } = useProgress();
   const { reports } = useReports();
-  const due = dueCount(progress);
+  const chapters = useAllChapters();
+  const due = dueCount(progress.review);
   const backends = Object.entries(reports);
+  const built = new Map((chapters ?? []).filter((c) => c.sections.length).map((c) => [c.id, c]));
   return (
-    <article className="page">
+    <article className="page" data-ready={chapters ? '' : undefined}>
       <header className="section-head">
         <span className="num" />
         <h1>From tensors to kernels</h1>
@@ -23,12 +25,14 @@ export function Home() {
       <div className="prose">
         <h2 style={{ marginTop: 0 }}>Where you are</h2>
         <ul>
-          {CHAPTERS.map((ch) => {
+          {PLAN.filter((r) => r.id && built.has(r.id)).map((r) => {
+            const ch = built.get(r.id!)!;
             const done = ch.sections.filter((s) => progress.sections[`${ch.id}/${s.id}`]?.done).length;
             return (
               <li key={ch.id}>
                 <a href={href(ch.id, ch.sections[0].id)}>
-                  Chapter {ch.num}: {ch.title}
+                  {/^\d/.test(ch.num) ? 'Chapter ' : ch.num.startsWith('X') ? 'Module ' : 'Appendix '}
+                  {ch.num}: {ch.title}
                 </a>{' '}
                 <span className="ui muted">
                   {done} of {ch.sections.length} sections done
@@ -91,17 +95,20 @@ export function Home() {
             </tr>
           </thead>
           <tbody>
-            {PLAN.map((r) => (
-              <tr key={r.num}>
-                <td>{r.num}</td>
-                <td>{r.built ? <a href={href('ch' + r.num.padStart(2, '0'), 'start')}>{r.title}</a> : r.title}</td>
-                <td className="nowrap">{r.pages}</td>
-                <td>{r.tier}</td>
-                <td>{r.why}</td>
-                <td>{r.milestone ?? ''}</td>
-                <td className="nowrap">{r.built ? 'Ready' : 'Planned'}</td>
-              </tr>
-            ))}
+            {PLAN.map((r) => {
+              const ch = r.id ? built.get(r.id) : undefined;
+              return (
+                <tr key={r.num}>
+                  <td>{r.num}</td>
+                  <td>{ch ? <a href={href(ch.id, ch.sections[0].id)}>{r.title}</a> : r.title}</td>
+                  <td className="nowrap">{r.pages}</td>
+                  <td>{r.tier}</td>
+                  <td>{r.why}</td>
+                  <td>{r.milestone ?? ''}</td>
+                  <td className="nowrap">{ch ? 'Ready' : r.tier === 'Skipped' ? 'Not planned' : 'Planned'}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

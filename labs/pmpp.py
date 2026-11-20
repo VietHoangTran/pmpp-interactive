@@ -222,6 +222,14 @@ def save_runs(results, states, devs=None):
         new = [r for r in results if r["backend"] == b]
         key = lambda r: (r["lab"], r["variant"], r["tile"])
         fresh = {key(r) for r in new}
+        # A run without benchmarks (--quick, or plain `run`) keeps the last measurements
+        # for a kernel that still passes, marked with when they were taken.
+        old = {key(r): r for r in data.get("results", [])}
+        for r in new:
+            prev = old.get(key(r))
+            if not r.get("bench") and prev and prev.get("bench") and passed(r):
+                r["bench"] = prev["bench"]
+                r["bench_from"] = prev.get("bench_from") or data.get("generated")
         data["results"] = [r for r in data.get("results", []) if key(r) not in fresh] + new
         data["results"].sort(key=lambda r: (r["lab"], r["variant"], r["tile"]))
         data["generated"] = now

@@ -1,29 +1,32 @@
-import { useMemo, useState } from 'react';
-import { Ask } from '../components/Ask';
+import { useEffect, useMemo, useState } from 'react';
+import { Ask, type Question } from '../components/Ask';
 import { useProgress } from '../lib/progress';
 import { INTERVAL_DAYS, isDue } from '../lib/review';
-import { CHAPTERS } from '../chapters/registry';
+import { loadAllQuestions } from '../chapters/registry';
 
 // Questions you have met come back here on a widening schedule.
 export function Review() {
-  const { progress } = useProgress();
-  // Freeze the queue when the page opens, so answering does not reshuffle it.
-  const queue = useMemo(() => {
-    const out: { chapter: string; id: string }[] = [];
-    for (const ch of CHAPTERS)
-      for (const id of Object.keys(ch.questions))
-        if (progress.review[id] && isDue(progress.review[id])) out.push({ chapter: ch.id, id });
-    return out.sort((a, b) => (progress.review[a.id].due < progress.review[b.id].due ? -1 : 1));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  const { progress, loaded } = useProgress();
+  const [questions, setQuestions] = useState<Record<string, Question>>();
+  useEffect(() => {
+    loadAllQuestions().then(setQuestions);
   }, []);
+  // Freeze the queue once everything is loaded, so answering does not reshuffle it.
+  const ready = loaded && !!questions;
+  const queue = useMemo(() => {
+    if (!ready) return [];
+    return Object.keys(progress.review)
+      .filter((id) => questions![id] && isDue(progress.review[id]))
+      .sort((a, b) => (progress.review[a].due < progress.review[b].due ? -1 : 1));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
   const [pos, setPos] = useState(0);
   const [answered, setAnswered] = useState(false);
   const scheduled = Object.keys(progress.review).length;
-  const item = queue[pos];
-  const q = item ? CHAPTERS.find((c) => c.id === item.chapter)!.questions[item.id] : undefined;
+  const q = ready && queue[pos] ? questions![queue[pos]] : undefined;
 
   return (
-    <article className="page">
+    <article className="page" data-ready={ready ? '' : undefined}>
       <header className="section-head">
         <span className="num" />
         <h1>Review</h1>
@@ -33,7 +36,9 @@ export function Review() {
         </p>
       </header>
       <div className="prose">
-        {q ? (
+        {!ready ? (
+          <p className="muted">Loading…</p>
+        ) : q ? (
           <>
             <p className="status-line">
               Question {pos + 1} of {queue.length} due today

@@ -29,7 +29,8 @@ export async function open({ width = 1440, height = 900, dark = false } = {}) {
 export async function goto(page, hash) {
   // The dev server keeps a websocket open, so wait for the app rather than for a quiet network.
   await page.goto(BASE + '/#/' + hash, { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('.page h1', { timeout: 20000 });
+  // data-ready appears once the page's own code (a lazily loaded section, the review queue) has rendered.
+  await page.waitForSelector('.page[data-ready]', { timeout: 30000 });
   await page.evaluate(() => document.fonts.ready);
   await new Promise((r) => setTimeout(r, 400));
 }

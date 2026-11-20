@@ -1,6 +1,13 @@
 import type { ComponentType } from 'react';
 import type { Question } from '../components/Ask';
 
+/** What a section file provides once loaded. */
+export interface SectionModule {
+  Component: ComponentType;
+  /** Every question the section can ask, by id: the lesson uses them and review recycles them. */
+  questions: Record<string, Question>;
+}
+
 export interface Section {
   /** Stable id used in URLs and in the progress file, e.g. "5.3". */
   id: string;
@@ -11,27 +18,32 @@ export interface Section {
   lede: string;
   /** Book pages this section draws on, or null when it is ours. */
   pages: string | null;
-  component: ComponentType;
+  /**
+   * Loads the section's code on demand. Sections are separate modules so that a
+   * page only pulls in (and only reloads for) the section being read.
+   */
+  load: () => Promise<SectionModule>;
 }
 
 export interface Chapter {
+  /** "ch05", "appA", "x1": the directory name under src/chapters and the URL prefix. */
   id: string;
   num: string;
   title: string;
   pages: string;
+  /** Empty while the chapter is still planned. */
   sections: Section[];
-  /** Every question the chapter can ask, by id: lessons use them and review recycles them. */
-  questions: Record<string, Question>;
 }
 
 export type Tier = 'Deep' | 'Standard' | 'Condensed' | 'Skipped';
 export interface PlanRow {
+  /** Chapter id, or null for a chapter that has no pages in the app. */
+  id: string | null;
   num: string;
   title: string;
   pages: string;
   tier: Tier;
   why: string;
   milestone?: string;
-  built?: boolean;
   ours?: boolean;
 }

@@ -1,0 +1,3860 @@
+{
+ "generated": "2026-11-20T04:05:07",
+ "system": {
+  "os": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "machine": "arm64",
+  "python": "3.13.4",
+  "cmake": "cmake version 4.0.2"
+ },
+ "configure_ok": true,
+ "configure_log": "-- pmpp backend emu: enabled (CPU emulator; python 3.13.4; AddressSanitizer on)\n-- pmpp backend metal: enabled (Objective-C++ compiler AppleClang 21.0.0.21000334)\n-- pmpp backend cuda: skipped (no CUDA compiler (nvcc) found)\n-- pmpp backend hip: skipped (no HIP compiler found (is ROCm installed? set ROCM_PATH))\n-- pmpp backends to build: emu;metal\n-- Configuring done (0.2s)\n-- Generating done (0.1s)\n-- Build files have been written to: <repo>/labs/build",
+ "backends": [
+  {
+   "name": "emu",
+   "enabled": true,
+   "why": "CPU emulator; python 3.13.4; AddressSanitizer on"
+  },
+  {
+   "name": "metal",
+   "enabled": true,
+   "why": "Objective-C++ compiler AppleClang 21.0.0.21000334"
+  },
+  {
+   "name": "cuda",
+   "enabled": false,
+   "why": "no CUDA compiler (nvcc) found"
+  },
+  {
+   "name": "hip",
+   "enabled": false,
+   "why": "no HIP compiler found (is ROCm installed? set ROCM_PATH)"
+  }
+ ],
+ "devices": {
+  "emu": {
+   "kind": "device",
+   "backend": "emu",
+   "available": true,
+   "name": "pmpp CPU emulator (not a GPU)",
+   "totalGlobalMem": "0",
+   "multiProcessorCount": "1",
+   "warpSize": "1",
+   "maxThreadsPerBlock": "1024",
+   "maxThreadsDim.x": "1024",
+   "maxThreadsDim.y": "1024",
+   "maxThreadsDim.z": "1024",
+   "maxGridSize.x": "65535",
+   "maxGridSize.y": "65535",
+   "maxGridSize.z": "65535",
+   "sharedMemPerBlock": "49152",
+   "regsPerBlock": "0",
+   "computeCapability.major": "0",
+   "computeCapability.minor": "0",
+   "sharedMemPerMultiprocessor": "49152",
+   "regsPerMultiprocessor": "0",
+   "maxThreadsPerMultiProcessor": "1024",
+   "maxBlocksPerMultiProcessor": "1",
+   "note": "synthetic values describing the CPU emulator, not a GPU"
+  },
+  "metal": {
+   "kind": "device",
+   "backend": "metal",
+   "available": true,
+   "name": "Apple M3 Max",
+   "hasUnifiedMemory": "1",
+   "maxThreadsPerThreadgroup.width": "1024",
+   "maxThreadsPerThreadgroup.height": "1024",
+   "maxThreadsPerThreadgroup.depth": "1024",
+   "maxThreadgroupMemoryLength": "32768",
+   "maxBufferLength": "22613000192",
+   "recommendedMaxWorkingSetSize": "30150672384",
+   "physicalMemory": "38654705664"
+  }
+ },
+ "usable_backends": [
+  "emu",
+  "metal"
+ ],
+ "work_state": {
+  "ch05/lab1_roofline": "untouched",
+  "ch05/lab2_tiled": "untouched",
+  "ch05/lab3_gemm": "untouched",
+  "ch05/lab4_racehunt": "untouched",
+  "ch05/lab5_dynamic": "untouched"
+ },
+ "results": [
+  {
+   "lab": "ch05/lab1_roofline",
+   "variant": "work",
+   "backend": "emu",
+   "tile": 16,
+   "target": "ch05_lab1_roofline.work.emu",
+   "exe": "/Users/qnguyen3/Desktop/code/interactive_books/ProgrammingMassivelyParallelProcessors/labs/build/bin/ch05_lab1_roofline.work.emu",
+   "built": true,
+   "tests": [
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "emu",
+     "case": "provided probe: vector addition, n = 1000 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "emu",
+     "case": "provided probe: vector addition, n = 1000 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "emu",
+     "case": "provided probe: vector addition, n = 1000 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "emu",
+     "case": "provided probe: multiply-add chain, n = 600, 50 iterations [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "emu",
+     "case": "provided probe: multiply-add chain, n = 600, 50 iterations [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "emu",
+     "case": "provided probe: multiply-add chain, n = 600, 50 iterations [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "emu",
+     "case": "your naive matmul, width 1 [threads in order]",
+     "pass": false,
+     "detail": "1 wrong elements; first at row 0, col 0; max abs error 0.1062"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "emu",
+     "case": "your naive matmul, width 1 [threads reversed]",
+     "pass": false,
+     "detail": "1 wrong elements; first at row 0, col 0; max abs error 0.1062"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "emu",
+     "case": "your naive matmul, width 1 [threads shuffled]",
+     "pass": false,
+     "detail": "1 wrong elements; first at row 0, col 0; max abs error 0.1062"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "emu",
+     "case": "your naive matmul, width 5 [threads in order]",
+     "pass": false,
+     "detail": "25 wrong elements; first at row 0, col 0; max abs error 1.744"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "emu",
+     "case": "your naive matmul, width 5 [threads reversed]",
+     "pass": false,
+     "detail": "25 wrong elements; first at row 0, col 0; max abs error 1.744"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "emu",
+     "case": "your naive matmul, width 5 [threads shuffled]",
+     "pass": false,
+     "detail": "25 wrong elements; first at row 0, col 0; max abs error 1.744"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "emu",
+     "case": "your naive matmul, width 16 [threads in order]",
+     "pass": false,
+     "detail": "256 wrong elements; first at row 0, col 0; max abs error 4.72"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "emu",
+     "case": "your naive matmul, width 16 [threads reversed]",
+     "pass": false,
+     "detail": "256 wrong elements; first at row 0, col 0; max abs error 4.72"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "emu",
+     "case": "your naive matmul, width 16 [threads shuffled]",
+     "pass": false,
+     "detail": "256 wrong elements; first at row 0, col 0; max abs error 4.72"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "emu",
+     "case": "your naive matmul, width 33 [threads in order]",
+     "pass": false,
+     "detail": "1089 wrong elements; first at row 0, col 0; max abs error 5.804"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "emu",
+     "case": "your naive matmul, width 33 [threads reversed]",
+     "pass": false,
+     "detail": "1089 wrong elements; first at row 0, col 0; max abs error 5.804"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "emu",
+     "case": "your naive matmul, width 33 [threads shuffled]",
+     "pass": false,
+     "detail": "1089 wrong elements; first at row 0, col 0; max abs error 5.804"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "emu",
+     "case": "your naive matmul, width 50 [threads in order]",
+     "pass": false,
+     "detail": "2500 wrong elements; first at row 0, col 0; max abs error 8.518"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "emu",
+     "case": "your naive matmul, width 50 [threads reversed]",
+     "pass": false,
+     "detail": "2500 wrong elements; first at row 0, col 0; max abs error 8.518"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "emu",
+     "case": "your naive matmul, width 50 [threads shuffled]",
+     "pass": false,
+     "detail": "2500 wrong elements; first at row 0, col 0; max abs error 8.518"
+    }
+   ],
+   "bench": [],
+   "test_rc": 1,
+   "log": "  PASS  provided probe: vector addition, n = 1000 [threads in order]\n  PASS  provided probe: vector addition, n = 1000 [threads reversed]\n  PASS  provided probe: vector addition, n = 1000 [threads shuffled]\n  PASS  provided probe: multiply-add chain, n = 600, 50 iterations [threads in order]\n  PASS  provided probe: multiply-add chain, n = 600, 50 iterations [threads reversed]\n  PASS  provided probe: multiply-add chain, n = 600, 50 iterations [threads shuffled]\n  FAIL  your naive matmul, width 1 [threads in order]  -> 1 wrong elements; first at row 0, col 0; max abs error 0.1062\n  FAIL  your naive matmul, width 1 [threads reversed]  -> 1 wrong elements; first at row 0, col 0; max abs error 0.1062\n  FAIL  your naive matmul, width 1 [threads shuffled]  -> 1 wrong elements; first at row 0, col 0; max abs error 0.1062\n  FAIL  your naive matmul, width 5 [threads in order]  -> 25 wrong elements; first at row 0, col 0; max abs error 1.744\n  FAIL  your naive matmul, width 5 [threads reversed]  -> 25 wrong elements; first at row 0, col 0; max abs error 1.744\n  FAIL  your naive matmul, width 5 [threads shuffled]  -> 25 wrong elements; first at row 0, col 0; max abs error 1.744\n  FAIL  your naive matmul, width 16 [threads in order]  -> 256 wrong elements; first at row 0, col 0; max abs error 4.72\n  FAIL  your naive matmul, width 16 [threads reversed]  -> 256 wrong elements; first at row 0, col 0; max abs error 4.72\n  FAIL  your naive matmul, width 16 [threads shuffled]  -> 256 wrong elements; first at row 0, col 0; max abs error 4.72\n  FAIL  your naive matmul, width 33 [threads in order]  -> 1089 wrong elements; first at row 0, col 0; max abs error 5.804\n  FAIL  your naive matmul, width 33 [threads reversed]  -> 1089 wrong elements; first at row 0, col 0; max abs error 5.804\n  FAIL  your naive matmul, width 33 [threads shuffled]  -> 1089 wrong elements; first at row 0, col 0; max abs error 5.804\n  FAIL  your naive matmul, width 50 [threads in order]  -> 2500 wrong elements; first at row 0, col 0; max abs error 8.518\n  FAIL  your naive matmul, width 50 [threads reversed]  -> 2500 wrong elements; first at row 0, col 0; max abs error 8.518\n  FAIL  your naive matmul, width 50 [threads shuffled]  -> 2500 wrong elements; first at row 0, col 0; max abs error 8.518\nFAILED: 6/21 test cases passed (work, emu)",
+   "test_text": "  PASS  provided probe: vector addition, n = 1000 [threads in order]\n  PASS  provided probe: vector addition, n = 1000 [threads reversed]\n  PASS  provided probe: vector addition, n = 1000 [threads shuffled]\n  PASS  provided probe: multiply-add chain, n = 600, 50 iterations [threads in order]\n  PASS  provided probe: multiply-add chain, n = 600, 50 iterations [threads reversed]\n  PASS  provided probe: multiply-add chain, n = 600, 50 iterations [threads shuffled]\n  FAIL  your naive matmul, width 1 [threads in order]  -> 1 wrong elements; first at row 0, col 0; max abs error 0.1062\n  FAIL  your naive matmul, width 1 [threads reversed]  -> 1 wrong elements; first at row 0, col 0; max abs error 0.1062\n  FAIL  your naive matmul, width 1 [threads shuffled]  -> 1 wrong elements; first at row 0, col 0; max abs error 0.1062\n  FAIL  your naive matmul, width 5 [threads in order]  -> 25 wrong elements; first at row 0, col 0; max abs error 1.744\n  FAIL  your naive matmul, width 5 [threads reversed]  -> 25 wrong elements; first at row 0, col 0; max abs error 1.744\n  FAIL  your naive matmul, width 5 [threads shuffled]  -> 25 wrong elements; first at row 0, col 0; max abs error 1.744\n  FAIL  your naive matmul, width 16 [threads in order]  -> 256 wrong elements; first at row 0, col 0; max abs error 4.72\n  FAIL  your naive matmul, width 16 [threads reversed]  -> 256 wrong elements; first at row 0, col 0; max abs error 4.72\n  FAIL  your naive matmul, width 16 [threads shuffled]  -> 256 wrong elements; first at row 0, col 0; max abs error 4.72\n  FAIL  your naive matmul, width 33 [threads in order]  -> 1089 wrong elements; first at row 0, col 0; max abs error 5.804\n  FAIL  your naive matmul, width 33 [threads reversed]  -> 1089 wrong elements; first at row 0, col 0; max abs error 5.804\n  FAIL  your naive matmul, width 33 [threads shuffled]  -> 1089 wrong elements; first at row 0, col 0; max abs error 5.804\n  FAIL  your naive matmul, width 50 [threads in order]  -> 2500 wrong elements; first at row 0, col 0; max abs error 8.518\n  FAIL  your naive matmul, width 50 [threads reversed]  -> 2500 wrong elements; first at row 0, col 0; max abs error 8.518\n  FAIL  your naive matmul, width 50 [threads shuffled]  -> 2500 wrong elements; first at row 0, col 0; max abs error 8.518\nFAILED: 6/21 test cases passed (work, emu)"
+  },
+  {
+   "lab": "ch05/lab1_roofline",
+   "variant": "work",
+   "backend": "metal",
+   "tile": 16,
+   "target": "ch05_lab1_roofline.work.metal",
+   "exe": "/Users/qnguyen3/Desktop/code/interactive_books/ProgrammingMassivelyParallelProcessors/labs/build/bin/ch05_lab1_roofline.work.metal",
+   "built": true,
+   "tests": [
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "metal",
+     "case": "provided probe: vector addition, n = 1000",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "metal",
+     "case": "provided probe: multiply-add chain, n = 600, 50 iterations",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "metal",
+     "case": "your naive matmul, width 1",
+     "pass": false,
+     "detail": "1 wrong elements; first at row 0, col 0; max abs error 0.1062"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "metal",
+     "case": "your naive matmul, width 5",
+     "pass": false,
+     "detail": "25 wrong elements; first at row 0, col 0; max abs error 1.744"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "metal",
+     "case": "your naive matmul, width 16",
+     "pass": false,
+     "detail": "256 wrong elements; first at row 0, col 0; max abs error 4.72"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "metal",
+     "case": "your naive matmul, width 33",
+     "pass": false,
+     "detail": "1089 wrong elements; first at row 0, col 0; max abs error 5.804"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "metal",
+     "case": "your naive matmul, width 100",
+     "pass": false,
+     "detail": "9996 wrong elements; first at row 0, col 0; max abs error 12.99"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "metal",
+     "case": "your naive matmul, width 257",
+     "pass": false,
+     "detail": "65988 wrong elements; first at row 0, col 0; max abs error 26.26"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "work",
+     "backend": "metal",
+     "case": "your naive matmul, width 512",
+     "pass": false,
+     "detail": "261805 wrong elements; first at row 0, col 0; max abs error 34.23"
+    }
+   ],
+   "bench": [],
+   "test_rc": 1,
+   "log": "  PASS  provided probe: vector addition, n = 1000\n  PASS  provided probe: multiply-add chain, n = 600, 50 iterations\n  FAIL  your naive matmul, width 1  -> 1 wrong elements; first at row 0, col 0; max abs error 0.1062\n  FAIL  your naive matmul, width 5  -> 25 wrong elements; first at row 0, col 0; max abs error 1.744\n  FAIL  your naive matmul, width 16  -> 256 wrong elements; first at row 0, col 0; max abs error 4.72\n  FAIL  your naive matmul, width 33  -> 1089 wrong elements; first at row 0, col 0; max abs error 5.804\n  FAIL  your naive matmul, width 100  -> 9996 wrong elements; first at row 0, col 0; max abs error 12.99\n  FAIL  your naive matmul, width 257  -> 65988 wrong elements; first at row 0, col 0; max abs error 26.26\n  FAIL  your naive matmul, width 512  -> 261805 wrong elements; first at row 0, col 0; max abs error 34.23\nFAILED: 2/9 test cases passed (work, metal)",
+   "test_text": "  PASS  provided probe: vector addition, n = 1000\n  PASS  provided probe: multiply-add chain, n = 600, 50 iterations\n  FAIL  your naive matmul, width 1  -> 1 wrong elements; first at row 0, col 0; max abs error 0.1062\n  FAIL  your naive matmul, width 5  -> 25 wrong elements; first at row 0, col 0; max abs error 1.744\n  FAIL  your naive matmul, width 16  -> 256 wrong elements; first at row 0, col 0; max abs error 4.72\n  FAIL  your naive matmul, width 33  -> 1089 wrong elements; first at row 0, col 0; max abs error 5.804\n  FAIL  your naive matmul, width 100  -> 9996 wrong elements; first at row 0, col 0; max abs error 12.99\n  FAIL  your naive matmul, width 257  -> 65988 wrong elements; first at row 0, col 0; max abs error 26.26\n  FAIL  your naive matmul, width 512  -> 261805 wrong elements; first at row 0, col 0; max abs error 34.23\nFAILED: 2/9 test cases passed (work, metal)"
+  },
+  {
+   "lab": "ch05/lab1_roofline",
+   "variant": "solution",
+   "backend": "emu",
+   "tile": 16,
+   "target": "ch05_lab1_roofline.solution.emu",
+   "exe": "/Users/qnguyen3/Desktop/code/interactive_books/ProgrammingMassivelyParallelProcessors/labs/build/bin/ch05_lab1_roofline.solution.emu",
+   "built": true,
+   "tests": [
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "provided probe: vector addition, n = 1000 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "provided probe: vector addition, n = 1000 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "provided probe: vector addition, n = 1000 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "provided probe: multiply-add chain, n = 600, 50 iterations [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "provided probe: multiply-add chain, n = 600, 50 iterations [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "provided probe: multiply-add chain, n = 600, 50 iterations [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "your naive matmul, width 1 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "your naive matmul, width 1 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "your naive matmul, width 1 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "your naive matmul, width 5 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "your naive matmul, width 5 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "your naive matmul, width 5 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "your naive matmul, width 16 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "your naive matmul, width 16 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "your naive matmul, width 16 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "your naive matmul, width 33 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "your naive matmul, width 33 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "your naive matmul, width 33 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "your naive matmul, width 50 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "your naive matmul, width 50 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "your naive matmul, width 50 [threads shuffled]",
+     "pass": true
+    }
+   ],
+   "bench": [],
+   "test_rc": 0,
+   "log": "",
+   "test_text": "  PASS  provided probe: vector addition, n = 1000 [threads in order]\n  PASS  provided probe: vector addition, n = 1000 [threads reversed]\n  PASS  provided probe: vector addition, n = 1000 [threads shuffled]\n  PASS  provided probe: multiply-add chain, n = 600, 50 iterations [threads in order]\n  PASS  provided probe: multiply-add chain, n = 600, 50 iterations [threads reversed]\n  PASS  provided probe: multiply-add chain, n = 600, 50 iterations [threads shuffled]\n  PASS  your naive matmul, width 1 [threads in order]\n  PASS  your naive matmul, width 1 [threads reversed]\n  PASS  your naive matmul, width 1 [threads shuffled]\n  PASS  your naive matmul, width 5 [threads in order]\n  PASS  your naive matmul, width 5 [threads reversed]\n  PASS  your naive matmul, width 5 [threads shuffled]\n  PASS  your naive matmul, width 16 [threads in order]\n  PASS  your naive matmul, width 16 [threads reversed]\n  PASS  your naive matmul, width 16 [threads shuffled]\n  PASS  your naive matmul, width 33 [threads in order]\n  PASS  your naive matmul, width 33 [threads reversed]\n  PASS  your naive matmul, width 33 [threads shuffled]\n  PASS  your naive matmul, width 50 [threads in order]\n  PASS  your naive matmul, width 50 [threads reversed]\n  PASS  your naive matmul, width 50 [threads shuffled]\nOK: 21/21 test cases passed (solution, emu)"
+  },
+  {
+   "lab": "ch05/lab1_roofline",
+   "variant": "solution",
+   "backend": "metal",
+   "tile": 16,
+   "target": "ch05_lab1_roofline.solution.metal",
+   "exe": "/Users/qnguyen3/Desktop/code/interactive_books/ProgrammingMassivelyParallelProcessors/labs/build/bin/ch05_lab1_roofline.solution.metal",
+   "built": true,
+   "tests": [
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "provided probe: vector addition, n = 1000",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "provided probe: multiply-add chain, n = 600, 50 iterations",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "your naive matmul, width 1",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "your naive matmul, width 5",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "your naive matmul, width 16",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "your naive matmul, width 33",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "your naive matmul, width 100",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "your naive matmul, width 257",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "your naive matmul, width 512",
+     "pass": true
+    }
+   ],
+   "bench": [
+    {
+     "kind": "bench",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "metal",
+     "name": "bandwidth",
+     "bytes": 1500000000.0,
+     "seconds": 0.00553304167,
+     "gb_per_s": 271.098627
+    },
+    {
+     "kind": "bench",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "metal",
+     "name": "compute",
+     "flop": 137438953000.0,
+     "seconds": 0.07305175,
+     "gflops": 1881.39166
+    },
+    {
+     "kind": "bench",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "metal",
+     "name": "naive_matmul",
+     "width": 4096,
+     "seconds": 0.15746125,
+     "gflops": 872.843023
+    },
+    {
+     "kind": "bench",
+     "lab": "ch05/lab1_roofline",
+     "variant": "solution",
+     "backend": "metal",
+     "name": "roofline",
+     "bandwidth_gb_per_s": 271.098627,
+     "compute_gflops": 1881.39166,
+     "threshold_flop_per_byte": 6.93987898,
+     "naive_model_ceiling_gflops": 67.7746568,
+     "naive_gflops": 872.843023,
+     "naive_width": 4096
+    }
+   ],
+   "test_rc": 0,
+   "log": "",
+   "test_text": "  PASS  provided probe: vector addition, n = 1000\n  PASS  provided probe: multiply-add chain, n = 600, 50 iterations\n  PASS  your naive matmul, width 1\n  PASS  your naive matmul, width 5\n  PASS  your naive matmul, width 16\n  PASS  your naive matmul, width 33\n  PASS  your naive matmul, width 100\n  PASS  your naive matmul, width 257\n  PASS  your naive matmul, width 512\nOK: 9/9 test cases passed (solution, metal)",
+   "bench_rc": 0,
+   "bench_text": "memory bandwidth probe   1500 MB moved in 5.533 ms  ->  271.1 GB/s\narithmetic probe         137.4 GFLOP in 73.052 ms  ->  1881.4 GFLOP/s\n=> this device's threshold: 6.94 FLOP/B (above: compute-bound, below: memory-bound)\n   These are measurements of two simple kernels, not the vendor's peak figures.\nnaive matmul, width 4096   157.461 ms  ->  872.8 GFLOP/s\n   model ceiling at 0.25 FLOP/B: 67.8 GFLOP/s; you measured 12.9x that"
+  },
+  {
+   "lab": "ch05/lab2_tiled",
+   "variant": "work",
+   "backend": "emu",
+   "tile": 16,
+   "target": "ch05_lab2_tiled.work.emu",
+   "exe": "/Users/qnguyen3/Desktop/code/interactive_books/ProgrammingMassivelyParallelProcessors/labs/build/bin/ch05_lab2_tiled.work.emu",
+   "built": true,
+   "tests": [
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 16 [threads in order]",
+     "pass": false,
+     "detail": "256 wrong elements; first at row 0, col 0; max abs error 3.772"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 16 [threads reversed]",
+     "pass": false,
+     "detail": "256 wrong elements; first at row 0, col 0; max abs error 3.772"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 16 [threads shuffled]",
+     "pass": false,
+     "detail": "256 wrong elements; first at row 0, col 0; max abs error 3.772"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 32 [threads in order]",
+     "pass": false,
+     "detail": "1024 wrong elements; first at row 0, col 0; max abs error 5.399"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 32 [threads reversed]",
+     "pass": false,
+     "detail": "1024 wrong elements; first at row 0, col 0; max abs error 5.399"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 32 [threads shuffled]",
+     "pass": false,
+     "detail": "1024 wrong elements; first at row 0, col 0; max abs error 5.399"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 64 [threads in order]",
+     "pass": false,
+     "detail": "4093 wrong elements; first at row 0, col 0; max abs error 12.64"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 64 [threads reversed]",
+     "pass": false,
+     "detail": "4093 wrong elements; first at row 0, col 0; max abs error 12.64"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 64 [threads shuffled]",
+     "pass": false,
+     "detail": "4093 wrong elements; first at row 0, col 0; max abs error 12.64"
+    }
+   ],
+   "bench": [],
+   "test_rc": 1,
+   "log": "  FAIL  tile 16, width 16 [threads in order]  -> 256 wrong elements; first at row 0, col 0; max abs error 3.772\n  FAIL  tile 16, width 16 [threads reversed]  -> 256 wrong elements; first at row 0, col 0; max abs error 3.772\n  FAIL  tile 16, width 16 [threads shuffled]  -> 256 wrong elements; first at row 0, col 0; max abs error 3.772\n  FAIL  tile 16, width 32 [threads in order]  -> 1024 wrong elements; first at row 0, col 0; max abs error 5.399\n  FAIL  tile 16, width 32 [threads reversed]  -> 1024 wrong elements; first at row 0, col 0; max abs error 5.399\n  FAIL  tile 16, width 32 [threads shuffled]  -> 1024 wrong elements; first at row 0, col 0; max abs error 5.399\n  FAIL  tile 16, width 64 [threads in order]  -> 4093 wrong elements; first at row 0, col 0; max abs error 12.64\n  FAIL  tile 16, width 64 [threads reversed]  -> 4093 wrong elements; first at row 0, col 0; max abs error 12.64\n  FAIL  tile 16, width 64 [threads shuffled]  -> 4093 wrong elements; first at row 0, col 0; max abs error 12.64\nFAILED: 0/9 test cases passed (work, emu)",
+   "test_text": "  FAIL  tile 16, width 16 [threads in order]  -> 256 wrong elements; first at row 0, col 0; max abs error 3.772\n  FAIL  tile 16, width 16 [threads reversed]  -> 256 wrong elements; first at row 0, col 0; max abs error 3.772\n  FAIL  tile 16, width 16 [threads shuffled]  -> 256 wrong elements; first at row 0, col 0; max abs error 3.772\n  FAIL  tile 16, width 32 [threads in order]  -> 1024 wrong elements; first at row 0, col 0; max abs error 5.399\n  FAIL  tile 16, width 32 [threads reversed]  -> 1024 wrong elements; first at row 0, col 0; max abs error 5.399\n  FAIL  tile 16, width 32 [threads shuffled]  -> 1024 wrong elements; first at row 0, col 0; max abs error 5.399\n  FAIL  tile 16, width 64 [threads in order]  -> 4093 wrong elements; first at row 0, col 0; max abs error 12.64\n  FAIL  tile 16, width 64 [threads reversed]  -> 4093 wrong elements; first at row 0, col 0; max abs error 12.64\n  FAIL  tile 16, width 64 [threads shuffled]  -> 4093 wrong elements; first at row 0, col 0; max abs error 12.64\nFAILED: 0/9 test cases passed (work, emu)"
+  },
+  {
+   "lab": "ch05/lab2_tiled",
+   "variant": "work",
+   "backend": "metal",
+   "tile": 16,
+   "target": "ch05_lab2_tiled.work.metal",
+   "exe": "/Users/qnguyen3/Desktop/code/interactive_books/ProgrammingMassivelyParallelProcessors/labs/build/bin/ch05_lab2_tiled.work.metal",
+   "built": true,
+   "tests": [
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 16, width 16",
+     "pass": false,
+     "detail": "256 wrong elements; first at row 0, col 0; max abs error 3.772"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 16, width 32",
+     "pass": false,
+     "detail": "1024 wrong elements; first at row 0, col 0; max abs error 5.399"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 16, width 64",
+     "pass": false,
+     "detail": "4093 wrong elements; first at row 0, col 0; max abs error 12.64"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 16, width 256",
+     "pass": false,
+     "detail": "65468 wrong elements; first at row 0, col 0; max abs error 22.5"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 16, width 528",
+     "pass": false,
+     "detail": "278418 wrong elements; first at row 0, col 0; max abs error 40.18"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 8, width 8",
+     "pass": false,
+     "detail": "64 wrong elements; first at row 0, col 0; max abs error 2.866"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 8, width 16",
+     "pass": false,
+     "detail": "256 wrong elements; first at row 0, col 0; max abs error 3.772"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 8, width 32",
+     "pass": false,
+     "detail": "1024 wrong elements; first at row 0, col 0; max abs error 5.399"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 8, width 128",
+     "pass": false,
+     "detail": "16373 wrong elements; first at row 0, col 0; max abs error 15.37"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 8, width 264",
+     "pass": false,
+     "detail": "69624 wrong elements; first at row 0, col 0; max abs error 26.1"
+    }
+   ],
+   "bench": [],
+   "test_rc": 1,
+   "log": "  FAIL  tile 16, width 16  -> 256 wrong elements; first at row 0, col 0; max abs error 3.772\n  FAIL  tile 16, width 32  -> 1024 wrong elements; first at row 0, col 0; max abs error 5.399\n  FAIL  tile 16, width 64  -> 4093 wrong elements; first at row 0, col 0; max abs error 12.64\n  FAIL  tile 16, width 256  -> 65468 wrong elements; first at row 0, col 0; max abs error 22.5\n  FAIL  tile 16, width 528  -> 278418 wrong elements; first at row 0, col 0; max abs error 40.18\n  FAIL  tile 8, width 8  -> 64 wrong elements; first at row 0, col 0; max abs error 2.866\n  FAIL  tile 8, width 16  -> 256 wrong elements; first at row 0, col 0; max abs error 3.772\n  FAIL  tile 8, width 32  -> 1024 wrong elements; first at row 0, col 0; max abs error 5.399\n  FAIL  tile 8, width 128  -> 16373 wrong elements; first at row 0, col 0; max abs error 15.37\n  FAIL  tile 8, width 264  -> 69624 wrong elements; first at row 0, col 0; max abs error 26.1\nFAILED: 0/10 test cases passed (work, metal)",
+   "test_text": "  FAIL  tile 16, width 16  -> 256 wrong elements; first at row 0, col 0; max abs error 3.772\n  FAIL  tile 16, width 32  -> 1024 wrong elements; first at row 0, col 0; max abs error 5.399\n  FAIL  tile 16, width 64  -> 4093 wrong elements; first at row 0, col 0; max abs error 12.64\n  FAIL  tile 16, width 256  -> 65468 wrong elements; first at row 0, col 0; max abs error 22.5\n  FAIL  tile 16, width 528  -> 278418 wrong elements; first at row 0, col 0; max abs error 40.18\n  FAIL  tile 8, width 8  -> 64 wrong elements; first at row 0, col 0; max abs error 2.866\n  FAIL  tile 8, width 16  -> 256 wrong elements; first at row 0, col 0; max abs error 3.772\n  FAIL  tile 8, width 32  -> 1024 wrong elements; first at row 0, col 0; max abs error 5.399\n  FAIL  tile 8, width 128  -> 16373 wrong elements; first at row 0, col 0; max abs error 15.37\n  FAIL  tile 8, width 264  -> 69624 wrong elements; first at row 0, col 0; max abs error 26.1\nFAILED: 0/10 test cases passed (work, metal)"
+  },
+  {
+   "lab": "ch05/lab2_tiled",
+   "variant": "solution",
+   "backend": "emu",
+   "tile": 16,
+   "target": "ch05_lab2_tiled.solution.emu",
+   "exe": "/Users/qnguyen3/Desktop/code/interactive_books/ProgrammingMassivelyParallelProcessors/labs/build/bin/ch05_lab2_tiled.solution.emu",
+   "built": true,
+   "tests": [
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 16 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 16 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 16 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 32 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 32 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 32 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 64 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 64 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 64 [threads shuffled]",
+     "pass": true
+    }
+   ],
+   "bench": [],
+   "test_rc": 0,
+   "log": "",
+   "test_text": "  PASS  tile 16, width 16 [threads in order]\n  PASS  tile 16, width 16 [threads reversed]\n  PASS  tile 16, width 16 [threads shuffled]\n  PASS  tile 16, width 32 [threads in order]\n  PASS  tile 16, width 32 [threads reversed]\n  PASS  tile 16, width 32 [threads shuffled]\n  PASS  tile 16, width 64 [threads in order]\n  PASS  tile 16, width 64 [threads reversed]\n  PASS  tile 16, width 64 [threads shuffled]\nOK: 9/9 test cases passed (solution, emu)"
+  },
+  {
+   "lab": "ch05/lab2_tiled",
+   "variant": "solution",
+   "backend": "emu",
+   "tile": 8,
+   "target": "ch05_lab2_tiled.solution.emu.t8",
+   "exe": "/Users/qnguyen3/Desktop/code/interactive_books/ProgrammingMassivelyParallelProcessors/labs/build/bin/ch05_lab2_tiled.solution.emu.t8",
+   "built": true,
+   "tests": [
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 8 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 8 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 8 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 16 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 16 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 16 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 32 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 32 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 32 [threads shuffled]",
+     "pass": true
+    }
+   ],
+   "bench": [],
+   "test_rc": 0,
+   "log": "",
+   "test_text": "  PASS  tile 8, width 8 [threads in order]\n  PASS  tile 8, width 8 [threads reversed]\n  PASS  tile 8, width 8 [threads shuffled]\n  PASS  tile 8, width 16 [threads in order]\n  PASS  tile 8, width 16 [threads reversed]\n  PASS  tile 8, width 16 [threads shuffled]\n  PASS  tile 8, width 32 [threads in order]\n  PASS  tile 8, width 32 [threads reversed]\n  PASS  tile 8, width 32 [threads shuffled]\nOK: 9/9 test cases passed (solution, emu)"
+  },
+  {
+   "lab": "ch05/lab2_tiled",
+   "variant": "solution",
+   "backend": "emu",
+   "tile": 32,
+   "target": "ch05_lab2_tiled.solution.emu.t32",
+   "exe": "/Users/qnguyen3/Desktop/code/interactive_books/ProgrammingMassivelyParallelProcessors/labs/build/bin/ch05_lab2_tiled.solution.emu.t32",
+   "built": true,
+   "tests": [
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 32 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 32 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 32 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 64 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 64 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 64 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 128 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 128 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 128 [threads shuffled]",
+     "pass": true
+    }
+   ],
+   "bench": [],
+   "test_rc": 0,
+   "log": "",
+   "test_text": "  PASS  tile 32, width 32 [threads in order]\n  PASS  tile 32, width 32 [threads reversed]\n  PASS  tile 32, width 32 [threads shuffled]\n  PASS  tile 32, width 64 [threads in order]\n  PASS  tile 32, width 64 [threads reversed]\n  PASS  tile 32, width 64 [threads shuffled]\n  PASS  tile 32, width 128 [threads in order]\n  PASS  tile 32, width 128 [threads reversed]\n  PASS  tile 32, width 128 [threads shuffled]\nOK: 9/9 test cases passed (solution, emu)"
+  },
+  {
+   "lab": "ch05/lab2_tiled",
+   "variant": "solution",
+   "backend": "metal",
+   "tile": 16,
+   "target": "ch05_lab2_tiled.solution.metal",
+   "exe": "/Users/qnguyen3/Desktop/code/interactive_books/ProgrammingMassivelyParallelProcessors/labs/build/bin/ch05_lab2_tiled.solution.metal",
+   "built": true,
+   "tests": [
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 16, width 16",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 16, width 32",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 16, width 64",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 16, width 256",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 16, width 528",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 8, width 8",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 8, width 16",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 8, width 32",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 8, width 128",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 8, width 264",
+     "pass": true
+    }
+   ],
+   "bench": [
+    {
+     "kind": "bench",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "metal",
+     "name": "naive",
+     "width": 4096,
+     "seconds": 0.153778375,
+     "gflops": 893.746949
+    },
+    {
+     "kind": "bench",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "metal",
+     "name": "tiled",
+     "tile": 4,
+     "width": 4096,
+     "seconds": 0.304185667,
+     "gflops": 451.82587,
+     "speedup_vs_naive": 0.505541161
+    },
+    {
+     "kind": "bench",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "metal",
+     "name": "tiled",
+     "tile": 8,
+     "width": 4096,
+     "seconds": 0.082252125,
+     "gflops": 1670.94714,
+     "speedup_vs_naive": 1.86959759
+    },
+    {
+     "kind": "bench",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "metal",
+     "name": "tiled",
+     "tile": 16,
+     "width": 4096,
+     "seconds": 0.0892595,
+     "gflops": 1539.76835,
+     "speedup_vs_naive": 1.72282362
+    },
+    {
+     "kind": "bench",
+     "lab": "ch05/lab2_tiled",
+     "variant": "solution",
+     "backend": "metal",
+     "name": "tiled",
+     "tile": 32,
+     "width": 4096,
+     "seconds": 0.0820800001,
+     "gflops": 1674.45119,
+     "speedup_vs_naive": 1.87351821
+    }
+   ],
+   "test_rc": 0,
+   "log": "",
+   "test_text": "  PASS  tile 16, width 16\n  PASS  tile 16, width 32\n  PASS  tile 16, width 64\n  PASS  tile 16, width 256\n  PASS  tile 16, width 528\n  PASS  tile 8, width 8\n  PASS  tile 8, width 16\n  PASS  tile 8, width 32\n  PASS  tile 8, width 128\n  PASS  tile 8, width 264\nOK: 10/10 test cases passed (solution, metal)",
+   "bench_rc": 0,
+   "bench_text": "width 4096 (137.44 GFLOP per multiplication), best of 5 runs\n  naive          153.7784 ms     893.75 GFLOP/s\n  tiled, T=4     304.1857 ms     451.83 GFLOP/s    0.51x naive\n  tiled, T=8      82.2521 ms    1670.95 GFLOP/s    1.87x naive\n  tiled, T=16     89.2595 ms    1539.77 GFLOP/s    1.72x naive\n  tiled, T=32     82.0800 ms    1674.45 GFLOP/s    1.87x naive"
+  },
+  {
+   "lab": "ch05/lab3_gemm",
+   "variant": "work",
+   "backend": "emu",
+   "tile": 16,
+   "target": "ch05_lab3_gemm.work.emu",
+   "exe": "/Users/qnguyen3/Desktop/code/interactive_books/ProgrammingMassivelyParallelProcessors/labs/build/bin/ch05_lab3_gemm.work.emu",
+   "built": true,
+   "tests": [
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "emu",
+     "case": "3 x 3 times 3 x 3  (the book's 3x3 example with a wider tile) [threads in order]",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "emu",
+     "case": "3 x 3 times 3 x 3  (the book's 3x3 example with a wider tile) [threads reversed]",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "emu",
+     "case": "3 x 3 times 3 x 3  (the book's 3x3 example with a wider tile) [threads shuffled]",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "emu",
+     "case": "1 x 1 times 1 x 1  (single element) [threads in order]",
+     "pass": false,
+     "detail": "1 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "emu",
+     "case": "1 x 1 times 1 x 1  (single element) [threads reversed]",
+     "pass": false,
+     "detail": "1 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "emu",
+     "case": "1 x 1 times 1 x 1  (single element) [threads shuffled]",
+     "pass": false,
+     "detail": "1 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "emu",
+     "case": "16 x 16 times 16 x 16  (exactly one tile) [threads in order]",
+     "pass": false,
+     "detail": "256 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "emu",
+     "case": "16 x 16 times 16 x 16  (exactly one tile) [threads reversed]",
+     "pass": false,
+     "detail": "256 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "emu",
+     "case": "16 x 16 times 16 x 16  (exactly one tile) [threads shuffled]",
+     "pass": false,
+     "detail": "256 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "emu",
+     "case": "32 x 48 times 48 x 16  (rectangular, all multiples of the tile) [threads in order]",
+     "pass": false,
+     "detail": "512 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "emu",
+     "case": "32 x 48 times 48 x 16  (rectangular, all multiples of the tile) [threads reversed]",
+     "pass": false,
+     "detail": "512 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "emu",
+     "case": "32 x 48 times 48 x 16  (rectangular, all multiples of the tile) [threads shuffled]",
+     "pass": false,
+     "detail": "512 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "emu",
+     "case": "17 x 33 times 33 x 9  (nothing is a multiple of the tile) [threads in order]",
+     "pass": false,
+     "detail": "153 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "emu",
+     "case": "17 x 33 times 33 x 9  (nothing is a multiple of the tile) [threads reversed]",
+     "pass": false,
+     "detail": "153 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "emu",
+     "case": "17 x 33 times 33 x 9  (nothing is a multiple of the tile) [threads shuffled]",
+     "pass": false,
+     "detail": "153 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "emu",
+     "case": "1 x 40 times 40 x 7  (one row: a single token through a linear layer) [threads in order]",
+     "pass": false,
+     "detail": "7 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "emu",
+     "case": "1 x 40 times 40 x 7  (one row: a single token through a linear layer) [threads reversed]",
+     "pass": false,
+     "detail": "7 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "emu",
+     "case": "1 x 40 times 40 x 7  (one row: a single token through a linear layer) [threads shuffled]",
+     "pass": false,
+     "detail": "7 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "emu",
+     "case": "5 x 1 times 1 x 9  (inner dimension 1 (outer product)) [threads in order]",
+     "pass": false,
+     "detail": "45 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "emu",
+     "case": "5 x 1 times 1 x 9  (inner dimension 1 (outer product)) [threads reversed]",
+     "pass": false,
+     "detail": "45 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "emu",
+     "case": "5 x 1 times 1 x 9  (inner dimension 1 (outer product)) [threads shuffled]",
+     "pass": false,
+     "detail": "45 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "emu",
+     "case": "33 x 65 times 65 x 50  (several partial tiles in every direction) [threads in order]",
+     "pass": false,
+     "detail": "1650 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "emu",
+     "case": "33 x 65 times 65 x 50  (several partial tiles in every direction) [threads reversed]",
+     "pass": false,
+     "detail": "1650 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "emu",
+     "case": "33 x 65 times 65 x 50  (several partial tiles in every direction) [threads shuffled]",
+     "pass": false,
+     "detail": "1650 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    }
+   ],
+   "bench": [],
+   "test_rc": 1,
+   "log": "  FAIL  3 x 3 times 3 x 3  (the book's 3x3 example with a wider tile) [threads in order]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  3 x 3 times 3 x 3  (the book's 3x3 example with a wider tile) [threads reversed]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  3 x 3 times 3 x 3  (the book's 3x3 example with a wider tile) [threads shuffled]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  1 x 1 times 1 x 1  (single element) [threads in order]  -> 1 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  1 x 1 times 1 x 1  (single element) [threads reversed]  -> 1 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  1 x 1 times 1 x 1  (single element) [threads shuffled]  -> 1 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  16 x 16 times 16 x 16  (exactly one tile) [threads in order]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  16 x 16 times 16 x 16  (exactly one tile) [threads reversed]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  16 x 16 times 16 x 16  (exactly one tile) [threads shuffled]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  32 x 48 times 48 x 16  (rectangular, all multiples of the tile) [threads in order]  -> 512 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  32 x 48 times 48 x 16  (rectangular, all multiples of the tile) [threads reversed]  -> 512 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  32 x 48 times 48 x 16  (rectangular, all multiples of the tile) [threads shuffled]  -> 512 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  17 x 33 times 33 x 9  (nothing is a multiple of the tile) [threads in order]  -> 153 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  17 x 33 times 33 x 9  (nothing is a multiple of the tile) [threads reversed]  -> 153 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  17 x 33 times 33 x 9  (nothing is a multiple of the tile) [threads shuffled]  -> 153 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  1 x 40 times 40 x 7  (one row: a single token through a linear layer) [threads in order]  -> 7 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  1 x 40 times 40 x 7  (one row: a single token through a linear layer) [threads reversed]  -> 7 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  1 x 40 times 40 x 7  (one row: a single token through a linear layer) [threads shuffled]  -> 7 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  5 x 1 times 1 x 9  (inner dimension 1 (outer product)) [threads in order]  -> 45 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  5 x 1 times 1 x 9  (inner dimension 1 (outer product)) [threads reversed]  -> 45 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  5 x 1 times 1 x 9  (inner dimension 1 (outer product)) [threads shuffled]  -> 45 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  33 x 65 times 65 x 50  (several partial tiles in every direction) [threads in order]  -> 1650 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  33 x 65 times 65 x 50  (several partial tiles in every direction) [threads reversed]  -> 1650 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  33 x 65 times 65 x 50  (several partial tiles in every direction) [threads shuffled]  -> 1650 wrong elements; first at row 0, col 0; max abs error 1.235e+04\nFAILED: 0/24 test cases passed (work, emu)",
+   "test_text": "  FAIL  3 x 3 times 3 x 3  (the book's 3x3 example with a wider tile) [threads in order]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  3 x 3 times 3 x 3  (the book's 3x3 example with a wider tile) [threads reversed]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  3 x 3 times 3 x 3  (the book's 3x3 example with a wider tile) [threads shuffled]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  1 x 1 times 1 x 1  (single element) [threads in order]  -> 1 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  1 x 1 times 1 x 1  (single element) [threads reversed]  -> 1 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  1 x 1 times 1 x 1  (single element) [threads shuffled]  -> 1 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  16 x 16 times 16 x 16  (exactly one tile) [threads in order]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  16 x 16 times 16 x 16  (exactly one tile) [threads reversed]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  16 x 16 times 16 x 16  (exactly one tile) [threads shuffled]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  32 x 48 times 48 x 16  (rectangular, all multiples of the tile) [threads in order]  -> 512 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  32 x 48 times 48 x 16  (rectangular, all multiples of the tile) [threads reversed]  -> 512 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  32 x 48 times 48 x 16  (rectangular, all multiples of the tile) [threads shuffled]  -> 512 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  17 x 33 times 33 x 9  (nothing is a multiple of the tile) [threads in order]  -> 153 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  17 x 33 times 33 x 9  (nothing is a multiple of the tile) [threads reversed]  -> 153 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  17 x 33 times 33 x 9  (nothing is a multiple of the tile) [threads shuffled]  -> 153 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  1 x 40 times 40 x 7  (one row: a single token through a linear layer) [threads in order]  -> 7 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  1 x 40 times 40 x 7  (one row: a single token through a linear layer) [threads reversed]  -> 7 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  1 x 40 times 40 x 7  (one row: a single token through a linear layer) [threads shuffled]  -> 7 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  5 x 1 times 1 x 9  (inner dimension 1 (outer product)) [threads in order]  -> 45 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  5 x 1 times 1 x 9  (inner dimension 1 (outer product)) [threads reversed]  -> 45 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  5 x 1 times 1 x 9  (inner dimension 1 (outer product)) [threads shuffled]  -> 45 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  33 x 65 times 65 x 50  (several partial tiles in every direction) [threads in order]  -> 1650 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  33 x 65 times 65 x 50  (several partial tiles in every direction) [threads reversed]  -> 1650 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  33 x 65 times 65 x 50  (several partial tiles in every direction) [threads shuffled]  -> 1650 wrong elements; first at row 0, col 0; max abs error 1.235e+04\nFAILED: 0/24 test cases passed (work, emu)"
+  },
+  {
+   "lab": "ch05/lab3_gemm",
+   "variant": "work",
+   "backend": "metal",
+   "tile": 16,
+   "target": "ch05_lab3_gemm.work.metal",
+   "exe": "/Users/qnguyen3/Desktop/code/interactive_books/ProgrammingMassivelyParallelProcessors/labs/build/bin/ch05_lab3_gemm.work.metal",
+   "built": true,
+   "tests": [
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "metal",
+     "case": "3 x 3 times 3 x 3  (the book's 3x3 example with a wider tile)",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "metal",
+     "case": "1 x 1 times 1 x 1  (single element)",
+     "pass": false,
+     "detail": "1 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "metal",
+     "case": "16 x 16 times 16 x 16  (exactly one tile)",
+     "pass": false,
+     "detail": "256 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "metal",
+     "case": "32 x 48 times 48 x 16  (rectangular, all multiples of the tile)",
+     "pass": false,
+     "detail": "512 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "metal",
+     "case": "17 x 33 times 33 x 9  (nothing is a multiple of the tile)",
+     "pass": false,
+     "detail": "153 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "metal",
+     "case": "1 x 40 times 40 x 7  (one row: a single token through a linear layer)",
+     "pass": false,
+     "detail": "7 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "metal",
+     "case": "5 x 1 times 1 x 9  (inner dimension 1 (outer product))",
+     "pass": false,
+     "detail": "45 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "metal",
+     "case": "33 x 65 times 65 x 50  (several partial tiles in every direction)",
+     "pass": false,
+     "detail": "1650 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "metal",
+     "case": "4 x 300 times 300 x 1000  (a small batch into a wide layer)",
+     "pass": false,
+     "detail": "4000 wrong elements; first at row 0, col 0; max abs error 1.236e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "work",
+     "backend": "metal",
+     "case": "257 x 129 times 129 x 511  (large and awkward)",
+     "pass": false,
+     "detail": "131327 wrong elements; first at row 0, col 0; max abs error 1.236e+04"
+    }
+   ],
+   "bench": [],
+   "test_rc": 1,
+   "log": "  FAIL  3 x 3 times 3 x 3  (the book's 3x3 example with a wider tile)  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  1 x 1 times 1 x 1  (single element)  -> 1 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  16 x 16 times 16 x 16  (exactly one tile)  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  32 x 48 times 48 x 16  (rectangular, all multiples of the tile)  -> 512 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  17 x 33 times 33 x 9  (nothing is a multiple of the tile)  -> 153 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  1 x 40 times 40 x 7  (one row: a single token through a linear layer)  -> 7 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  5 x 1 times 1 x 9  (inner dimension 1 (outer product))  -> 45 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  33 x 65 times 65 x 50  (several partial tiles in every direction)  -> 1650 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  4 x 300 times 300 x 1000  (a small batch into a wide layer)  -> 4000 wrong elements; first at row 0, col 0; max abs error 1.236e+04\n  FAIL  257 x 129 times 129 x 511  (large and awkward)  -> 131327 wrong elements; first at row 0, col 0; max abs error 1.236e+04\nFAILED: 0/10 test cases passed (work, metal)",
+   "test_text": "  FAIL  3 x 3 times 3 x 3  (the book's 3x3 example with a wider tile)  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  1 x 1 times 1 x 1  (single element)  -> 1 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  16 x 16 times 16 x 16  (exactly one tile)  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  32 x 48 times 48 x 16  (rectangular, all multiples of the tile)  -> 512 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  17 x 33 times 33 x 9  (nothing is a multiple of the tile)  -> 153 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  1 x 40 times 40 x 7  (one row: a single token through a linear layer)  -> 7 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  5 x 1 times 1 x 9  (inner dimension 1 (outer product))  -> 45 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  33 x 65 times 65 x 50  (several partial tiles in every direction)  -> 1650 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  4 x 300 times 300 x 1000  (a small batch into a wide layer)  -> 4000 wrong elements; first at row 0, col 0; max abs error 1.236e+04\n  FAIL  257 x 129 times 129 x 511  (large and awkward)  -> 131327 wrong elements; first at row 0, col 0; max abs error 1.236e+04\nFAILED: 0/10 test cases passed (work, metal)"
+  },
+  {
+   "lab": "ch05/lab3_gemm",
+   "variant": "solution",
+   "backend": "emu",
+   "tile": 16,
+   "target": "ch05_lab3_gemm.solution.emu",
+   "exe": "/Users/qnguyen3/Desktop/code/interactive_books/ProgrammingMassivelyParallelProcessors/labs/build/bin/ch05_lab3_gemm.solution.emu",
+   "built": true,
+   "tests": [
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "3 x 3 times 3 x 3  (the book's 3x3 example with a wider tile) [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "3 x 3 times 3 x 3  (the book's 3x3 example with a wider tile) [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "3 x 3 times 3 x 3  (the book's 3x3 example with a wider tile) [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "1 x 1 times 1 x 1  (single element) [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "1 x 1 times 1 x 1  (single element) [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "1 x 1 times 1 x 1  (single element) [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "16 x 16 times 16 x 16  (exactly one tile) [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "16 x 16 times 16 x 16  (exactly one tile) [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "16 x 16 times 16 x 16  (exactly one tile) [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "32 x 48 times 48 x 16  (rectangular, all multiples of the tile) [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "32 x 48 times 48 x 16  (rectangular, all multiples of the tile) [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "32 x 48 times 48 x 16  (rectangular, all multiples of the tile) [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "17 x 33 times 33 x 9  (nothing is a multiple of the tile) [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "17 x 33 times 33 x 9  (nothing is a multiple of the tile) [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "17 x 33 times 33 x 9  (nothing is a multiple of the tile) [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "1 x 40 times 40 x 7  (one row: a single token through a linear layer) [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "1 x 40 times 40 x 7  (one row: a single token through a linear layer) [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "1 x 40 times 40 x 7  (one row: a single token through a linear layer) [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "5 x 1 times 1 x 9  (inner dimension 1 (outer product)) [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "5 x 1 times 1 x 9  (inner dimension 1 (outer product)) [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "5 x 1 times 1 x 9  (inner dimension 1 (outer product)) [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "33 x 65 times 65 x 50  (several partial tiles in every direction) [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "33 x 65 times 65 x 50  (several partial tiles in every direction) [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "33 x 65 times 65 x 50  (several partial tiles in every direction) [threads shuffled]",
+     "pass": true
+    }
+   ],
+   "bench": [],
+   "test_rc": 0,
+   "log": "",
+   "test_text": "  PASS  3 x 3 times 3 x 3  (the book's 3x3 example with a wider tile) [threads in order]\n  PASS  3 x 3 times 3 x 3  (the book's 3x3 example with a wider tile) [threads reversed]\n  PASS  3 x 3 times 3 x 3  (the book's 3x3 example with a wider tile) [threads shuffled]\n  PASS  1 x 1 times 1 x 1  (single element) [threads in order]\n  PASS  1 x 1 times 1 x 1  (single element) [threads reversed]\n  PASS  1 x 1 times 1 x 1  (single element) [threads shuffled]\n  PASS  16 x 16 times 16 x 16  (exactly one tile) [threads in order]\n  PASS  16 x 16 times 16 x 16  (exactly one tile) [threads reversed]\n  PASS  16 x 16 times 16 x 16  (exactly one tile) [threads shuffled]\n  PASS  32 x 48 times 48 x 16  (rectangular, all multiples of the tile) [threads in order]\n  PASS  32 x 48 times 48 x 16  (rectangular, all multiples of the tile) [threads reversed]\n  PASS  32 x 48 times 48 x 16  (rectangular, all multiples of the tile) [threads shuffled]\n  PASS  17 x 33 times 33 x 9  (nothing is a multiple of the tile) [threads in order]\n  PASS  17 x 33 times 33 x 9  (nothing is a multiple of the tile) [threads reversed]\n  PASS  17 x 33 times 33 x 9  (nothing is a multiple of the tile) [threads shuffled]\n  PASS  1 x 40 times 40 x 7  (one row: a single token through a linear layer) [threads in order]\n  PASS  1 x 40 times 40 x 7  (one row: a single token through a linear layer) [threads reversed]\n  PASS  1 x 40 times 40 x 7  (one row: a single token through a linear layer) [threads shuffled]\n  PASS  5 x 1 times 1 x 9  (inner dimension 1 (outer product)) [threads in order]\n  PASS  5 x 1 times 1 x 9  (inner dimension 1 (outer product)) [threads reversed]\n  PASS  5 x 1 times 1 x 9  (inner dimension 1 (outer product)) [threads shuffled]\n  PASS  33 x 65 times 65 x 50  (several partial tiles in every direction) [threads in order]\n  PASS  33 x 65 times 65 x 50  (several partial tiles in every direction) [threads reversed]\n  PASS  33 x 65 times 65 x 50  (several partial tiles in every direction) [threads shuffled]\nOK: 24/24 test cases passed (solution, emu)"
+  },
+  {
+   "lab": "ch05/lab3_gemm",
+   "variant": "solution",
+   "backend": "metal",
+   "tile": 16,
+   "target": "ch05_lab3_gemm.solution.metal",
+   "exe": "/Users/qnguyen3/Desktop/code/interactive_books/ProgrammingMassivelyParallelProcessors/labs/build/bin/ch05_lab3_gemm.solution.metal",
+   "built": true,
+   "tests": [
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "3 x 3 times 3 x 3  (the book's 3x3 example with a wider tile)",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "1 x 1 times 1 x 1  (single element)",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "16 x 16 times 16 x 16  (exactly one tile)",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "32 x 48 times 48 x 16  (rectangular, all multiples of the tile)",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "17 x 33 times 33 x 9  (nothing is a multiple of the tile)",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "1 x 40 times 40 x 7  (one row: a single token through a linear layer)",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "5 x 1 times 1 x 9  (inner dimension 1 (outer product))",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "33 x 65 times 65 x 50  (several partial tiles in every direction)",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "4 x 300 times 300 x 1000  (a small batch into a wide layer)",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "257 x 129 times 129 x 511  (large and awkward)",
+     "pass": true
+    }
+   ],
+   "bench": [
+    {
+     "kind": "bench",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "metal",
+     "name": "linear_layer",
+     "batch": 1,
+     "k": 1024,
+     "l": 4096,
+     "tile": 16,
+     "seconds": 0.000494874897,
+     "gflops": 16.9509669,
+     "rows_per_s": 2020.71272
+    },
+    {
+     "kind": "bench",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "metal",
+     "name": "linear_layer",
+     "batch": 4,
+     "k": 1024,
+     "l": 4096,
+     "tile": 16,
+     "seconds": 0.000494000036,
+     "gflops": 67.9239464,
+     "rows_per_s": 8097.1654
+    },
+    {
+     "kind": "bench",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "metal",
+     "name": "linear_layer",
+     "batch": 16,
+     "k": 1024,
+     "l": 4096,
+     "tile": 16,
+     "seconds": 0.000506000011,
+     "gflops": 265.252421,
+     "rows_per_s": 31620.5527
+    },
+    {
+     "kind": "bench",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "metal",
+     "name": "linear_layer",
+     "batch": 64,
+     "k": 1024,
+     "l": 4096,
+     "tile": 16,
+     "seconds": 0.000409708358,
+     "gflops": 1310.37334,
+     "rows_per_s": 156208.676
+    },
+    {
+     "kind": "bench",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "metal",
+     "name": "linear_layer",
+     "batch": 256,
+     "k": 1024,
+     "l": 4096,
+     "tile": 16,
+     "seconds": 0.00152458332,
+     "gflops": 1408.57087,
+     "rows_per_s": 167914.732
+    },
+    {
+     "kind": "bench",
+     "lab": "ch05/lab3_gemm",
+     "variant": "solution",
+     "backend": "metal",
+     "name": "linear_layer",
+     "batch": 1024,
+     "k": 1024,
+     "l": 4096,
+     "tile": 16,
+     "seconds": 0.00600391661,
+     "gflops": 1430.72183,
+     "rows_per_s": 170555.333
+    }
+   ],
+   "test_rc": 0,
+   "log": "",
+   "test_text": "  PASS  3 x 3 times 3 x 3  (the book's 3x3 example with a wider tile)\n  PASS  1 x 1 times 1 x 1  (single element)\n  PASS  16 x 16 times 16 x 16  (exactly one tile)\n  PASS  32 x 48 times 48 x 16  (rectangular, all multiples of the tile)\n  PASS  17 x 33 times 33 x 9  (nothing is a multiple of the tile)\n  PASS  1 x 40 times 40 x 7  (one row: a single token through a linear layer)\n  PASS  5 x 1 times 1 x 9  (inner dimension 1 (outer product))\n  PASS  33 x 65 times 65 x 50  (several partial tiles in every direction)\n  PASS  4 x 300 times 300 x 1000  (a small batch into a wide layer)\n  PASS  257 x 129 times 129 x 511  (large and awkward)\nOK: 10/10 test cases passed (solution, metal)",
+   "bench_rc": 0,
+   "bench_text": "linear layer 1024 -> 4096, tile 16, best of 5 runs\n   batch    time (ms)        GFLOP/s  rows per second\n       1       0.4949          16.95             2021\n       4       0.4940          67.92             8097\n      16       0.5060         265.25            31621\n      64       0.4097        1310.37           156209\n     256       1.5246        1408.57           167915\n    1024       6.0039        1430.72           170555"
+  },
+  {
+   "lab": "ch05/lab4_racehunt",
+   "variant": "work",
+   "backend": "emu",
+   "tile": 16,
+   "target": "ch05_lab4_racehunt.work.emu",
+   "exe": "/Users/qnguyen3/Desktop/code/interactive_books/ProgrammingMassivelyParallelProcessors/labs/build/bin/ch05_lab4_racehunt.work.emu",
+   "built": true,
+   "tests": [
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "work",
+     "backend": "emu",
+     "case": "width 16  (multiple of the tile) [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "work",
+     "backend": "emu",
+     "case": "width 16  (multiple of the tile) [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "work",
+     "backend": "emu",
+     "case": "width 16  (multiple of the tile) [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "work",
+     "backend": "emu",
+     "case": "width 32  (multiple of the tile) [threads in order]",
+     "pass": false,
+     "detail": "1019 wrong elements; first at row 0, col 1; max abs error 5.807"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "work",
+     "backend": "emu",
+     "case": "width 32  (multiple of the tile) [threads reversed]",
+     "pass": false,
+     "detail": "1020 wrong elements; first at row 0, col 0; max abs error 5.433"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "work",
+     "backend": "emu",
+     "case": "width 32  (multiple of the tile) [threads shuffled]",
+     "pass": false,
+     "detail": "991 wrong elements; first at row 0, col 0; max abs error 5.641"
+    }
+   ],
+   "bench": [],
+   "test_rc": -6,
+   "log": "    #4 0x00010033fcf0 in void std::__1::allocator<std::__1::thread>::construct[abi:nqe220106]<std::__1::thread, void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void (**)(float const*, float const*, float*, int), float*&&, float*&&, float*&&, int&&) allocator.h:141\n    #5 0x00010033fcf0 in void std::__1::allocator_traits<std::__1::allocator<std::__1::thread>>::construct[abi:nqe220106]<std::__1::thread, void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'(), 0>(std::__1::allocator<std::__1::thread>&, void (**)(float const*, float const*, float*, int), float*&&, float*&&, float*&&, int&&) allocator_traits.h:296\n    #6 0x00010033fcf0 in void std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::__emplace_back_assume_capacity[abi:nqe220106]<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&) vector.h:483\n    #7 0x00010033b4c0 in std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&)::'lambda'()::operator()() const vector.h:1146\n    #8 0x00010033b4c0 in void std::__1::__if_likely_else[abi:nqe220106]<std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&)::'lambda'(), std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&)::'lambda0'()>(bool, void (*)(float const*, float const*, float*, int), std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&)::'lambda0'()) vector.h:1127\n    #9 0x00010033b4c0 in std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&) vector.h:1143\n    #10 0x00010033b4c0 in void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int) cuda_emu.h:162\n    #11 0x00010033af24 in launchTiledMatmul(float*, float*, float*, int) kernel.cu:42\n    #12 0x000100343284 in std::__1::__function::__value_func<void (void*)>::operator()[abi:nqe220106](void*&&) const function.h:273\n    #13 0x000100343284 in std::__1::function<void (void*)>::operator()(void*) const function.h:754\n    #14 0x000100343284 in pmpp::run(std::__1::function<void (void*)> const&) backend_cudalike.cpp:105\n    #15 0x0001003332d0 in runIt(pmpp::GemmProblem&) main.cpp:26\n    #16 0x0001003332d0 in tests(pmpp::Args const&)::$_0::operator()() const main.cpp:44\n    #17 0x0001003332d0 in std::__1::__invoke_result_impl<void, tests(pmpp::Args const&)::$_0&>::type std::__1::__invoke[abi:nqe220106]<tests(pmpp::Args const&)::$_0&>(tests(pmpp::Args const&)::$_0&) invoke.h:90\n    #18 0x0001003332d0 in std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> std::__1::__invoke_void_return_wrapper<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>, false>::__call[abi:nqe220106]<tests(pmpp::Args const&)::$_0&>(tests(pmpp::Args const&)::$_0&) invoke.h:342\n    #19 0x0001003332d0 in std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> std::__1::__invoke_r[abi:nqe220106]<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>, tests(pmpp::Args const&)::$_0&>(tests(pmpp::Args const&)::$_0&) invoke.h:356\n    #20 0x0001003332d0 in std::__1::__function::__func<tests(pmpp::Args const&)::$_0, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()>::operator()() function.h:172\n    #21 0x00010033204c in std::__1::__function::__value_func<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()>::operator()[abi:nqe220106]() const function.h:273\n    #22 0x00010033204c in std::__1::function<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()>::operator()() const function.h:754\n    #23 0x00010033204c in pmpp::Tests::check(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> const&, std::__1::function<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()> const&) harness.hpp:139\n    #24 0x00010032e3b4 in tests(pmpp::Args const&) main.cpp:37\n    #25 0x00010032dc2c in std::__1::__function::__value_func<int (pmpp::Args const&)>::operator()[abi:nqe220106](pmpp::Args const&) const function.h:273\n    #26 0x00010032dc2c in std::__1::function<int (pmpp::Args const&)>::operator()(pmpp::Args const&) const function.h:754\n    #27 0x00010032dc2c in pmpp::lab_main(int, char**, std::__1::function<int (pmpp::Args const&)> const&, std::__1::function<int (pmpp::Args const&)> const&) harness.hpp:227\n    #28 0x00010032d794 in main main.cpp:55\n    #29 0x0001976dfe7c in start+0x1a1c (dyld:arm64e+0x31e7c)\n\nSUMMARY: AddressSanitizer: heap-buffer-overflow kernel.cu:26 in tiledMatmulKernel(float const*, float const*, float*, int)\nShadow bytes around the buggy address:\n  0x604000048800: fa fa fd fd fd fd fd fa fa fa fd fd fd fd fd fd\n  0x604000048880: fa fa fd fd fd fd fd fa fa fa fd fd fd fd fd fd\n  0x604000048900: fa fa fd fd fd fd fd fa fa fa fd fd fd fd fd fd\n  0x604000048980: fa fa fd fd fd fd fd fd fa fa fd fd fd fd fd fd\n  0x604000048a00: fa fa 00 00 00 00 00 00 fa fa fd fd fd fd fd fa\n=>0x604000048a80: fa fa 00 00 00 00 04 fa fa fa 00 00 00 00[04]fa\n  0x604000048b00: fa fa 00 00 00 00 04 fa fa fa 00 00 00 00 04 fa\n  0x604000048b80: fa fa 00 00 00 00 04 fa fa fa 00 00 00 00 00 00\n  0x604000048c00: fa fa 00 00 00 00 00 fa fa fa 00 00 00 00 00 00\n  0x604000048c80: fa fa 00 00 00 00 00 fa fa fa 00 00 00 00 00 00\n  0x604000048d00: fa fa 00 00 00 00 00 fa fa fa 00 00 00 00 00 00\nShadow byte legend (one shadow byte represents 8 application bytes):\n  Addressable:           00\n  Partially addressable: 01 02 03 04 05 06 07 \n  Heap left redzone:       fa\n  Freed heap region:       fd\n  Stack left redzone:      f1\n  Stack mid redzone:       f2\n  Stack right redzone:     f3\n  Stack after return:      f5\n  Stack use after scope:   f8\n  Global redzone:          f9\n  Global init order:       f6\n  Poisoned by user:        f7\n  Container overflow:      fc\n  Array cookie:            ac\n  Intra object redzone:    bb\n  ASan internal:           fe\n  Left alloca redzone:     ca\n  Right alloca redzone:    cb\n==38276==ABORTING",
+   "test_text": "  PASS  width 16  (multiple of the tile) [threads in order]\n  PASS  width 16  (multiple of the tile) [threads reversed]\n  PASS  width 16  (multiple of the tile) [threads shuffled]\n  FAIL  width 32  (multiple of the tile) [threads in order]  -> 1019 wrong elements; first at row 0, col 1; max abs error 5.807\n  FAIL  width 32  (multiple of the tile) [threads reversed]  -> 1020 wrong elements; first at row 0, col 0; max abs error 5.433\n  FAIL  width 32  (multiple of the tile) [threads shuffled]  -> 991 wrong elements; first at row 0, col 0; max abs error 5.641\n=================================================================\n==38276==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x604000048af4 at pc 0x00010033a864 bp 0x00017159ac10 sp 0x00017159ac08\nREAD of size 4 at 0x604000048af4 thread T2353\n    #0 0x00010033a860 in tiledMatmulKernel(float const*, float const*, float*, int) kernel.cu:26\n    #1 0x00010034093c in std::__1::__invoke_result_impl<void, void (*&)(float const*, float const*, float*, int), float*&, float*&, float*&, int&>::type std::__1::__invoke[abi:nqe220106]<void (*&)(float const*, float const*, float*, int), float*&, float*&, float*&, int&>(void (*&)(float const*, float const*, float*, int), float*&, float*&, float*&, int&) invoke.h:90\n    #2 0x00010034093c in decltype(auto) std::__1::__apply_tuple_impl[abi:nqe220106]<void (*&)(float const*, float const*, float*, int), std::__1::tuple<float*, float*, float*, int>&, 0ul, 1ul, 2ul, 3ul>(void (*&)(float const*, float const*, float*, int), std::__1::tuple<float*, float*, float*, int>&, std::__1::integer_sequence<unsigned long, 0ul, 1ul, 2ul, 3ul>) tuple:1397\n    #3 0x00010034093c in decltype(auto) std::__1::apply[abi:nqe220106]<void (*&)(float const*, float const*, float*, int), std::__1::tuple<float*, float*, float*, int>&>(void (*&)(float const*, float const*, float*, int), std::__1::tuple<float*, float*, float*, int>&) tuple:1401\n    #4 0x00010034093c in void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()::operator()() const cuda_emu.h:169\n    #5 0x000100340350 in std::__1::__invoke_result_impl<void, void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>::type std::__1::__invoke[abi:nqe220106]<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&) invoke.h:90\n    #6 0x000100340350 in void std::__1::__thread_execute[abi:nqe220106]<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'(), 0ul>(std::__1::tuple<void (*)(float const*, float const*, float*, int), void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>&, std::__1::__integer_sequence<unsigned long, 0ul>) thread.h:161\n    #7 0x000100340350 in void* std::__1::__thread_proxy[abi:nqe220106]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>>(void*) thread.h:169\n    #8 0x000100d1de64 in asan_thread_start(void*)+0x4c (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x3de64)\n    #9 0x000197ab5cfc in _pthread_start+0x84 (libsystem_pthread.dylib:arm64e+0x6cfc)\n    #10 0x000197ab0ce8 in thread_start+0x4 (libsystem_pthread.dylib:arm64e+0x1ce8)\n\n0x604000048af4 is located 0 bytes after 36-byte region [0x604000048ad0,0x604000048af4)\nallocated by thread T0 here:\n    #0 0x000100d21274 in malloc+0x78 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x41274)\n    #1 0x000100342938 in cudaMalloc(void**, unsigned long) cuda_emu.h:228\n    #2 0x000100342938 in pmpp::alloc(unsigned long) backend_cudalike.cpp:81\n    #3 0x0001003342bc in pmpp::GemmProblem::GemmProblem(int, int, int, unsigned int, bool) harness.hpp:197\n    #4 0x000100333278 in pmpp::GemmProblem::GemmProblem(int, int, int, unsigned int, bool) harness.hpp:196\n    #5 0x000100333278 in tests(pmpp::Args const&)::$_0::operator()() const main.cpp:43\n    #6 0x000100333278 in std::__1::__invoke_result_impl<void, tests(pmpp::Args const&)::$_0&>::type std::__1::__invoke[abi:nqe220106]<tests(pmpp::Args const&)::$_0&>(tests(pmpp::Args const&)::$_0&) invoke.h:90\n    #7 0x000100333278 in std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> std::__1::__invoke_void_return_wrapper<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>, false>::__call[abi:nqe220106]<tests(pmpp::Args const&)::$_0&>(tests(pmpp::Args const&)::$_0&) invoke.h:342\n    #8 0x000100333278 in std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> std::__1::__invoke_r[abi:nqe220106]<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>, tests(pmpp::Args const&)::$_0&>(tests(pmpp::Args const&)::$_0&) invoke.h:356\n    #9 0x000100333278 in std::__1::__function::__func<tests(pmpp::Args const&)::$_0, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()>::operator()() function.h:172\n    #10 0x00010033204c in std::__1::__function::__value_func<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()>::operator()[abi:nqe220106]() const function.h:273\n    #11 0x00010033204c in std::__1::function<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()>::operator()() const function.h:754\n    #12 0x00010033204c in pmpp::Tests::check(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> const&, std::__1::function<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()> const&) harness.hpp:139\n    #13 0x00010032e3b4 in tests(pmpp::Args const&) main.cpp:37\n    #14 0x00010032dc2c in std::__1::__function::__value_func<int (pmpp::Args const&)>::operator()[abi:nqe220106](pmpp::Args const&) const function.h:273\n    #15 0x00010032dc2c in std::__1::function<int (pmpp::Args const&)>::operator()(pmpp::Args const&) const function.h:754\n    #16 0x00010032dc2c in pmpp::lab_main(int, char**, std::__1::function<int (pmpp::Args const&)> const&, std::__1::function<int (pmpp::Args const&)> const&) harness.hpp:227\n    #17 0x00010032d794 in main main.cpp:55\n    #18 0x0001976dfe7c in start+0x1a1c (dyld:arm64e+0x31e7c)\n\nThread T2353 created by T0 here:\n    #0 0x000100d1926c in pthread_create+0x60 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x3926c)\n    #1 0x0001003400f8 in std::__1::__libcpp_thread_create[abi:nqe220106](_opaque_pthread_t**, void* (*)(void*), void*) pthread.h:182\n    #2 0x0001003400f8 in std::__1::thread::thread[abi:nqe220106]<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'(), 0>(void (*&&)(float const*, float const*, float*, int), float*&&, float*&&, float*&&, int&&) thread.h:221\n    #3 0x00010033fcf0 in std::__1::thread::thread[abi:nqe220106]<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'(), 0>(void (*&&)(float const*, float const*, float*, int), float*&&, float*&&, float*&&, int&&) thread.h:212\n    #4 0x00010033fcf0 in void std::__1::allocator<std::__1::thread>::construct[abi:nqe220106]<std::__1::thread, void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void (**)(float const*, float const*, float*, int), float*&&, float*&&, float*&&, int&&) allocator.h:141\n    #5 0x00010033fcf0 in void std::__1::allocator_traits<std::__1::allocator<std::__1::thread>>::construct[abi:nqe220106]<std::__1::thread, void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'(), 0>(std::__1::allocator<std::__1::thread>&, void (**)(float const*, float const*, float*, int), float*&&, float*&&, float*&&, int&&) allocator_traits.h:296\n    #6 0x00010033fcf0 in void std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::__emplace_back_assume_capacity[abi:nqe220106]<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&) vector.h:483\n    #7 0x00010033b4c0 in std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&)::'lambda'()::operator()() const vector.h:1146\n    #8 0x00010033b4c0 in void std::__1::__if_likely_else[abi:nqe220106]<std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&)::'lambda'(), std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&)::'lambda0'()>(bool, void (*)(float const*, float const*, float*, int), std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&)::'lambda0'()) vector.h:1127\n    #9 0x00010033b4c0 in std::__1::thread& std::__1::vector<std::__1::thread, std::__1::allocator<std::__1::thread>>::emplace_back<void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()>(void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int)::'lambda'()&&) vector.h:1143\n    #10 0x00010033b4c0 in void pmpp_emu::Launch::run<void (*)(float const*, float const*, float*, int), float*, float*, float*, int>(void (*)(float const*, float const*, float*, int), float*, float*, float*, int) cuda_emu.h:162\n    #11 0x00010033af24 in launchTiledMatmul(float*, float*, float*, int) kernel.cu:42\n    #12 0x000100343284 in std::__1::__function::__value_func<void (void*)>::operator()[abi:nqe220106](void*&&) const function.h:273\n    #13 0x000100343284 in std::__1::function<void (void*)>::operator()(void*) const function.h:754\n    #14 0x000100343284 in pmpp::run(std::__1::function<void (void*)> const&) backend_cudalike.cpp:105\n    #15 0x0001003332d0 in runIt(pmpp::GemmProblem&) main.cpp:26\n    #16 0x0001003332d0 in tests(pmpp::Args const&)::$_0::operator()() const main.cpp:44\n    #17 0x0001003332d0 in std::__1::__invoke_result_impl<void, tests(pmpp::Args const&)::$_0&>::type std::__1::__invoke[abi:nqe220106]<tests(pmpp::Args const&)::$_0&>(tests(pmpp::Args const&)::$_0&) invoke.h:90\n    #18 0x0001003332d0 in std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> std::__1::__invoke_void_return_wrapper<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>, false>::__call[abi:nqe220106]<tests(pmpp::Args const&)::$_0&>(tests(pmpp::Args const&)::$_0&) invoke.h:342\n    #19 0x0001003332d0 in std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> std::__1::__invoke_r[abi:nqe220106]<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>, tests(pmpp::Args const&)::$_0&>(tests(pmpp::Args const&)::$_0&) invoke.h:356\n    #20 0x0001003332d0 in std::__1::__function::__func<tests(pmpp::Args const&)::$_0, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()>::operator()() function.h:172\n    #21 0x00010033204c in std::__1::__function::__value_func<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()>::operator()[abi:nqe220106]() const function.h:273\n    #22 0x00010033204c in std::__1::function<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()>::operator()() const function.h:754\n    #23 0x00010033204c in pmpp::Tests::check(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> const&, std::__1::function<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> ()> const&) harness.hpp:139\n    #24 0x00010032e3b4 in tests(pmpp::Args const&) main.cpp:37\n    #25 0x00010032dc2c in std::__1::__function::__value_func<int (pmpp::Args const&)>::operator()[abi:nqe220106](pmpp::Args const&) const function.h:273\n    #26 0x00010032dc2c in std::__1::function<int (pmpp::Args const&)>::operator()(pmpp::Args const&) const function.h:754\n    #27 0x00010032dc2c in pmpp::lab_main(int, char**, std::__1::function<int (pmpp::Args const&)> const&, std::__1::function<int (pmpp::Args const&)> const&) harness.hpp:227\n    #28 0x00010032d794 in main main.cpp:55\n    #29 0x0001976dfe7c in start+0x1a1c (dyld:arm64e+0x31e7c)\n\nSUMMARY: AddressSanitizer: heap-buffer-overflow kernel.cu:26 in tiledMatmulKernel(float const*, float const*, float*, int)\nShadow bytes around the buggy address:\n  0x604000048800: fa fa fd fd fd fd fd fa fa fa fd fd fd fd fd fd\n  0x604000048880: fa fa fd fd fd fd fd fa fa fa fd fd fd fd fd fd\n  0x604000048900: fa fa fd fd fd fd fd fa fa fa fd fd fd fd fd fd\n  0x604000048980: fa fa fd fd fd fd fd fd fa fa fd fd fd fd fd fd\n  0x604000048a00: fa fa 00 00 00 00 00 00 fa fa fd fd fd fd fd fa\n=>0x604000048a80: fa fa 00 00 00 00 04 fa fa fa 00 00 00 00[04]fa\n  0x604000048b00: fa fa 00 00 00 00 04 fa fa fa 00 00 00 00 04 fa\n  0x604000048b80: fa fa 00 00 00 00 04 fa fa fa 00 00 00 00 00 00\n  0x604000048c00: fa fa 00 00 00 00 00 fa fa fa 00 00 00 00 00 00\n  0x604000048c80: fa fa 00 00 00 00 00 fa fa fa 00 00 00 00 00 00\n  0x604000048d00: fa fa 00 00 00 00 00 fa fa fa 00 00 00 00 00 00\nShadow byte legend (one shadow byte represents 8 application bytes):\n  Addressable:           00\n  Partially addressable: 01 02 03 04 05 06 07 \n  Heap left redzone:       fa\n  Freed heap region:       fd\n  Stack left redzone:      f1\n  Stack mid redzone:       f2\n  Stack right redzone:     f3\n  Stack after return:      f5\n  Stack use after scope:   f8\n  Global redzone:          f9\n  Global init order:       f6\n  Poisoned by user:        f7\n  Container overflow:      fc\n  Array cookie:            ac\n  Intra object redzone:    bb\n  ASan internal:           fe\n  Left alloca redzone:     ca\n  Right alloca redzone:    cb\n==38276==ABORTING"
+  },
+  {
+   "lab": "ch05/lab4_racehunt",
+   "variant": "work",
+   "backend": "metal",
+   "tile": 16,
+   "target": "ch05_lab4_racehunt.work.metal",
+   "exe": "/Users/qnguyen3/Desktop/code/interactive_books/ProgrammingMassivelyParallelProcessors/labs/build/bin/ch05_lab4_racehunt.work.metal",
+   "built": true,
+   "tests": [
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "work",
+     "backend": "metal",
+     "case": "width 16  (multiple of the tile)",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "work",
+     "backend": "metal",
+     "case": "width 32  (multiple of the tile)",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "work",
+     "backend": "metal",
+     "case": "width 3  (not a multiple of the tile)",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "work",
+     "backend": "metal",
+     "case": "width 24  (not a multiple of the tile)",
+     "pass": false,
+     "detail": "192 wrong elements; first at row 0, col 8; max abs error 4.037"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "work",
+     "backend": "metal",
+     "case": "width 40  (not a multiple of the tile)",
+     "pass": false,
+     "detail": "639 wrong elements; first at row 0, col 8; max abs error 4.859"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "work",
+     "backend": "metal",
+     "case": "width 50  (not a multiple of the tile)",
+     "pass": false,
+     "detail": "2098 wrong elements; first at row 0, col 2; max abs error 5.396"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "work",
+     "backend": "metal",
+     "case": "width 200  (not a multiple of the tile)",
+     "pass": false,
+     "detail": "19770 wrong elements; first at row 0, col 8; max abs error 6.842"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "work",
+     "backend": "metal",
+     "case": "width 333  (not a multiple of the tile)",
+     "pass": false,
+     "detail": "32898 wrong elements; first at row 0, col 13; max abs error 7.837"
+    }
+   ],
+   "bench": [],
+   "test_rc": 1,
+   "log": "  PASS  width 16  (multiple of the tile)\n  PASS  width 32  (multiple of the tile)\n  PASS  width 3  (not a multiple of the tile)\n  FAIL  width 24  (not a multiple of the tile)  -> 192 wrong elements; first at row 0, col 8; max abs error 4.037\n  FAIL  width 40  (not a multiple of the tile)  -> 639 wrong elements; first at row 0, col 8; max abs error 4.859\n  FAIL  width 50  (not a multiple of the tile)  -> 2098 wrong elements; first at row 0, col 2; max abs error 5.396\n  FAIL  width 200  (not a multiple of the tile)  -> 19770 wrong elements; first at row 0, col 8; max abs error 6.842\n  FAIL  width 333  (not a multiple of the tile)  -> 32898 wrong elements; first at row 0, col 13; max abs error 7.837\nFAILED: 3/8 test cases passed (work, metal)",
+   "test_text": "  PASS  width 16  (multiple of the tile)\n  PASS  width 32  (multiple of the tile)\n  PASS  width 3  (not a multiple of the tile)\n  FAIL  width 24  (not a multiple of the tile)  -> 192 wrong elements; first at row 0, col 8; max abs error 4.037\n  FAIL  width 40  (not a multiple of the tile)  -> 639 wrong elements; first at row 0, col 8; max abs error 4.859\n  FAIL  width 50  (not a multiple of the tile)  -> 2098 wrong elements; first at row 0, col 2; max abs error 5.396\n  FAIL  width 200  (not a multiple of the tile)  -> 19770 wrong elements; first at row 0, col 8; max abs error 6.842\n  FAIL  width 333  (not a multiple of the tile)  -> 32898 wrong elements; first at row 0, col 13; max abs error 7.837\nFAILED: 3/8 test cases passed (work, metal)"
+  },
+  {
+   "lab": "ch05/lab4_racehunt",
+   "variant": "solution",
+   "backend": "emu",
+   "tile": 16,
+   "target": "ch05_lab4_racehunt.solution.emu",
+   "exe": "/Users/qnguyen3/Desktop/code/interactive_books/ProgrammingMassivelyParallelProcessors/labs/build/bin/ch05_lab4_racehunt.solution.emu",
+   "built": true,
+   "tests": [
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "width 16  (multiple of the tile) [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "width 16  (multiple of the tile) [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "width 16  (multiple of the tile) [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "width 32  (multiple of the tile) [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "width 32  (multiple of the tile) [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "width 32  (multiple of the tile) [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "width 3  (not a multiple of the tile) [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "width 3  (not a multiple of the tile) [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "width 3  (not a multiple of the tile) [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "width 24  (not a multiple of the tile) [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "width 24  (not a multiple of the tile) [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "width 24  (not a multiple of the tile) [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "width 40  (not a multiple of the tile) [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "width 40  (not a multiple of the tile) [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "width 40  (not a multiple of the tile) [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "width 50  (not a multiple of the tile) [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "width 50  (not a multiple of the tile) [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "width 50  (not a multiple of the tile) [threads shuffled]",
+     "pass": true
+    }
+   ],
+   "bench": [],
+   "test_rc": 0,
+   "log": "",
+   "test_text": "  PASS  width 16  (multiple of the tile) [threads in order]\n  PASS  width 16  (multiple of the tile) [threads reversed]\n  PASS  width 16  (multiple of the tile) [threads shuffled]\n  PASS  width 32  (multiple of the tile) [threads in order]\n  PASS  width 32  (multiple of the tile) [threads reversed]\n  PASS  width 32  (multiple of the tile) [threads shuffled]\n  PASS  width 3  (not a multiple of the tile) [threads in order]\n  PASS  width 3  (not a multiple of the tile) [threads reversed]\n  PASS  width 3  (not a multiple of the tile) [threads shuffled]\n  PASS  width 24  (not a multiple of the tile) [threads in order]\n  PASS  width 24  (not a multiple of the tile) [threads reversed]\n  PASS  width 24  (not a multiple of the tile) [threads shuffled]\n  PASS  width 40  (not a multiple of the tile) [threads in order]\n  PASS  width 40  (not a multiple of the tile) [threads reversed]\n  PASS  width 40  (not a multiple of the tile) [threads shuffled]\n  PASS  width 50  (not a multiple of the tile) [threads in order]\n  PASS  width 50  (not a multiple of the tile) [threads reversed]\n  PASS  width 50  (not a multiple of the tile) [threads shuffled]\nOK: 18/18 test cases passed (solution, emu)"
+  },
+  {
+   "lab": "ch05/lab4_racehunt",
+   "variant": "solution",
+   "backend": "metal",
+   "tile": 16,
+   "target": "ch05_lab4_racehunt.solution.metal",
+   "exe": "/Users/qnguyen3/Desktop/code/interactive_books/ProgrammingMassivelyParallelProcessors/labs/build/bin/ch05_lab4_racehunt.solution.metal",
+   "built": true,
+   "tests": [
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "width 16  (multiple of the tile)",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "width 32  (multiple of the tile)",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "width 3  (not a multiple of the tile)",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "width 24  (not a multiple of the tile)",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "width 40  (not a multiple of the tile)",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "width 50  (not a multiple of the tile)",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "width 200  (not a multiple of the tile)",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab4_racehunt",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "width 333  (not a multiple of the tile)",
+     "pass": true
+    }
+   ],
+   "bench": [],
+   "test_rc": 0,
+   "log": "",
+   "test_text": "  PASS  width 16  (multiple of the tile)\n  PASS  width 32  (multiple of the tile)\n  PASS  width 3  (not a multiple of the tile)\n  PASS  width 24  (not a multiple of the tile)\n  PASS  width 40  (not a multiple of the tile)\n  PASS  width 50  (not a multiple of the tile)\n  PASS  width 200  (not a multiple of the tile)\n  PASS  width 333  (not a multiple of the tile)\nOK: 8/8 test cases passed (solution, metal)",
+   "bench_rc": 0,
+   "bench_text": "this lab has no benchmark."
+  },
+  {
+   "lab": "ch05/lab5_dynamic",
+   "variant": "work",
+   "backend": "emu",
+   "tile": 16,
+   "target": "ch05_lab5_dynamic.work.emu",
+   "exe": "/Users/qnguyen3/Desktop/code/interactive_books/ProgrammingMassivelyParallelProcessors/labs/build/bin/ch05_lab5_dynamic.work.emu",
+   "built": true,
+   "tests": [
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 4, width 4 [threads in order]",
+     "pass": false,
+     "detail": "16 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 4, width 4 [threads reversed]",
+     "pass": false,
+     "detail": "16 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 4, width 4 [threads shuffled]",
+     "pass": false,
+     "detail": "16 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 4, width 8 [threads in order]",
+     "pass": false,
+     "detail": "64 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 4, width 8 [threads reversed]",
+     "pass": false,
+     "detail": "64 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 4, width 8 [threads shuffled]",
+     "pass": false,
+     "detail": "64 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 4, width 3 [threads in order]",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 4, width 3 [threads reversed]",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 4, width 3 [threads shuffled]",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 4, width 13 [threads in order]",
+     "pass": false,
+     "detail": "169 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 4, width 13 [threads reversed]",
+     "pass": false,
+     "detail": "169 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 4, width 13 [threads shuffled]",
+     "pass": false,
+     "detail": "169 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 8, width 8 [threads in order]",
+     "pass": false,
+     "detail": "64 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 8, width 8 [threads reversed]",
+     "pass": false,
+     "detail": "64 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 8, width 8 [threads shuffled]",
+     "pass": false,
+     "detail": "64 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 8, width 16 [threads in order]",
+     "pass": false,
+     "detail": "256 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 8, width 16 [threads reversed]",
+     "pass": false,
+     "detail": "256 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 8, width 16 [threads shuffled]",
+     "pass": false,
+     "detail": "256 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 8, width 3 [threads in order]",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 8, width 3 [threads reversed]",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 8, width 3 [threads shuffled]",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 8, width 21 [threads in order]",
+     "pass": false,
+     "detail": "441 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 8, width 21 [threads reversed]",
+     "pass": false,
+     "detail": "441 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 8, width 21 [threads shuffled]",
+     "pass": false,
+     "detail": "441 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 16 [threads in order]",
+     "pass": false,
+     "detail": "256 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 16 [threads reversed]",
+     "pass": false,
+     "detail": "256 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 16 [threads shuffled]",
+     "pass": false,
+     "detail": "256 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 32 [threads in order]",
+     "pass": false,
+     "detail": "1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 32 [threads reversed]",
+     "pass": false,
+     "detail": "1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 32 [threads shuffled]",
+     "pass": false,
+     "detail": "1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 3 [threads in order]",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 3 [threads reversed]",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 3 [threads shuffled]",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 37 [threads in order]",
+     "pass": false,
+     "detail": "1369 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 37 [threads reversed]",
+     "pass": false,
+     "detail": "1369 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 16, width 37 [threads shuffled]",
+     "pass": false,
+     "detail": "1369 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 32, width 32 [threads in order]",
+     "pass": false,
+     "detail": "1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 32, width 32 [threads reversed]",
+     "pass": false,
+     "detail": "1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 32, width 32 [threads shuffled]",
+     "pass": false,
+     "detail": "1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 32, width 64 [threads in order]",
+     "pass": false,
+     "detail": "4096 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 32, width 64 [threads reversed]",
+     "pass": false,
+     "detail": "4096 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 32, width 64 [threads shuffled]",
+     "pass": false,
+     "detail": "4096 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 32, width 3 [threads in order]",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 32, width 3 [threads reversed]",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 32, width 3 [threads shuffled]",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 32, width 69 [threads in order]",
+     "pass": false,
+     "detail": "4761 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 32, width 69 [threads reversed]",
+     "pass": false,
+     "detail": "4761 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "emu",
+     "case": "tile 32, width 69 [threads shuffled]",
+     "pass": false,
+     "detail": "4761 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    }
+   ],
+   "bench": [],
+   "test_rc": 1,
+   "log": "device limits: 1024 threads per block, 49152 bytes of shared memory per block -> largest tile 32\n  FAIL  tile 4, width 4 [threads in order]  -> 16 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 4 [threads reversed]  -> 16 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 4 [threads shuffled]  -> 16 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 8 [threads in order]  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 8 [threads reversed]  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 8 [threads shuffled]  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 3 [threads in order]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 3 [threads reversed]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 3 [threads shuffled]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 13 [threads in order]  -> 169 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 13 [threads reversed]  -> 169 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 13 [threads shuffled]  -> 169 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 8 [threads in order]  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 8 [threads reversed]  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 8 [threads shuffled]  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 16 [threads in order]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 16 [threads reversed]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 16 [threads shuffled]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 3 [threads in order]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 3 [threads reversed]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 3 [threads shuffled]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 21 [threads in order]  -> 441 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 21 [threads reversed]  -> 441 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 21 [threads shuffled]  -> 441 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 16 [threads in order]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 16 [threads reversed]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 16 [threads shuffled]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 32 [threads in order]  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 32 [threads reversed]  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 32 [threads shuffled]  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 3 [threads in order]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 3 [threads reversed]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 3 [threads shuffled]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 37 [threads in order]  -> 1369 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 37 [threads reversed]  -> 1369 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 37 [threads shuffled]  -> 1369 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 32 [threads in order]  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 32 [threads reversed]  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 32 [threads shuffled]  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 64 [threads in order]  -> 4096 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 64 [threads reversed]  -> 4096 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 64 [threads shuffled]  -> 4096 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 3 [threads in order]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 3 [threads reversed]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 3 [threads shuffled]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 69 [threads in order]  -> 4761 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 69 [threads reversed]  -> 4761 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 69 [threads shuffled]  -> 4761 wrong elements; first at row 0, col 0; max abs error 1.235e+04\nFAILED: 0/48 test cases passed (work, emu)",
+   "test_text": "device limits: 1024 threads per block, 49152 bytes of shared memory per block -> largest tile 32\n  FAIL  tile 4, width 4 [threads in order]  -> 16 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 4 [threads reversed]  -> 16 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 4 [threads shuffled]  -> 16 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 8 [threads in order]  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 8 [threads reversed]  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 8 [threads shuffled]  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 3 [threads in order]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 3 [threads reversed]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 3 [threads shuffled]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 13 [threads in order]  -> 169 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 13 [threads reversed]  -> 169 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 13 [threads shuffled]  -> 169 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 8 [threads in order]  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 8 [threads reversed]  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 8 [threads shuffled]  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 16 [threads in order]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 16 [threads reversed]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 16 [threads shuffled]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 3 [threads in order]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 3 [threads reversed]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 3 [threads shuffled]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 21 [threads in order]  -> 441 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 21 [threads reversed]  -> 441 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 21 [threads shuffled]  -> 441 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 16 [threads in order]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 16 [threads reversed]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 16 [threads shuffled]  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 32 [threads in order]  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 32 [threads reversed]  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 32 [threads shuffled]  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 3 [threads in order]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 3 [threads reversed]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 3 [threads shuffled]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 37 [threads in order]  -> 1369 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 37 [threads reversed]  -> 1369 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 37 [threads shuffled]  -> 1369 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 32 [threads in order]  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 32 [threads reversed]  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 32 [threads shuffled]  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 64 [threads in order]  -> 4096 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 64 [threads reversed]  -> 4096 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 64 [threads shuffled]  -> 4096 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 3 [threads in order]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 3 [threads reversed]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 3 [threads shuffled]  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 69 [threads in order]  -> 4761 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 69 [threads reversed]  -> 4761 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 69 [threads shuffled]  -> 4761 wrong elements; first at row 0, col 0; max abs error 1.235e+04\nFAILED: 0/48 test cases passed (work, emu)"
+  },
+  {
+   "lab": "ch05/lab5_dynamic",
+   "variant": "work",
+   "backend": "metal",
+   "tile": 16,
+   "target": "ch05_lab5_dynamic.work.metal",
+   "exe": "/Users/qnguyen3/Desktop/code/interactive_books/ProgrammingMassivelyParallelProcessors/labs/build/bin/ch05_lab5_dynamic.work.metal",
+   "built": true,
+   "tests": [
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 4, width 4",
+     "pass": false,
+     "detail": "16 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 4, width 8",
+     "pass": false,
+     "detail": "64 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 4, width 3",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 4, width 13",
+     "pass": false,
+     "detail": "169 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 4, width 200",
+     "pass": false,
+     "detail": "40000 wrong elements; first at row 0, col 0; max abs error 1.236e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 4, width 333",
+     "pass": false,
+     "detail": "110889 wrong elements; first at row 0, col 0; max abs error 1.237e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 8, width 8",
+     "pass": false,
+     "detail": "64 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 8, width 16",
+     "pass": false,
+     "detail": "256 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 8, width 3",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 8, width 21",
+     "pass": false,
+     "detail": "441 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 8, width 200",
+     "pass": false,
+     "detail": "40000 wrong elements; first at row 0, col 0; max abs error 1.236e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 8, width 333",
+     "pass": false,
+     "detail": "110889 wrong elements; first at row 0, col 0; max abs error 1.237e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 16, width 16",
+     "pass": false,
+     "detail": "256 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 16, width 32",
+     "pass": false,
+     "detail": "1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 16, width 3",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 16, width 37",
+     "pass": false,
+     "detail": "1369 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 16, width 200",
+     "pass": false,
+     "detail": "40000 wrong elements; first at row 0, col 0; max abs error 1.237e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 16, width 333",
+     "pass": false,
+     "detail": "110889 wrong elements; first at row 0, col 0; max abs error 1.237e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 32, width 32",
+     "pass": false,
+     "detail": "1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 32, width 64",
+     "pass": false,
+     "detail": "4096 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 32, width 3",
+     "pass": false,
+     "detail": "9 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 32, width 69",
+     "pass": false,
+     "detail": "4761 wrong elements; first at row 0, col 0; max abs error 1.235e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 32, width 200",
+     "pass": false,
+     "detail": "40000 wrong elements; first at row 0, col 0; max abs error 1.236e+04"
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "work",
+     "backend": "metal",
+     "case": "tile 32, width 333",
+     "pass": false,
+     "detail": "110889 wrong elements; first at row 0, col 0; max abs error 1.237e+04"
+    }
+   ],
+   "bench": [],
+   "test_rc": 1,
+   "log": "device limits: 1024 threads per block, 32768 bytes of shared memory per block -> largest tile 32\n  FAIL  tile 4, width 4  -> 16 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 8  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 3  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 13  -> 169 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 200  -> 40000 wrong elements; first at row 0, col 0; max abs error 1.236e+04\n  FAIL  tile 4, width 333  -> 110889 wrong elements; first at row 0, col 0; max abs error 1.237e+04\n  FAIL  tile 8, width 8  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 16  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 3  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 21  -> 441 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 200  -> 40000 wrong elements; first at row 0, col 0; max abs error 1.236e+04\n  FAIL  tile 8, width 333  -> 110889 wrong elements; first at row 0, col 0; max abs error 1.237e+04\n  FAIL  tile 16, width 16  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 32  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 3  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 37  -> 1369 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 200  -> 40000 wrong elements; first at row 0, col 0; max abs error 1.237e+04\n  FAIL  tile 16, width 333  -> 110889 wrong elements; first at row 0, col 0; max abs error 1.237e+04\n  FAIL  tile 32, width 32  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 64  -> 4096 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 3  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 69  -> 4761 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 200  -> 40000 wrong elements; first at row 0, col 0; max abs error 1.236e+04\n  FAIL  tile 32, width 333  -> 110889 wrong elements; first at row 0, col 0; max abs error 1.237e+04\nFAILED: 0/24 test cases passed (work, metal)",
+   "test_text": "device limits: 1024 threads per block, 32768 bytes of shared memory per block -> largest tile 32\n  FAIL  tile 4, width 4  -> 16 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 8  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 3  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 13  -> 169 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 4, width 200  -> 40000 wrong elements; first at row 0, col 0; max abs error 1.236e+04\n  FAIL  tile 4, width 333  -> 110889 wrong elements; first at row 0, col 0; max abs error 1.237e+04\n  FAIL  tile 8, width 8  -> 64 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 16  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 3  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 21  -> 441 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 8, width 200  -> 40000 wrong elements; first at row 0, col 0; max abs error 1.236e+04\n  FAIL  tile 8, width 333  -> 110889 wrong elements; first at row 0, col 0; max abs error 1.237e+04\n  FAIL  tile 16, width 16  -> 256 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 32  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 3  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 37  -> 1369 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 16, width 200  -> 40000 wrong elements; first at row 0, col 0; max abs error 1.237e+04\n  FAIL  tile 16, width 333  -> 110889 wrong elements; first at row 0, col 0; max abs error 1.237e+04\n  FAIL  tile 32, width 32  -> 1024 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 64  -> 4096 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 3  -> 9 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 69  -> 4761 wrong elements; first at row 0, col 0; max abs error 1.235e+04\n  FAIL  tile 32, width 200  -> 40000 wrong elements; first at row 0, col 0; max abs error 1.236e+04\n  FAIL  tile 32, width 333  -> 110889 wrong elements; first at row 0, col 0; max abs error 1.237e+04\nFAILED: 0/24 test cases passed (work, metal)"
+  },
+  {
+   "lab": "ch05/lab5_dynamic",
+   "variant": "solution",
+   "backend": "emu",
+   "tile": 16,
+   "target": "ch05_lab5_dynamic.solution.emu",
+   "exe": "/Users/qnguyen3/Desktop/code/interactive_books/ProgrammingMassivelyParallelProcessors/labs/build/bin/ch05_lab5_dynamic.solution.emu",
+   "built": true,
+   "tests": [
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 4, width 4 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 4, width 4 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 4, width 4 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 4, width 8 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 4, width 8 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 4, width 8 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 4, width 3 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 4, width 3 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 4, width 3 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 4, width 13 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 4, width 13 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 4, width 13 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 8 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 8 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 8 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 16 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 16 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 16 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 3 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 3 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 3 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 21 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 21 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 8, width 21 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 16 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 16 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 16 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 32 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 32 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 32 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 3 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 3 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 3 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 37 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 37 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 16, width 37 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 32 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 32 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 32 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 64 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 64 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 64 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 3 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 3 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 3 [threads shuffled]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 69 [threads in order]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 69 [threads reversed]",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "emu",
+     "case": "tile 32, width 69 [threads shuffled]",
+     "pass": true
+    }
+   ],
+   "bench": [],
+   "test_rc": 0,
+   "log": "",
+   "test_text": "device limits: 1024 threads per block, 49152 bytes of shared memory per block -> largest tile 32\n  PASS  tile 4, width 4 [threads in order]\n  PASS  tile 4, width 4 [threads reversed]\n  PASS  tile 4, width 4 [threads shuffled]\n  PASS  tile 4, width 8 [threads in order]\n  PASS  tile 4, width 8 [threads reversed]\n  PASS  tile 4, width 8 [threads shuffled]\n  PASS  tile 4, width 3 [threads in order]\n  PASS  tile 4, width 3 [threads reversed]\n  PASS  tile 4, width 3 [threads shuffled]\n  PASS  tile 4, width 13 [threads in order]\n  PASS  tile 4, width 13 [threads reversed]\n  PASS  tile 4, width 13 [threads shuffled]\n  PASS  tile 8, width 8 [threads in order]\n  PASS  tile 8, width 8 [threads reversed]\n  PASS  tile 8, width 8 [threads shuffled]\n  PASS  tile 8, width 16 [threads in order]\n  PASS  tile 8, width 16 [threads reversed]\n  PASS  tile 8, width 16 [threads shuffled]\n  PASS  tile 8, width 3 [threads in order]\n  PASS  tile 8, width 3 [threads reversed]\n  PASS  tile 8, width 3 [threads shuffled]\n  PASS  tile 8, width 21 [threads in order]\n  PASS  tile 8, width 21 [threads reversed]\n  PASS  tile 8, width 21 [threads shuffled]\n  PASS  tile 16, width 16 [threads in order]\n  PASS  tile 16, width 16 [threads reversed]\n  PASS  tile 16, width 16 [threads shuffled]\n  PASS  tile 16, width 32 [threads in order]\n  PASS  tile 16, width 32 [threads reversed]\n  PASS  tile 16, width 32 [threads shuffled]\n  PASS  tile 16, width 3 [threads in order]\n  PASS  tile 16, width 3 [threads reversed]\n  PASS  tile 16, width 3 [threads shuffled]\n  PASS  tile 16, width 37 [threads in order]\n  PASS  tile 16, width 37 [threads reversed]\n  PASS  tile 16, width 37 [threads shuffled]\n  PASS  tile 32, width 32 [threads in order]\n  PASS  tile 32, width 32 [threads reversed]\n  PASS  tile 32, width 32 [threads shuffled]\n  PASS  tile 32, width 64 [threads in order]\n  PASS  tile 32, width 64 [threads reversed]\n  PASS  tile 32, width 64 [threads shuffled]\n  PASS  tile 32, width 3 [threads in order]\n  PASS  tile 32, width 3 [threads reversed]\n  PASS  tile 32, width 3 [threads shuffled]\n  PASS  tile 32, width 69 [threads in order]\n  PASS  tile 32, width 69 [threads reversed]\n  PASS  tile 32, width 69 [threads shuffled]\nOK: 48/48 test cases passed (solution, emu)"
+  },
+  {
+   "lab": "ch05/lab5_dynamic",
+   "variant": "solution",
+   "backend": "metal",
+   "tile": 16,
+   "target": "ch05_lab5_dynamic.solution.metal",
+   "exe": "/Users/qnguyen3/Desktop/code/interactive_books/ProgrammingMassivelyParallelProcessors/labs/build/bin/ch05_lab5_dynamic.solution.metal",
+   "built": true,
+   "tests": [
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 4, width 4",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 4, width 8",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 4, width 3",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 4, width 13",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 4, width 200",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 4, width 333",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 8, width 8",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 8, width 16",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 8, width 3",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 8, width 21",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 8, width 200",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 8, width 333",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 16, width 16",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 16, width 32",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 16, width 3",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 16, width 37",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 16, width 200",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 16, width 333",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 32, width 32",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 32, width 64",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 32, width 3",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 32, width 69",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 32, width 200",
+     "pass": true
+    },
+    {
+     "kind": "test",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "case": "tile 32, width 333",
+     "pass": true
+    }
+   ],
+   "bench": [
+    {
+     "kind": "bench",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "name": "tiled_dynamic",
+     "tile": 4,
+     "width": 2048,
+     "seconds": 0.0626180833,
+     "gflops": 274.35955,
+     "shared_bytes_per_block": 128
+    },
+    {
+     "kind": "bench",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "name": "tiled_dynamic",
+     "tile": 8,
+     "width": 2048,
+     "seconds": 0.02644075,
+     "gflops": 649.749693,
+     "shared_bytes_per_block": 512
+    },
+    {
+     "kind": "bench",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "name": "tiled_dynamic",
+     "tile": 16,
+     "width": 2048,
+     "seconds": 0.0224143333,
+     "gflops": 766.467998,
+     "shared_bytes_per_block": 2048
+    },
+    {
+     "kind": "bench",
+     "lab": "ch05/lab5_dynamic",
+     "variant": "solution",
+     "backend": "metal",
+     "name": "tiled_dynamic",
+     "tile": 32,
+     "width": 2048,
+     "seconds": 0.022864125,
+     "gflops": 751.389752,
+     "shared_bytes_per_block": 8192
+    }
+   ],
+   "test_rc": 0,
+   "log": "",
+   "test_text": "device limits: 1024 threads per block, 32768 bytes of shared memory per block -> largest tile 32\n  PASS  tile 4, width 4\n  PASS  tile 4, width 8\n  PASS  tile 4, width 3\n  PASS  tile 4, width 13\n  PASS  tile 4, width 200\n  PASS  tile 4, width 333\n  PASS  tile 8, width 8\n  PASS  tile 8, width 16\n  PASS  tile 8, width 3\n  PASS  tile 8, width 21\n  PASS  tile 8, width 200\n  PASS  tile 8, width 333\n  PASS  tile 16, width 16\n  PASS  tile 16, width 32\n  PASS  tile 16, width 3\n  PASS  tile 16, width 37\n  PASS  tile 16, width 200\n  PASS  tile 16, width 333\n  PASS  tile 32, width 32\n  PASS  tile 32, width 64\n  PASS  tile 32, width 3\n  PASS  tile 32, width 69\n  PASS  tile 32, width 200\n  PASS  tile 32, width 333\nOK: 24/24 test cases passed (solution, metal)",
+   "bench_rc": 0,
+   "bench_text": "width 2048, one binary, tile width chosen at run time, best of 5 runs\n  T=4      62.6181 ms     274.36 GFLOP/s  (128 bytes of shared memory per block)\n  T=8      26.4407 ms     649.75 GFLOP/s  (512 bytes of shared memory per block)\n  T=16     22.4143 ms     766.47 GFLOP/s  (2048 bytes of shared memory per block)\n  T=32     22.8641 ms     751.39 GFLOP/s  (8192 bytes of shared memory per block)"
+  }
+ ],
+ "cuda_frontend_check": {
+  "available": true,
+  "why": "",
+  "files": [
+   {
+    "file": "labs/ch05/lab1_roofline/solution/kernel.cu",
+    "ok": true,
+    "log": ""
+   },
+   {
+    "file": "labs/ch05/lab1_roofline/starter/kernel.cu",
+    "ok": true,
+    "log": ""
+   },
+   {
+    "file": "labs/ch05/lab1_roofline/work/kernel.cu",
+    "ok": true,
+    "log": ""
+   },
+   {
+    "file": "labs/ch05/lab2_tiled/solution/kernel.cu",
+    "ok": true,
+    "log": ""
+   },
+   {
+    "file": "labs/ch05/lab2_tiled/starter/kernel.cu",
+    "ok": true,
+    "log": ""
+   },
+   {
+    "file": "labs/ch05/lab2_tiled/work/kernel.cu",
+    "ok": true,
+    "log": ""
+   },
+   {
+    "file": "labs/ch05/lab3_gemm/solution/kernel.cu",
+    "ok": true,
+    "log": ""
+   },
+   {
+    "file": "labs/ch05/lab3_gemm/starter/kernel.cu",
+    "ok": true,
+    "log": ""
+   },
+   {
+    "file": "labs/ch05/lab3_gemm/work/kernel.cu",
+    "ok": true,
+    "log": ""
+   },
+   {
+    "file": "labs/ch05/lab4_racehunt/solution/kernel.cu",
+    "ok": true,
+    "log": ""
+   },
+   {
+    "file": "labs/ch05/lab4_racehunt/starter/kernel.cu",
+    "ok": true,
+    "log": ""
+   },
+   {
+    "file": "labs/ch05/lab4_racehunt/work/kernel.cu",
+    "ok": true,
+    "log": ""
+   },
+   {
+    "file": "labs/ch05/lab5_dynamic/solution/kernel.cu",
+    "ok": true,
+    "log": ""
+   },
+   {
+    "file": "labs/ch05/lab5_dynamic/starter/kernel.cu",
+    "ok": true,
+    "log": ""
+   },
+   {
+    "file": "labs/ch05/lab5_dynamic/work/kernel.cu",
+    "ok": true,
+    "log": ""
+   },
+   {
+    "file": "labs/ch05/shared/naive_matmul.cu",
+    "ok": true,
+    "log": ""
+   },
+   {
+    "file": "labs/ch05/snippets/transpose_tiles_defect.cu",
+    "ok": true,
+    "log": ""
+   },
+   {
+    "file": "labs/ch05/snippets/where_does_it_live.cu",
+    "ok": true,
+    "log": ""
+   }
+  ],
+  "compiler": "Apple clang version 21.0.0 (clang-2100.3.34.2)"
+ }
+}

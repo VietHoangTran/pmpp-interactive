@@ -100,3 +100,88 @@ shows it passing. Never write "verified" for anything else.
   the clip's script. Use the shared `<Scene>` player, which provides it; never build a
   video or animation with narration that lacks the switch. A beat with no audio shows its
   script regardless.
+
+## Building a chapter (after the pilot)
+
+Chapter 5 is the template: read `app/src/chapters/ch05/` and `labs/ch05/` before writing.
+`PLAN.md` gives each chapter's depth tier and project milestone.
+
+**Where things go** (NN = chapter id: `ch06`, `appA`, `x1`, ...)
+- `app/src/chapters/NN/index.tsx`: metadata and one `load` per section. Section ids are
+  `start`, the book's section numbers (`6.1`), `labs`, `wrap`. Never import a section
+  statically anywhere; sections and chapters load on demand.
+- `app/src/chapters/NN/S<id>.tsx`: one section each, exporting a component and a
+  `questions...` record. Question ids: `NN/<section>/q-<slug>`; predictions `.../p-<slug>`.
+- `app/src/sim/<name>.ts` + `<name>.test.ts`: any model an interactive runs on. Models
+  are tested; components do not re-implement kernel logic.
+- `app/e2e/NN-<section>.mjs`: a browser check per section that drives every interactive
+  and asserts what it shows. It must intercept `PUT /api/progress` (see ch05 scripts).
+- `labs/NN/labM_name/{starter,work,solution}` + `main.cpp` + `CMakeLists.txt` + `README.md`.
+- `content/NN/narration/<scene>-<n>.txt`: narration scripts.
+- `notes/today/NN-facts.md`: HIP / Metal / "today" facts checked against current docs.
+- Do not edit `registry.ts`, shared components, `app.css`, the lab runtime or another
+  chapter's files. If a shared piece needs to change, say so in your report.
+
+**Depth**
+- Deep: every book section gets a page; several interactives; 3 or more labs.
+- Standard: every book section gets a page; 1 or 2 labs.
+- Condensed: one or two pages that keep the transferable technique and name plainly
+  what was left out and where it is in the book; at most one optional lab.
+- Always: a `start` page (what the chapter is for, a prerequisite check drawn from
+  earlier chapters' questions and notes) and a `wrap` page (what to carry forward, a
+  mixed check, a map of the book's exercises to where they are worked, the PDF's
+  apparent errata for the chapter, the project milestone).
+
+**Choosing the format for an idea**
+- Something the reader should discover by changing a parameter: an explorer.
+- A process that unfolds step by step under the reader's control: a stepper.
+- A process that unfolds in time and is best watched once with an explanation: a narrated
+  animation (`<Scene>`). Use them freely where they fit; budget is not the constraint
+  (reader's instruction, 2026-11-20). They must show something a still picture cannot,
+  and every beat's drawing must be computed from the same tested model as the
+  interactives, not hand-drawn numbers.
+- A claim the reader can test on their own GPU: a lab with a prediction made first.
+- Bridge to what the reader already knows: where this sits under a PyTorch call, an
+  attention layer, a sampler, a quantised model. One concrete bridge per section at most.
+
+**Narration**
+- Authors write scripts and the `<Scene>` beats only. Audio is generated centrally by the
+  main session through the ElevenLabs MCP tool (`eleven_v4`, the fixed voice). Never
+  call a speech tool or API from a chapter build.
+- A script is 35 to 60 words per beat, written for the ear: short sentences, digits for
+  numbers, no symbols read aloud, `[short pause]` sparingly, single letters for names
+  (M, N, T) are fine.
+
+**Labs**
+- Student-facing code is the real API of its backend. One `.cu` serves CUDA, HIP and the
+  emulators; Metal gets `kernel.metal` and `launch.mm`. If Metal cannot express the
+  lab (say so, with the fact that shows it), the lab may be CUDA-family only.
+- Use your own build directory and never the default one:
+  `export PMPP_BUILD_DIR=$PWD/labs/build-NN` before any `labs/pmpp.py` call.
+  Do not run `./verify.sh` (it rewrites shared reports); run labs with `pmpp.py run`.
+- Done means: solution passes on Metal and on the emulators that apply; untouched starter
+  builds and fails; every planted defect fails on its own; `.cu` files pass the CUDA
+  front-end check; the lab has a README with a prediction to make before benchmarking.
+- Benchmarks report what was measured. No expected values, no device constants.
+- Project milestones follow these conventions so later chapters can compose them:
+  row-major `float` tensors unless the lab is about another type; batch dimension first;
+  raw device pointers and explicit sizes as kernel arguments; a `launch<Name>` host
+  function beside each kernel; the CPU reference lives in `main.cpp`.
+
+**Running the app while building**
+- Start your own server on your own port and point checks at it:
+  `cd app && PORT=<port> node server.mjs &` then `APP_URL=http://localhost:<port> node e2e/NN-x.mjs`.
+  Stop it when done. Screenshots: `APP_URL=... node e2e/shot.mjs NN/6.1 <file outside the repo>`.
+- `npx tsc --noEmit` covers the whole app; other chapters may be mid-build, so judge
+  only errors in your own files. Run your own unit tests with `npx vitest run <path>`.
+
+**Accuracy**
+- What the book says comes from `notes/NN.md` only, with pages. What vendors say comes
+  from `notes/today/*.md` only. Anything else is labelled as ours (`<Beyond>`), and
+  anything unchecked is labelled unverified.
+- Present the book's device figures as the book's example. Reader figures come from
+  `useReports()`.
+- Code shown in a lesson is a lab file loaded with `useLabFile`, or a snippet stored in
+  `labs/NN/snippets/` with a unit test tying the lesson copy to the file.
+- Where the PDF looks wrong, say so (the notes list these) and show the corrected,
+  tested version.
