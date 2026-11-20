@@ -1,0 +1,245 @@
+[
+ {
+  "id": "ch01",
+  "title": "Introduction",
+  "pdfStart": 29,
+  "pdfEnd": 48,
+  "bookStart": 1,
+  "bookEnd": 20,
+  "offset": 28
+ },
+ {
+  "id": "ch02",
+  "title": "Heterogeneous data-parallel computing",
+  "pdfStart": 49,
+  "pdfEnd": 72,
+  "bookStart": 21,
+  "bookEnd": 44,
+  "offset": 28
+ },
+ {
+  "id": "ch03",
+  "title": "Multidimensional grids and data",
+  "pdfStart": 73,
+  "pdfEnd": 94,
+  "bookStart": 45,
+  "bookEnd": 66,
+  "offset": 28
+ },
+ {
+  "id": "ch04",
+  "title": "Compute architecture and scheduling",
+  "pdfStart": 95,
+  "pdfEnd": 120,
+  "bookStart": 67,
+  "bookEnd": 92,
+  "offset": 28
+ },
+ {
+  "id": "ch05",
+  "title": "Memory architecture and data locality",
+  "pdfStart": 121,
+  "pdfEnd": 150,
+  "bookStart": 93,
+  "bookEnd": 122,
+  "offset": 28
+ },
+ {
+  "id": "ch06",
+  "title": "Performance considerations",
+  "pdfStart": 151,
+  "pdfEnd": 186,
+  "bookStart": 123,
+  "bookEnd": 158,
+  "offset": 28
+ },
+ {
+  "id": "ch07",
+  "title": "Convolution",
+  "pdfStart": 187,
+  "pdfEnd": 209,
+  "bookStart": 159,
+  "bookEnd": 181,
+  "offset": 28
+ },
+ {
+  "id": "ch08",
+  "title": "Stencil computation",
+  "pdfStart": 210,
+  "pdfEnd": 227,
+  "bookStart": 183,
+  "bookEnd": 200,
+  "offset": 27
+ },
+ {
+  "id": "ch09",
+  "title": "Histogram",
+  "pdfStart": 228,
+  "pdfEnd": 247,
+  "bookStart": 201,
+  "bookEnd": 220,
+  "offset": 27
+ },
+ {
+  "id": "ch10",
+  "title": "Reduction",
+  "pdfStart": 248,
+  "pdfEnd": 277,
+  "bookStart": 221,
+  "bookEnd": 250,
+  "offset": 27
+ },
+ {
+  "id": "ch11",
+  "title": "Scan",
+  "pdfStart": 278,
+  "pdfEnd": 314,
+  "bookStart": 251,
+  "bookEnd": 287,
+  "offset": 27
+ },
+ {
+  "id": "ch12",
+  "title": "Filter",
+  "pdfStart": 315,
+  "pdfEnd": 328,
+  "bookStart": 289,
+  "bookEnd": 302,
+  "offset": 26
+ },
+ {
+  "id": "ch13",
+  "title": "Merge",
+  "pdfStart": 329,
+  "pdfEnd": 354,
+  "bookStart": 303,
+  "bookEnd": 328,
+  "offset": 26
+ },
+ {
+  "id": "ch14",
+  "title": "Sorting",
+  "pdfStart": 355,
+  "pdfEnd": 374,
+  "bookStart": 329,
+  "bookEnd": 348,
+  "offset": 26
+ },
+ {
+  "id": "ch15",
+  "title": "Advanced optimizations for matrix multiplication",
+  "pdfStart": 375,
+  "pdfEnd": 398,
+  "bookStart": 349,
+  "bookEnd": 372,
+  "offset": 26
+ },
+ {
+  "id": "ch16",
+  "title": "Dynamic programming and wavefront parallelism",
+  "pdfStart": 399,
+  "pdfEnd": 426,
+  "bookStart": 373,
+  "bookEnd": 400,
+  "offset": 26
+ },
+ {
+  "id": "ch17",
+  "title": "Sparse matrix computation",
+  "pdfStart": 427,
+  "pdfEnd": 450,
+  "bookStart": 401,
+  "bookEnd": 424,
+  "offset": 26
+ },
+ {
+  "id": "ch18",
+  "title": "Graph traversal",
+  "pdfStart": 451,
+  "pdfEnd": 477,
+  "bookStart": 425,
+  "bookEnd": 451,
+  "offset": 26
+ },
+ {
+  "id": "ch19",
+  "title": "Convolutional neural networks",
+  "pdfStart": 478,
+  "pdfEnd": 500,
+  "bookStart": 453,
+  "bookEnd": 475,
+  "offset": 25
+ },
+ {
+  "id": "ch20",
+  "title": "Large language models",
+  "pdfStart": 501,
+  "pdfEnd": 536,
+  "bookStart": 477,
+  "bookEnd": 512,
+  "offset": 24
+ },
+ {
+  "id": "ch21",
+  "title": "Electrostatic potential map",
+  "pdfStart": 537,
+  "pdfEnd": 552,
+  "bookStart": 513,
+  "bookEnd": 528,
+  "offset": 24
+ },
+ {
+  "id": "ch22",
+  "title": "Algorithm selection, problem decomposition, and problem formulation",
+  "pdfStart": 553,
+  "pdfEnd": 564,
+  "bookStart": 529,
+  "bookEnd": 540,
+  "offset": 24
+ },
+ {
+  "id": "ch23",
+  "title": "Multi-GPU programming",
+  "pdfStart": 565,
+  "pdfEnd": 600,
+  "bookStart": 541,
+  "bookEnd": 576,
+  "offset": 24
+ },
+ {
+  "id": "ch24",
+  "title": "Conclusion and future outlook",
+  "pdfStart": 601,
+  "pdfEnd": 606,
+  "bookStart": 577,
+  "bookEnd": 582,
+  "offset": 24
+ },
+ {
+  "id": "appA",
+  "title": "Numerical considerations",
+  "pdfStart": 607,
+  "pdfEnd": 624,
+  "bookStart": 583,
+  "bookEnd": 600,
+  "offset": 24
+ },
+ {
+  "id": "appB",
+  "title": "Deep learning basics",
+  "pdfStart": 625,
+  "pdfEnd": 646,
+  "bookStart": 601,
+  "bookEnd": 622,
+  "offset": 24
+ },
+ {
+  "id": "appC",
+  "title": "CUDA memories, address spaces, and pointers",
+  "pdfStart": 647,
+  "pdfEnd": 654,
+  "bookStart": 623,
+  "bookEnd": 630,
+  "offset": 24
+ }
+]

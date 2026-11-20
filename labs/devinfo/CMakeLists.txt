@@ -1,0 +1,16 @@
+# One small executable per backend that prints the device's properties.
+foreach(b ${PMPP_BACKENDS})
+  set(tgt devinfo.${b})
+  if(b STREQUAL "metal")
+    set(wrap ${CMAKE_CURRENT_BINARY_DIR}/${tgt}.main.mm)
+    file(WRITE ${wrap} "#include \"${CMAKE_CURRENT_SOURCE_DIR}/main.cpp\"\n")
+    add_executable(${tgt} ${wrap})
+  else()
+    add_executable(${tgt} main.cpp)
+  endif()
+  target_link_libraries(${tgt} PRIVATE pmpp_rt_${b})
+  target_compile_definitions(${tgt} PRIVATE PMPP_LAB="devinfo" PMPP_VARIANT="-")
+  set_target_properties(${tgt} PROPERTIES EXCLUDE_FROM_ALL TRUE)
+  file(APPEND ${CMAKE_BINARY_DIR}/pmpp_targets.txt
+    "devinfo|-|${b}|0|${tgt}|${CMAKE_BINARY_DIR}/bin/${tgt}\n")
+endforeach()
