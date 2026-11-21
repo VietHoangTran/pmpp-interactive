@@ -66,7 +66,7 @@ const today = await page.$eval('table[data-table="today"]', (e) => e.textContent
 check('the decode table names the three routes and their kernels', ['Int4WeightOnlyConfig', '_weight_int4pack_mm', 'QuantizedLinear', 'affine_qmv_fast', 'mmvq', 'mul_mv'].every((t) => today.includes(t)));
 
 // ---------------------------------------------------------------- classification
-const ANSWERS = { 'torchao-int4': 'int4pack', 'int-mm': 'refused', mlx: 'mlx-qmv', 'llama-cuda': 'mmvq', 'llama-metal': 'mulmv' };
+const ANSWERS = { 'torch-int4': 'int4pack', 'int-mm': 'refused', mlx: 'mlx-qmv', 'llama-cuda': 'mmvq', 'llama-metal': 'mulmv' };
 const disabled = await page.evaluate((C) => [...document.querySelectorAll(C + ' button')].find((b) => b.textContent.trim() === 'Check').disabled, C);
 check('Check is disabled until every call has an answer', disabled);
 for (const [call, fam] of Object.entries(ANSWERS)) await pick(call, fam);

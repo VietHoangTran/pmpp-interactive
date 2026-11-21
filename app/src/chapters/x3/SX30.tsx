@@ -313,7 +313,7 @@ export function SX30() {
           settle: unverified.
         </p>
       </Today>
-      <Excerpt x={EXCERPTS_SX30.addH} caption="An example: the whole source of PyTorch’s CUDA add kernel, which X3.1 explains." />
+      <Excerpt x={EXCERPTS_SX30.addH} caption="An example: the only op-specific source of PyTorch’s CUDA add kernel, its scalar body; torchgen generates the rest at build time, as X3.1 explains." />
 
       <h2>The milestone</h2>
       <p>
@@ -324,8 +324,9 @@ export function SX30() {
         <a href={href('x3', 'X3.8')}>X3.8</a>.
       </p>
       <p>
-        M10 runs float32 weights. At the facts pass there was no module X2 in the repository, so no quantised layer (M9) to
-        switch in; whether M10 gains that switch is settled when X2 lands.
+        M10 runs float32 weights. Module X2's quantised layer (M9, lab X2.4) now exists, but its launch function takes a
+        quantised matrix descriptor rather than the float weights M10’s linear-layer slot expects, so M10 does not switch it
+        in yet. The <a href={href('x3', 'labs')}>labs page</a> says what would have to meet.
       </p>
       <Beyond title="Project note">
         <p>

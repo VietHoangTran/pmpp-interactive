@@ -1,1 +1,1 @@
-RoPE rotates the query and the key at this position. The value is left alone. Then the key and the value are appended to this layer's cache, at row pos, by the append kernel of lab 20.4. The cache grows by exactly one row per layer, every step.
+RoPE rotates the query and the key at this position. The value is left alone. Then the key and the value are appended to this layer's cache, in the row for this position, by the append kernel of lab 20.4. The cache grows by exactly one row per layer, every step.

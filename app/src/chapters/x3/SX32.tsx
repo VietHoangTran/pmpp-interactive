@@ -701,8 +701,8 @@ export function SX32() {
       </p>
       <Excerpt x={x.embedTorch} caption="PyTorch’s embedding_symint, the whole forward." />
       <p>
-        MLX’s <code>nn.Embedding</code> is <code>self.weight[x]</code>. All three are lab 22.2’s <code>launchEmbed</code>:
-        output-centric, one thread per output element reading one element of a row, no atomics.
+        MLX’s <code>nn.Embedding</code> is <code>self.weight[x]</code>. All three do what lab 22.2’s <code>launchEmbed</code>{' '}
+        does, a row gather with one output row per token id. How each maps threads to outputs was not read.
       </p>
       <Today checked={CHECKED('B7')}>
         <p>

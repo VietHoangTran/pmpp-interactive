@@ -87,8 +87,127 @@ def build(target):
     return rc == 0, out
 
 
+# A sanitizer report has begun when one of these appears in a lab's output.
+SANITIZER_MARKS = ("ERROR: AddressSanitizer", "ThreadSanitizer: SEGV", "ThreadSanitizer: BUS",
+                   "ERROR: ThreadSanitizer", "ThreadSanitizer: CHECK failed")
+SANITIZER_STALL = 60  # seconds of silence after a report starts before the run is stopped
+
+
+def sh_watched(cmd, timeout, env=None):
+    """Like sh(), for lab executables. The run gets its own process group, so a timeout
+    stops the sanitizer's symbolizer too (macOS's atos can hang while a report prints and
+    keeps the output pipe open). Once a sanitizer report has started, a minute without new
+    output ends the run, keeping the report printed so far."""
+    import threading, time
+    try:
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, start_new_session=True, env=env)
+    except FileNotFoundError:
+        return 127, "command not found: %s" % cmd[0]
+    chunks, last = [], [time.monotonic()]
+
+    def reader():
+        for line in iter(p.stdout.readline, b""):
+            chunks.append(line)
+            last[0] = time.monotonic()
+    t = threading.Thread(target=reader, daemon=True)
+    t.start()
+    start, note = time.monotonic(), ""
+    while p.poll() is None:
+        time.sleep(0.2)
+        now = time.monotonic()
+        if timeout and now - start > timeout:
+            note = "\n[timed out after %ss]" % timeout
+        elif now - last[0] > SANITIZER_STALL and any(m in b"".join(chunks[-400:]).decode("utf-8", "replace")
+                                                      for m in SANITIZER_MARKS):
+            note = "\n[stopped: the sanitizer report stalled for %ss (its symbolizer hung); the report so far is above]" % SANITIZER_STALL
+        if note:
+            try:
+                os.killpg(p.pid, 9)
+            except OSError:
+                pass
+            break
+    try:
+        p.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        pass
+    try:
+        os.killpg(p.pid, 9)  # whatever the run left behind (a symbolizer still holding the pipe)
+    except OSError:
+        pass
+    t.join(timeout=5)
+    out = b"".join(chunks).decode("utf-8", "replace") + note
+    if note.startswith("\n[timed out"):
+        return 124, out
+    return (p.returncode if p.returncode is not None else -9), out
+
+
+# On macOS the sanitizers symbolize through atos attached to the live process, and that
+# sometimes hangs before the report prints (seen on labs 18.1, X2.3 and X3.1). So emulator
+# runs start with symbolize=0 and pmpp.py looks the addresses up afterwards with atos on the
+# binary file, which does not attach and is quick; the report then reads as usual.
+OFFLINE_SYMBOLIZE = platform.system() == "Darwin" and shutil.which("atos") is not None
+_FRAME = re.compile(r"^(\s*#\d+ )(0x[0-9a-f]+\s+)?(?:in )?(?:<null> <null> |<null> )?\(([^()\s]+):(arm64e?|x86_64)\+(0x[0-9a-f]+)\)")
+_SUMMARY_LOC = re.compile(r"\(([^()\s]+):(arm64e?|x86_64)\+(0x[0-9a-f]+)\)\s*$")
+
+
+def emulator_env(exe):
+    env = dict(os.environ)
+    if OFFLINE_SYMBOLIZE and exe.endswith((".emu", ".race")):
+        for var in ("ASAN_OPTIONS", "TSAN_OPTIONS"):
+            env[var] = (env[var] + ":" if env.get(var) else "") + "symbolize=0"
+    return env
+
+
+def symbolize_offline(out, exe):
+    """Replace unsymbolized frames of `exe` in a sanitizer report with 'function file:line'."""
+    if not OFFLINE_SYMBOLIZE or not exe.endswith((".emu", ".race")):
+        return out
+    name = os.path.basename(exe)
+    mine = lambda mod: mod == exe or os.path.basename(mod) == name
+    lines, want = out.splitlines(), {}
+    for ln in lines:
+        m = _FRAME.match(ln)
+        if m and mine(m.group(3)):
+            want.setdefault(m.group(4), set()).add(m.group(5))
+        if ln.lstrip().startswith("SUMMARY:"):
+            s = _SUMMARY_LOC.search(ln)
+            if s and mine(s.group(1)):
+                want.setdefault(s.group(2), set()).add(s.group(3))
+    if not want:
+        return out
+    names = {}
+    for arch, addrs in want.items():
+        addrs = sorted(addrs)
+        for i in range(0, len(addrs), 400):
+            chunk = addrs[i:i + 400]
+            rc, res = sh(["atos", "-o", exe, "-arch", arch] + chunk, timeout=60)
+            got = res.splitlines() if rc == 0 else []
+            if len(got) != len(chunk):
+                continue  # leave these frames as addresses
+            for a, g in zip(chunk, got):
+                m = re.match(r"^(.*?) \(in [^)]*\)(?: \(([^()]+:\d+)\))?", g)
+                if m:
+                    names[(arch, a)] = (m.group(1), m.group(2))
+    res_lines = []
+    for ln in lines:
+        m = _FRAME.match(ln)
+        if m and mine(m.group(3)) and (m.group(4), m.group(5)) in names:
+            fn, loc = names[(m.group(4), m.group(5))]
+            # ASan frames read "#0 0xADDR in fn file:line", TSan frames "#0 fn file:line".
+            lead = m.group(1) + (m.group(2).strip() + " in " if m.group(2) else "")
+            ln = "%s%s%s (%s:%s+%s)%s" % (lead, fn, " " + loc if loc else "", name, m.group(4), m.group(5), ln[m.end():])
+        elif ln.lstrip().startswith("SUMMARY:"):
+            s = _SUMMARY_LOC.search(ln)
+            if s and mine(s.group(1)) and (s.group(2), s.group(3)) in names:
+                fn, loc = names[(s.group(2), s.group(3))]
+                ln = ln[:s.start()] + ("%s in %s" % (loc, fn) if loc else "in " + fn)
+        res_lines.append(ln)
+    return "\n".join(res_lines) + ("\n" if out.endswith("\n") else "")
+
+
 def run_exe(exe, flags, timeout):
-    rc, out = sh([exe] + flags, timeout=timeout)
+    rc, out = sh_watched([exe] + flags, timeout=timeout, env=emulator_env(exe))
+    out = symbolize_offline(out, exe)
     rows, text = [], []
     for line in out.splitlines():
         if line.startswith("@pmpp "):

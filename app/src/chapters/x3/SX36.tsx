@@ -209,7 +209,7 @@ function TieStepper() {
       </div>
 
       <div style={{ overflowX: 'auto', marginBottom: '0.8rem' }}>
-      <table className="data" style={{ margin: 0, background: 'var(--page)', maxWidth: '48rem', minWidth: '30rem' }} data-part="guesses">
+      <table className="data" style={{ margin: 0, background: 'var(--page)', maxWidth: '48rem' }} data-part="guesses">
         <thead>
           <tr><th style={{ paddingLeft: '0.6rem' }}>Implementation</th><th>your answer</th>{revealed ? <><th>returns</th><th>rule</th></> : null}</tr>
         </thead>
@@ -473,7 +473,6 @@ export function SX36() {
         butterfly visits the same offsets but every lane ends with a result, and with a strict comparison the lanes need not
         agree on the index. Predict before you step through it.
       </p>
-      <Ask q={q['x3/X3.6/q-tie-cuda']} label="Predict, then check" />
       <Simplification>
         <p>
           One warp, one column per lane: the strided loop over a longer row and the second stage across warps are left
@@ -481,14 +480,13 @@ export function SX36() {
           two <code>simd_max</code> lines, and Metal does not document how <code>simd_max</code> treats NaN.
         </p>
       </Simplification>
+      <Ask q={q['x3/X3.6/q-tie-cuda']} label="Predict, then check" />
       <TieStepper />
       <p>
         What to notice. Metal always returns the largest tied index, and the host, torch.argmax and M4 the smallest. The CUDA
         answer is neither: for columns 1 and 2 it is 2, for 0 and 1 it is 0, for 0 and 16 it is 0. It depends on where the
         tied columns sit in the butterfly, which is a property of lane positions, not of order.
       </p>
-      <Ask q={q['x3/X3.6/q-tie-metal']} />
-      <M4Listing />
       <Aside>
         <p>
           Exact ties in float logits are rare in a real model. They are not rare in tests: a synthetic model, a quantised
@@ -496,6 +494,8 @@ export function SX36() {
           return −1.
         </p>
       </Aside>
+      <Ask q={q['x3/X3.6/q-tie-metal']} />
+      <M4Listing />
 
       <h2>transformers and PyTorch</h2>
       <p>

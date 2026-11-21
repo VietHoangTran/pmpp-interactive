@@ -761,6 +761,28 @@ export interface FragmentRun {
   worst: { result: number; reference: number; relErr: number; event: 'none' | 'wrap' | 'inf'; at?: number };
 }
 export const FRAG_N = 4096;
+/**
+ * What each fragment of labs/x2/snippets/accumulators.md accumulates in, as runFragment models
+ * it. `decl` is the accumulator's declaration as the fragment spells it, `op` the operation
+ * that adds into it; qdot.snippets.test.ts checks both against the file.
+ */
+export const FRAGMENT_MODEL: Record<FragmentId, { decl: string; op: string; inner: 'half-dot4' | 'half2-row' | 'int16' | 'int32'; outer: 'fp32' }> = {
+  'metal-half-dot': { decl: 'float sumf', op: 'dot(w, half4(', inner: 'half-dot4', outer: 'fp32' },
+  'cuda-hfma2': { decl: '__half2 acc', op: '__hfma2(', inner: 'half2-row', outer: 'fp32' },
+  'short-sum': { decl: 'short sumi', op: 'dot4(', inner: 'int16', outer: 'fp32' },
+  'int-then-float': { decl: 'int sumi', op: 'dot4(', inner: 'int32', outer: 'fp32' },
+};
+export interface FragmentText { id: string; title: string; lang: string; code: string }
+/** The fragments of labs/x2/snippets/accumulators.md: one "## id" heading, a Title and Language line and one fenced block each. */
+export function parseFragments(md: string): FragmentText[] {
+  return md.split(/^## /m).slice(1).map((part) => {
+    const id = part.slice(0, part.indexOf('\n')).trim();
+    const title = /^Title: (.*)$/m.exec(part)?.[1].trim() ?? id;
+    const lang = /^Language: (.*)$/m.exec(part)?.[1].trim() ?? '';
+    const code = /```[a-z]*\n([\s\S]*?)\n```/.exec(part)?.[1] ?? '';
+    return { id, title, lang, code };
+  });
+}
 /** The worst-case row for the fragments: every Q4_0 code 15 (weight 7 d) and every activation code 127, d = 1 on both sides, so the float fragments see weights of 7 and activations of 127. */
 function worstRow(n: number) {
   const nb = n / QK;
@@ -770,7 +792,7 @@ function worstRow(n: number) {
 const worstFloat = (n: number) => ({ w: new Array(n).fill(7), x: new Array(n).fill(127) });
 
 function fragFloat(id: 'metal-half-dot' | 'cuda-hfma2', w: number[], x: number[]): { v: number; at?: number } {
-  if (id === 'metal-half-dot') {
+  if (FRAGMENT_MODEL[id].inner === 'half-dot4') {
     // float sumf; sumf += dot(half4 w, half4 x): the four-term dot is a chain of half multiply-adds
     let sumf = 0;
     for (let i = 0; i < w.length; i += 4) {
@@ -794,7 +816,7 @@ function fragInt(id: 'short-sum' | 'int-then-float', blocks: IntRow['blocks']): 
   let sumf = 0;
   let at: number | undefined;
   for (const b of blocks) {
-    const tr = innerSum(b.qw, b.qx, id === 'short-sum' ? 'int16' : 'int32', 4);
+    const tr = innerSum(b.qw, b.qx, FRAGMENT_MODEL[id].inner as 'int16' | 'int32', 4);
     if (at === undefined && tr.first.wrap !== undefined) at = tr.first.wrap;
     sumf = f32(sumf + blockResult('q4q8', b, tr.values[tr.values.length - 1]));
   }

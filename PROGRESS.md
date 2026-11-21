@@ -47,13 +47,18 @@ pages, and commits. Per-chapter hints given to the designers are in the wave's `
       each; two narrated scenes each). Every review's must-fix items fixed; all checks pass.
       Metal benchmarks for 16.1, 21.1 and 23.1 were recorded on a loaded machine: rerun them
       on a quiet one. Lab 18.1 part B (grid-wide barrier) is CUDA-family only.
-- [ ] Wave 5b (run wf_df00289e-445, PAUSED 2026-11-21 at the reader's request; 13 agents
-      done: facts, designs and part of the sections and labs of x2 quantised kernels (Deep)
-      and x3 reading real backends (Standard)). Resume with the same script and args:
-      Workflow({scriptPath: <session>/workflows/scripts/build-chapters-v3.js,
-      resumeFromRunId: 'wf_df00289e-445', args: <session>/workflows/scripts/wave5b-args.json}).
-      M10 must not download anything: a deterministic toy model generated in the repo.
+- [x] Wave 5b (run wf_df00289e-445, paused once at the reader's request, resumed and
+      finished on Opus 5.5): x2 quantised kernels (Deep, 4 labs: Q8_0 GEMV, Q4_0 GEMV on
+      llama.cpp's block layout, an integer-path bug hunt, M9 the quantised decode step) and
+      x3 reading real backends (Standard, 2 labs: the missing llama pieces RMSNorm, RoPE and
+      SwiGLU, and M10, a tiny deterministic Llama-shaped model generated in the repo, with
+      greedy tokens compared to a CPU reference; nothing downloads). Narration: 50 clips with
+      eleven_v4_turbo through the API. M9 does not yet plug into M10 (launchQLinear's
+      signature differs from LinearFn): the pages say so; an adapter is on the final list.
 - [ ] Final pass to-do list (collected along the way):
+      wave 5b: an adapter so M10 can run with M9's quantised layers; the shared CUDA stub
+      and emulators lack char4, __dp4a, __byte_perm and __half (X2 used plain helpers);
+      X2.6's accumulator fragments are unverified (would need __half2 in the stub);
       wave 5a requests: e2e helpers in browser.mjs (answerQuestion, setRange through the
       native value setter, empty GET /api/progress), a `.threads.wrap` modifier, CUDA math
       functions and stream priorities in cuda_stub.h, asyncEngineCount and concurrentKernels

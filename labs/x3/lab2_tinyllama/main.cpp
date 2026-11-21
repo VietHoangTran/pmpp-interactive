@@ -1710,7 +1710,10 @@ static std::string compareRecord(const std::vector<int>& rec, const std::vector<
   return "";
 }
 
+// A record is [steps x B] only when generateRecord succeeded; after a failed run it is empty
+// or short, so check its size before indexing it (an unchecked read crashed the driver).
 static std::string tokenLine(const std::vector<int>& rec, int B, int b, int from, int steps) {
+  if (B <= 0 || b < 0 || b >= B || steps < 0 || rec.size() < (size_t)steps * B) return "(no record: the run did not finish)";
   std::string s;
   for (int i = from; i < steps; ++i) s += (s.empty() ? "" : " ") + std::to_string(rec[(size_t)i * B + b]);
   return s;
@@ -1726,7 +1729,7 @@ static int tests(const pmpp::Args& a) {
   const std::string permPrinted = emu ? PMPP_X3_SUM_EMU_PERM : PMPP_X3_SUM_GPU_PERM;
   const std::string recorded = emu ? PMPP_X3_EXPECT_EMU : PMPP_X3_EXPECT_GPU;
   const int seed = emu ? PMPP_X3_SEED_EMU : PMPP_X3_SEED_GPU;
-  const int P = emu ? 3 : 4, G = emu ? 3 : 60, steps = P + G - 1;
+  const int P = emu ? 3 : 4, G = emu ? 5 : 60, steps = P + G - 1;
   const std::vector<int> batches = emu ? std::vector<int>{1, 2} : std::vector<int>{1, 3};
   const int Bmax = batches.back();
 
@@ -1945,7 +1948,7 @@ static int tests(const pmpp::Args& a) {
           return compareRecord(rec, {&half}, P, steps, lab + " (free-running)", &conclusive);
         });
       }
-      if (!emu && firstTime("ropepair"))
+      if (!emu && recA.size() == (size_t)steps && recB.size() == (size_t)steps && firstTime("ropepair"))
         std::printf("    mode 1 tokens: %s\n    mode 0, permuted: %s\n", tokenLine(recA, 1, 0, P - 1, steps).c_str(),
                     tokenLine(recB, 1, 0, P - 1, steps).c_str());
     }
@@ -1972,6 +1975,7 @@ static int tests(const pmpp::Args& a) {
       return std::string();
     });
     t.check("sampler (M5) at temperature 0.8, top-k 40, top-p 0.95, min-p 0.05: two runs, identical tokens", [&] {
+      if (!greedy.count(Bmax)) return std::string("not checked: the greedy free-running check did not pass");
       SamplerSettings set;
       std::vector<int> rec[2];
       for (int r = 0; r < 2; ++r) {
@@ -1985,8 +1989,7 @@ static int tests(const pmpp::Args& a) {
       if (rec[0] != rec[1]) return std::string("the two runs differ: the sampler is not deterministic per (seed, stream, step)");
       if (firstTime("sampled")) {
         int differ = 0;
-        if (greedy.count(Bmax))
-          for (size_t i = (size_t)(P - 1) * Bmax; i < rec[0].size(); ++i) differ += rec[0][i] != greedy[Bmax][i];
+        for (size_t i = (size_t)(P - 1) * Bmax; i < rec[0].size(); ++i) differ += rec[0][i] != greedy[Bmax][i];
         std::printf("    sampled, sequence 0: %s\n    %d of %d generated tokens differ from greedy (not a test)\n",
                     tokenLine(rec[0], Bmax, 0, P - 1, steps).c_str(), differ, G * Bmax);
       }

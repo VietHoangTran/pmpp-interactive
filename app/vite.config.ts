@@ -53,5 +53,7 @@ function missingSections(): Plugin {
 
 export default defineConfig({
   plugins: [missingSections(), react()],
-  test: { environment: 'node', include: ['src/**/*.test.ts'] },
+  // Several sim tests run the course emulators (ASan builds, three thread orders). Alone
+  // they take seconds; with every test file running at once they can pass vitest's 5 s default.
+  test: { environment: 'node', include: ['src/**/*.test.ts'], testTimeout: 60_000 },
 });

@@ -65,7 +65,10 @@ function Activations({ p }: { p: number }) {
           warp sum of the bytes: {q8.sum}; s = d · {q8.sum} = {show(q8.s, 6)} in FP16, kept for the correction
         </text>
       ) : null}
-      <text x={X0} y={300} fontSize="11" style={{ fill: 'var(--ink-2)' }}>Once per token per block; every weight row that reads these activations shares it.</text>
+      <text x={X0} y={292} fontSize="11" style={{ fill: 'var(--ink-2)' }} data-shared="">
+        <tspan x={X0}>Once per token per block.</tspan>
+        <tspan x={X0} dy={15}>Every weight row that reads these activations shares it.</tspan>
+      </text>
     </Frame>
   );
 }

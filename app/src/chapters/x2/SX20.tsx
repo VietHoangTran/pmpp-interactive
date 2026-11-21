@@ -26,17 +26,18 @@ export const questionsSX20: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'About 0.5 FLOP/B. Each weight is used once per token, so only more rows per weight (batching) or fewer bytes per weight move it.',
+        label: 'About 0.5 FLOP/B; only batching or fewer bytes per weight raise it.',
         correct: true,
       },
-      { label: 'About 0.5 FLOP/B, and a large enough shared-memory tile raises it, as it does for square matrices.', why: 'Tiling removes repeated fetches. At batch 1 no weight is fetched twice: there is nothing to share.' },
-      { label: 'About 2 FLOP/B: twice the bytes, twice the work per byte.', why: 'The work is the same; the bytes double, so the ratio halves.' },
-      { label: 'About 1 FLOP/B: the format does not change the ratio.', why: 'The ratio is operations per byte, and float32 moves twice the bytes for the same operations.' },
+      { label: 'About 0.5 FLOP/B; a large enough shared-memory tile raises it.', why: 'Tiling removes repeated fetches. At batch 1 no weight is fetched twice: there is nothing to share.' },
+      { label: 'About 2 FLOP/B: twice the bytes means twice the work per byte.', why: 'The work is the same; the bytes double, so the ratio halves.' },
+      { label: 'About 1 FLOP/B: the number format does not change the ratio.', why: 'The ratio is operations per byte, and float32 moves twice the bytes for the same operations.' },
     ],
     explain: (
       <p>
         2 × 1024 × 4096 operations over about 4 × 1024 × 4096 bytes of weights is 0.5 FLOP/B, plus a sliver for the
-        input and output vectors. Every weight takes part in one multiply and one add per token. That is why this module
+        input and output vectors. Every weight takes part in one multiply and one add per token, so only more rows per
+        weight (batching) or fewer bytes per weight move the ratio. That is why this module
         exists: the format is one of the two knobs left.
       </p>
     ),
@@ -52,10 +53,10 @@ export const questionsSX20: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Lane 0 of the one warp that owns output j, after a shuffle reduction. No other thread writes that element.', correct: true },
-      { label: 'Every lane of the warp, each with its partial sum, so the write must be atomic.', why: 'That is split-K, the scatter version of the same lab. The gather version reduces first.' },
-      { label: 'Thread j of the grid, which loops over the whole row alone.', why: 'That is one thread per output. Lab 22.1 gives each output a warp so that the row loads coalesce.' },
-      { label: 'The last warp of the block, after a barrier.', why: 'There is no cross-warp step: one warp owns one output.' },
+      { label: 'Lane 0 of the one warp that owns output j, after its shuffle reduction.', correct: true },
+      { label: 'Every lane of the warp, each with its partial sum, so the write is atomic.', why: 'That is split-K, the scatter version of the same lab. The gather version reduces first.' },
+      { label: 'Thread j of the grid, which loops over the whole row on its own.', why: 'That is one thread per output. Lab 22.1 gives each output a warp so that the row loads coalesce.' },
+      { label: 'The last warp of the block, after a barrier collects the partials.', why: 'There is no cross-warp step: one warp owns one output.' },
     ],
     explain: (
       <p>
@@ -75,10 +76,10 @@ export const questionsSX20: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Yes for (out, in): consecutive lanes read consecutive addresses. No for (in, out): lanes are out floats apart.', correct: true },
-      { label: 'Both are coalesced, because every lane reads one float.', why: 'Coalescing is about the addresses of neighbouring lanes, not the size of each read.' },
-      { label: 'Neither: a weight is read only once, so the hardware cannot combine anything.', why: 'Combining happens across the lanes of one load instruction, not across time.' },
-      { label: 'No for (out, in), yes for (in, out).', why: 'In (in, out) the lanes jump a whole row of out values each.' },
+      { label: 'Yes for (out, in); no for (in, out), where lanes are out floats apart.', correct: true },
+      { label: 'Both are coalesced, because every lane reads exactly one float.', why: 'Coalescing is about the addresses of neighbouring lanes, not the size of each read.' },
+      { label: 'Neither: each weight is read only once, so nothing can be combined.', why: 'Combining happens across the lanes of one load instruction, not across time.' },
+      { label: 'No for (out, in), where lanes skip a row; yes for (in, out).', why: 'In (in, out) the lanes jump a whole row of out values each.' },
     ],
     explain: (
       <p>
@@ -117,16 +118,17 @@ export const questionsSX20: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Once the running sum is large, an addend smaller than half its last-place step disappears, and FP16 reaches that point after far fewer terms.',
+        label: 'Small addends vanish against a large sum, and FP16 gets there far sooner.',
         correct: true,
       },
-      { label: 'FP16 overflows after 2048 terms.', why: 'Overflow depends on the size of the sum, not the number of terms. The loss here happens long before any overflow.' },
-      { label: 'FP16 rounds toward zero and float32 rounds to nearest.', why: 'Both round to nearest by default. The difference is how many bits each keeps.' },
-      { label: 'It does not: the order of additions is the only thing that matters.', why: 'Order matters in both. The narrower format makes the same order worse.' },
+      { label: 'FP16 overflows after 2048 terms, and the rest of the sum is lost.', why: 'Overflow depends on the size of the sum, not the number of terms. The loss here happens long before any overflow.' },
+      { label: 'FP16 rounds toward zero, while float32 rounds to the nearest value.', why: 'Both round to nearest by default. The difference is how many bits each keeps.' },
+      { label: 'It does not: the order of the additions is all that matters.', why: 'Order matters in both. The narrower format makes the same order worse.' },
     ],
     explain: (
       <p>
-        This is the book's disappearing operand: an addend lost because it is too small next to the sum. A wider
+        This is the book's disappearing operand: once the running sum is large, an addend smaller than half its
+        last-place step is lost, and FP16 reaches that point after far fewer terms. A wider
         accumulator delays the point where it starts. Every quantised kernel in this module accumulates in int32 or
         float, never in the stored format.
       </p>
@@ -144,8 +146,8 @@ export const questionsSX20: Record<string, Question> = {
     ),
     options: [
       { label: 'Every lane after the xor butterfly; only lane 0 after shuffle-down.', correct: true },
-      { label: 'Only lane 0 in both cases.', why: 'In a butterfly each lane exchanges with a partner and both keep the sum, so all lanes end with it.' },
-      { label: 'Every lane in both cases.', why: 'With shuffle-down the upper lanes receive values from past the end of the warp and their sums are partial.' },
+      { label: 'Only lane 0 in both cases, since lane 0 is where the sum ends.', why: 'In a butterfly each lane exchanges with a partner and both keep the sum, so all lanes end with it.' },
+      { label: 'Every lane in both cases: each shuffle moves values to all lanes.', why: 'With shuffle-down the upper lanes receive values from past the end of the warp and their sums are partial.' },
       { label: 'The last lane after the butterfly; lane 0 after shuffle-down.', why: 'The butterfly is symmetric: no lane is special.' },
     ],
     explain: (
@@ -161,7 +163,7 @@ export const questionsSX20: Record<string, Question> = {
 // ---------------------------------------------------------------- what you run today
 type Family = 'int4pack' | 'refused' | 'mlx-qmv' | 'mmvq' | 'mulmv';
 const FAMILIES: { id: Family; label: string }[] = [
-  { id: 'int4pack', label: 'a weight-only int4 kernel, _weight_int4pack_mm' },
+  { id: 'int4pack', label: "PyTorch's weight-only int4 core op, _weight_int4pack_mm" },
   { id: 'refused', label: 'refused: no kernel serves it' },
   { id: 'mlx-qmv', label: "MLX's quantised matrix-vector kernels (affine_qmv_fast and its siblings)" },
   { id: 'mmvq', label: 'mmvq: activations quantised to Q8_1, integer dot per block' },
@@ -176,10 +178,10 @@ interface Call {
 // Data only: what each call ends in, with the facts items that say so.
 const CALLS: Call[] = [
   {
-    id: 'torchao-int4',
-    call: 'torchao Int4WeightOnlyConfig, batch 1, on CUDA',
+    id: 'torch-int4',
+    call: 'PyTorch, int4 weights in groups of 128 with a BF16 scale and zero each, batch 1, on CUDA',
     answer: 'int4pack',
-    why: 'It ends in the core op _weight_int4pack_mm, whose CUDA kernel dequantises 4-bit values to BF16 and needs compute capability 8.0 or a ROCm build (D6).',
+    why: "That is the rule of the core op _weight_int4pack_mm: its CUDA kernel dequantises each 4-bit value as q × scale + zero in BF16, and needs compute capability 8.0 or a ROCm build. Whether a torchao config such as Int4WeightOnlyConfig reaches this op depends on its packing format, which the facts pass did not check (D6).",
   },
   {
     id: 'int-mm',
@@ -315,15 +317,14 @@ export function SX20() {
       </p>
       <Beyond title="Ours, not the book's">
         <p>
-          Appendix A's §A.5 (pp. 592–593) is two paragraphs. It says smaller formats fetch fewer bytes per operation and so
-          raise intensity, and it stops there: no integer quantisation, no scales or zero points, no accumulation rules,
-          no code. Everything in X2 is built by us from chapter 5's intensity method, chapter 10's warp reductions,
-          chapter 22's gather GEMV and appendix A's formats.
+          The book has no integer quantisation, scales, zero points or quantised kernels. X2 is built by us on its
+          methods.
         </p>
       </Beyond>
       <p>
-        The book's anchor is appendix A's §A.5: a smaller format moves fewer bytes per operation. Chapter 5 supplies the
-        method that turns that sentence into a prediction you can measure.
+        The book's anchor is appendix A's §A.5, two paragraphs: a smaller format moves fewer bytes per operation, and so
+        raises intensity. It stops there. Chapter 5 supplies the method that turns that sentence into a prediction you
+        can measure, and chapters 10 and 22 the warp reductions and the gather GEMV this module builds on.
       </p>
       <Source section="A.5" pages="592–593" />
       <p>
@@ -334,13 +335,10 @@ export function SX20() {
       <h2>What you run today</h2>
       <p>
         You have probably quantised a model already. Here is where three common routes end on the GPU, for one token at a
-        time:
+        time. In PyTorch that route is torchao now: <code>torch.ao.quantization</code> is superseded.
       </p>
-      <Today checked={`2026-11-20 in the facts pass (${FACTS}, D6)`}>
-        <p>
-          <code>torch.ao.quantization</code> is superseded by torchao. PyTorch's 2.15 page still says deletion was planned
-          "in 2.10", so read that date as stale, not as a promise.
-        </p>
+      <Today checked={`2026-11-20 (${FACTS}, D6)`}>
+        <p>PyTorch's 2.15 page still plans the deletion "in 2.10". Read that date as stale.</p>
       </Today>
       <table className="data wide" data-table="today" style={{ maxWidth: '58rem' }}>
         <thead>
@@ -354,8 +352,9 @@ export function SX20() {
           <tr>
             <td>torchao <code>Int4WeightOnlyConfig</code> (groups of 32 to 256, default 128); <code>Int8WeightOnlyConfig</code></td>
             <td>
-              the core ops <code>_weight_int4pack_mm</code> (CUDA with compute capability 8.0 or a ROCm build; MPS) and{' '}
-              <code>_weight_int8pack_mm</code> (CPU, CUDA, MPS)
+              PyTorch's weight-only core ops are <code>_weight_int4pack_mm</code> (CUDA with compute capability 8.0 or a
+              ROCm build; MPS) and <code>_weight_int8pack_mm</code> (CPU, CUDA, MPS). Which kernel a torchao config
+              reaches depends on its packing format: not checked
             </td>
             <td>D6</td>
           </tr>
@@ -386,7 +385,7 @@ export function SX20() {
         batch 1 reads all of it for every token. The book's own layer, 1024 to 4096 in 16-bit, does{' '}
         {bookLayer.intensity.toFixed(3)} FLOP per byte at batch 1.
       </p>
-      <Source section="20.6" pages="505" />
+      <Source section="20.6" pages="505–506" />
       <Predict
         id="x2/start/p-q4-gb"
         unit="GB"

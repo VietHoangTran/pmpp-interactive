@@ -176,7 +176,7 @@ const answer = async (needle, i) => {
   return h.evaluate((e) => e.textContent);
 };
 check('q-decode-100 accepts its own sdpa_vector', (await answer('100 cached keys', 0)).includes('Correct.'));
-check('q-order accepts math first', (await answer('which comes first: math or cuDNN', 0)).includes('Correct.'));
+check('q-order accepts math first', (await answer('flash and memory-efficient attention both reject', 0)).includes('Correct.'));
 const t = await answer('what changes in the result', 1);
 check('q-exp2 rejects "divide by log2 e" with its reason', t.includes('Not quite.') && t.includes('Nothing needs undoing'));
 

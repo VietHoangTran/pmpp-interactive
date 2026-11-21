@@ -18,6 +18,8 @@ const TIERS: Record<string, Tier> = {
 };
 const MiB = (b: number) => (b / 2 ** 20).toFixed(2) + ' MiB';
 const bytes = (b: number) => (b >= 2 ** 20 ? MiB(b) : b >= 1024 ? (b / 1024).toFixed(1) + ' KiB' : b + ' B');
+/** A function name that may wrap at its camel-case humps and before a parenthesis, so a narrow table never cuts it mid-word. */
+const breakable = (name: string) => name.split(/(?=[A-Z(])/).flatMap((part, i) => (i ? [<wbr key={i} />, part] : [part]));
 
 // ---------------------------------------------------------------- questions
 export const questionsSX37: Record<string, Question> = {
@@ -165,7 +167,7 @@ function IntField({ label, value, max, width, onValue }: { label: string; value:
   );
 }
 
-const VOCABS = [4096, 32000, 49152];
+const VOCABS = [4099, 32000, 49152];
 type Gate = 'rope' | 'append' | 'share';
 
 function StepThrough() {
@@ -304,7 +306,7 @@ function StepThrough() {
       </div>
 
       <div style={{ overflowX: 'auto' }}>
-        <table className="data" style={{ margin: 0, background: 'var(--page)', minWidth: '40rem' }} data-part="launches">
+        <table className="data" style={{ margin: 0, background: 'var(--page)' }} data-part="launches">
           <thead>
             <tr><th style={{ paddingLeft: '0.6rem' }}>#</th><th>launch</th><th>course kernel</th><th>from</th><th className="num">weights</th><th className="num">cache</th></tr>
           </thead>
@@ -317,7 +319,7 @@ function StepThrough() {
                   style={{ opacity: l.n < at ? 1 : 0.6, background: cur?.n === l.n ? 'var(--rule-soft)' : undefined, fontWeight: cur?.n === l.n ? 600 : undefined }}>
                   <td style={{ paddingLeft: '0.6rem' }}>{gap ? '… ' : ''}{l.n + 1}</td>
                   <td>{JOB_LABEL[l.job]}{l.layer !== null ? <span className="muted"> (layer {l.layer})</span> : null}</td>
-                  <td><code>{l.fn}</code></td>
+                  <td><code style={{ overflowWrap: 'normal' }}>{breakable(l.fn)}</code></td>
                   <td>{l.lab}{l.exists ? null : <b> · new</b>}</td>
                   <td className="num">{l.weightBytes ? bytes(l.weightBytes) : '–'}</td>
                   <td className="num">{l.cacheBytes ? bytes(l.cacheBytes) : '–'}</td>
@@ -463,8 +465,8 @@ function RopeListing() {
   return (
     <Code
       tabs={[
-        { label: 'CUDA', code: k.text, tiers: TIERS, status: 'unverified', highlight: lines(k.text) },
-        { label: 'Metal kernel', code: mk.text, tiers: TIERS, status: 'unverified', highlight: lines(mk.text) },
+        { label: 'CUDA', code: k.text, tiers: TIERS, status: 'emulator-checked; front-end-checked; unverified on CUDA and HIP hardware', highlight: lines(k.text) },
+        { label: 'Metal kernel', code: mk.text, tiers: TIERS, status: 'verified on Metal', highlight: lines(mk.text) },
       ]}
       caption={
         <>
@@ -512,11 +514,13 @@ export function SX37() {
         </p>
       </Today>
       <p>
-        Every launch but three is a kernel you have written: lab 22.2's <code>launchEmbed</code> (M8), the{' '}
+        Every kernel but four is one you have written (RMSNorm, RoPE and SwiGLU from lab X3.1, and the advance you write in
+        lab X3.2), and the first three run many times per token: RMSNorm alone twice per layer and once more at the end. The rest:
+        lab 22.2's <code>launchEmbed</code> (M8), the{' '}
         <code>LinearFn</code> of labs 6.4, 15.6 and 22.1 (at batch 1, lab 22.1's gather GEMV), lab 20.4's{' '}
         <code>launchKvAppend</code> and decode attention (M7, grouped in lab 20.5), lab 2.3's <code>launchAddResidual</code>{' '}
         (M0), and lab 10.3's <code>launchArgmaxRows</code> (M4) or lab X1.3's sampler (M5). M7's kernels are compiled for a
-        head size of 128, so the module's synthetic model uses 128.
+        head size of 128, so lab X3.2's synthetic model, the stepper's starting point, uses 128.
       </p>
       <Today checked={`2026-11-20 in the facts pass (${X3} E2)`}>
         <p>
@@ -533,7 +537,7 @@ export function SX37() {
       <StepThrough />
       <p>
         What to notice. At pos 0 the weights are almost everything this step moves; drag pos up and only the cache column
-        grows. The LM head is a single matrix, yet for the synthetic model it is {(100 * syn.lmHeadShare).toFixed(1)} % of the
+        grows. The LM head is a single matrix, yet for lab X3.2's model it is {(100 * syn.lmHeadShare).toFixed(1)} % of the
         weight bytes; with a vocabulary of 49,152 and fewer layers it can dominate. And the step is {launchCount(4)} launches
         for four layers, most of them small: the reason projects fuse.
       </p>
@@ -584,14 +588,14 @@ export function SX37() {
         split paired: <code>permute(weights, n_head, n_head_kv)</code> in <code>conversion/llama.py</code>, with{' '}
         <code>n_head_kv</code> for k_proj.
       </p>
-      <RopePairsScene />
       <Simplification>
         <p>
-          One head, a 6-value input, one fixed set of random weights per head size. JavaScript's cos and sin, in double,
+          In the explorer below: one head, a 6-value input, one fixed set of random weights per head size. JavaScript's cos and sin, in double,
           stand in for the host's table builder; the rotation itself is rounded to float at every operation, as a kernel
           computes it, without fused multiply-adds.
         </p>
       </Simplification>
+      <RopePairsScene />
       <TwoPairings />
       <p>
         What to notice. The wrong pairing crashes nothing and produces a smooth, believable curve. The permutation does not
@@ -599,14 +603,14 @@ export function SX37() {
         same values in another order of memory. And permuting the weights for a kernel that already uses the half split
         breaks it again: the conversion belongs to one pairing.
       </p>
-      <Ask q={q['x3/X3.7/q-rope-mismatch']} />
-      <Ask q={q['x3/X3.7/q-permute-k']} />
       <Aside>
         <p>
           In transformers the rotation is <code>rotate_half</code> inside <code>modeling_llama.py</code>, ordinary tensor
           operations on q and k. That is the line to put next to your kernel when you check a pairing.
         </p>
       </Aside>
+      <Ask q={q['x3/X3.7/q-rope-mismatch']} />
+      <Ask q={q['x3/X3.7/q-permute-k']} />
 
       <h2>The course's choice: tables from the host</h2>
       <p>

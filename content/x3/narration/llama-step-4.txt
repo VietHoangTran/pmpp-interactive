@@ -1,1 +1,1 @@
-The decode attention kernel reads pos plus 1 cached rows for each key head, scores them against the query, and merges its warps' partial results into one output. Then the output projection runs, and a residual add from milestone M0 puts the result back into the hidden state.
+The decode attention kernel reads every cached row so far, this one included, for each key head, scores them against the query, and merges its warps' partial results into one output. Then the output projection runs, and a residual add from milestone M0 puts the result back into the hidden state.

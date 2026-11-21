@@ -100,8 +100,8 @@ void encodeGemvQ8_0(id<MTLComputeCommandEncoder> enc, id<MTLComputePipelineState
   (4, 14336, 4096), (1, 4096, 14336) and (8, 1024, 4099).
 - **The weights:**
   - Block i of row j is scaled by 2^((3j + 5i) mod 25 - 12), between 2^-12 and 2^12.
-    Neighbouring blocks then differ 32 times in magnitude, so a scale taken from the wrong
-    block gives a wrong answer.
+    Neighbouring blocks then differ by a factor of 32 or more (2^5, or 2^20 where the
+    modulus wraps), so a scale taken from the wrong block gives a wrong answer.
   - Every block holds both +peak and -peak, so codes 127 and -127 occur in every block.
   - With out >= 3, one row is all zero (d = 0).
   - The smallest scales are FP16 subnormals, which `halfBitsToFloat` must decode.

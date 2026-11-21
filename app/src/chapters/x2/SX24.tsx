@@ -44,15 +44,15 @@ export const questionsSX24: Record<string, Question> = {
     id: 'x2/X2.4/q-four-lanes',
     prompt: <>The same row with four lanes per block, each lane loading its next 2 bytes. Fewer or more segments per useful byte, and why?</>,
     options: [
-      { label: 'Fewer: 8 blocks span 144 bytes, 5 segments for the same 64 useful bytes, because neighbouring lanes read neighbouring bytes.', correct: true },
-      { label: 'More: four lanes on one block conflict with each other.', why: 'Lanes reading neighbouring bytes of one block is what coalescing wants.' },
-      { label: 'The same: 32 lanes still load 64 bytes.', why: 'The useful bytes are the same; how many segments they fall in is not.' },
+      { label: 'Fewer: neighbouring lanes now read neighbouring bytes of a block.', correct: true },
+      { label: 'More: four lanes reading one block conflict with each other.', why: 'Lanes reading neighbouring bytes of one block is what coalescing wants.' },
+      { label: 'The same: 32 lanes still load 64 useful bytes in total.', why: 'The useful bytes are the same; how many segments they fall in is not.' },
       { label: 'Fewer, because each lane now loads 4 bytes at once.', why: 'The load width is still 2 bytes. What changed is which bytes neighbouring lanes read.' },
     ],
     explain: (
       <p>
         With one lane per block the warp's 64 bytes are scattered over 32 blocks. With four lanes per block they are 8
-        runs of 8 bytes, over 8 consecutive blocks. Each lane now does a quarter of a block, and its partial sum is
+        runs of 8 bytes, over 8 consecutive blocks: 144 bytes, 5 segments for the same 64 useful bytes. Each lane now does a quarter of a block, and its partial sum is
         scaled once by that block's d.
       </p>
     ),
@@ -63,14 +63,15 @@ export const questionsSX24: Record<string, Question> = {
     id: 'x2/X2.4/q-scale',
     prompt: <>Why does the kernel multiply a lane's partial sum by its block's scale d once, instead of multiplying every product by d?</>,
     options: [
-      { label: 'd is the same for the whole block, so d · (sum of q·x) equals the sum of d·q·x: one multiply per piece of a block instead of one per weight.', correct: true },
-      { label: 'Multiplying each product by d would overflow.', why: 'The products are floats here; nothing overflows. The reason is the count of multiplies.' },
-      { label: 'The scale is only known after the loop.', why: 'It is stored with the block and loaded with it.' },
-      { label: 'It must, or the result changes.', why: 'The two agree up to rounding: multiplication distributes over addition.' },
+      { label: 'd is shared by the block, so one multiply replaces one per weight.', correct: true },
+      { label: 'Multiplying each product by d would overflow the float sum.', why: 'The products are floats here; nothing overflows. The reason is the count of multiplies.' },
+      { label: 'The scale is only known after the loop has read the block.', why: 'It is stored with the block and loaded with it.' },
+      { label: 'It must, or the result changes: the multiplies do not commute.', why: 'The two agree up to rounding: multiplication distributes over addition.' },
     ],
     explain: (
       <p>
-        Factor the constant out of the block's sum. Every real kernel does this, and llama.cpp and MLX go one step
+        Factor the constant out of the block's sum: d · (sum of q·x) equals the sum of d·q·x, one multiply per piece
+        of a block instead of one per weight. Every real kernel does this, and llama.cpp and MLX go one step
         further and fold the offset out too, through the sum of the activations (section{' '}
         <a href={href('x2', 'X2.5')}>X2.5</a>).
       </p>
@@ -97,9 +98,9 @@ export const questionsSX24: Record<string, Question> = {
     prompt: <>With four lanes per block, how many blocks does one iteration of a 64-lane wavefront cover, and what in the code must change for it?</>,
     options: [
       { label: '16, and nothing, if the block index is computed from warpSize / 4 rather than from 8.', correct: true },
-      { label: '8, because a block still has four lanes.', why: '64 lanes in groups of 4 make 16 groups.' },
-      { label: '16, and the shuffle masks must be widened by hand.', why: 'A typed 64-bit mask is needed for HIP anyway, but the iteration count follows from warpSize.' },
-      { label: '32, because the wavefront is twice as wide.', why: 'Twice as wide doubles the 8 blocks of a 32-lane warp, to 16.' },
+      { label: '8, because a block still has four lanes, whatever the width.', why: '64 lanes in groups of 4 make 16 groups.' },
+      { label: '16, and the shuffle masks must be widened to 64 bits by hand.', why: 'A typed 64-bit mask is needed for HIP anyway, but the iteration count follows from warpSize.' },
+      { label: '32, because the wavefront is twice as wide as a warp.', why: 'Twice as wide doubles the 8 blocks of a 32-lane warp, to 16.' },
     ],
     explain: (
       <p>
@@ -242,7 +243,7 @@ function WarpStepper({ cfg, set }: { cfg: StepperConfig; set: (c: StepperConfig)
       }
     >
       <div className="row" style={{ marginBottom: '0.8rem' }}>
-        <label className="field">
+        <label className="field" style={{ maxWidth: '100%', minWidth: 0 }}>
           Layout
           <select value={cfg.layout} aria-label="Layout" style={{ maxWidth: '100%' }} onChange={(e) => upd({ layout: e.target.value as LayoutId })}>
             {LAYOUT_IDS.map((l) => <option key={l} value={l}>{LAYOUTS[l].label}</option>)}
@@ -280,7 +281,7 @@ function WarpStepper({ cfg, set }: { cfg: StepperConfig; set: (c: StepperConfig)
             {ROW_LENGTHS.map((v) => <option key={v} value={v}>{v}</option>)}
           </select>
         </label>
-        <label className="field">
+        <label className="field" style={{ maxWidth: '100%', minWidth: 0 }}>
           Segments
           <select value={cfg.seg} aria-label="Segments" style={{ maxWidth: '100%' }} onChange={(e) => upd({ seg: e.target.value as SegmentModelId })}>
             {(Object.keys(SEGMENT_MODELS) as SegmentModelId[]).map((s) => <option key={s} value={s}>{SEGMENT_MODELS[s].label}</option>)}

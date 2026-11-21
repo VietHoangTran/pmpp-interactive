@@ -61,13 +61,13 @@ export const questionsSX34: Record<string, Question> = {
         label: 'Only if every vector and small-batch check declines it. mmvf is the first candidate, so a GEMV kernel is what to expect.',
         correct: true,
       },
-      { label: 'Yes: the weights are not F32, so the first check sends it to cuBLAS.', why: 'The first check tests the input, the activations here, which are F32.' },
+      { label: 'Yes: the weights are not F32, so the first check sends it to cuBLAS.', why: 'The first check reads src1->type and dst->type: the activations and the output, both F32 here. The weights are src0, and their type is what the later checks read.' },
       { label: 'Never: one token always runs mmvf.', why: 'Within the batch limit, should_use_mmvf still decides, with branches for particular GPUs. The facts did not read all of it.' },
       { label: 'Yes: cuBLAS is the default, and the other kernels are for quantised weights.', why: 'mmvf and mmf are for float weights; cuBLAS is what is left when every check declines.' },
     ],
     explain: (
       <p>
-        The chain runs in source order: cuBLAS for a non-F32 input, then <code>should_use_mmvf</code>, <code>mmf</code>,{' '}
+        The chain runs in source order: cuBLAS if the activations (<code>src1</code>) or the output are not F32, then <code>should_use_mmvf</code>, <code>mmf</code>,{' '}
         <code>mmvq</code>, <code>mmq</code>, an FP8 path, and cuBLAS last. One token is within{' '}
         <code>MMVF_MAX_BATCH_SIZE</code>, so mmvf is the first route not ruled out. Whether it is taken is decided inside{' '}
         <code>ggml_cuda_should_use_mmvf</code>, which this module did not read in full: so "expect a GEMV", not "it runs
@@ -232,8 +232,9 @@ function Strip({ M, knees }: { M: number; knees: { label: string; knee: number }
   const marks = [...CODE_SWITCHES.map((c) => ({ label: c.label, tokens: c.tokens, kind: 'code' as const })), ...knees.map((k) => ({ label: k.label, tokens: k.knee, kind: 'knee' as const }))];
   const H = 70 + marks.length * 16;
   return (
+    <div style={{ overflowX: 'auto' }}>
     <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Switch points in code and your measured knees" data-part="strip"
-      style={{ width: '100%', maxWidth: W, display: 'block', marginTop: '0.6rem' }}>
+      style={{ width: '100%', maxWidth: W, minWidth: 520, display: 'block', marginTop: '0.6rem' }}>
       <line x1={X0} y1={30} x2={X1} y2={30} stroke="var(--rule)" />
       {[1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024].map((t) => (
         <g key={t}>
@@ -248,12 +249,13 @@ function Strip({ M, knees }: { M: number; knees: { label: string; knee: number }
         <g key={m.label} data-mark={m.kind} data-tokens={m.tokens}>
           <circle cx={x(m.tokens)} cy={30} r={4} fill={m.kind === 'code' ? 'var(--ink)' : 'var(--page)'} stroke="var(--ink)" strokeWidth="1.5" />
           <line x1={x(m.tokens)} y1={34} x2={x(m.tokens)} y2={54 + k * 16} stroke="var(--rule)" />
-          <text x={Math.min(x(m.tokens) + 4, X1 - 4)} y={58 + k * 16} fontSize="10.5" textAnchor={x(m.tokens) > W * 0.6 ? 'end' : 'start'}>
+          <text x={Math.min(x(m.tokens) + 4, X1 - 4)} y={58 + k * 16} fontSize="10.5" textAnchor={x(m.tokens) > W * 0.6 ? 'end' : 'start'} style={{ fill: 'var(--ink)' }}>
             {m.kind === 'code' ? `${m.label}: ${m.tokens}` : `your knee, lab 22.2 with ${m.label}: ${m.tokens}`}
           </text>
         </g>
       ))}
     </svg>
+    </div>
   );
 }
 
@@ -308,7 +310,7 @@ function WhichKernel() {
       </div>
       <div className="row" style={{ marginBottom: '0.8rem' }}>
         {project === 'llama-cuda' ? (
-          <label className="check"><input type="checkbox" checked={shape.inputF32} onChange={(e) => set({ inputF32: e.target.checked })} /> input (activations) is F32</label>
+          <label className="check"><input type="checkbox" checked={shape.inputF32} onChange={(e) => set({ inputF32: e.target.checked })} /> activations (src1) are F32</label>
         ) : null}
         {project === 'mlx-cuda' || project === 'mlx-metal' ? (
           <>
@@ -401,7 +403,7 @@ export function SX34() {
 
       <h2>llama.cpp: a chain of checks in source order</h2>
       <p>
-        <code>ggml_cuda_mul_mat</code> in ggml-cuda.cu (lines 2535 to 2596) tries, in order: cuBLAS if the input is not F32;
+        <code>ggml_cuda_mul_mat</code> in ggml-cuda.cu (lines 2535 to 2596) tries, in order: cuBLAS if the activations (<code>src1</code>) or the output are not F32 (the weights, <code>src0</code>, are not part of this test);
         mmvf, a float GEMV; mmf; mmvq, a quantised GEMV; mmq, a quantised GEMM; an FP8 path; and cuBLAS if nothing else
         accepted. Each candidate has its own <code>ggml_cuda_should_use_*</code> function. The two GEMV kernels stop at a batch
         of 8: <code>#define MMVF_MAX_BATCH_SIZE 8</code> and <code>#define MMVQ_MAX_BATCH_SIZE 8</code>. Inside the functions
@@ -445,13 +447,13 @@ export function SX34() {
         <code>if (std::min(M, N) == 1) {'{'} return gemv(</code> (line 1647). Otherwise the steel GEMM, with tile shapes
         chosen per device class (ch15 D3).
       </p>
-      <Ask q={questionsSX34['x3/X3.4/q-wide']} />
       <Aside>
         <p>
           MLX's Metal GEMV kernel asserts <code>SM * SN == 32</code>, a SIMD width written into the code. The course's labs
           read the width from the pipeline instead.
         </p>
       </Aside>
+      <Ask q={questionsSX34['x3/X3.4/q-wide']} />
       <Ask q={questionsSX34['x3/X3.4/q-static-assert']} />
 
       <h2>PyTorch: a library on CUDA, its own GEMV on MPS</h2>

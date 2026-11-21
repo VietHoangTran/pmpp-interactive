@@ -209,8 +209,8 @@ export const llama2cBytes = (c: Config) => FLOAT * llama2cFloats(c) + 28;
 /** The two tinyllamas headers the facts pass read (E1), and the module's synthetic model. */
 export const STORIES15M: Config = { d: 288, hidden: 768, layers: 6, heads: 6, kvHeads: 6, vocab: 32000, head: 48, seqLen: 256 };
 export const STORIES260K: Config = { d: 64, hidden: 172, layers: 5, heads: 8, kvHeads: 4, vocab: 512, head: 8, seqLen: 512 };
-/** The stepper's starting point: head 128 so M7's kernels run it; everything else small. */
-export const SYNTHETIC: Config = { d: 512, hidden: 1376, layers: 4, heads: 4, kvHeads: 2, vocab: 4096, head: HEAD, seqLen: 256 };
+/** The stepper's starting point: lab X3.2's GPU model (ckptformat's LAB_GPU, tied by a test), head 128 so M7's kernels run it. */
+export const SYNTHETIC: Config = { d: 512, hidden: 1376, layers: 4, heads: 4, kvHeads: 2, vocab: 4099, head: HEAD, seqLen: 128 };
 
 /** Short job names for drawing. */
 export const JOB_LABEL: Record<Job, string> = {

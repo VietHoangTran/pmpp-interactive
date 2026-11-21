@@ -171,6 +171,13 @@ if (out) await page.$eval(S, (e) => e.scrollIntoView()), await page.screenshot({
 // ---------------------------------------------------------------- the bug spot
 const G = bench('Safe or unsafe?');
 const frags = await model((m) => Object.fromEntries(m.FRAGMENTS.map((id) => [id, m.runFragment(id)])));
+await page.waitForFunction((G) => document.querySelectorAll(`${G} [data-frag-code]`).length === 4, {}, G).catch(() => {});
+const shown = await page.$$eval(G + ' [data-frag]', (fs) => Object.fromEntries(fs.map((f) => [f.dataset.frag, f.querySelector('[data-frag-code]')?.textContent ?? ''])));
+const fileFrags = await model(async (m) => m.parseFragments(await (await fetch('/api/lab-file?path=x2/snippets/accumulators.md')).text()));
+check('bug spot: the four fragments are the snippet file\'s, each with the model\'s accumulator',
+  fileFrags.length === 4 && fileFrags.every((f) => shown[f.id] === f.code) &&
+  shown['short-sum'].startsWith('short sumi') && shown['int-then-float'].startsWith('int sumi') && shown['cuda-hfma2'].includes('__half2 acc') && shown['metal-half-dot'].includes('dot(w, half4('),
+  JSON.stringify(Object.keys(shown)));
 check('bug spot: Check waits for four marks', !(await click(G, 'Check')));
 const mark = (id, safe) => page.evaluate((G, id, safe) => {
   const radios = document.querySelectorAll(`${G} [data-frag="${id}"] input[type=radio]`);

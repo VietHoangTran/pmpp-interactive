@@ -328,12 +328,12 @@ export const questionsSX25: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Σ d·(q − 8)·x = d·Σ q·x − 8·d·Σ x: one multiply-add per block, given Σ x, which is computed once per token per block and shared by every output row.',
+        label: 'd·Σ q·x − 8·d·Σ x: one multiply-add per block, with Σ x shared by every row.',
         correct: true,
       },
-      { label: 'd·Σ q·x − 8·Σ x: it costs nothing extra, because d only scales the first term.', why: 'The 8 is in units of d as well: the correction is −8·d·Σx, which is why the kernels multiply by d after folding.' },
-      { label: 'None: the subtraction is per weight and has to stay in the loop.', why: 'The sum is linear in the codes, so the constant part of every term can be summed separately.' },
-      { label: 'It can leave the loop only once the activations are int8.', why: 'It is plain algebra on any numbers: the Metal kernels fold it with float activations.' },
+      { label: 'd·Σ q·x − 8·Σ x: free, because d scales only the first of the two terms.', why: 'The 8 is in units of d as well: the correction is −8·d·Σx, which is why the kernels multiply by d after folding.' },
+      { label: 'None: the subtraction is per weight, so it stays inside the 32-weight loop.', why: 'The sum is linear in the codes, so the constant part of every term can be summed separately.' },
+      { label: 'Only with int8 activations: the fold needs exact integer sums to be valid.', why: 'It is plain algebra on any numbers: the Metal kernels fold it with float activations.' },
     ],
     explain: (
       <p>
@@ -350,10 +350,10 @@ export const questionsSX25: Record<string, Question> = {
     id: 'x2/X2.5/q-why-not-int-row',
     prompt: <>Path C keeps an exact integer sum inside each block and rescales it. Why not keep one integer sum over the whole row and rescale once at the end?</>,
     options: [
-      { label: 'Every block has its own weight scale and activation scale, so the integer sums of different blocks are in different units.', correct: true },
-      { label: 'An int32 would overflow over a whole row.', why: 'Even the worst case of 16,129 per product takes 133,144 products to overflow, far more than a 4,096-wide row. Overflow is not the reason.' },
-      { label: 'dp4a cannot be called more than eight times on the same accumulator.', why: 'It can be called any number of times; it is just an add into an integer.' },
-      { label: 'It would be slower.', why: 'It would be faster, and wrong.' },
+      { label: 'Each block\'s integer sum is in its own units, d_w × d_x.', correct: true },
+      { label: 'An int32 would overflow somewhere along a 4,096-wide row.', why: 'Even at the worst case of 16,129 per product, 133,144 products still fit; the 133,145th overflows, far more than a 4,096-wide row. Overflow is not the reason.' },
+      { label: 'dp4a cannot add into one accumulator more than eight times.', why: 'It can be called any number of times; it is just an add into an integer.' },
+      { label: 'Converting one large int32 to float at the end loses its low bits.', why: 'One conversion is one rounding, smaller than the 128 a per-block rescale makes. The real problem is that the sum means nothing.' },
     ],
     explain: (
       <p>
@@ -370,16 +370,16 @@ export const questionsSX25: Record<string, Question> = {
     id: 'x2/X2.5/q-unsigned',
     prompt: <>llama.cpp's CUDA kernel feeds the unsigned codes 0..15, not −8..7, into a signed byte dot product. Why is that allowed, and where does the 8 go?</>,
     options: [
-      { label: '0..15 is a valid signed byte, so the signed dp4a reads it correctly; the 8 comes off once per block afterwards, as 8·s with s = d·Σq of the activation block.', correct: true },
-      { label: 'dp4a sign-extends 4-bit values automatically.', why: 'dp4a works on bytes. After the mask each byte holds a value from 0 to 15, which as a signed byte is just that positive number.' },
-      { label: 'The CUDA intrinsic has a mixed unsigned × signed overload for this.', why: 'It has no mixed overload (PTX has one). None is needed: 0..15 is non-negative in a signed byte.' },
-      { label: 'The 8 is folded into d when the model is loaded.', why: 'A constant offset cannot be folded into a scale; it has to be subtracted somewhere, and that is the s term.' },
+      { label: '0..15 fits a signed byte, so signed dp4a reads it; 8·s comes off once per block.', correct: true },
+      { label: 'dp4a sign-extends each 4-bit value, so −8..7 is recovered for free.', why: 'dp4a works on bytes. After the mask each byte holds a value from 0 to 15, which as a signed byte is just that positive number.' },
+      { label: 'The CUDA intrinsic has a mixed unsigned-by-signed overload for this.', why: 'It has no mixed overload (PTX has one). None is needed: 0..15 is non-negative in a signed byte.' },
+      { label: 'The 8 is folded into the FP16 scale d once, when the model is loaded.', why: 'A constant offset cannot be folded into a scale; it has to be subtracted somewhere, and that is the s term.' },
     ],
     explain: (
       <p>
         With unsigned codes the integer sum is Σ q·x<sub>q</sub>; the true block value needs Σ (q − 8)·x<sub>q</sub>,
         which is that minus 8·Σ x<sub>q</sub>. The activation quantiser already computed Σ x<sub>q</sub> and stored
-        it, times d<sub>x</sub>, as s. So the kernel returns d<sub>w</sub>·(sumi·d<sub>x</sub> − 8·s): the subtraction
+        it, times d<sub>x</sub>, as s (s = d<sub>x</sub>·Σ q<sub>x</sub>). So the kernel returns d<sub>w</sub>·(sumi·d<sub>x</sub> − 8·s): the subtraction
         happens once per block, in float.
       </p>
     ),
@@ -390,10 +390,10 @@ export const questionsSX25: Record<string, Question> = {
     id: 'x2/X2.5/q-prescale-exact',
     prompt: <>Path B divides activations by 16, 256 and 4096 so that masked, unshifted nibbles give the right products. Why does that division lose nothing in float32?</>,
     options: [
-      { label: 'Powers of two change only the exponent, so the quotient is exact unless it falls below the bottom of float’s normal range.', correct: true },
-      { label: 'Because the mask multiplies the value back by the same factor.', why: 'The mask does supply the factor, but that would not undo a rounding made at the division. There is none to undo.' },
-      { label: 'Because activations need fewer than 24 bits.', why: 'They do not; a float32 activation can use all 24.' },
-      { label: 'It loses a little, inside the tests’ tolerance.', why: 'It loses nothing for any activation of ordinary size: the unit test checks every one it generates.' },
+      { label: 'Dividing by a power of two changes only the exponent, barring underflow.', correct: true },
+      { label: 'The mask multiplies by the same factor, which cancels any rounding.', why: 'The mask does supply the factor, but that would not undo a rounding made at the division. There is none to undo.' },
+      { label: 'Activations use fewer than 24 significand bits, leaving room to spare.', why: 'They do not; a float32 activation can use all 24.' },
+      { label: 'It loses a little, but always less than the tests’ tolerance allows.', why: 'It loses nothing for any activation of ordinary size: the unit test checks every one it generates.' },
     ],
     explain: (
       <p>
@@ -410,15 +410,15 @@ export const questionsSX25: Record<string, Question> = {
     id: 'x2/X2.5/q-hip-sdot4',
     prompt: <>You build a HIP kernel for an RDNA3 GPU with a helper that calls <code>__builtin_amdgcn_sdot4</code>. What happens?</>,
     options: [
-      { label: 'A compile error: sdot4 needs the dot1-insts feature, which RDNA3 and RDNA4 do not have. They have the mixed-sign sudot4, which llama.cpp calls with both operands marked signed.', correct: true },
-      { label: 'It compiles to four scalar multiplies: correct, just slower.', why: 'Calling a builtin on a target without its feature is a compile error, not a slow path; clang’s own test says "needs target feature dot1-insts".' },
-      { label: 'It works, because HIP maps it to __dp4a.', why: 'HIP has no __dp4a at all.' },
-      { label: 'It compiles, but gives wrong answers for unsigned nibbles.', why: 'The problem comes earlier: it does not compile for that target.' },
+      { label: 'A compile error: RDNA3 and RDNA4 lack sdot4\'s feature; they have sudot4.', correct: true },
+      { label: 'It compiles to four scalar multiplies: correct results, just slower.', why: 'Calling a builtin on a target without its feature is a compile error, not a slow path; clang’s own test says "needs target feature dot1-insts".' },
+      { label: 'It compiles and runs, because HIP maps the builtin onto __dp4a.', why: 'HIP has no __dp4a at all.' },
+      { label: 'It compiles, but gives wrong answers for the unsigned nibble codes.', why: 'The problem comes earlier: it does not compile for that target.' },
     ],
     explain: (
       <p>
         The compiler's target description gives the signed 8-bit four-way dot (dot1) to gfx906, CDNA and RDNA2, and the
-        mixed-sign form (dot8) to RDNA3 and RDNA4. llama.cpp's <code>ggml_cuda_dp4a</code> chooses with an{' '}
+        mixed-sign form (dot8) to RDNA3 and RDNA4, which llama.cpp calls with both operands marked signed. Its <code>ggml_cuda_dp4a</code> chooses with an{' '}
         <code>#if</code> on the architecture; gfx900 and RDNA1 get inline assembly.
       </p>
     ),
@@ -429,10 +429,10 @@ export const questionsSX25: Record<string, Question> = {
     id: 'x2/X2.5/q-metal',
     prompt: <>Metal has no per-thread integer dot product. What do llama.cpp, MLX and PyTorch do in their Metal 4-bit matrix-vector kernels?</>,
     options: [
-      { label: 'Stay in float: masked nibbles times activations pre-divided by 16, 256 and 4096, with the offset folded out through Σx.', correct: true },
-      { label: 'Quantise the activations to int8 and multiply bytes in a loop.', why: 'None of them quantises the activations on Metal; that is llama.cpp’s CUDA and HIP path.' },
-      { label: 'Call the matrix API with int4b_format operands.', why: 'Apple added 4-bit integer operands to its tensor API, but a code search found neither llama.cpp nor MLX using int4b_format.' },
-      { label: 'Dequantise each weight to half and call dot.', why: 'That would accumulate in half (dot of half4 returns half). llama.cpp converts to float4 before dot.' },
+      { label: 'Stay in float: masked nibbles times pre-divided activations, offset folded via Σx.', correct: true },
+      { label: 'Quantise the activations to int8 per block and multiply bytes in a loop.', why: 'None of them quantises the activations on Metal; that is llama.cpp’s CUDA and HIP path.' },
+      { label: 'Call Apple\'s tensor API with int4b_format operands for the weights.', why: 'Apple added 4-bit integer operands to its tensor API, but a code search found neither llama.cpp nor MLX using int4b_format.' },
+      { label: 'Dequantise each weight to half and accumulate with dot on half4 vectors.', why: 'That would accumulate in half (dot of half4 returns half). llama.cpp converts to float4 before dot.' },
     ],
     explain: (
       <p>
@@ -557,6 +557,16 @@ export function SX25() {
       </p>
       <Ask q={questionsSX25['x2/X2.5/q-why-not-int-row']} />
       <Ask q={questionsSX25['x2/X2.5/q-unsigned']} />
+      <p>
+        The scene below follows one block down path C, from the warp max that sets the activations' scale to the row's
+        result on both paths, and shows where each of those three costs arises.
+      </p>
+      <Simplification>
+        <p>
+          One seeded block, then a row of 8 blocks over 4 lanes, not a warp's worth. Every value comes from{' '}
+          <code>qdot.ts</code>, with the Q8_1 rounding of llama.cpp's <code>quantize_q8_1</code>. Nothing is timed.
+        </p>
+      </Simplification>
       <IntegerPathScene />
 
       <h2>Prefill dequantises tiles</h2>

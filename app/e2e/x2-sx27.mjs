@@ -114,10 +114,12 @@ const T = bench('A toy model, quantised');
 await page.$eval(T, (e) => e.scrollIntoView());
 const toy = () => page.$eval(T + ' [data-part="toy"]', (e) => ({ flips: +e.dataset.flips, div: e.dataset.div, red: e.closest('section').querySelectorAll('[data-flipped="yes"]').length }));
 let t = await toy();
-check('Q4_0 everywhere: flips and divergence as the model', t.flips === M.toyQ4.flips && t.div === String(M.toyQ4.div ?? '') && t.red === t.flips, JSON.stringify(t));
-for (const a of ['W0 (layer 0)', 'W1 (layer 1)', 'E (embedding and head)']) await setValue(T, `select[aria-label="${a}"]`, 'q8_0', 'change');
+const selVals = await page.$$eval(T + ' select', (ss) => ss.map((x) => x.value));
+check('the explorer opens at Q8_0 everywhere, as its task says: no flips, no divergence',
+  selVals.every((v) => v === 'q8_0') && t.flips === M.toyQ8.flips && t.flips === 0 && t.div === '', JSON.stringify({ selVals, t }));
+for (const a of ['W0 (layer 0)', 'W1 (layer 1)', 'E (embedding and head)']) await setValue(T, `select[aria-label="${a}"]`, 'q4_0', 'change');
 t = await toy();
-check('Q8_0 everywhere: no flips, no divergence', t.flips === M.toyQ8.flips && t.flips === 0 && t.div === '', JSON.stringify(t));
+check('Q4_0 everywhere: flips and divergence as the model', t.flips === M.toyQ4.flips && t.div === String(M.toyQ4.div ?? '') && t.red === t.flips, JSON.stringify(t));
 for (const a of ['W0 (layer 0)', 'W1 (layer 1)', 'E (embedding and head)']) await setValue(T, `select[aria-label="${a}"]`, 'affine3', 'change');
 t = await toy();
 check('affine 3-bit everywhere: more flips than Q4_0, as the model', t.flips === M.toyA3.flips && t.flips > M.toyQ4.flips, JSON.stringify(t));

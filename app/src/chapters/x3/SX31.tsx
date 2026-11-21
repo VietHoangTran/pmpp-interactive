@@ -122,7 +122,8 @@ export const questionsSX31: Record<string, Question> = {
     explain: (
       <p>
         Before the switch in <code>ggml_cuda_compute_forward</code>, a fusion pass looks at runs of nodes. RMS_NORM followed by
-        MUL (and RMS_NORM, MUL, ADD) becomes one call to <code>ggml_cuda_op_rms_norm_fused</code>. The environment variable{' '}
+        MUL becomes one call to <code>ggml_cuda_op_rms_norm_fused</code>, and RMS_NORM, MUL, ADD, tried one step earlier,
+        one call to <code>ggml_cuda_op_rms_norm_fused_add</code>. The environment variable{' '}
         <code>GGML_CUDA_DISABLE_FUSION</code> turns the pass off, and then the plain case runs.
       </p>
     ),
@@ -460,7 +461,7 @@ export function SX31() {
           <code>tools/amd_build/build_amd.py</code> hipifies <code>native/cuda/*</code>.
         </p>
       </Today>
-      <Excerpt x={x.addH} caption="All the source the CUDA add kernel has: the scalar body in native/ufunc/add.h." />
+      <Excerpt x={x.addH} caption="The only op-specific source of the CUDA add kernel: its scalar body in native/ufunc/add.h. torchgen generates the rest at build time." />
 
       <h2>The three entry points side by side</h2>
       <table className="data wide" data-part="entry-points" style={{ maxWidth: '62rem' }}>

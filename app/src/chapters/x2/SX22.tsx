@@ -110,18 +110,19 @@ export const questionsSX22: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'scale = s, zeroPoint = -bias / s; it works when that is an integer, which MLX’s coded rule (bias = q0·s at the edge) arranges and the documented min/max rule generally does not.',
+        label: 'scale = s, zeroPoint = -bias / s; only if that is an integer, as MLX’s code arranges.',
         correct: true,
       },
-      { label: 'scale = s, zeroPoint = bias; always works.', why: 'Expand scale·(q - zp) = s·q - s·zp: you need -s·zp = bias, so zp = -bias / s, not bias.' },
-      { label: 'scale = 1 / s, zeroPoint = bias·s.', why: 'The scale multiplies the codes in both forms; it is the same s.' },
-      { label: 'It always works, because zeroPoint may be any float.', why: 'The header says the zero-point tensor must match the input tensor’s type: Int4, UInt4, Int8 or UInt8.' },
+      { label: 'scale = s, zeroPoint = bias; it works for every group, as both are offsets.', why: 'Expand scale·(q - zp) = s·q - s·zp: you need -s·zp = bias, so zp = -bias / s, not bias.' },
+      { label: 'scale = 1 / s, zeroPoint = bias·s; it works whenever s is a power of two.', why: 'The scale multiplies the codes in both forms; it is the same s.' },
+      { label: 'scale = s, zeroPoint = -bias / s; it always works, as zeroPoint may be a float.', why: 'The header says the zero-point tensor must match the input tensor’s type: Int4, UInt4, Int8 or UInt8.' },
     ],
     explain: (
       <p>
         s·q + bias = s·(q - (-bias / s)). With the documented rule bias = min and s = (max - min) / 15, so -min / s is
         whatever it happens to be. MLX's code instead picks the edge of larger magnitude, rounds edge / s to an integer
-        q0, and sets s = edge / q0, bias = edge; then -bias / s = -q0, an integer. The stepper shows that code (it
+        q0, and sets s = edge / q0, bias = edge; then -bias / s = -q0, an integer. The documented min/max rule
+        generally does not give one. The stepper shows that code (it
         marks "code on zero").
       </p>
     ),
@@ -139,7 +140,8 @@ export const questionsSX22: Record<string, Question> = {
     options: [
       { label: 'Per row, every weight’s step grows with the outlier; per 32, only its own 31 neighbours pay.', correct: true },
       { label: 'The same either way: only the outlier itself is badly rounded.', why: 'The outlier sets the scale, and the scale is every weight’s step.' },
-      { label: 'Per 32 is worse, because more scales add more rounding.', why: 'Each FP16 scale adds a relative error near 2^-11, small next to a 4-bit step.' },
+      { label: 'Per row is better: its one scale gets the whole row\'s range right.', why: 'One scale fits the range by stretching the step for all 4096 weights. The range is right and the step is too coarse for everything but the outlier.' },
+      { label: 'Per 32 is worse, because 128 scales add 128 more roundings.', why: 'Each FP16 scale adds a relative error near 2^-11, small next to a 4-bit step.' },
     ],
     explain: (
       <p>
@@ -227,12 +229,12 @@ function NumberLine({ t, k }: { t: Trace; k: number }) {
     <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Weights, the grid and the dequantised values on a number line" style={{ width: '100%', display: 'block' }}>
       <line x1={20} x2={W - 20} y1={70} y2={70} stroke="var(--rule)" />
       <line x1={X(0)} x2={X(0)} y1={60} y2={80} stroke="var(--ink-3)" />
-      <text x={X(0)} y={95} fontSize="10" textAnchor="middle" style={{ fill: 'var(--ink-3)' }}>0</text>
+      <text x={X(0)} y={95} fontSize="12" textAnchor="middle" style={{ fill: 'var(--ink-3)' }}>0</text>
       {showLevels
         ? t.levels.map((v, i) => (
             <line key={i} data-level={v} x1={X(v)} x2={X(v)} y1={62} y2={78} stroke="var(--global)" strokeWidth={1.4} />
           ))
-        : k >= 2 ? <text x={20} y={56} fontSize="10" style={{ fill: 'var(--global)' }}>{t.levels.length} levels, too dense to draw</text> : null}
+        : k >= 2 ? <text x={20} y={56} fontSize="12" style={{ fill: 'var(--global)' }}>{t.levels.length} levels, too dense to draw</text> : null}
       {t.values.map((v, i) => {
         const hot = k >= 1 && (i === t.extreme.index || ((t.rule === 'q4_1' || t.rule.startsWith('mlx')) && (i === t.extreme.minIndex || i === t.extreme.maxIndex)));
         const bad = k >= 5 && t.clipped[i];
@@ -248,9 +250,9 @@ function NumberLine({ t, k }: { t: Trace; k: number }) {
           </g>
         );
       })}
-      <text x={W - 20} y={14} fontSize="11" textAnchor="end">weights (float32)</text>
-      {k >= 2 ? <text x={20} y={130} fontSize="11" style={{ fill: 'var(--global)' }}>{k >= 6 ? 'dequantised values, on the grid' : 'the grid: every value the block can hold'}</text> : null}
-      {k >= 1 ? <text x={X(t.extreme.value)} y={27} fontSize="10" textAnchor="middle">{t.rule === 'q4_0' ? 'signed extreme' : 'extreme'}</text> : null}
+      <text x={W - 20} y={14} fontSize="12.5" textAnchor="end">weights (float32)</text>
+      {k >= 2 ? <text x={20} y={132} fontSize="12.5" style={{ fill: 'var(--global)' }}>{k >= 6 ? 'dequantised values, on the grid' : 'the grid: every value the block can hold'}</text> : null}
+      {k >= 1 ? <text x={X(t.extreme.value)} y={27} fontSize="12" textAnchor="middle">{t.rule === 'q4_0' ? 'signed extreme' : 'extreme'}</text> : null}
     </svg>
   );
 }
@@ -318,7 +320,7 @@ function OneBlock() {
         {stepText(t, k, fp16Scale)}
       </div>
       <div style={{ overflowX: 'auto' }}>
-        <div style={{ minWidth: 560 }}><NumberLine t={t} k={k} /></div>
+        <div style={{ minWidth: 640 }}><NumberLine t={t} k={k} /></div>
       </div>
       <div data-part="cells" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(5.4rem, 1fr))', gap: '4px', marginTop: '0.6rem' }}>
         {t.values.map((v, i) => (

@@ -25,14 +25,15 @@ export const questionsSX21: Record<string, Question> = {
     id: 'x2/X2.1/q-q8-ceiling',
     prompt: <>Q8_0 stores 8-bit codes, a quarter of float32's 32 bits. Why is its speed-up ceiling over float32 3.76 and not 4?</>,
     options: [
-      { label: 'Every block of 32 codes carries a 2-byte scale: 34 bytes per 32 weights, 1.0625 bytes per weight, and 4 / 1.0625 = 3.76.', correct: true },
-      { label: 'The int8 multiply is slower than a float multiply.', why: 'The ceiling is a bytes ceiling. In a memory-bound GEMV the arithmetic is not what sets the time.' },
+      { label: 'Each block of 32 codes carries a 2-byte scale: 34 bytes, not 32.', correct: true },
+      { label: 'The int8 multiply is slower than a float multiply on GPUs.', why: 'The ceiling is a bytes ceiling. In a memory-bound GEMV the arithmetic is not what sets the time.' },
       { label: 'The activations are still float32, and they cost a quarter of the bytes.', why: 'The activations are about in + out values against in × out weights: a sliver, not a quarter.' },
-      { label: 'Codes are stored in 9 bits to hold the sign.', why: 'Q8_0 codes are int8, from -127 to 127. The extra half bit per weight is the scale.' },
+      { label: 'Each code is stored in 9 bits, so that it can hold its sign.', why: 'Q8_0 codes are int8, from -127 to 127. The extra half bit per weight is the scale.' },
     ],
     explain: (
       <p>
-        Bits per weight include the scales: Q8_0 is 8.5, Q4_0 4.5. The block scales are part of what every token reads,
+        34 bytes per 32 weights is 1.0625 bytes per weight, and 4 / 1.0625 = 3.76. Bits per weight include the scales:
+        Q8_0 is 8.5, Q4_0 4.5. The block scales are part of what every token reads,
         and they are why block size is a bandwidth decision as well as an accuracy one.
       </p>
     ),
@@ -104,10 +105,10 @@ export const questionsSX21: Record<string, Question> = {
     id: 'x2/X2.1/q-int-mm',
     prompt: <>Why can batch-1 decode in PyTorch on CUDA not use <code>torch._int_mm</code>, and what serves it instead?</>,
     options: [
-      { label: 'The CUDA path requires the first dimension to be greater than 16; weight-only kernels such as _weight_int8pack_mm and _weight_int4pack_mm serve decode.', correct: true },
-      { label: '_int_mm has no CUDA implementation.', why: 'It dispatches CPU, CUDA, MPS and XPU. On CUDA it checks the sizes and refuses small M.' },
-      { label: 'It would work, but int8 activations lose too much accuracy.', why: 'It does not work: the size check stops it before any arithmetic.' },
-      { label: 'It needs int4 weights.', why: 'It multiplies int8 by int8 into int32.' },
+      { label: 'On CUDA it refuses a first dimension of 16 or less; weight-only ops serve decode.', correct: true },
+      { label: '_int_mm has no CUDA implementation, only CPU and MPS ones.', why: 'It dispatches CPU, CUDA, MPS and XPU. On CUDA it checks the sizes and refuses small M.' },
+      { label: 'It would run, but int8 activations lose too much accuracy for decode.', why: 'It does not work: the size check stops it before any arithmetic.' },
+      { label: 'It needs int4 weights, packed by _convert_weight_to_int4pack first.', why: 'It multiplies int8 by int8 into int32.' },
     ],
     explain: (
       <p>
@@ -127,10 +128,10 @@ export const questionsSX21: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Memory-bound on A; compute-bound on B, so on B the dequantise operations the model leaves out decide the speed.', correct: true },
-      { label: 'Memory-bound on both: decode is always memory-bound.', why: "B's threshold is 300 / 250 = 1.2 FLOP/B, below 1.88." },
-      { label: 'Compute-bound on both.', why: "A's threshold is 2.0 FLOP/B, above 1.88." },
-      { label: 'Memory-bound on B only.', why: 'B has more bandwidth per operation, so its threshold is lower.' },
+      { label: 'Memory-bound on A; compute-bound on B, where unpacking costs decide.', correct: true },
+      { label: 'Memory-bound on both: decode is memory-bound on any device.', why: "B's threshold is 300 / 250 = 1.2 FLOP/B, below 1.88." },
+      { label: 'Compute-bound on both, since Q8_0 nearly doubles FP16\'s intensity.', why: "A's threshold is 2.0 FLOP/B, above 1.88." },
+      { label: 'Memory-bound on B only, since B has more bandwidth per operation.', why: 'B has more bandwidth per operation, so its threshold is lower.' },
     ],
     explain: (
       <p>
@@ -648,15 +649,20 @@ export function SX21() {
       <FusedOrUnfused />
       <p>
         Dequantising to FP16 instead halves the copy and still loses to float32. Only the fused kernel, which reads codes
-        and scales and unpacks them in registers on the way to the multiply, moves fewer bytes than it started with. Watch
-        the three streams drain through the same pipe:
+        and scales and unpacks them in registers on the way to the multiply, moves fewer bytes than it started with.
       </p>
       <Today checked={`2026-11-20 in the facts pass (${FACTS}, A1)`}>
         <p>
-          PyTorch's blog measured exactly this: an unfused int8 weight path "much worse than even the fp16 performance",
-          and fused kernels that recover a speed-up well short of the byte ratio, on their own device.
+          PyTorch's blog found an unfused int8 path "much worse than even the fp16 performance", on their device.
         </p>
       </Today>
+      <p>
+        Watch the three streams drain through the same pipe. The byte ratio is a ceiling, not a promise: the same blog's
+        fused kernels stayed well short of it.
+      </p>
+      <Simplification>
+        <p>Bytes only, at one fixed bandwidth: no unpacking cost, no caches, no launch overhead.</p>
+      </Simplification>
       <ThreeTrafficsScene />
       <Ask q={q['x2/X2.1/q-unfused']} />
 

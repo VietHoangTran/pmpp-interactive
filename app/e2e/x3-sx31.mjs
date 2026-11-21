@@ -175,7 +175,12 @@ const svg = () => page.$eval(S + ' .stage svg', (e) => e.textContent.replace(/\s
 const caption = () => page.$eval(S + ' .caption', (e) => e.textContent.replace(/\s+/g, ' ').trim()).catch(() => null);
 check('scene: six parts', (await page.$$eval(S + ' .seg button', (b) => b.length)) === 6);
 check('scene: captions off by default', !(await page.$eval(S + ' label.check:last-of-type input', (i) => i.checked)));
-check('scene: with no audio, the script is shown regardless', (await caption()) === scripts[0], await caption());
+// A beat with audio shows its script only with captions on; one without audio shows it anyway.
+if ((await caption()) === null) {
+  await page.$eval(S + ' label.check:last-of-type input', (i) => i.click());
+  await pause(150);
+}
+check('scene: part 1 shows its script (captions on, or no audio)', (await caption()) === scripts[0], await caption());
 await seek(1000);
 const t1 = await svg();
 check('beat 1 draws the four graph nodes', ['GGML_OP_GET_ROWS', 'GGML_OP_RMS_NORM', 'GGML_OP_MUL', 'GGML_OP_MUL_MAT'].every((w) => t1.includes(w)), t1);

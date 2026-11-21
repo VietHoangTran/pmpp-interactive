@@ -125,10 +125,11 @@ after it, and where must the next tokens go so that the next step starts on the 
 
 Shapes, printed by the driver: on a GPU d = 512 (h_q 4 over h_kv 2), hidden 1376, 4 layers,
 vocab 4099, seqLen 128, a 4-token prompt and 60 generated tokens (63 steps), batches 1 and 3;
-on the emulators d = 256 (h_q 2 over h_kv 1), hidden 128, 2 layers, vocab 256, seqLen 16, a
-3-token prompt and 3 generated tokens (5 steps), batches 1 and 2. The emulator case is smaller
-than first planned (hidden 352, vocab 300, 5 generated tokens) because that run took about
-nine minutes; d cannot shrink without losing grouped-query attention at head size 128. Every
+on the emulators d = 256 (h_q 2 over h_kv 1), hidden 352, 2 layers, vocab 300, seqLen 16, a
+3-token prompt and 5 generated tokens (7 steps), batches 1 and 2. The emulator's sizes all
+differ from one another (d, dkv = 128, hidden, vocab), so a size passed in the wrong argument
+fails there too; d cannot shrink without losing grouped-query attention at head size 128, so
+the emulator run takes minutes. Every
 prompt starts with token 1, llama2.c's BOS (D1). The linear layer is lab 22.1's gather on a
 GPU and lab 15.6's M3 on the emulators, whose 128-wide tiles launch the fewest threads and so
 cost the emulator least (lab 22.2 makes the same choice); M2 if neither is present.
@@ -153,7 +154,7 @@ cost the emulator least (lab 22.2 makes the same choice); M2 if neither is prese
   of the LM head's dot product (`xn` the reference's final normalised hidden state). The same
   tolerance holds on every backend; it was chosen so that Metal's default math mode passes
   with room: on the machine this lab was written on, the worst error was 0.06 of it with lab
-  6.4's or lab 15.6's GEMM and 0.02 of it with the gather (Metal), and about 0.01 of it on the
+  6.4's or lab 15.6's GEMM and 0.02 of it with the gather (Metal), and about 0.013 of it on the
   emulator. These are measurements of one machine; CUDA and HIP have not been run. The step must also record its
   own argmax in `out`, feed the next prompt token, and leave `pos` and `len` at step + 1 and
   step + 2.
@@ -201,12 +202,12 @@ Things to weigh:
   gather reads each weight once per step; lab 6.4's tiles were built for matrices and launch a
   16-row tile for one row of work. llama.cpp switches from matrix-vector to matrix-matrix
   kernels at about 8 tokens (ch22-facts D6). The benchmark runs both.
-- **Launches per token.** A step is about fifteen launches per layer plus five, each short at
+- **Launches per token.** A step is sixteen launches per layer plus five, each short at
   batch 1. Each costs a launch on CUDA and HIP and a dispatch on Metal, and none of it moves
   weights. The per-piece split adds up the pieces timed alone; compare its sum with the step.
 - **The KV cache grows; the weights do not.** The weights read per token are fixed. The
   attention reads `2 x layers x batch x len x dkv x 4` bytes, which grows with the position:
-  at 512 it is 32 times what it is at 16. Whether that matters depends on how it compares with
+  at position 512 (len 513) it is about 30 times what it is at 16 (len 17). Whether that matters depends on how it compares with
   the weight bytes, which the benchmark prints side by side.
 - **Caches.** A small model's weights may fit in part in the device's caches, which would put
   the weight bandwidth above lab 5.1's; Apple documents no cache sizes (infra-facts C13).

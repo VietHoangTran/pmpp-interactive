@@ -380,7 +380,7 @@ export function SX39() {
       <Today checked="2026-11-20 (notes/today/ch10-facts.md A9, A11; x1-facts C5; ch05-facts C7)">
         <p>
           Float summation is not associative, so a different reduction order changes the last bits; <code>expf</code>'s accuracy differs by
-          backend; Metal compiles with fast math unless told otherwise.
+          backend; Metal does not default to IEEE-strict math, and Apple's sources disagree on which mode is the default (ch05 C7).
         </p>
       </Today>
       <p>
@@ -412,6 +412,12 @@ export function SX39() {
         You do not need to fork a framework to try a kernel in it. MLX and PyTorch each take kernel source from Python and compile it at run
         time, on Metal and on CUDA. llama.cpp has no such door: a kernel there is a new GGML op.
       </p>
+      <Today checked="2026-11-20 (notes/today/x3-facts.md D8)">
+        <p>
+          MLX <code>python/src/fast.cpp</code> at the pinned commit; PyTorch docs 2.15 for <code>compile_shader</code> and{' '}
+          <code>load_inline</code>. MLX has no AMD backend (B9).
+        </p>
+      </Today>
       <div style={{ overflowX: 'auto' }}>
         <table className="data" style={{ width: '100%' }} data-part="entry">
           <thead>
@@ -431,12 +437,6 @@ export function SX39() {
           </tbody>
         </table>
       </div>
-      <Today checked="2026-11-20 (notes/today/x3-facts.md D8)">
-        <p>
-          MLX <code>python/src/fast.cpp</code> at the pinned commit; PyTorch docs 2.15 for <code>compile_shader</code> and{' '}
-          <code>load_inline</code>. MLX has no AMD backend (B9).
-        </p>
-      </Today>
       <Ask q={questionsSX39['x3/X3.9/q-cuda-grid']} />
       <p>
         The bridge from this course: port lab 10.3's <code>softmax_rows</code> into <code>mx.fast.metal_kernel</code> and compare it with{' '}

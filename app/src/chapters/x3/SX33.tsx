@@ -211,8 +211,8 @@ export const questionsSX33: Record<string, Question> = {
       <p>
         32,000 × 4 bytes = 128,000 bytes per sweep. Three reads and a write: {rowBytes(32000, 3, 1).toLocaleString('en-US')}{' '}
         bytes. Two reads and a write: {rowBytes(32000, 2, 1).toLocaleString('en-US')}. The ratio is 3 / 4. Both kernels are
-        memory-bound, so a quarter fewer bytes is the speed-up to expect at best, and less if a cache was serving the
-        repeated reads anyway.
+        memory-bound, so with a quarter fewer bytes the time can drop by at most a quarter (a speed-up of at most 4/3), and
+        by less if a cache was serving the repeated reads anyway.
       </p>
     ),
     source: 'ours; read counts from lab 10.3 and x3 facts B3',
@@ -590,9 +590,9 @@ export function SX33() {
       </p>
       <p>
         The fusion level is a template argument F: 1 for the plain norm, 2 with the weight, 3 with the weight and an add.
-        Metal finds a kernel by a name string, so each instantiation is given one:{' '}
-        <code>template [[host_name("kernel_rms_norm_mul_f32")]] kernel kernel_rms_norm_fuse_t kernel_rms_norm_fuse_impl&lt;float, 2&gt;;</code>.
-        To find the Metal kernel behind a host call, search the .metal files for the string the host formats, not for a
+        Metal finds a kernel by a name string, so each instantiation is given one: the line that instantiates{' '}
+        <code>kernel_rms_norm_fuse_impl&lt;float, 2&gt;</code> carries{' '}
+        <code>[[host_name("kernel_rms_norm_mul_f32")]]</code> (norm.metal line 179). To find the Metal kernel behind a host call, search the .metal files for the string the host formats, not for a
         function name.
       </p>
       <Today checked="2026-11-20 (notes/today/x3-facts.md B2, C2)">
@@ -680,7 +680,7 @@ export function SX33() {
       <p>
         The other choice each kernel makes is its exponential. MLX's CUDA kernel calls <code>__expf</code>, with the
         comment "Softmax doesn't need high precision exponential cause x is gonna be in (-oo, 0] anyway and subsequently
-        it will be divided by sum(exp(x_i)).", and MLX's Metal kernel calls <code>fast::exp</code> for the same reason.
+        it will be divided by sum(exp(x_i))." MLX's Metal kernel calls <code>fast::exp</code>.
         PyTorch's MPS softmax calls <code>precise::exp</code> throughout. Two frameworks on the same Apple GPU made opposite
         choices for the same op. llama.cpp's Metal kernel calls plain <code>exp</code>, whose precision follows the compile
         options.

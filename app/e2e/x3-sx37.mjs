@@ -117,15 +117,15 @@ n = await page.$eval(S + ' [data-part="narrate"]', (e) => e.textContent);
 check('the last launch is the advance of lab X3.2', n.includes('launchAdvancePositions'), n);
 if (out) await page.screenshot({ path: out + '-step.png' });
 
-// Change the model: 2 layers, 4 KV heads, pos 200.
+// Change the model: 2 layers, 4 KV heads, pos 100.
 await typeInto(S + ' input[aria-label="Layers"]', 2);
 await setSelect(S + ' select[aria-label="KV heads"]', 4);
-await setRange(S + ' input[aria-label="pos"]', 200);
+await setRange(S + ' input[aria-label="pos"]', 100);
 const cfg1 = { ...cfg0, layers: 2, kvHeads: 4 };
-model = L.stepLaunches(cfg1, 200);
+model = L.stepLaunches(cfg1, 100);
 tot = L.totals(model);
 check('2 layers: 37 launches', (await total('launches')) === 37 && model.length === 37);
-check('cache bytes at pos 200 match the model', (await total('cache')) === tot.cacheBytes, String(await total('cache')));
+check('cache bytes at pos 100 match the model', (await total('cache')) === tot.cacheBytes, String(await total('cache')));
 check('weights per token match the model', (await total('weights')) === tot.weightBytes);
 const attnFn = await page.$eval(S + ' tr[data-job="attention"] code', (e) => e.textContent);
 check('with equal head counts the attention is lab 20.4\'s kernel', attnFn === 'launchDecodeAttention', attnFn);

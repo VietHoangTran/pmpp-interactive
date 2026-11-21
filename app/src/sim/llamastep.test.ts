@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   FLOAT, HEAD, STORIES15M, STORIES260K, SYNTHETIC, launchCount, llama2cBytes, llama2cFloats, stepLaunches, totals, validate, type Config, type Job,
 } from './llamastep';
+import { LAB_GPU } from './ckptformat';
 
 /** llama2.c's forward as lab X3.2 launches it (x3-facts D1; labs/x3/lab2_tinyllama/llama.h), one layer. */
 const LAYER: Job[] = ['rmsnorm', 'q', 'k', 'v', 'rope-q', 'rope-k', 'append', 'attention', 'wo', 'residual', 'rmsnorm', 'w1', 'w3', 'swiglu', 'w2', 'residual'];
@@ -77,9 +78,9 @@ describe('bytes per token', () => {
   });
   it('attention reads grow with pos; weights do not', () => {
     const a = totals(stepLaunches(SYNTHETIC, 0));
-    const b = totals(stepLaunches(SYNTHETIC, 200));
+    const b = totals(stepLaunches(SYNTHETIC, 100));
     expect(b.weightBytes).toBe(a.weightBytes);
-    expect(b.cacheBytes - a.cacheBytes).toBe(SYNTHETIC.layers * 2 * 200 * SYNTHETIC.kvHeads * HEAD * 4);
+    expect(b.cacheBytes - a.cacheBytes).toBe(SYNTHETIC.layers * 2 * 100 * SYNTHETIC.kvHeads * HEAD * 4);
     expect(b.byKind.attention).toBeGreaterThan(a.byKind.attention);
   });
   it('the RoPE tables read per token are one row per rotated buffer per layer', () => {
@@ -99,5 +100,16 @@ describe("lab X3.2's header", () => {
     const src = fs.readFileSync(header, 'utf8');
     const fns = new Set(stepLaunches(SYNTHETIC, 0).map((l) => l.fn).filter((f) => /^launch\w+$/.test(f) && f !== 'launchDecodeAttentionGrouped'));
     for (const f of fns) expect(src, f).toMatch(new RegExp('\\b' + f + '\\s*\\('));
+  });
+});
+
+// The stepper and the scene start from SYNTHETIC; the labs page's launch table and lab X3.2 use
+// LAB_GPU. They must be the same model, or the page's figures describe a model the lab does not run.
+describe("the module's model is lab X3.2's GPU model", () => {
+  it('SYNTHETIC equals LAB_GPU', () => {
+    expect(SYNTHETIC).toEqual({
+      d: LAB_GPU.dim, hidden: LAB_GPU.hidden_dim, layers: LAB_GPU.n_layers, heads: LAB_GPU.n_heads,
+      kvHeads: LAB_GPU.n_kv_heads, vocab: LAB_GPU.vocab_size, head: LAB_GPU.dim / LAB_GPU.n_heads, seqLen: LAB_GPU.seq_len,
+    });
   });
 });

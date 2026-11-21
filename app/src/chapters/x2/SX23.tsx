@@ -60,16 +60,18 @@ export const questionsSX23: Record<string, Question> = {
     prompt: <>Why does llama.cpp put weight j + 16, rather than weight j + 1, beside weight j in a byte?</>,
     options: [
       {
-        label: 'One 32-bit mask then yields codes j..j+3, which meet four consecutive int8 activations in one dp4a; the shifted word yields j+16..j+19, which meet the activations 16 further on. No byte shuffling.',
+        label: 'One mask then gives codes j..j+3 in activation order, ready for dp4a.',
         correct: true,
       },
-      { label: 'It compresses better.', why: 'Both orders store exactly 4 bits per weight.' },
-      { label: 'To keep the block 2-byte aligned.', why: 'Alignment is set by the FP16 d and the block size, not by the nibble order.' },
-      { label: 'Because GPUs load the high nibble first.', why: 'No load reads nibbles; loads read bytes and words.' },
+      { label: 'It compresses better: nibbles 16 apart tend to be similar in size.', why: 'Both orders store exactly 4 bits per weight.' },
+      { label: 'It keeps every block\'s codes 2-byte aligned within the row.', why: 'Alignment is set by the FP16 d and the block size, not by the nibble order.' },
+      { label: 'GPUs load the high nibble of a byte first, so j + 16 comes next.', why: 'No load reads nibbles; loads read bytes and words.' },
     ],
     explain: (
       <p>
-        With neighbours in a byte (MLX's order), masking a word gives codes j, j+2, j+4, j+6 in the low nibbles and
+        One 32-bit mask yields codes j..j+3, which meet four consecutive int8 activations in one dp4a; the shifted word
+        yields j+16..j+19, which meet the activations 16 further on. With neighbours in a byte (MLX's order), masking a
+        word gives codes j, j+2, j+4, j+6 in the low nibbles and
         their odd neighbours in the high ones, so a byte dot product would need the activations rearranged. With j and
         j + 16 the masked bytes are already in activation order. The layout is chosen for the kernel that reads it.
       </p>
@@ -101,16 +103,17 @@ export const questionsSX23: Record<string, Question> = {
     prompt: <>MSL now has <code>uint4b_format</code> and <code>unpack</code>. Why does lab X2.2's Metal kernel unpack with masks instead?</>,
     options: [
       {
-        label: 'The order of the two nibbles in a byte is undocumented, the types need Metal 4 with SDK 26.4 (and 4.1 for unpack), and the supported GPU families are not stated.',
+        label: 'Their nibble order is undocumented, and so are the GPU families they run on.',
         correct: true,
       },
-      { label: 'The packed types are slower.', why: 'Nobody has published a measurement either way, and nothing here claims one.' },
-      { label: 'They only work in threadgroup memory.', why: 'The spec does not restrict them so.' },
-      { label: 'They are signed only.', why: 'Both int4b_format and uint4b_format exist.' },
+      { label: 'The packed types are slower than masking the bytes by hand.', why: 'Nobody has published a measurement either way, and nothing here claims one.' },
+      { label: 'They work only on values held in threadgroup memory.', why: 'The spec does not restrict them so.' },
+      { label: 'They are signed only, so Q4_0\'s unsigned codes cannot use them.', why: 'Both int4b_format and uint4b_format exist.' },
     ],
     explain: (
       <p>
-        A kernel that must decode llama.cpp's bytes needs to know which nibble is element 0; the spec does not say, and
+        The types also need Metal 4 with SDK 26.4 (and 4.1 for <code>unpack</code>). A kernel that must decode
+        llama.cpp's bytes needs to know which nibble is element 0; the spec does not say, and
         the Feature Set Tables have no row for packed numeric types. Neither MLX nor llama.cpp uses them (a code search,
         not a proof). A lab that tried would have to test the nibble order on the device against a CPU pack first.
       </p>
@@ -392,7 +395,8 @@ export function SX23() {
       <Beyond title="Below C++">
         <p>
           PTX does have <code>.s4</code> and <code>.u4</code>, but only inside matrix instructions (<code>mma</code> from
-          sm_75 and sm_80) and the packing conversion <code>cvt.pack</code>. Checked {CHECKED('A4')}.
+          sm_75 and sm_80), <code>ldmatrix</code>'s <code>.s8.s4</code> form (PTX 9.4; sm_90a and the sm_100, sm_110 and sm_120 families) and the
+          packing conversion <code>cvt.pack</code>. Checked {CHECKED('A4')}.
         </p>
       </Beyond>
 

@@ -64,9 +64,9 @@ export const questionsSX27: Record<string, Question> = {
     id: 'x2/X2.7/q-embed',
     prompt: <>Once the embedding table E is quantised, why does the step need a gather that dequantises?</>,
     options: [
-      { label: 'E is tied to the LM head: quantising it for the head means the gather reads blocks too, and keeping a float copy would cost the bytes just saved.', correct: true },
-      { label: 'Because the gather is the slowest piece of the step.', why: 'At batch 1 it reads one row of E: about 16 KB in float32, nothing next to the head.' },
-      { label: 'Because embeddings must be float32 for the softmax.', why: 'The gather feeds the first layer, not the softmax; and its output is float32 either way.' },
+      { label: 'E is tied to the head, and a separate float copy would cost the bytes just saved.', correct: true },
+      { label: 'The gather is the slowest piece of the step, so it must read fewer bytes.', why: 'At batch 1 it reads one row of E: about 16 KB in float32, nothing next to the head.' },
+      { label: 'Embeddings must stay float32 for the softmax, so the gather converts them.', why: 'The gather feeds the first layer, not the softmax; and its output is float32 either way.' },
     ],
     explain: (
       <p>
@@ -82,10 +82,10 @@ export const questionsSX27: Record<string, Question> = {
     id: 'x2/X2.7/q-margin',
     prompt: <>Which greedy steps are at risk when the weights are quantised?</>,
     options: [
-      { label: 'Those whose float32 top-2 logit margin is smaller than the change quantisation makes to the logits.', correct: true },
-      { label: 'The first steps, because errors are largest there.', why: 'Each step here starts from a token, not from accumulated state; the risk is per step.' },
-      { label: 'The steps whose token has the largest logit.', why: 'A large winning logit is fine if the runner-up is far behind.' },
-      { label: 'All of them equally.', why: 'In the toy model a step whose margin is several times the logits error never flips.' },
+      { label: 'Those whose float32 top-2 margin is smaller than the change in the logits.', correct: true },
+      { label: 'The first steps of the sequence, where the quantisation error is largest.', why: 'Each step here starts from a token, not from accumulated state; the risk is per step.' },
+      { label: 'The steps whose winning token has the largest logit of the sequence.', why: 'A large winning logit is fine if the runner-up is far behind.' },
+      { label: 'All of them equally, since every logit moves by about the same amount.', why: 'In the toy model a step whose margin is several times the logits error never flips.' },
     ],
     explain: (
       <p>
@@ -101,9 +101,9 @@ export const questionsSX27: Record<string, Question> = {
     id: 'x2/X2.7/q-weights-vs-output',
     prompt: <>Q4_0 has about 9% relative RMS error on normal weights. Can you predict the error in the logits from that?</>,
     options: [
-      { label: 'No: errors partly cancel in each dot product, pass through every layer and the residual, and must be measured at the output.', correct: true },
+      { label: 'No: errors cancel and mix through every layer and the residual; measure the output.', correct: true },
       { label: 'Yes: also about 9%, because the logits are linear in the weights.', why: 'They are not linear in the weights: each layer feeds the next, and E appears twice, at the gather and at the head.' },
-      { label: 'Yes: 9% times the number of layers.', why: 'Errors do not add like that; some cancel, and the residual carries the unquantised part forward.' },
+      { label: 'Yes: about 9% times the number of layers the error passes through.', why: 'Errors do not add like that; some cancel, and the residual carries the unquantised part forward.' },
     ],
     explain: (
       <p>
@@ -125,19 +125,20 @@ export const questionsSX27: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'It shrinks: activation bytes grow with the batch while weight bytes do not, and once the Q4_0 GEMV’s intensity passes the device threshold it stops being bandwidth-bound; the dequantise arithmetic, absent from the model, decides the rest.',
+        label: 'It shrinks: other bytes grow with the batch, and the head can turn compute-bound.',
         correct: true,
       },
-      { label: 'It grows, because the dequantise work is shared by 8 rows.', why: 'The model has no dequantise work at all; and sharing it would only cut a cost, not raise the byte ratio.' },
-      { label: 'It stays at the byte ratio, 7.11.', why: 'Only the weight bytes shrink 7.11 times; the rest of the step does not shrink at all.' },
+      { label: 'It grows: the dequantise work is shared by 8 rows, so each row costs less.', why: 'The model has no dequantise work at all; and sharing it would only cut a cost, not raise the byte ratio.' },
+      { label: 'It stays at the byte ratio, 7.11, because weight bytes still dominate.', why: 'Only the weight bytes shrink 7.11 times; the rest of the step does not shrink at all, and at batch 8 it is no longer small.' },
+      { label: 'It shrinks, because Q4_0\'s scales are read again for each row of the batch.', why: 'Each weight read, scales included, serves all 8 rows: the scales are read once per step, not once per row.' },
     ],
     explain: (
       <p>
         At batch 1 the step is nearly all weight bytes, so the ratio is near 7.1. At batch 8 the logits, softmax and
         argmax move 8 times as many bytes, and on the book's example device a Q4_0 GEMV at batch 8 does 2 × 8 / 0.5625 ≈
         28 operations per byte of weights, above its threshold of 20: the head becomes compute-bound in the model. Real
-        kernels also spend arithmetic unpacking and scaling, which the model leaves out. Only a measurement says how much
-        of the ratio survives.
+        kernels also spend arithmetic unpacking and scaling, which the model leaves out, and that decides the rest. Only a
+        measurement says how much of the ratio survives.
       </p>
     ),
     source: `ours; ${FACTS} E1, A1; the book's example device from ch. 5 p. 94`,
@@ -331,8 +332,8 @@ const TOY_FORMATS: MatFormat[] = ['f32', 'q8_0', 'q4_0', 'affine3', 'affine2'];
 
 function ToyExplorer() {
   const model = useMemo(() => toyModel(), []);
-  const [wf, setWf] = useState<MatFormat[]>(['q4_0', 'q4_0']);
-  const [ef, setEf] = useState<MatFormat>('q4_0');
+  const [wf, setWf] = useState<MatFormat[]>(['q8_0', 'q8_0']);
+  const [ef, setEf] = useState<MatFormat>('q8_0');
   const f = { W: wf, E: ef };
   const run = useMemo(() => greedyRun(model, f), [model, wf, ef]); // eslint-disable-line react-hooks/exhaustive-deps
   const flips = run.steps.filter((s) => s.flipped);
@@ -370,17 +371,22 @@ function ToyExplorer() {
         {sel('W1 (layer 1)', wf[1], (x) => setWf([wf[0], x]))}
         {sel('E (embedding and head)', ef, setEf)}
       </div>
-      <svg viewBox={`0 0 ${Wd} ${H}`} role="img" aria-label="Top-2 margin and logits error per step" style={{ width: '100%', display: 'block' }}>
+      <p className="muted" style={{ margin: '0 0 0.3rem', fontSize: '0.85rem' }} data-legend="">
+        Per step: the bar is the float32 top-2 margin, the dot twice the RMS change in the logits. A red bar is a step where
+        the quantised model picks a different token.
+      </p>
+      <div style={{ overflowX: 'auto' }}>
+      <svg viewBox={`0 0 ${Wd} ${H}`} role="img" aria-label="Top-2 margin and logits error per step" style={{ width: '100%', display: 'block', minWidth: 520 }}>
         <line x1={0} x2={Wd} y1={140} y2={140} stroke="var(--rule)" />
         {run.steps.map((s) => (
           <g key={s.step} data-step={s.step} data-flipped={s.flipped ? 'yes' : 'no'}>
             <rect x={s.step * cw + 3} y={Y(s.margin)} width={cw - 6} height={140 - Y(s.margin)} fill={s.flipped ? 'var(--fail)' : 'var(--ink-3)'} />
             <circle cx={s.step * cw + cw / 2} cy={Y(2 * s.errRms)} r={3} fill="var(--reg)" />
-            {s.step % 4 === 0 ? <text x={s.step * cw + cw / 2} y={156} fontSize="10" textAnchor="middle">{s.step}</text> : null}
+            {s.step % 4 === 0 ? <text x={s.step * cw + cw / 2} y={158} fontSize="12" textAnchor="middle">{s.step}</text> : null}
           </g>
         ))}
-        <text x={4} y={12} fontSize="10.5">margin (bar), 2 × logits RMS change (dot); red: the quantised model picks a different token</text>
       </svg>
+      </div>
       <div className="narrate" role="status" data-part="toy" data-flips={flips.length} data-div={run.firstDivergence ?? ''} style={{ margin: '0.6rem 0' }}>
         Weights' error: E {(100 * run.weightRel.E).toFixed(1)}%, W0 {(100 * run.weightRel.W[0]).toFixed(1)}%, W1{' '}
         {(100 * run.weightRel.W[1]).toFixed(1)}%. Logits' error, mean over steps: {(100 * run.meanRel).toFixed(1)}%.{' '}

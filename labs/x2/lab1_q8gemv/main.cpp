@@ -147,7 +147,7 @@ static pmpp::Timing runQ8(Buf* X, Buf* Wq, Buf* Wd, Buf* Y, int batch, int in, i
 // ---------------------------------------------------------------- test weights
 // Uniform values in [-1, 1], then for block i of row j: times 2^e with
 // e = ((3j + 5i) mod 25) - 12, from 2^-12 to 2^12, so neighbouring blocks differ by 2^5 and
-// neighbouring rows by 2^3. Weight (i mod 32) of the block is set to +2^e and weight
+// neighbouring rows by 2^3, or by 2^20 and 2^22 where the modulus wraps: never less. Weight (i mod 32) of the block is set to +2^e and weight
 // ((i + 16) mod 32) to -2^e: both extremes, so codes 127 and -127 occur in every block.
 // With out >= 3, row out / 2 is all zero (amax = 0, so d = 0 and every code 0).
 static std::vector<float> testWeights(int in, int out, uint32_t seed, int* zeroRow) {

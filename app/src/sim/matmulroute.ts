@@ -46,7 +46,7 @@ export interface Shape {
   /** Input features. */
   K: number;
   weight: WeightType;
-  /** llama.cpp CUDA: is "the input" F32? (the facts' wording at ggml-cuda.cu 2547; we read it as the activations). */
+  /** llama.cpp CUDA: are the activations (src1) F32? ggml-cuda.cu 2547 tests src1->type and dst->type, never src0 (x3 B4). The output is F32 throughout this model. */
   inputF32: boolean;
   /** MLX: b is a transposed view (x @ W.T with W stored (out, in)). */
   bTransposed: boolean;
@@ -133,7 +133,7 @@ function checksFor(p: Project, s: Shape): { checks: Check[]; notes: string[] } {
       const overVec = s.M > MMVF_MAX_BATCH_SIZE;
       return {
         checks: [
-          { label: 'the input is not F32', verdict: T(!s.inputF32), route: 'cublas', detail: s.inputF32 ? 'F32: go on' : 'not F32: straight to cuBLAS', source: 'x3 B4, ggml-cuda.cu 2547 to 2548' },
+          { label: 'the activations (src1) or the output are not F32', verdict: T(!s.inputF32), route: 'cublas', detail: s.inputF32 ? 'F32: go on' : 'not F32: straight to cuBLAS', source: 'x3 B4, ggml-cuda.cu 2547 to 2548 (src1->type, dst->type)' },
           {
             label: 'ggml_cuda_should_use_mmvf',
             verdict: overVec ? 'false' : isQuant(s.weight) ? 'false' : 'not-modelled',

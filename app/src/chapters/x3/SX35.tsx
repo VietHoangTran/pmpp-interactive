@@ -97,8 +97,8 @@ export const questionsSX35: Record<string, Question> = {
         With x = s · scale, 2^(x · log2 e) = e^x exactly. The running maximum is taken over the same scaled values, so m₂ =
         m · log2 e and every exponent is the same number written in another base; the rescale{' '}
         <code>exp2f(max_score - new_max)</code> equals e^(m_old − m_new). The model in src/sim/rowreduce.ts runs both and
-        finds the same normaliser to within float32 rounding. The saving is a multiply: exp2 is the cheaper function, and
-        the scale was needed anyway.
+        finds the same normaliser to within float32 rounding. Why MLX chose base 2 the facts do not say; saving a multiply
+        per exponential, since the scale was needed anyway, is our guess and unverified.
       </p>
     ),
     source: `${FACTS} B5 (scale_log2 = params.scale * M_LOG2E; exp2f); the identity is ours`,
@@ -128,7 +128,7 @@ export const questionsSX35: Record<string, Question> = {
     id: 'x3/X3.5/q-flash-where',
     prompt: (
       <>
-        You open <code>aten/src/ATen/native/transformers/cuda/flash_attn/</code> and find only flash_api.cpp, flash_api.h,
+        You open <code style={{ overflowWrap: 'anywhere' }}>aten/src/ATen/native/transformers/cuda/flash_attn/</code> and find only flash_api.cpp, flash_api.h,
         philox.cuh and static_switch.h. Where is the kernel?
       </>
     ),
@@ -178,18 +178,25 @@ export const questionsSX35: Record<string, Question> = {
   'x3/X3.5/q-order': {
     kind: 'choice',
     id: 'x3/X3.5/q-order',
-    prompt: <>In PyTorch's default CUDA priority order for scaled_dot_product_attention, which comes first: math or cuDNN?</>,
+    prompt: (
+      <>
+        scaled_dot_product_attention on CUDA gets a shape that flash and memory-efficient attention both reject, on a machine
+        where <code>check_prefer_cudnn_attention()</code> is false. Which backend is tried next, and what changes if cuDNN is
+        preferred?
+      </>
+    ),
     options: [
-      { label: 'Math: the order is flash, efficient, math, cuDNN, unless cuDNN is preferred.', correct: true },
-      { label: 'cuDNN, because a vendor library is always tried first.', why: 'Only when check_prefer_cudnn_attention() says so.' },
-      { label: 'Neither: PyTorch benchmarks every backend and picks the fastest.', why: 'select_sdp_backend walks a fixed list and takes the first backend whose use_<backend> check passes.' },
-      { label: 'Math comes last, as the fallback.', why: 'In the default order cuDNN and overrideable come after math.' },
+      { label: 'Math is tried next, before cuDNN. With cuDNN preferred, cuDNN moves to the front and is tried before flash.', correct: true },
+      { label: 'cuDNN: a vendor library is the fallback after the fused kernels, so preferring it changes nothing here.', why: 'In the default order math comes before cuDNN. cuDNN is tried earlier only when it is preferred.' },
+      { label: 'Neither: PyTorch benchmarks the remaining backends and picks the fastest.', why: 'select_sdp_backend walks a fixed list and takes the first backend whose use_<backend> check passes.' },
+      { label: 'Math, and preferring cuDNN changes nothing: math always comes before any library.', why: 'A preference for cuDNN replaces the order with one that starts with cuDNN, so it is tried first of all.' },
     ],
     explain: (
       <p>
         <code>sdp_priority_order = {'{'} flash_attention, efficient_attention, math, cudnn_attention, overrideable {'}'}</code>{' '}
         (Context.h lines 509 to 514). So a shape that flash and efficient both reject falls to the math path before cuDNN is
-        tried. Each backend's <code>use_&lt;backend&gt;</code> function decides whether it can run with the given parameters
+        tried. When <code>check_prefer_cudnn_attention()</code> is true, the walk starts with cuDNN instead (sdp_utils.cpp
+        lines 121 to 131). Each backend's <code>use_&lt;backend&gt;</code> function decides whether it can run with the given parameters
         (Note [SDPA Runtime Dispatch]).
       </p>
     ),
@@ -411,6 +418,12 @@ export function SX35() {
         sequence the overhead would kill the advantage." The threshold is <code>constexpr int kv_cache_step = 256; // number
         is from mlx-lm</code>. Below it, MLX runs its own vector kernels, and their online softmax is written in base 2:
       </p>
+      <Aside>
+        <p>
+          MLX has no AMD backend: an experimental ROCm pull request is open and unmerged (x3 facts B9). Its CUDA attention
+          also depends on cuDNN's frontend and on cooperative groups.
+        </p>
+      </Aside>
       <Excerpt
         x={EXCERPTS_SX35.sdpav}
         caption={
@@ -433,12 +446,6 @@ export function SX35() {
       ) : null}
       <Ask q={questionsSX35['x3/X3.5/q-excerpt-sdpav']} label="Compare the two" />
       <Ask q={questionsSX35['x3/X3.5/q-exp2']} />
-      <Aside>
-        <p>
-          MLX has no AMD backend: an experimental ROCm pull request is open and unmerged (x3 facts B9). Its CUDA attention
-          also depends on cuDNN's frontend and on cooperative groups.
-        </p>
-      </Aside>
 
       <h2>PyTorch on CUDA: a priority order and a submodule</h2>
       <p>
@@ -447,19 +454,19 @@ export function SX35() {
         so. "Each backend defines a use_&lt;backend&gt; function that returns true if the backend can be run with the given SDP
         parameters." The first that returns true runs.
       </p>
+      <Today checked="2026-11-20 (notes/today/x3-facts.md B5; ch20-facts.md B5, D5)">
+        <p>
+          On ROCm PyTorch runs AOTriton or Composable Kernel for attention, from <code>native/transformers/hip/</code>. On MPS it
+          has its own Metal kernels, <code>sdpa_vector_2pass_mps</code>, <code>sdpa_vector_fast_mps</code> and{' '}
+          <code>sdpa_prefill_mps</code>, whose source begins "Largely influeneced by" (sic) MLX's.
+        </p>
+      </Today>
       <p>
         Then look for the flash kernel. <code>native/transformers/cuda/flash_attn/</code> holds four files: flash_api.cpp,
         flash_api.h, philox.cuh and static_switch.h. None of them is the kernel.
       </p>
       <Ask q={questionsSX35['x3/X3.5/q-flash-where']} />
       <Ask q={questionsSX35['x3/X3.5/q-order']} />
-      <Today checked="2026-11-20 (notes/today/x3-facts.md B5; ch20-facts.md B5, D5)">
-        <p>
-          On ROCm PyTorch runs AOTriton or Composable Kernel for attention, from <code>native/transformers/hip/</code>. On MPS it
-          has its own Metal kernels, <code>sdpa_vector_2pass_mps</code>, <code>sdpa_vector_fast_mps</code> and{' '}
-          <code>sdpa_prefill_mps</code>, whose source begins "Largely influeneced by" MLX's.
-        </p>
-      </Today>
 
       <h2>A reading rule</h2>
       <p>

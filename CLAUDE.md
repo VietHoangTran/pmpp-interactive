@@ -187,7 +187,8 @@ Chapter 5 is the template: read `app/src/chapters/ch05/` and `labs/ch05/` before
   returns 64-bit ballots: use a typed mask, never a `0xffffffff` literal), cooperative
   groups and half-precision headers (different include paths: guard with `#if`), CUB
   functors (spellings changed and differ), tensor/matrix-core intrinsics (different
-  libraries). Say exactly this in lessons; do not repeat the simple claim past chapter 9.
+  libraries), and `__dp4a` (HIP has none: x2-facts B1; use a plain dot4 helper or guard).
+  Say exactly this in lessons; do not repeat the simple claim past chapter 9.
 - Warp width: 32 on NVIDIA, 64 or 32 on AMD, read from the pipeline on Metal. Never a
   literal 32 outside a comment explaining the book's assumption.
 - Metal has SIMD-group functions (`simd_shuffle_down`, `simd_sum`, `simd_ballot`, ...) and

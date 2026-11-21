@@ -1,0 +1,267 @@
+{
+ "model": "eleven_v4",
+ "voice": "tnSpp4vdxKPjI9w0GnoV",
+ "clips": {
+  "late-divergence-1": {
+   "file": "late-divergence-1.mp3",
+   "sha256": "1b1e5da12bf98ef06e4b0f5b4369a07e4e003e7d4975364de6e877925358b275",
+   "duration": 19.2,
+   "bytes": 308078,
+   "generated": "2026-11-21",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "late-divergence-2": {
+   "file": "late-divergence-2.mp3",
+   "sha256": "cbb44047ce57c1788f06fd01653ff11f722a4c647be69b8ca2ed08399d178d85",
+   "duration": 16.8,
+   "bytes": 270044,
+   "generated": "2026-11-21",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "late-divergence-3": {
+   "file": "late-divergence-3.mp3",
+   "sha256": "ea0391ca9c87e851b1e6a023ddae53a17303c1f0414ccb960be53940cf68873d",
+   "duration": 17.2,
+   "bytes": 276314,
+   "generated": "2026-11-21",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "late-divergence-4": {
+   "file": "late-divergence-4.mp3",
+   "sha256": "40f69d19a86dce588f382ce6af0a43c8b235668b51926a4d24daab4d2486eedf",
+   "duration": 18.48,
+   "bytes": 296794,
+   "generated": "2026-11-21",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "late-divergence-5": {
+   "file": "late-divergence-5.mp3",
+   "sha256": "7310f87b8c40242bbad68a50697b203d8a885efef3993f0080613dd4aa12dd44",
+   "duration": 20.16,
+   "bytes": 323543,
+   "generated": "2026-11-21",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "llama-step-1": {
+   "file": "llama-step-1.mp3",
+   "sha256": "9b2b964f6495d2ebc9d8a5a4c0ddd57df19567045b171c99b2bf6837c76d5d09",
+   "duration": 18.08,
+   "bytes": 290524,
+   "generated": "2026-11-21",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "llama-step-2": {
+   "file": "llama-step-2.mp3",
+   "sha256": "3f83e4486f037360041610f81970edb77ec25eeef7104389a94fe5aadf079917",
+   "duration": 20.24,
+   "bytes": 324797,
+   "generated": "2026-11-21",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "llama-step-3": {
+   "file": "llama-step-3.mp3",
+   "sha256": "92cac7d7782f5383c37eda94baf60aab4b4cb075dbe0d148a02ea018195cc9ca",
+   "duration": 18.96,
+   "bytes": 304317,
+   "generated": "2026-11-21",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "llama-step-4": {
+   "file": "llama-step-4.mp3",
+   "sha256": "00faf796b48726e7fad523baa70526fb3b0f948e2d07518d9161534818317f19",
+   "duration": 18.32,
+   "bytes": 294286,
+   "generated": "2026-11-21",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "llama-step-5": {
+   "file": "llama-step-5.mp3",
+   "sha256": "c15176caf3cbe99de86fe4afa6210ff4fdacbceb6205d60d759ce0c6e0f9bce9",
+   "duration": 19.28,
+   "bytes": 309750,
+   "generated": "2026-11-21",
+   "model": "eleven_v4_turbo",
+   "take": 2
+  },
+  "llama-step-6": {
+   "file": "llama-step-6.mp3",
+   "sha256": "2e30cfd760562c13ebfe5594d329b0d3618c7db789906e9a33bc4adf8141458b",
+   "duration": 18.48,
+   "bytes": 296794,
+   "generated": "2026-11-21",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "llama-step-7": {
+   "file": "llama-step-7.mp3",
+   "sha256": "fdd74ee88b45cfff3cd166b412b9878cace11c99c58a5c46bea1f4c867dc5c9d",
+   "duration": 17.44,
+   "bytes": 280075,
+   "generated": "2026-11-21",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "one-call-1": {
+   "file": "one-call-1.mp3",
+   "sha256": "79f885e4446b78902e8698477e8d800bd1feb85041e360eed85aaab363485592",
+   "duration": 16.48,
+   "bytes": 264611,
+   "generated": "2026-11-21",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "one-call-2": {
+   "file": "one-call-2.mp3",
+   "sha256": "6c712d16c3795c4d8916c3562811855d99c1287a7e8c872d028498d7ebd1f8e5",
+   "duration": 18.88,
+   "bytes": 303063,
+   "generated": "2026-11-21",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "one-call-3": {
+   "file": "one-call-3.mp3",
+   "sha256": "612bc2d418ae6f8f4f3a6b3766329a47072907352b9cc967097c5c089356b4f1",
+   "duration": 17.6,
+   "bytes": 282583,
+   "generated": "2026-11-21",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "one-call-4": {
+   "file": "one-call-4.mp3",
+   "sha256": "ae2d15fd32c470892e182e6257bfd620fd884088efce5c78f8eec0e84d44e97d",
+   "duration": 18.48,
+   "bytes": 296794,
+   "generated": "2026-11-21",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "one-call-5": {
+   "file": "one-call-5.mp3",
+   "sha256": "e4b7e87e6c25bade2abb8b96a6428cdd4947127ef103e95e162bd94cb7e78c9a",
+   "duration": 16.8,
+   "bytes": 270044,
+   "generated": "2026-11-21",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "one-call-6": {
+   "file": "one-call-6.mp3",
+   "sha256": "b9b091bcbd27f03e93ac3b340d68dfc56ef03c9e6210d0d5cf0ae4bbd9c6dacd",
+   "duration": 19.84,
+   "bytes": 318527,
+   "generated": "2026-11-21",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "rope-pairs-1": {
+   "file": "rope-pairs-1.mp3",
+   "sha256": "b46d4aa858cba677180594a69b75e663c43e39977a1c2f2233adf94b10bd78e8",
+   "duration": 17.6,
+   "bytes": 282583,
+   "generated": "2026-11-21",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "rope-pairs-2": {
+   "file": "rope-pairs-2.mp3",
+   "sha256": "3730ef571d13378d439d6001fd4e97d4a68ee54ebad61711ed0d8a153066400f",
+   "duration": 19.52,
+   "bytes": 313512,
+   "generated": "2026-11-21",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "rope-pairs-3": {
+   "file": "rope-pairs-3.mp3",
+   "sha256": "185808654ca8af794f0b51e6c7365608ebf00a5994ab4037367f6ac11b2ac536",
+   "duration": 19.92,
+   "bytes": 319781,
+   "generated": "2026-11-21",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "rope-pairs-4": {
+   "file": "rope-pairs-4.mp3",
+   "sha256": "6cedffe219162d3f0165bf1f12b6e06db82464464dd87a8b7c923a161a307852",
+   "duration": 18.72,
+   "bytes": 300555,
+   "generated": "2026-11-21",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "rope-pairs-5": {
+   "file": "rope-pairs-5.mp3",
+   "sha256": "a32aa736fb57aa89bb8ee0918040750cb583f9401337a0801d89718449f832a4",
+   "duration": 17.44,
+   "bytes": 280075,
+   "generated": "2026-11-21",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "rope-pairs-6": {
+   "file": "rope-pairs-6.mp3",
+   "sha256": "294e8156f791b2702e5cdbfd68bef8596904d0ddc969e769c1dda50b96423ffd",
+   "duration": 20.4,
+   "bytes": 327305,
+   "generated": "2026-11-21",
+   "model": "eleven_v4_turbo",
+   "take": 2
+  },
+  "two-softmaxes-1": {
+   "file": "two-softmaxes-1.mp3",
+   "sha256": "5db652c65c445fcdc67b00e9701af8db44f4a0a3ceeeda1ac1faacf18c89fe91",
+   "duration": 16.72,
+   "bytes": 268790,
+   "generated": "2026-11-21",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "two-softmaxes-2": {
+   "file": "two-softmaxes-2.mp3",
+   "sha256": "c5706cae33fabf99c941b9f971d2b7d9c54301bdeadf5898e07e54df3d8d65dc",
+   "duration": 19.2,
+   "bytes": 308078,
+   "generated": "2026-11-21",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "two-softmaxes-3": {
+   "file": "two-softmaxes-3.mp3",
+   "sha256": "11ae16d4abe3da4741835ba3522680a7c6cf4c6c5daf2a9a634f9742c092409a",
+   "duration": 21.44,
+   "bytes": 344023,
+   "generated": "2026-11-21",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "two-softmaxes-4": {
+   "file": "two-softmaxes-4.mp3",
+   "sha256": "fed65ba7a6bf838707bf751a697c399a0accf28213c9ce3f2c62a964e3b1f1f9",
+   "duration": 18.56,
+   "bytes": 298047,
+   "generated": "2026-11-21",
+   "model": "eleven_v4_turbo",
+   "take": 1
+  },
+  "two-softmaxes-5": {
+   "file": "two-softmaxes-5.mp3",
+   "sha256": "e749e4b5db322b300a09b72cdbb13a3f0d33306dabc5b8981323bff691168284",
+   "duration": 19.92,
+   "bytes": 319781,
+   "generated": "2026-11-21",
+   "model": "eleven_v4_turbo",
+   "take": 2
+  }
+ }
+}

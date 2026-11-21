@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
+import { useLabFile } from '../../components/Code';
 import { Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
 import { href } from '../../lib/router';
 import {
@@ -14,6 +15,7 @@ import {
   PAIRING,
   accumulate,
   int32Terms,
+  parseFragments,
   runFragment,
   sci,
   show,
@@ -165,45 +167,8 @@ function Ladder() {
 }
 
 // ---------------------------------------------------------------- the bug spot
-const FRAG_CODE: Record<FragmentId, { title: string; lang: string; code: string }> = {
-  'metal-half-dot': {
-    title: '1. Metal, dequantised to half',
-    lang: 'MSL',
-    code: `float sumf = 0.0f;
-for (int i = 0; i < 32; i += 4) {
-    half4 w = half4(d) * (half4(q[i/4]) - 8.0h);
-    sumf += dot(w, half4(x4[i/4]));
-}`,
-  },
-  'cuda-hfma2': {
-    title: '2. CUDA, __hfma2 over the row',
-    lang: 'CUDA',
-    code: `__half2 acc = __float2half2_rn(0.0f);
-for (int i = 0; i < n / 2; ++i)
-    acc = __hfma2(w2[i], x2[i], acc);
-float y = __low2float(acc) + __high2float(acc);`,
-  },
-  'short-sum': {
-    title: '3. A short block sum',
-    lang: 'CUDA',
-    code: `short sumi = 0;
-for (int i = 0; i < 4; ++i) {
-    sumi = dot4( v[i]       & 0x0F0F0F0F, u[i],     sumi);
-    sumi = dot4((v[i] >> 4) & 0x0F0F0F0F, u[i + 4], sumi);
-}
-sumf += d4 * (sumi * d8 - 8.0f * s8);`,
-  },
-  'int-then-float': {
-    title: '4. An int block sum, a float across blocks',
-    lang: 'CUDA',
-    code: `int sumi = 0;
-for (int i = 0; i < 4; ++i) {
-    sumi = dot4( v[i]       & 0x0F0F0F0F, u[i],     sumi);
-    sumi = dot4((v[i] >> 4) & 0x0F0F0F0F, u[i + 4], sumi);
-}
-sumf += d4 * (sumi * d8 - 8.0f * s8);`,
-  },
-};
+/** The four fragments are a lesson snippet, labs/x2/snippets/accumulators.md, tied to FRAGMENT_MODEL by qdot.snippets.test.ts. */
+const FRAG_FILE = 'x2/snippets/accumulators.md';
 
 function reason(r: FragmentRun, base: FragmentRun): string {
   const ratio = r.realistic / base.realistic;
@@ -221,6 +186,8 @@ function reason(r: FragmentRun, base: FragmentRun): string {
 
 function BugSpot() {
   const runs = useMemo(() => Object.fromEntries(FRAGMENTS.map((id) => [id, runFragment(id)])) as Record<FragmentId, FragmentRun>, []);
+  const md = useLabFile(FRAG_FILE);
+  const texts = useMemo(() => (md && !md.startsWith('// could not load') ? parseFragments(md) : []), [md]);
   const [marks, setMarks] = useState<Partial<Record<FragmentId, boolean>>>({});
   const [checked, setChecked] = useState(false);
   const all = FRAGMENTS.every((id) => marks[id] !== undefined);
@@ -231,7 +198,7 @@ function BugSpot() {
       task="Mark each fragment, then check. Every verdict comes with what the model measured."
       foot={
         <>
-          Fragments, not compiled (unverified): they show the accumulator, nothing else. q, x4, w2, x2, v and u are the
+          Fragments from <code>labs/{FRAG_FILE}</code>, not compiled (unverified): they show the accumulator, nothing else. q, x4, w2, x2, v and u are the
           block's codes and activations; dot4 is dp4a's arithmetic. Their arithmetic is modelled in qdot.ts on a
           4,096-wide row: realistic seeded data, and a worst case of codes 15 against 127 with unit scales (so the float
           fragments see weights of 7 and activations of 127). The dot of half4 is modelled as a chain of half
@@ -241,13 +208,19 @@ function BugSpot() {
     >
       <div className="cols" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(19rem, 1fr))' }}>
         {FRAGMENTS.map((id) => {
-          const f = FRAG_CODE[id];
+          const f = texts.find((t) => t.id === id);
           const r = runs[id];
           const ok = marks[id] === r.safe;
           return (
             <div key={id} className="panel" data-frag={id}>
-              <div style={{ fontWeight: 600, marginBottom: '0.3rem' }}>{f.title} <span className="muted">({f.lang})</span></div>
-              <pre className="mono" style={{ fontSize: '0.74rem', margin: '0 0 0.5rem', overflowX: 'auto' }}>{f.code}</pre>
+              <div style={{ fontWeight: 600, marginBottom: '0.3rem' }}>
+                {f ? f.title : `Fragment ${FRAGMENTS.indexOf(id) + 1}`} {f ? <span className="muted">({f.lang})</span> : null}
+              </div>
+              {f ? (
+                <pre className="mono" style={{ fontSize: '0.74rem', margin: '0 0 0.5rem', overflowX: 'auto' }} data-frag-code="">{f.code}</pre>
+              ) : (
+                <p className="muted" style={{ margin: '0 0 0.5rem' }}>{md ? `Could not read labs/${FRAG_FILE}.` : 'Loading the fragment.'}</p>
+              )}
               <div className="row">
                 {[true, false].map((safe) => (
                   <label key={String(safe)} className="check">
@@ -323,14 +296,14 @@ export const questionsSX26: Record<string, Question> = {
     id: 'x2/X2.6/q-nibble-int16',
     prompt: <>A kernel sums one Q4_0 block's unsigned nibbles (0..15) times int8 activations, 32 products, in a <code>short</code>, four at a time with dp4a. Is that safe?</>,
     options: [
-      { label: `No: the sum can reach ${BOUND_Q4_UNSIGNED.toLocaleString('en-US')}, past 32,767. Each dp4a adds up to 7,620, so the fifth of eight steps wraps.`, correct: true },
-      { label: 'Yes: 15 × 127 = 1,905 per product is far below 32,767.', why: 'One product is; 32 of them are not.' },
-      { label: 'Yes, as long as the codes are signed (−8..7).', why: `Signed codes reach ${BOUND_Q4_SIGNED.toLocaleString('en-US')}, which fits with 255 to spare. That is a coincidence of 32 × 8 × 127, not a margin to build on, and llama.cpp feeds the unsigned codes.` },
-      { label: 'No, but only because dp4a writes 32 bits.', why: 'dp4a’s 32-bit result is fine; storing it into 16 bits is what loses the top.' },
+      { label: `No: the sum can reach ${BOUND_Q4_UNSIGNED.toLocaleString('en-US')}, past 32,767.`, correct: true },
+      { label: 'Yes: 15 × 127 = 1,905 per product, far below 32,767.', why: 'One product is; 32 of them are not.' },
+      { label: 'Yes, as long as the codes go in signed, as −8..7.', why: `Signed codes reach ${BOUND_Q4_SIGNED.toLocaleString('en-US')}, which fits with 255 to spare. That is a coincidence of 32 × 8 × 127, not a margin to build on, and llama.cpp feeds the unsigned codes.` },
+      { label: 'No, but only because dp4a returns 32 bits.', why: 'dp4a’s 32-bit result is fine; storing it into 16 bits is what loses the top.' },
     ],
     explain: (
       <p>
-        4 × 15 × 127 = 7,620 per step: 30,480 after four steps, 38,100 after five. The ladder above shows it with the Q4_0
+        Each dp4a adds up to 4 × 15 × 127 = 7,620: 30,480 after four steps, 38,100 after five. The ladder above shows it with the Q4_0
         pairing, the worst case and four products per step. On realistic data it passes, which is what makes it a
         good planted defect: lab X2.3 has it.
       </p>
@@ -342,15 +315,16 @@ export const questionsSX26: Record<string, Question> = {
     id: 'x2/X2.6/q-half-prescale',
     prompt: <>To save registers, a Metal kernel stores its pre-divided activations (x / 16, x / 256, x / 4096) in half. An activation of 1e−4 meets the 4096 divisor. What happens?</>,
     options: [
-      { label: '1e−4 / 4096 is about 2.4e−8, below half of FP16’s smallest subnormal (5.96e−8), so it rounds to 0 and that weight’s contribution vanishes. Keep pre-divided activations in float.', correct: true },
+      { label: 'It rounds to 0, below half the smallest FP16 subnormal.', correct: true },
       { label: 'Nothing: dividing by a power of two is exact.', why: 'Exact only while the result is representable. FP16 runs out of exponent at 2^−24.' },
-      { label: 'It becomes a subnormal and loses a few bits.', why: 'It is below the smallest subnormal, so there is nothing left to round to but 0.' },
-      { label: 'It overflows to infinity.', why: 'Small values underflow; it is the large ones that overflow.' },
+      { label: 'It becomes an FP16 subnormal and loses a few bits.', why: 'It is below the smallest subnormal, so there is nothing left to round to but 0.' },
+      { label: 'It overflows once the masked nibble scales it back up.', why: 'Small values underflow; it is the large ones that overflow.' },
     ],
     explain: (
       <p>
-        FP16's smallest positive value is 2<sup>−24</sup> ≈ 5.96e−8, and anything below half of it rounds to 0. In
-        float the same quotient is an ordinary normal number. The pre-division trick is exact in float32 (section X2.5)
+        1e−4 / 4096 is about 2.4e−8. FP16's smallest positive value is 2<sup>−24</sup> ≈ 5.96e−8, and anything below
+        half of it rounds to 0, so that weight's contribution vanishes. In float the same quotient is an ordinary normal
+        number: keep pre-divided activations in float. The pre-division trick is exact in float32 (section X2.5)
         precisely because float has exponent range to spare; half does not.
       </p>
     ),
@@ -361,14 +335,15 @@ export const questionsSX26: Record<string, Question> = {
     id: 'x2/X2.6/q-metal-dot',
     prompt: <>A Metal kernel dequantises four weights to <code>half4 w</code>, loads <code>half4 x</code>, and adds <code>dot(w, x)</code> to a float. What does the dot accumulate in, and what is the fix?</>,
     options: [
-      { label: 'In half: MSL’s dot of halfn returns half. Convert both to float4 before dot, as llama.cpp does.', correct: true },
+      { label: 'In half; convert both to float4 before dot.', correct: true },
       { label: 'In float, because the result is added to a float.', why: 'The conversion to float happens after the dot has already been computed in half.' },
-      { label: 'In float: Metal always accumulates in float.', why: 'The spec says the dot of a halfn has the scalar type half.' },
-      { label: 'In half, and the fix is a half accumulator for the row too, for consistency.', why: 'That makes it worse: fragment 2 of the bug spot.' },
+      { label: 'In float: Metal always widens dot products.', why: 'The spec says the dot of a halfn has the scalar type half.' },
+      { label: 'In half; make the row accumulator half too.', why: 'That makes it worse: fragment 2 of the bug spot.' },
     ],
     explain: (
       <p>
-        The MSL specification defines <code>dot</code> for floatn and halfn, returning the scalar type of its arguments.
+        The MSL specification defines <code>dot</code> for floatn and halfn, returning the scalar type of its arguments,
+        so the dot of a halfn is half.
         llama.cpp's <code>mul_mv</code> writes <code>dot(float4(xb4[i]), float4(yl4[i]))</code>.
       </p>
     ),
@@ -379,14 +354,14 @@ export const questionsSX26: Record<string, Question> = {
     id: 'x2/X2.6/q-order',
     prompt: <>Lab X2.2's kernel gives outputs that differ in the last digits between two backends. Is that a bug?</>,
     options: [
-      { label: 'Not necessarily: the float sums across blocks and lanes run in different orders on the two, and float addition is not associative. That is why the tests compare with a tolerance.', correct: true },
+      { label: 'Not necessarily: the float sums may run in different orders.', correct: true },
       { label: 'Yes: integer arithmetic should make results identical.', why: 'Only the sums inside a block are integers; everything across blocks is float, added in whatever order each kernel chose.' },
       { label: 'Yes: one backend must be using half somewhere.', why: 'Possible, but different orders of float additions are enough to explain a last-digit difference.' },
-      { label: 'No: GPUs are not deterministic, so differences mean nothing.', why: 'A given kernel on a given device is usually repeatable; the difference comes from the order of the additions, which is a property of the code.' },
+      { label: 'No: GPUs are not deterministic, so it means nothing.', why: 'A given kernel on a given device is usually repeatable; the difference comes from the order of the additions, which is a property of the code.' },
     ],
     explain: (
       <p>
-        Appendix A's point, from §A.6: order decides the low bits of a long sum. A 32-lane warp and a different lane
+        Appendix A's point, from §A.6: float addition is not associative, so order decides the low bits of a long sum. A 32-lane warp and a different lane
         count, a different split of the row, or a tree instead of a chain all reorder it. A test should allow an error
         scaled by the sum of the magnitudes of the terms, and should fail on anything larger.
       </p>
