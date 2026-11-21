@@ -2,12 +2,14 @@
 
 Running state across sessions. Newest first. Decisions are dated.
 
-## State on 2026-11-21: every chapter built; final pass under way
+## State on 2026-11-21: every chapter built; final pass done
 
 All 29 chapters and modules are built (waves 1 to 5b below), each was reviewed on its own,
 and the whole-course consistency pass is done. What is still open is the "Still open" list
-under the final pass below: chiefly a fresh verify report, three stale narration clips and
-lab X3.2's emulator time limit. CUDA and HIP remain unverified on hardware.
+under the final pass below. The fresh verify report
+(reports/verify-20261121-120703-darwin-emu+race+metal.md) passes 226 of 226 reference
+solutions on emu, race and Metal and all 21 emulator self-tests. CUDA and HIP remain
+unverified on hardware.
 
 ## State on 2026-11-20 (later): building the rest, in waves
 
@@ -100,18 +102,17 @@ pages, and commits. Per-chapter hints given to the designers are in the wave's `
         appA-facts; PLAN.md's M9, M10, X3 and ch23 rows, §8 captions and narration, and §9
         status brought up to what was built (§9's order is unchanged; a test reads it);
         README.md describes the finished course.
+      - [x] Final verify report: reports/verify-20261121-120703-darwin-emu+race+metal.md, run
+        on a quiet machine: 226 of 226 reference solutions pass (emu, race, Metal), every
+        untouched starter fails as it should, 21 of 21 emulator self-tests, 443 .cu files pass
+        the front-end check. It also filled reports/runs/emu.json's device record. CUDA and HIP
+        stay unverified until reports come from those machines.
+      - [x] Lab X3.2 on the emulator: pmpp.py's test limit is now 2400 s on the emulators
+        (900 s on devices; PMPP_TEST_TIMEOUT overrides). It passes 93/93 in the verify run.
+      - [x] Narration: the 3 stale clips (ch02/round-trip-6, ch07/halo-from-cache-5,
+        ch21/scatter-gather-6) regenerated with eleven_v4; ch07's script reworded after a
+        mishearing.
       **Still open, with reasons**
-      - [ ] Final verify report: the committed reports/verify-*.md are from 2026-11-20 04:05 and
-        cover chapter 5 only; every "verified on Metal" outside it rests on
-        reports/runs/ (per-machine, ignored). A fresh ./verify.sh here also fills the emulator's
-        device record (reports/runs/emu.json has an empty `device`, so section 3.1 shows no
-        emulator row; `pmpp.py run` does not write it). CUDA and HIP stay unverified until
-        reports come from those machines.
-      - [ ] Lab X3.2's emulator suite passes (93/93, run directly) but overruns pmpp.py's 900 s
-        test timeout on a busy machine, so emu.json records it failed. Needs fewer emulator
-        steps in main.cpp or a per-lab timeout (lab or runner decision).
-      - [ ] Narration: 3 clips are stale after script fixes in the chapter reviews
-        (ch02/round-trip-6, ch07/halo-from-cache-5, ch21/scatter-gather-6); regenerate centrally.
       - [ ] Stale comments in starter/ files are left, because editing a starter turns every
         untouched work/ copy into "edited" (pmpp.py work_state) and work/ is never overwritten:
         parentheses in __shared__ bounds (ch06 lab 3, ch14 lab 2, ch15 lab 4), __umulhi (x1 lab 3),

@@ -39,7 +39,7 @@ missing ones are skipped:
 | Backend | Needs | Status of the reference solutions |
 |---|---|---|
 | `metal` | macOS with Xcode command line tools | verified on Metal (the author's Mac), except labs 11.5, 12.5 and 18.1 part B, which are CUDA-family only |
-| `emu` | nothing extra | emulator-checked: a CPU emulator of the CUDA subset, logic only. Lab X3.2's suite passed 93 of 93 run directly, but overran `pmpp.py`'s 900 s test limit on a busy machine, so its recorded run reads failed |
+| `emu` | nothing extra | emulator-checked: a CPU emulator of the CUDA subset, logic only. Its test limit is 2400 s (900 s on devices; `PMPP_TEST_TIMEOUT` overrides), because lab X3.2's suite runs every thread in turn |
 | `race` | nothing extra | the same emulator with threads run concurrently under ThreadSanitizer, for the labs that opt in |
 | `cuda` | NVIDIA CUDA toolkit | front-end-checked; **never run on a CUDA device** |
 | `hip` | AMD ROCm (`ROCM_PATH` or `/opt/rocm`) | **unverified**, never compiled |

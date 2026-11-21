@@ -699,9 +699,11 @@ def cuda_frontend_check():
         return res
     res["available"] = True
     res["compiler"] = sh([clang, "--version"])[1].splitlines()[0]
-    for root, _, files in os.walk(LABS):
-        if os.path.abspath(root).startswith(os.path.abspath(BUILD)):
-            continue
+    for root, dirs, files in os.walk(LABS):
+        # Skip every build directory (labs/build, labs/build-*, $PMPP_BUILD_DIR): they hold
+        # translated or stale copies of the sources, not the sources themselves.
+        dirs[:] = [d for d in dirs if not (root == LABS and d.startswith("build"))
+                   and not os.path.abspath(os.path.join(root, d)).startswith(os.path.abspath(BUILD))]
         for f in sorted(files):
             if f.endswith(".cu"):
                 path = os.path.join(root, f)
