@@ -45,13 +45,14 @@ lesson states about the snippet does not hold:
 
 | Snippet | What is checked | Stated in |
 |---|---|---|
-| `launch_checked.cu` | `(32, 32, 2)` rejected, buffer untouched, error state reset; the emulator runs `(1, 1, 128)` and a 65,536-block grid along y; it rejects a zero dimension and 1 MiB of dynamic shared memory | section 3.1 |
+| `launch_checked.cu` | `(32, 32, 2)` rejected, buffer untouched, error state reset; `(1, 1, 128)`, a 65,536-block grid along y and a zero dimension rejected; the emulator rejects 1 MiB of dynamic shared memory | section 3.1 |
 | `scale_rows_defect.cu` | column 0 ends at 1.0; 4, 64 and 37 of 200 elements are 1.0 in order, reversed, shuffled | summary page |
 | `blur_kernel.cu` | matches a CPU reference on six picture sizes | section 3.3 |
 | `blur_unsigned.cu` | same output as `blur_kernel.cu`; `-Wall -Wextra` warns about signed/unsigned comparisons (and not for `blur_kernel.cu`) | section 3.3 |
 | `grayscale_kernel.cu` | within one grey level of a CPU reference; red, green, blue, white give 76, 149, 29, 255 | section 3.2 |
 | `matvec_options.cu` | option 2 computes B c, option 3 computes Bᵀ c (N = 37, blocks of 16) | section 3.4 |
 
-The drivers are plain CUDA. On a CUDA device they would check the documented behaviour
-instead of the emulator's (for example, that `(1, 1, 128)` is rejected), but no build for a
-device exists yet: nothing here has run on a GPU.
+The drivers are plain CUDA. On a CUDA device `launch_checked_test.cu` would check the same
+documented limits as on the emulator; only its dynamic-shared-memory case is emulator-only.
+It is not for HIP: AMD documents block z up to 1024, so `(1, 1, 128)` is valid there. No
+build for a device exists yet: nothing here has run on a GPU.

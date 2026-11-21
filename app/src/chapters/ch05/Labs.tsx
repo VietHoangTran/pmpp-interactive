@@ -62,20 +62,24 @@ const batchGain = (reports: Reports) =>
     if (!one || !many) return null;
     return { value: many / one, detail: `${fmt(many)} GFLOP/s at batch 256, ${fmt(one)} at batch 1` };
   });
-/** Lab 5.5: the run-time-tile kernel over lab 5.2's compile-time one, both at T = 16, same backend. */
+/** Lab 5.5: the run-time-tile kernel over lab 5.2's compile-time one, both at T = 16, at the
+ *  matrix width lab 5.2's benchmark chose (lab 5.5's times every width that one can choose),
+ *  same backend. A lab 5.5 report without that width gives no comparison. */
 const dynamicCost = (reports: Reports) => {
   const fixed = preferredBench(reports, l2);
   return measure(reports, l5, (s) => {
     const f = fixed.find((x) => x.backend === s.backend);
-    const dyn = benchRow(s, 'tiled_dynamic', { tile: 16 });
     const fix = benchRow(f, 'tiled', { tile: 16 });
+    const width = num(fix?.width);
+    if (!f || !fix || width === undefined) return null;
+    const dyn = benchRow(s, 'tiled_dynamic', { tile: 16, width });
     const a = num(dyn?.gflops);
-    const b = num(fix?.gflops);
-    if (!f || !dyn || !fix || !a || !b) return null;
+    const b = num(fix.gflops);
+    if (!dyn || !a || !b) return null;
     return {
       whose: `lab 5.5 from ${whose(s)}, lab 5.2 from ${whose(f)}`,
       value: a / b,
-      detail: `${fmt(a)} GFLOP/s at width ${String(dyn.width)} against ${fmt(b)} GFLOP/s at width ${String(fix.width)}`,
+      detail: `${fmt(a)} GFLOP/s against ${fmt(b)} GFLOP/s, both at width ${String(width)}`,
     };
   });
 };
@@ -356,31 +360,35 @@ export function Labs() {
         Run <code>python3 labs/pmpp.py run 5.5</code>. The driver first works out the largest power-of-two tile whose
         block fits two limits the device reports, threads per block and shared memory per block, and prints them. It
         then tests tile widths 4, 8 and 16, and that largest one if it is bigger, each at widths T, 2T, 3 and 2T + 5,
-        and at 200 and 333 on a device. With <code>--bench</code> it times a width of 2048 at every power-of-two tile
-        from 4 up to the largest.
+        and at 200 and 333 on a device. With <code>--bench</code> it times widths 512, 1024, 2048 and 4096 at every
+        power-of-two tile from 4 up to the largest. Those are the widths lab 5.2's benchmark can settle on (it
+        doubles from 512 until its naive kernel is slow enough to time, and stops at 4096), so the comparison below
+        is made at the width lab 5.2 used.
       </p>
       <LabPrediction
         id="ch05/labs/p-lab5-dynamic"
         prompt={
           <>
-            Before you run the benchmark. At T = 16, this kernel's GFLOP/s divided by the GFLOP/s of lab 5.2's
-            kernel, whose tile width is fixed at compile time, will be what? (1 means the same speed, below 1 means
-            the run-time version is slower.)
+            Before you run the benchmark. At T = 16 and the same matrix width, this kernel's GFLOP/s divided by the
+            GFLOP/s of lab 5.2's kernel, whose tile width is fixed at compile time, will be what? (1 means the same
+            speed, below 1 means the run-time version is slower.)
           </>
         }
         unit="× the compile-time kernel"
         measure={dynamicCost}
         missing={
           <>
-            This comparison needs benchmark rows for lab 5.5 and for lab 5.2 from the same backend. Run{' '}
-            <code>./verify.sh</code> without <code>--quick</code> on a machine with a GPU.
+            This comparison needs benchmark rows for lab 5.5 and for lab 5.2 from the same backend, at the matrix
+            width lab 5.2 chose. Run <code>./verify.sh</code> without <code>--quick</code> on a machine with a GPU. A
+            lab 5.5 benchmark recorded before 2026-11-21 timed width 2048 only; run it again if lab 5.2 chose
+            another width.
           </>
         }
         reading={
           <>
-            Same algorithm and tile width. What differs is that the tile width is a value the kernel reads, where
-            before it was a constant the compiler saw. The two benchmarks may also use different matrix widths;
-            both are shown with the measurement.
+            Same algorithm, tile width and matrix width. What differs is that the tile width is a value the kernel
+            reads, where before it was a constant the compiler saw. The results table below shows how the run-time
+            kernel's speed changes with the matrix width as well: compare at one width only.
           </>
         }
       />

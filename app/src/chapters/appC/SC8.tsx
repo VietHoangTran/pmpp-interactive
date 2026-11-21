@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Ask, type Question } from '../../components/Ask';
-import { Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
+import { Bench, Beyond, NoteGroup, Simplification, Source, Today } from '../../components/notes';
 import { useReports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import {
@@ -401,10 +401,10 @@ export const questionsSC8: Record<string, Question> = {
     id: 'appC/C.8/q-pingpong',
     prompt: <>The CPU and the GPU take turns updating the same small counter page, every step. Which placement keeps traffic lowest?</>,
     options: [
-      { label: 'The default: fault and migrate.', why: 'The page moves on every turn, once each way: the explorer\'s ping-pong preset moves it 8 times in 4 rounds.' },
-      { label: 'Read-mostly replication.', why: 'Every turn writes, and every write invalidates the other side\'s copy, which then has to come back.' },
-      { label: 'Keep the page in one place and map it for the other processor (SetPreferredLocation plus SetAccessedBy).', correct: true },
-      { label: 'Prefetch it to the GPU before every launch.', why: 'That is the same migration on every turn, started earlier. It does not remove the trips.' },
+      { label: 'The default, fault and migrate, which puts the page wherever the latest access was.', why: 'The page moves on every turn, once each way: the explorer\'s ping-pong preset moves it 8 times in 4 rounds.' },
+      { label: 'Read-mostly replication, so that each side keeps its own copy of the page and reads it locally.', why: 'Every turn writes, and every write invalidates the other side\'s copy, which then has to come back.' },
+      { label: 'Keep it in one memory and map it for the other processor (SetPreferredLocation plus SetAccessedBy).', correct: true },
+      { label: 'Prefetch it to the GPU before every launch, and back to the CPU before each host turn, so no access faults.', why: 'That is the same migration on every turn, started earlier. It does not remove the trips.' },
     ],
     explain: (
       <p>
@@ -427,7 +427,7 @@ export const questionsSC8: Record<string, Question> = {
     ),
     options: [
       { label: 'About 5%: just the part that does not fit.', why: 'That is what keeping a prefix resident gives you, over the link. Least-recently-used eviction does worse.' },
-      { label: 'About 50%.', why: 'There is no partial hit rate in a cyclic sweep larger than memory under this eviction rule.' },
+      { label: 'About 50%, since half of each sweep still finds its pages resident.', why: 'There is no partial hit rate in a cyclic sweep larger than memory under this eviction rule.' },
       { label: 'All of them.', correct: true },
       { label: 'None: once warm, the pages stay.', why: 'Only if they all fit.' },
     ],
@@ -460,11 +460,11 @@ export const questionsSC8: Record<string, Question> = {
     options: [
       {
         label:
-          'A missing synchronise: the host reads logits the kernel may still be writing. The hint only changed the timing that hid the race.',
+          'A missing synchronise: the host reads logits the kernel may still be writing, and the hint only shifted the timing.',
         correct: true,
       },
       {
-        label: 'The hint was keeping the pages correct, and without it the driver migrates stale copies.',
+        label: 'The hint kept the pages coherent: without a preferred location the driver can migrate a stale copy.',
         why: 'Advice changes where pages live and what moving them costs, never what a load returns.',
       },
       {
@@ -499,20 +499,20 @@ export const questionsSC8: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Leave it to the rename: write the CUDA 13 call once.',
+        label: 'Leave it to the rename: write the CUDA 13 call once, and the header turns it into the HIP call.',
         why: 'The names map; the signatures do not. With ROCm 10.2\'s default headers hipMemPrefetchAsync takes an int device, not a location and flags.',
       },
       {
-        label: 'Write the CUDA 12 form with an int device, which both accept.',
+        label: 'Write the CUDA 12 form with an int device, which both CUDA 13 and ROCm 10.2 accept.',
         why: 'CUDA 13.0 removed the int forms: under the plain name it takes a cudaMemLocation and flags. The CUDA build fails.',
       },
       {
         label:
-          'Branch with #if on the platform: the CUDA 13 call with a cudaMemLocation on CUDA; on HIP hipMemPrefetchAsync with an int device, or the location form hipMemPrefetchAsync_v2.',
+          'Branch with #if: the CUDA 13 call with a cudaMemLocation on CUDA; on HIP the int-device hipMemPrefetchAsync, or hipMemPrefetchAsync_v2.',
         correct: true,
       },
       {
-        label: 'Leave the prefetch out of the HIP build; HIP has no prefetch.',
+        label: 'Leave the prefetch out of the HIP build; HIP has no prefetch call, only advice.',
         why: 'HIP has the call. It takes the CUDA 12 arguments under the plain name.',
       },
     ],
@@ -568,18 +568,26 @@ export function SC8() {
         the owner loses its mapping, the requester gains one, and the page moves, "an expensive operation, and the amount of
         work is proportional to the page size".
       </p>
-      <Today checked="2026-11-20 (notes/today/appC-facts.md, A11, A12)">
-        <p>
-          Page sizes, as NVIDIA states them now and "subject to change": 4 KiB on x86_64 CPUs, 4 to 64 KiB on Arm CPUs, and
-          GPUs "prefer 2MiB physical pages or larger". "TLB misses are generally significantly more expensive on the GPU."
-        </p>
-        <p>
-          Scope: Pascal-style faulting covers memory allocated as managed. Plain <code>malloc</code> or <code>mmap</code> memory
-          is GPU-accessible only with HMM (Linux 6.1.24 or later, compute capability 7.5 or later, driver 535 or later with
-          open kernel modules) or ATS (Grace Hopper, Grace Blackwell). <code>cudaMalloc</code> memory stays out of the CPU's
-          reach everywhere.
-        </p>
-      </Today>
+      <NoteGroup>
+        <Today checked="2026-11-20 (notes/today/appC-facts.md, A11, A12)">
+          <p>
+            Page sizes, as NVIDIA states them now and "subject to change": 4 KiB on x86_64 CPUs, 4 to 64 KiB on Arm CPUs, and
+            GPUs "prefer 2MiB physical pages or larger". "TLB misses are generally significantly more expensive on the GPU."
+          </p>
+          <p>
+            Scope: Pascal-style faulting covers memory allocated as managed. Plain <code>malloc</code> or <code>mmap</code> memory
+            is GPU-accessible only with HMM (Linux 6.1.24 or later, compute capability 7.5 or later, driver 535 or later with
+            open kernel modules) or ATS (Grace Hopper, Grace Blackwell). <code>cudaMalloc</code> memory stays out of the CPU's
+            reach everywhere.
+          </p>
+        </Today>
+        <Simplification>
+          <p>
+            The animation follows one page under fault and migrate with software coherence. No timing, one page size, and
+            no hardware-coherent system.
+          </p>
+        </Simplification>
+      </NoteGroup>
       <PageFaultScene />
 
       <h2>Migrate or map: who decides?</h2>
@@ -693,7 +701,8 @@ export function SC8() {
         and migrate and an eviction rule like this one, every token can pay for the whole model at the speed of the
         interconnect. llama.cpp's <code>GGML_CUDA_ENABLE_UNIFIED_MEMORY=1</code> exists to swap to system RAM "instead of
         crashing" on Linux, and this is the trade it offers: running, at the price of the link. On Windows, NVIDIA's driver
-        has a "Sysmem Fallback Policy" that lets ordinary allocations spill into shared memory, "albeit at lower speeds";
+        has a "Sysmem Fallback Policy" that lets ordinary allocations spill into system memory (NVIDIA's "shared memory",
+        not the on-chip kind), "albeit at lower speeds";
         NVIDIA states no Linux equivalent, so do not count on one. Placement is what decides the cost: keep what fits
         resident and map the rest, and only the excess crosses the link.
       </p>

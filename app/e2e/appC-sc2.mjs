@@ -138,14 +138,14 @@ check('q-today-pointer: the same pointer', (await qText(q)).includes('Correct.')
 q = await question('the host stalling at every copy');
 await pick(q, 'Pin the model');
 check('q-pinmemory: pinning the weights is wrong, and the batch is named as what crosses', (await qText(q)).includes('Not quite.') && (await qText(q)).includes('the batch is what needs page-locked memory'));
-await pick(q, 'The batches are in pageable memory');
+await pick(q, 'The batches are pageable');
 check('q-pinmemory: pageable batches, fixed by pin_memory=True', (await qText(q)).includes('Correct.') && (await qText(q)).includes('may block the host'));
 
 // ---- notes and voice
 const notes = await page.$$eval('.prose > .note', (n) => n.map((x) => x.textContent).join(' || '));
 check('the dangling "we mentioned" is flagged as the PDF\'s', notes.includes('In the PDF') && notes.includes('we mentioned'));
 check('Today notes cite A3 and A4; HIP B2, Metal C2 and D4, PyTorch D1', ['A3', 'A4', 'B2', 'C2', 'D4', 'D1'].every((s) => notes.includes(s)));
-check('every margin note directly follows text', await page.evaluate(() => [...document.querySelectorAll('.prose > .note')].every((n) => ['P', 'UL', 'OL'].includes(n.previousElementSibling?.tagName) || n.previousElementSibling?.classList.contains('note'))));
+check('every margin note (or note group) directly follows text, never another note', await page.evaluate(() => [...document.querySelectorAll('.prose > .note')].every((n) => ['P', 'UL', 'OL'].includes(n.previousElementSibling?.tagName))));
 const prose = await page.$eval('.prose', (e) => e.textContent);
 check('no em dash in the page', !prose.includes('—'));
 check('links to the labs page and back to the map', (await page.$$eval('.prose a', (a) => a.map((x) => x.getAttribute('href')))).filter((h) => h === '#/appC/labs' || h === '#/appC/start').length >= 2);

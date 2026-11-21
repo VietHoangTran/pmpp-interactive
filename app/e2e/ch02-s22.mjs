@@ -135,7 +135,7 @@ await page.$eval('section.bench', (e) => e.scrollIntoView({ block: 'start' }));
 // ---- notes around the stepper
 const today = await page.$$eval('.note.today', (n) => n.map((x) => x.textContent));
 check('a Today note says the launch is asynchronous and names the three waits', today.some((t) => t.includes('asynchronous') && t.includes('cudaDeviceSynchronize()') && t.includes('hipDeviceSynchronize()') && t.includes('waitUntilCompleted') && t.includes('Checked 2026-11-20')), today.join(' || '));
-check('a Today note marks the thread-cost figures as the book’s claim', today.some((t) => t.includes('Could not be verified') && t.includes("book's claim")));
+check('a Today note marks the thread-cost figures as the book’s claim', today.some((t) => t.includes('Could not be confirmed') && t.includes("book's claim")));
 check('the stepper states what it leaves out, before the bench', await page.evaluate(() => {
   const note = [...document.querySelectorAll('.note.caveat')].find((n) => n.textContent.includes('Streams'));
   const bench = document.querySelector('section.bench');

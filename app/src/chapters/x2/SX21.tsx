@@ -65,15 +65,16 @@ export const questionsSX21: Record<string, Question> = {
     id: 'x2/X2.1/q-unfused',
     prompt: <>Dequantise Q4_0 weights to float32 in one kernel, then run the float32 GEMV, against running the float32 GEMV on float32 weights. Which is faster?</>,
     options: [
-      { label: 'The float32 GEMV alone: the two-kernel path moves about 2.1 times the bytes.', correct: true },
+      { label: 'The float32 GEMV alone: the other path moves 2.1 times the bytes.', correct: true },
       { label: 'The two-kernel path, by about 7 times: it reads Q4_0.', why: 'It reads Q4_0 once, then writes and reads a float32 copy: 0.5625 + 4 + 4 bytes per weight.' },
       { label: 'They are the same: both end in the same float32 GEMV.', why: 'The same GEMV, plus a whole extra pass that writes its input.' },
       { label: 'The two-kernel path, slightly, because dequantising is cheap.', why: 'Cheap in arithmetic, not in bytes: the copy is as large as the float32 weights.' },
     ],
     explain: (
       <p>
-        8.5625 against 4 bytes per weight is {(pipelineBytesPerWeight('unfused-f32', 'q4_0') / 4).toFixed(2)} times. The
-        dequantised copy is written to memory and read back, so the quantisation saves nothing on the way. Only a kernel
+        8.5625 against 4 bytes per weight is {(pipelineBytesPerWeight('unfused-f32', 'q4_0') / 4).toFixed(2)} times, and
+        time follows bytes because both kernels are bandwidth-bound: an elementwise conversion and a float32 GEMV at
+        batch 1 do almost no arithmetic per byte. The dequantised copy is written to memory and read back, so the quantisation saves nothing on the way. Only a kernel
         that unpacks in registers keeps the byte ratio.
       </p>
     ),
@@ -128,7 +129,7 @@ export const questionsSX21: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Memory-bound on A; compute-bound on B, where unpacking costs decide.', correct: true },
+      { label: 'Memory-bound on A; compute-bound on B, whose threshold is lower.', correct: true },
       { label: 'Memory-bound on both: decode is memory-bound on any device.', why: "B's threshold is 300 / 250 = 1.2 FLOP/B, below 1.88." },
       { label: 'Compute-bound on both, since Q8_0 nearly doubles FP16\'s intensity.', why: "A's threshold is 2.0 FLOP/B, above 1.88." },
       { label: 'Memory-bound on B only, since B has more bandwidth per operation.', why: 'B has more bandwidth per operation, so its threshold is lower.' },

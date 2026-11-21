@@ -741,7 +741,7 @@ export const questionsS76: Record<string, Question> = {
     ],
     explain: (
       <p>
-        On AMD's MI300X each die (XCD) has its own 4 MB L2, and the level shared by the whole GPU is the 256 MiB last-level
+        On AMD's MI300X each die (XCD) has its own L2, and the only level shared by the whole GPU is the last-level
         cache. AMD says which compute unit runs a workgroup is not predictable, and can change from one launch to the next.
         So neighbouring blocks may share only that last level, if anything: expect more misses than the book assumes, and
         measure. In the explorer above, set the L2 to 8 slices and placement to random.
@@ -828,8 +828,8 @@ export function S76() {
       ) : cu && metal ? (
         failed(cu) ? (
           <p className="muted" data-listing="missing">
-            The listing loads from <code>labs/ch07/lab2_tiledconv/solution/</code>, which is not in this copy of the
-            repository yet.
+            The listing loads from <code>labs/ch07/lab2_tiledconv/solution/</code>, which this copy of the repository
+            does not have.
           </p>
         ) : (
           <Code
@@ -1056,7 +1056,7 @@ export function S76() {
           <tr>
             <td>AMD</td>
             <td>
-              MI300X: a 4 MB L2 per die (XCD) and a 256 MiB last level; workgroup placement is not deterministic;{' '}
+              an L2 per die; on MI300X, one per XCD, under a last-level cache shared by the whole GPU; workgroup placement is not deterministic;{' '}
               <code>__ldg</code> is a plain load
             </td>
             <td>rocprofiler-compute&rsquo;s L2 Hit Rate, which counts a hit-on-miss as a hit</td>

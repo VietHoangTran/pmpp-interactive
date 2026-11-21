@@ -142,8 +142,8 @@ const choice = async (needle, optionText) => {
   await pause(120);
   return q.evaluate((e) => e.textContent.includes('Correct.'));
 };
-check('q-slots: idle threads in executing warps', await choice('real resource use is closer', 'Threads that stop adding are still part of warps'));
-check('q-energy: extra work still costs energy', await choice('Is its extra work then free', 'every extra addition still costs energy'));
+check('q-slots: idle threads in executing warps', await choice('real resource use is closer', 'Idle threads still occupy lanes'));
+check('q-energy: extra work still costs energy', await choice('Is its extra work then free', 'each extra addition still costs energy'));
 
 check('no console or page errors', errors.length === 0, errors.join(' | '));
 await browser.close();

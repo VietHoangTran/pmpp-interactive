@@ -221,9 +221,9 @@ export const questionsS149: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'A one-bit radix sort over global memory.', why: 'It would be stable, but 32 passes through global memory for 64 values is a great deal of traffic for a job one block can do on chip.' },
-      { label: 'Odd-even sort with a host loop.', why: 'Stable enough here, but one launch and one copy back per step, for up to 64 steps per row.' },
-      { label: 'A bitonic network comparing with >= instead of >.', why: 'Comparators reach across the array and carry other values past equal ones; changing the comparison inside one comparator does not make the network stable.' },
+      { label: 'A one-bit radix sort over global memory, which is stable by construction.', why: 'It would be stable, but 32 passes through global memory for 64 values is a great deal of traffic for a job one block can do on chip.' },
+      { label: 'Odd-even sort with a host loop, since swapping only out-of-order neighbours keeps ties.', why: 'Stable enough here, but one launch and one copy back per step, for up to 64 steps per row.' },
+      { label: 'A bitonic network in shared memory whose comparators never swap equal values.', why: 'Comparators reach across the array and carry other values past equal ones; no rule inside one comparator makes the network stable.' },
       {
         label: 'A bitonic network in shared memory or registers that compares (value, index) pairs.',
         correct: true,
@@ -244,11 +244,11 @@ export const questionsS149: Record<string, Question> = {
     prompt: <>Why does MSD radix suit top-k when LSD radix does not?</>,
     options: [
       {
-        label: 'LSD decides the most significant digit last, so its early passes say nothing about which keys are largest. MSD\'s first pass already isolates the bucket holding the k-th largest key, and only that bucket needs more work.',
+        label: 'LSD settles the top digit last, so its early passes say nothing about the largest keys; MSD\'s first pass isolates the k-th largest key\'s bucket.',
         correct: true,
       },
-      { label: 'MSD makes fewer passes in total.', why: 'For a full sort both read every digit; the difference is what each pass tells you.' },
-      { label: 'LSD is not stable.', why: 'LSD radix sort is stable; it has to be, for its passes to compose (section 14.4).' },
+      { label: 'MSD makes fewer passes in total: reading digits from the top, it needs only about log k of them.', why: 'The pass count depends on the key width and the digit width, not on k. A select may stop early, but that follows from what each MSD pass decides, which is the reason MSD fits.' },
+      { label: 'LSD is not stable, so the k largest keys could come out in a different order from run to run.', why: 'LSD radix sort is stable; it has to be, for its passes to compose (section 14.4).' },
     ],
     explain: (
       <p>
@@ -275,11 +275,11 @@ export const questionsS149: Record<string, Question> = {
         why: 'Random splitters are spread at random, not evenly. Three of them are often bunched, which leaves one wide gap.',
       },
       {
-        label: 'Larger in B: more samples mean more chances of an unlucky draw.',
+        label: 'Larger in B: thirty samples give thirty chances of an unlucky draw, and any one can skew a splitter.',
         why: 'Each splitter of B is the 8th, 15th or 23rd of 30 sorted samples, and such a rank varies far less than one random key.',
       },
       {
-        label: 'In A it is often near half the input; in B it stays much nearer a quarter, so no bucket\'s sort holds up the rest.',
+        label: 'In A it is often near half the input; in B it stays much nearer a quarter.',
         correct: true,
       },
       {
@@ -386,7 +386,7 @@ export function S149() {
         are covered, keep every bucket above that bin, and refine only the bin where the k-th largest key lies. That is what
         llama.cpp's <code>top_k_radix_cuda</code> does (8-bit digits, per-block histograms in shared memory, a select that
         walks bins from the top), and what PyTorch's multi-block top-k, <code>mbtopk</code>, does. Selection is the
-        subject of <a href={href('x1')}>module X1</a>.
+        subject of module X1's <a href={href('x1', 'X1.4')}>X1.4, "Top-k is a selection, not a sort"</a>.
       </p>
       <Beyond>
         <p>
@@ -412,8 +412,8 @@ export function S149() {
       <p>
         The book's closing advice is to use a library such as Thrust or CUB rather than write a sorting kernel from scratch,
         and to treat sorting as a case study. For the jobs a sampler has, these are the calls today. The names come from
-        each vendor's documentation and headers; nothing in this course compiles CUB or hipCUB, so none of it is verified on
-        hardware here.
+        each vendor's documentation and headers; nothing in this course compiles CUB or hipCUB, so all of it is unverified
+        here.
       </p>
       <Source section="14.10" pages="347" />
       <Today checked="2026-11-20 (notes/today/ch14-facts.md, A2 to A6, B1 to B5, C1)">

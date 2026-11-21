@@ -141,11 +141,14 @@ const expected = {
     const b = row(s, 'linear_layer', 'batch', 1)?.gflops;
     return a && b ? [{ backend: s.backend, value: a / b }] : [];
   }),
+  // Lab 5.5 against lab 5.2 at T = 16 and at the matrix width lab 5.2's benchmark chose.
   dynamic: preferred(reports, LABS[4].id).flatMap((s) => {
     const f = preferred(reports, LABS[1].id).find((x) => x.backend === s.backend);
-    const a = row(s, 'tiled_dynamic', 'tile', 16)?.gflops;
-    const b = f && row(f, 'tiled', 'tile', 16)?.gflops;
-    return a && b ? [{ backend: s.backend, value: a / b }] : [];
+    const fix = f && row(f, 'tiled', 'tile', 16);
+    const dyn = fix && s.rows.find((r) => r.name === 'tiled_dynamic' && r.tile === 16 && r.width === fix.width);
+    const a = dyn?.gflops;
+    const b = fix?.gflops;
+    return a && b ? [{ backend: s.backend, value: a / b, width: fix.width }] : [];
   }),
 };
 const predictions = [
@@ -181,6 +184,9 @@ for (const p of predictions) {
     });
     check(`lab ${p.lab}: measured value from /api/reports is shown (${want.map((w) => `${w.backend} ${fmt(w.value)}`).join(', ')}) and compared with the prediction of ${committed}: "${compare(committed, want[0].value)}"`,
       ok && shown.length === want.length, JSON.stringify(shown));
+    if (p.key === 'dynamic')
+      check('  lab 5.5: the two kernels are compared at one matrix width, the one lab 5.2 chose',
+        want.every((w) => shown.find((x) => x.backend === w.backend)?.text.includes(`both at width ${w.width}`)), JSON.stringify(shown));
     check(`  lab ${p.lab}: the reveal says whose kernel was measured`, shown.every((s) => /with (your kernel|the reference solution|lab 5\.5 from)/.test(s.text)), JSON.stringify(shown));
   } else {
     check(`lab ${p.lab}: no measurement in the reports, and the reveal says what to run`,

@@ -159,8 +159,8 @@ if (found.length) {
 }
 
 // ---- questions
-check('q-pascal-malloc: it fails', (await choose('linked list that the host built', "It fails. Pascal's page faulting covers managed allocations")).includes('Correct.'));
-const wrong = await choose('A device reports', 'Everything works, malloc pointers included');
+check('q-pascal-malloc: it fails', (await choose('linked list that the host built', "It fails: Pascal's faulting covers managed memory")).includes('Correct.'));
+const wrong = await choose('A device reports', 'Everything works, malloc and mmap pointers included');
 check('q-paradigm: a wrong pick explains why', wrong.includes('Not quite.') && wrong.includes('PageableMemoryAccess = 1'));
 check('q-paradigm: managed allocations only', (await choose('A device reports', 'Full Unified Memory for managed allocations only')).includes('Correct.'));
 check('q-wsl: the limited one', (await choose('runs under WSL', 'The limited one')).includes('Correct.'));

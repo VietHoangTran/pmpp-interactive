@@ -74,6 +74,17 @@ std::vector<std::pair<std::string, std::string>> device_props() {
   add("regsPerMultiprocessor", p.regsPerMultiprocessor);
   add("maxThreadsPerMultiProcessor", p.maxThreadsPerMultiProcessor);
   add("maxBlocksPerMultiProcessor", p.maxBlocksPerMultiProcessor);
+  // Whether copies and kernels can overlap (chapters 22 and 23). Both fields have these
+  // names and types (int) in cudaDeviceProp (Runtime API 13.5) and hipDeviceProp_t (HIP 7.2):
+  // infra-facts F1. On ROCm asyncEngineCount is a runtime constant, not a count of copy
+  // engines (ch23-facts B3). The emulator runs streams synchronously, so it reports 0 for
+  // both; its struct has no asyncEngineCount field.
+#if defined(PMPP_BACKEND_EMU)
+  add("asyncEngineCount", 0);
+#else
+  add("asyncEngineCount", p.asyncEngineCount);
+#endif
+  add("concurrentKernels", p.concurrentKernels);
 #if defined(PMPP_BACKEND_EMU)
   out.emplace_back("note", "synthetic values describing the CPU emulator, not a GPU");
 #endif

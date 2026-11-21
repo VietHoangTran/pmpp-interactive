@@ -1,4 +1,4 @@
-# Lab 11.6: top-p keep mask (project milestone M5, part 1)
+# Lab 11.6: top-p keep mask (project milestone M5, the top-p piece)
 
 Book: the exclusive scan (section 11.1, p. 253) computed with lab 11.3's row scan, which is
 the coarsened, register-tiled scan of Figs. 11.12 and 11.13 (pp. 268 and 271) on the warp and
@@ -172,7 +172,7 @@ shapes for what one block per row does at batch 1.
 
 ## Where this goes
 
-This is part 1 of milestone M5. Chapter 12 compacts the kept tokens into a short list,
+This is the top-p piece of milestone M5 (lab 9.3's token counts were the first). Chapter 12 compacts the kept tokens into a short list,
 chapter 14 sorts the logits that this lab receives already sorted, and module X1 draws the
 sample from the nucleus: the sausage picture of section 11.1 (p. 252), with a uniform random
 number in place of the knife.

@@ -1076,15 +1076,15 @@ export const questionsS85: Record<string, Question> = {
         why: 'That is what barrier 1 prevents, and barrier 1 is still there.',
       },
       {
-        label: 'A thread that finishes early shifts its points of inNext_s into inCurr_s while a neighbour is still reading the old current plane.',
+        label: 'A fast thread overwrites inCurr_s with the next plane while a neighbour is still reading the current one.',
         correct: true,
       },
       {
-        label: 'Nothing: each thread shifts only its own slots.',
+        label: 'Nothing: each thread shifts only its own slots, so no two threads write the same element.',
         why: 'Each thread writes only its own slots, but its neighbours read those slots. Owning a slot does not make it private.',
       },
       {
-        label: 'Only the ring threads are affected, since they never compute.',
+        label: 'Only the ring threads are affected: they skip the compute and reach the shift early, but nobody reads their slots after that.',
         why: 'The ring threads are the likeliest to overwrite early, precisely because they have nothing to compute; the damage lands on the inner threads that read their slots.',
       },
     ],
@@ -1108,19 +1108,19 @@ export const questionsS85: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'The output becomes wrong: inner threads now read slots that nobody filled.',
+        label: 'The output becomes wrong: inner threads now read halo slots that the departed threads should have filled.',
         why: 'An inner thread computes only when 1 ≤ j ≤ N − 2, so its neighbours at j ± 1 are inside the grid and never return. No slot it reads belongs to a thread that left.',
       },
       {
-        label: 'The block hangs at barrier 1, waiting for threads that will never arrive.',
-        why: 'NVIDIA documents that a barrier waits for "all non-exited threads", and Apple says a thread that has ended no longer blocks a barrier on Apple silicon. A thread that returned is not waited for there.',
+        label: 'On CUDA the block hangs at barrier 1, waiting for threads that returned; on Apple silicon and AMD it runs correctly.',
+        why: 'NVIDIA documents that a barrier waits for "all non-exited threads", so CUDA does not wait for a thread that returned, and Apple says the same for Apple silicon. AMD documents no rule either way, so nothing promises the AMD half.',
       },
       {
-        label: 'It gives the right answer on CUDA and on Apple silicon, where an exited thread no longer counts at a barrier, but AMD documents no such rule, so it is not portable. Guard the work instead and keep every thread in the loop.',
+        label: 'The output is right on CUDA and on Apple silicon, where an exited thread no longer counts at a barrier; AMD documents no such rule, so it is not portable.',
         correct: true,
       },
       {
-        label: 'It is fine everywhere, and it is a good habit to return early from every kernel.',
+        label: 'It is fine on all three backends, since a thread with no work has nothing to synchronise with.',
         why: (
           <>
             Fine where it is documented, which is not everywhere. And a guard placed later is a different matter: an
@@ -1225,8 +1225,8 @@ export const questionsS85: Record<string, Question> = {
     id: 'ch08/8.5/q-who-reads',
     prompt: <>In Fig. 8.10, the elements of which shared arrays are read by more than one thread?</>,
     options: [
-      { label: 'All three planes.', why: 'Look at the indices: inPrev_s and inNext_s are only ever read at [ty][tx].' },
-      { label: 'Only inCurr_s.', correct: true },
+      { label: 'All three: every plane holds values the whole block loaded together.', why: 'Look at the indices: inPrev_s and inNext_s are only ever read at [ty][tx].' },
+      { label: 'Only inCurr_s, through each thread\'s four x-y neighbours.', correct: true },
       { label: 'inPrev_s and inNext_s, since every thread needs the planes before and after.', why: 'Every thread needs its own point of them, at [ty][tx], and nobody else\'s.' },
       { label: 'None: each thread reads only what it loaded.', why: 'The four x-y neighbours in inCurr_s were loaded by four other threads.' },
     ],
@@ -1244,10 +1244,10 @@ export const questionsS85: Record<string, Question> = {
     id: 'ch08/8.5/q-global-same',
     prompt: <>Register tiling moves two of the three planes out of shared memory into registers. What happens to the kernel's FLOP/B against global memory?</>,
     options: [
-      { label: 'It triples: three planes became one.', why: 'The planes moved between two kinds of on-chip storage. Global memory never saw them move.' },
-      { label: 'It rises a little, because registers are faster.', why: 'Speed of access is not part of the ratio. The ratio counts bytes moved to and from global memory.' },
-      { label: 'Nothing changes: the same elements are loaded from global memory, once each.', correct: true },
-      { label: 'It falls, because the current plane is now written twice.', why: 'The extra copy goes from a register to shared memory, on chip. Global traffic is untouched.' },
+      { label: 'It triples: the block now keeps one plane in shared memory instead of three.', why: 'The planes moved between two kinds of on-chip storage. Global memory never saw them move.' },
+      { label: 'It rises a little, because registers have lower latency and higher bandwidth than shared memory.', why: 'Speed of access is not part of the ratio. The ratio counts bytes moved to and from global memory.' },
+      { label: 'Nothing: the same elements are loaded from global memory, once each.', correct: true },
+      { label: 'It falls, because the current plane is now written twice, to a register and to shared memory.', why: 'The extra copy goes from a register to shared memory, on chip. Global traffic is untouched.' },
     ],
     explain: (
       <p>
@@ -1282,13 +1282,13 @@ export const questionsS85: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'It runs, more slowly, because fewer blocks fit on an SM.', why: 'That is what happens at moderate register counts. Here one block alone does not fit.' },
+      { label: 'It runs, but more slowly, because fewer blocks fit on an SM.', why: 'That is what happens at moderate register counts. Here one block alone does not fit.' },
       {
-        label: 'The launch fails with cudaErrorLaunchOutOfResources: 1,024 threads × 72 registers is more than the 64 K registers a block may use.',
+        label: 'The launch fails: 1,024 threads × 72 registers is more than the 64 K registers a block may use.',
         correct: true,
       },
-      { label: 'The compiler spills the extra registers automatically at launch time.', why: 'Registers are allocated by the compiler, which is why --resource-usage reports them at build time. Without launch bounds it did not know the block would be this large.' },
-      { label: 'The runtime shrinks the block to 512 threads.', why: 'NVIDIA documents the outcome: when a block needs more registers than are available, the launch fails.' },
+      { label: 'The compiler spills the registers above the limit to local memory when the launch is made.', why: 'Registers are allocated by the compiler, which is why --resource-usage reports them at build time. Without launch bounds it did not know the block would be this large.' },
+      { label: 'The runtime shrinks the block to 512 threads so that it fits.', why: 'NVIDIA documents the outcome: when a block needs more registers than are available, the launch fails.' },
     ],
     explain: (
       <>
@@ -1318,13 +1318,13 @@ export const questionsS85: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'The three scalars, because copying registers costs instructions.', why: 'Copies between registers are cheap and leave the values in registers. The rule is about indexing.' },
+      { label: 'The three scalars, because each copy between them costs an instruction and a register the compiler must keep.', why: 'Copies between registers are cheap and leave the values in registers. The rule is about indexing.' },
       {
-        label: 'The array indexed at run time. Local memory lives in device memory, so a window there would undo register tiling.',
+        label: 'The array indexed at run time: local memory lives in device memory.',
         correct: true,
       },
-      { label: 'Neither: anything declared inside a kernel is a register.', why: 'Chapter 5 and chapter 6 both show the exception: arrays the compiler cannot index with constants.' },
-      { label: 'Both, because any per-thread array goes to local memory.', why: 'Small arrays indexed only with constants are promoted to registers; that is why unrolling matters (ch. 6 §6.6).' },
+      { label: 'Neither: anything declared inside a kernel without __shared__ lives in a register, array or not.', why: 'Chapter 5 and chapter 6 both show the exception: arrays the compiler cannot index with constants.' },
+      { label: 'Both: any per-thread window, array or scalars, is placed in local memory.', why: 'Scalars and small arrays indexed only with constants are promoted to registers; that is why unrolling matters (ch. 6 §6.6).' },
     ],
     explain: (
       <p>
@@ -1494,6 +1494,13 @@ export function S85() {
         The explorer makes the slab depth a separate knob. Start at t = 32 and D = 30, then drag D up and watch the
         block count as well as the ratio.
       </p>
+      <Simplification>
+        <p>
+          FLOP/B is one interior block's: every tile element loaded once, every output stored once; no caches, no
+          timing. The block count includes the partly empty boundary blocks. Window registers only; a compiler adds
+          more.
+        </p>
+      </Simplification>
       <SlabExplorer />
       <p>
         Past a depth of about t the ratio barely moves, while each block does more serial work and the grid has fewer
@@ -1666,8 +1673,9 @@ export function S85() {
       <h2>Where this goes next</h2>
       <p>
         Carry one rule out of this section: data read by one thread belongs in that thread's registers; data read by
-        several threads belongs in shared memory. Chapter 15 applies it to matrix multiplication, where each thread
-        keeps strips of the two input tiles in registers and the block shares the tiles; that kernel is milestone M3.
+        several threads belongs in shared memory. Chapter 15 applies it to matrix multiplication (
+        <a href={href('ch15', '15.4')}>15.4, Register tiling of the input tiles</a>), where each thread keeps strips of
+        the two input tiles in registers and the block shares the tiles; that kernel is milestone M3.
         Lab 8.1 has you write the register-tiled stencil and measure it against the other three kernels.
       </p>
       <Source section="15.3 and §15.4" pages="352–360" />

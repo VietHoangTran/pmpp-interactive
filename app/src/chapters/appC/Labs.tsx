@@ -59,19 +59,19 @@ export const questionsLabs: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'A like explicit: all managed memory moves to the GPU when the kernel starts. B like mapped: the kernel reads pinned host memory over the link.',
+        label: 'A like explicit: all managed memory moves to the GPU at the launch. B like mapped: the kernel reads pinned host memory.',
         correct: true,
       },
       {
-        label: 'A like mapped, B like explicit.',
+        label: 'A like mapped, B like explicit: the limited paradigm reads in place, and AMD without XNACK copies at the launch.',
         why: 'Swapped. The limited paradigm moves managed memory in bulk at a launch, and AMD without XNACK does not migrate at all.',
       },
       {
-        label: 'Both like explicit: managed memory always ends up in device memory before a kernel reads it.',
+        label: 'Both like explicit: managed memory ends up in device memory before any kernel reads it.',
         why: 'Not on B. Without XNACK, AMD\'s managed memory does not migrate and behaves like pinned host memory: the kernel reads it in host memory.',
       },
       {
-        label: 'Both like mapped in bytes moved: only the 1 in 64 rows the kernel touches cross the link.',
+        label: 'Both like mapped in bytes moved: only the 1 in 64 rows the kernel touches cross the link, on either machine.',
         why: 'Moving only what is touched, page by page on a fault, is the full paradigm. Machine A has the limited one, which moves all of it at the launch.',
       },
     ],
@@ -289,8 +289,8 @@ export function Labs() {
         kernel is provided; you write the host side, which is where this appendix lives.
       </LabsIntro>
       <p>
-        The lab runner does not yet accept an appendix number such as C.1, so every command on this page names the lab
-        by the start of its directory, <code>appC/lab1</code>, and the tables below call it that too.
+        The lab runner accepts the appendix number, so <code>python3 labs/pmpp.py run C.1</code> works too. This page
+        names the lab by the start of its directory, <code>appC/lab1</code>, in its commands and its tables.
       </p>
       <RunningLabs
         example="appC/lab1"

@@ -22,9 +22,9 @@ export const questionsS194: Record<string, Question> = {
     ),
     options: [
       { label: 'M = 64 output maps, a 3 × 3 filter (K = 3), C = 32 input maps.', correct: true },
-      { label: 'K = 64, M = 3, C = 32.', why: 'That keeps cuDNN’s letters. In the chapter, K is the side of the filter and M counts output maps.' },
-      { label: 'M = 64, K = 9, C = 32.', why: 'R × S = 9 is the number of taps per input map, K². The chapter’s K is the side, 3.' },
-      { label: 'M = 32, K = 3, C = 64.', why: 'C means the same in both conventions: 32 input maps. The 64 output maps are the chapter’s M.' },
+      { label: 'K = 64 output maps, M = 3 (the filter side), C = 32 input maps.', why: 'That keeps cuDNN’s letters. In the chapter, K is the side of the filter and M counts output maps.' },
+      { label: 'M = 64 output maps, a filter of K = 9 taps, C = 32 input maps.', why: 'R × S = 9 is the number of taps per input map, K². The chapter’s K is the side, 3.' },
+      { label: 'M = 32 output maps, a 3 × 3 filter (K = 3), C = 64 input maps.', why: 'C means the same in both conventions: 32 input maps. The 64 output maps are the chapter’s M.' },
     ],
     explain: (
       <p>
@@ -46,7 +46,7 @@ export const questionsS194: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'It adds pad_h rows of zeros at the top and at the bottom of every input, chapter 7’s ghost cells, and so changes the output size.',
+        label: 'It adds pad_h zero rows above and below every input (chapter 7’s ghost cells), so P changes.',
         correct: true,
       },
       {
@@ -54,11 +54,11 @@ export const questionsS194: Record<string, Question> = {
         why: 'Padding of that kind exists inside cuDNN, for Tensor Cores, and you do not ask for it. pad_h appears in the output-size formula.',
       },
       {
-        label: 'It pads the output: P grows by exactly 2·pad_h.',
+        label: 'It pads the output: P grows by 2·pad_h, the zeros written around Y.',
         why: 'The zeros go around the input. P grows because more windows fit in the padded input, by about 2·pad_h / u rows.',
       },
       {
-        label: 'Nothing in the forward pass; it matters only for training.',
+        label: 'Nothing in the forward pass; it is used by the backward pass in training.',
         why: 'It is in the forward formula: the input is read at p·u + r − pad, with zeros outside the image.',
       },
     ],
@@ -108,12 +108,12 @@ export const questionsS194: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Precomputed indices into the input, so the kernel spends less on Eq. 19.5’s divides and remainders for every element it loads.',
+        label: 'Precomputed indices into the input, to save Eq. 19.5’s divides and remainders per load.',
         correct: true,
       },
-      { label: 'A copy of the unfolded input, so it can call an ordinary GEMM.', why: 'That is GEMM, the explicit algorithm. PRECOMP still never forms the matrix.' },
-      { label: 'The filter weights in another layout.', why: 'The documentation says the workspace holds indices that help build the input matrix implicitly.' },
-      { label: 'Partial sums from a split reduction.', why: 'Its description names precomputed indices, nothing else.' },
+      { label: 'A copy of the unfolded input, so it can call an ordinary tuned GEMM on it.', why: 'That is GEMM, the explicit algorithm. PRECOMP still never forms the matrix.' },
+      { label: 'The filter weights rearranged into the GEMM’s tile order.', why: 'The documentation says the workspace holds indices that help build the input matrix implicitly.' },
+      { label: 'Partial sums from a split reduction over C·K·K, combined after the GEMM.', why: 'Its description names precomputed indices, nothing else.' },
     ],
     explain: (
       <p>
@@ -137,7 +137,7 @@ export const questionsS194: Record<string, Question> = {
     ),
     options: [
       { label: 'Whether cuDNN ran the convolution in TF32, which PyTorch allows by default.', correct: true },
-      { label: 'Whether cuDNN flipped the filter.', why: 'PyTorch selects cross-correlation, the book’s formula. A flipped filter would give different numbers altogether, not a small relative error.' },
+      { label: 'Whether cuDNN flipped the filter, computing a true convolution instead of cross-correlation.', why: 'PyTorch selects cross-correlation, the book’s formula. A flipped filter would give different numbers altogether, not a small relative error.' },
       {
         label: 'Whether cudnn.benchmark chose a non-deterministic algorithm.',
         why: 'cuDNN documents every forward algorithm as deterministic. Choosing another changes speed and support.',
@@ -168,12 +168,12 @@ export const questionsS194: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Both time several algorithms for a new problem shape and keep the fastest, so the first call with a new shape is slow.',
+        label: 'Both time several algorithms on each new shape and keep the fastest one.',
         correct: true,
       },
-      { label: 'Both make results deterministic.', why: 'PyTorch has a separate flag for that, and benchmarking may even pick different algorithms on different runs.' },
-      { label: 'Both are optional ways to save memory.', why: 'Find is mandatory before miopenConvolutionForward unless you use immediate mode, and neither is about memory.' },
-      { label: 'Both choose the data layout.', why: 'The layout is in the tensor descriptors you pass. These choose the algorithm.' },
+      { label: 'Both make results deterministic, so two runs of the same model give the same bits.', why: 'PyTorch has a separate flag for that, and benchmarking may even pick different algorithms on different runs.' },
+      { label: 'Both are optional ways to save memory by picking algorithms with smaller workspaces.', why: 'Find is mandatory before miopenConvolutionForward unless you use immediate mode, and neither is about memory.' },
+      { label: 'Both choose the data layout of the tensors.', why: 'The layout is in the tensor descriptors you pass. These choose the algorithm.' },
     ],
     explain: (
       <p>
@@ -196,9 +196,9 @@ export const questionsS194: Record<string, Question> = {
     ),
     options: [
       { label: 'A cuBLAS GEMM directly on the input.', correct: true },
-      { label: 'An explicit unfold, then a GEMM.', why: 'With K = 1 the unfold would copy the input unchanged (Eq. 19.4 gives exactly 1), so there is nothing to build.' },
-      { label: 'Its implicit-GEMM kernel.', why: 'That is the general path. This shape has a test of its own: there is nothing to gather.' },
-      { label: 'The direct kernel.', why: 'The direct kernel is for short reductions on small maps; here C·K·K = 256 is not below 64.' },
+      { label: 'An explicit unfold into B, then a cuBLAS GEMM.', why: 'With K = 1 the unfold would copy the input unchanged (Eq. 19.4 gives exactly 1), so there is nothing to build.' },
+      { label: 'Its implicit-GEMM kernel, Fig. 19.11 in production.', why: 'That is the general path. This shape has a test of its own: there is nothing to gather.' },
+      { label: 'The direct kernel, since the map has only 196 pixels.', why: 'The direct kernel is for short reductions on small maps; here C·K·K = 256 is not below 64.' },
     ],
     explain: (
       <p>

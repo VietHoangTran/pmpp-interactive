@@ -412,8 +412,8 @@ export const questionsS156: Record<string, Question> = {
     prompt: <>In the §15.5 layout, why does any odd leading dimension remove the A-strip conflict on 32 banks?</>,
     options: [
       { label: 'An odd number has no common factor with 32, so consecutive rows fall in different banks.', why: 'True of consecutive rows, but the lane rows read rows 4 apart, not 1 apart. The argument has to be about 4·ld.' },
-      { label: 'The eight lane rows read rows 4 apart; for odd ld, 4·ld mod 32 is 4, 12, 20 or 28, so 4g·ld mod 32 takes eight distinct values for g = 0 to 7. With an even ld the groups pair up.', correct: true },
-      { label: 'Odd leading dimensions make every word land in its own bank.', why: 'The 32 lanes read only 8 distinct words (four lanes per word): it is enough that those 8 are in different banks.' },
+      { label: 'Lane rows read rows 4 apart; for odd ld, 4g·ld mod 32 takes eight distinct values for g = 0 to 7. An even ld pairs them up.', correct: true },
+      { label: 'Odd leading dimensions put the 32 lanes\' words in 32 different banks, one per lane.', why: 'The 32 lanes read only 8 distinct words (four lanes per word): it is enough that those 8 are in different banks.' },
     ],
     explain: (
       <p>
@@ -430,14 +430,15 @@ export const questionsS156: Record<string, Question> = {
     id: 'ch15/15.6/q-64banks',
     prompt: <>On the 64-bank model, which leading dimension leaves a conflict in the §15.5 A-strip read: 10 or 12?</>,
     options: [
-      { label: '10 conflicts; 12 is free.', why: 'That is closer to the 32-bank picture, where 10 is 2-way and 12 is 4-way.' },
-      { label: '12 is 2-way; 10 is free. On 32 banks 10 is 2-way and 12 is 4-way.', correct: true },
-      { label: 'Both are free on 64 banks.', why: 'Try 12 in the explorer with 64 banks.' },
+      { label: '10 is still 2-way, as on 32 banks; 12 is free.', why: 'That is closer to the 32-bank picture, where 10 is 2-way and 12 is 4-way.' },
+      { label: '12 is 2-way; 10 is free.', correct: true },
+      { label: 'Both are free: 64 banks are enough for any even leading dimension.', why: 'Try 12 in the explorer with 64 banks.' },
     ],
     explain: (
       <p>
         With 64 banks the lane rows' words differ by 4g·ld mod 64. For ld = 10 that is 40g mod 64: 0, 40, 16, 56, 32, 8, 48,
-        24, eight different banks. For ld = 12 it is 48g mod 64: 0, 48, 32, 16, then the same four again: 2-way. The rule on
+        24, eight different banks. For ld = 12 it is 48g mod 64: 0, 48, 32, 16, then the same four again: 2-way. On 32
+        banks both conflict: 10 is 2-way and 12 is 4-way. The rule on
         64 banks is "ld not divisible by 4". AMD does not document how a 64-lane access is checked, so this is a model.
       </p>
     ),
@@ -453,9 +454,9 @@ export const questionsS156: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'The same gain as after the remap: the 8-way conflict disappears.', why: 'The 8-way conflict belongs to the remapped layout. Before the remap the A-strip read was 2-way.' },
-      { label: 'Little: in that layout the A-strip read was only 2-way, and the B-strip read is 4-way, which padding A does not touch.', correct: true },
-      { label: 'A slowdown, because padding always breaks coalescing.', why: 'The padding is in shared memory; global loads are unchanged.' },
+      { label: 'The same gain as after the remap: the 8-way conflict on the A strip disappears.', why: 'The 8-way conflict belongs to the remapped layout. Before the remap the A-strip read was 2-way.' },
+      { label: 'Little: the A-strip read there was only 2-way, and the 4-way B-strip read is untouched.', correct: true },
+      { label: 'A slowdown: padding A_s misaligns the global loads that fill it, so they no longer coalesce.', why: 'The padding is in shared memory; global loads are unchanged.' },
     ],
     explain: (
       <p>
@@ -523,7 +524,7 @@ export const questionsS156: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: '128.', why: 'k·128 mod 32 = 0 for every k: the 8 rows start in the same bank, so each of 4 banks holds 8 words: 8-way.' },
+      { label: '128, with no padding.', why: 'k·128 mod 32 = 0 for every k: the 8 rows start in the same bank, so each of 4 banks holds 8 words: 8-way.' },
       { label: '129, one padding column, as for A_s.', why: 'k·129 + n mod 32 = k + n: the 32 words fall in banks 0 to 10, up to 4 per bank.' },
       { label: '132.', correct: true },
     ],

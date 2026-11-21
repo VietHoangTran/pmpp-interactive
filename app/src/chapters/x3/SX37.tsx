@@ -29,10 +29,10 @@ export const questionsSX37: Record<string, Question> = {
     prompt: <>You run a Hugging Face Llama checkpoint through a consecutive-pair RoPE kernel without permuting Q and K. What happens?</>,
     options: [
       {
-        label: 'It runs and produces finite, wrong attention scores; nothing fails, so only a comparison with a reference catches it.',
+        label: 'It runs, with finite but wrong attention scores; only a comparison with a reference catches it.',
         correct: true,
       },
-      { label: 'The kernel reads out of bounds, because the half split needs a different head size.', why: 'Both pairings touch the same elements of the head; only the partners differ.' },
+      { label: 'The kernel reads past the end of each head, because the half split expects a different head size from consecutive pairs.', why: 'Both pairings touch the same elements of the head; only the partners differ.' },
       { label: 'The scores come out as NaN from the first layer.', why: 'A rotation preserves lengths. Every value stays finite and plausible, which is what makes the bug dangerous.' },
       { label: 'Nothing changes: a rotation is a rotation.', why: 'Each rotation now mixes two elements that were trained as parts of different pairs.' },
     ],
@@ -52,10 +52,10 @@ export const questionsSX37: Record<string, Question> = {
     prompt: <>Why does llama.cpp's <code>permute</code> switch to <code>n_head_kv</code> when it is applied to <code>k_proj</code>?</>,
     options: [
       {
-        label: 'In a GQA model K has n_kv_heads × head_size rows, so its rows must be grouped by the number of KV heads to find each head’s halves.',
+        label: 'Under GQA, K has only n_kv_heads × head_size rows, so its heads must be counted with n_head_kv.',
         correct: true,
       },
-      { label: 'K is rotated with a different base frequency than Q.', why: 'Q and K use the same angles; that is what makes q · k depend only on the distance.' },
+      { label: 'K is rotated with a different base frequency than Q in llama.cpp, so its rows need a different grouping.', why: 'Q and K use the same angles; that is what makes q · k depend only on the distance.' },
       { label: 'Only K is cached, so only K needs the permutation.', why: 'Both q_proj and k_proj are permuted; the cache has nothing to do with it.' },
       { label: 'It is an optimisation: fewer heads, fewer rows to move.', why: 'With the query head count the reshape groups the wrong rows, and the identity fails.' },
     ],
@@ -93,12 +93,12 @@ export const questionsSX37: Record<string, Question> = {
     prompt: <>Why does the course pass host-computed cos and sin tables to its RoPE kernel instead of calling cosf and sinf in the kernel, as llama.cpp does?</>,
     options: [
       {
-        label: 'The rotation is then identical on every backend, whatever each device’s trigonometry accuracy and Metal’s default math mode, at the cost of reading a table.',
+        label: 'Every backend then rotates by the same values, whatever its cosf accuracy or math mode; the cost is a table read.',
         correct: true,
       },
-      { label: 'GPUs have no trigonometric functions.', why: 'All three backends have them. Their accuracy and their fast variants differ.' },
-      { label: 'It is faster in every case.', why: 'It replaces a little arithmetic with memory reads. Whether that is faster was not measured, and it is not the reason.' },
-      { label: 'llama.cpp does the same.', why: 'llama.cpp computes powf, cosf and sinf inside rope.cu.' },
+      { label: 'Metal has no single-precision cos and sin functions, so a table is the only form that works on all three backends.', why: 'All three backends have them. Their accuracy and their fast variants differ.' },
+      { label: 'A table read is always faster than computing cosf and sinf, which take dozens of instructions each.', why: 'It replaces a little arithmetic with memory reads. Whether that is faster was not measured, and it is not the reason.' },
+      { label: 'It copies llama.cpp, which also builds its cos and sin tables on the host and uploads them at every step.', why: 'llama.cpp computes powf, cosf and sinf inside rope.cu.' },
     ],
     explain: (
       <p>
@@ -130,10 +130,10 @@ export const questionsSX37: Record<string, Question> = {
     id: 'x3/X3.7/q-fused',
     prompt: <>llama.cpp has a fused kernel for RMSNorm, the weight multiply and RoPE. What does fusing save for one token?</>,
     options: [
-      { label: 'The intermediate rows one launch writes and the next reads back, and two launches; the arithmetic is unchanged.', correct: true },
-      { label: 'The weight bytes of the q and k projections.', why: 'Those are read by the matrix products, which are not part of this fusion.' },
-      { label: 'Half the arithmetic, because the norm and the rotation share multiplications.', why: 'Every multiply still happens; it happens in registers instead of after a trip through memory.' },
-      { label: 'Nothing at batch 1: fusion only helps large batches.', why: 'At batch 1 the saved traffic is small, but so is everything except the weights, and the saved launches count.' },
+      { label: 'Two launches, and the rows written by one launch and read back by the next.', correct: true },
+      { label: 'The weight bytes of the q and k projections, which the fused kernel reads once instead of twice.', why: 'Those are read by the matrix products, which are not part of this fusion.' },
+      { label: 'Half the arithmetic, because the norm and the rotation share multiplications that fusion computes only once.', why: 'Every multiply still happens; it happens in registers instead of after a trip through memory.' },
+      { label: 'Nothing at batch 1: with one token the rows are tiny, so fusion only pays off for large batches.', why: 'At batch 1 the saved traffic is small, but so is everything except the weights, and the saved launches count.' },
     ],
     explain: (
       <p>
@@ -639,7 +639,9 @@ export function SX37() {
         llama.cpp's <code>rope.cu</code> and <code>norm.cu</code> are also its HIP files; Metal has its own{' '}
         <code>kernel_rope_norm</code> and <code>kernel_rope_neox</code>. MLX's CUDA RoPE has no HIP counterpart, because MLX
         has no HIP backend. The course's three kernels are one <code>.cu</code> file for CUDA, HIP and the emulators, and a{' '}
-        <code>kernel.metal</code> that does the same arithmetic on the same tables.
+        <code>kernel.metal</code> that does the same arithmetic on the same tables. The one file serves HIP only because its
+        warp shuffle takes a typed lane mask and reads <code>warpSize</code>: HIP's <code>_sync</code> intrinsics need a
+        64-bit mask, so a <code>0xffffffff</code> literal is not portable. It has not been run on HIP.
       </p>
       <Today checked={`2026-11-20 in the facts pass (${X3} B6, B9)`}>
         <p>

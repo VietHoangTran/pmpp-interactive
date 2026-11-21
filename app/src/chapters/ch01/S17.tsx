@@ -781,12 +781,12 @@ export const questions17: Record<string, Question> = {
         why: "Amdahl's law is about the whole run. The figure here is the kernel's own run time, and host work does not enter it.",
       },
       {
-        label: 'Choices that made the kernel fast on the first device, such as how its work is divided among threads, do not suit the second.',
+        label: 'Choices that suited the first device, such as how the work is divided among threads, do not suit the second.',
         correct: true,
       },
       {
-        label: 'The port is broken: the same correct source on equally fast hardware has to run at the same speed.',
-        why: 'The output is right, so nothing is broken in the sense a test can see. Equal peaks do not make two devices the same design, and a slow kernel with correct output is a tuning problem until shown otherwise.',
+        label: 'A bug the tests miss: correct source on hardware with equal peaks should run in about the same time.',
+        why: 'Nothing here points to a bug. Equal peaks do not make two devices the same design, so correct source has no reason to run equally fast on both. A slow kernel with correct output is a tuning problem until shown otherwise.',
       },
     ],
     explain: (
@@ -906,7 +906,7 @@ export function S17() {
         <li>
           <b>Added: reduction before attention.</b> A softmax is a reduction over a row, and in the attention kernel of
           chapter 20 the threads of a warp pass values to each other with warp shuffles (pp. 497–501), which chapter 10
-          introduces (§10.7). So chapter 10 comes before 20 here.
+          introduces (<a href={href('ch10', '10.7')}>§10.7</a>). So chapter 10 comes before 20 here.
         </li>
         <li>
           <b>Attention before convolution and CNNs.</b> The chart routes chapter 20 through 7 and 19. The
@@ -920,7 +920,7 @@ export function S17() {
         </li>
         <li>
           <b>Chapter 22 before three chapters it draws on.</b> The chart puts 16, 18 and 21 before 22. This course
-          reads 22 straight after attention, for its section on batching as latency against throughput (§22.5), and
+          reads 22 straight after attention, for its section on batching as latency against throughput (<a href={href('ch22', '22.5')}>§22.5</a>), and
           keeps 16, 18 and 21 as condensed pages.
         </li>
       </ul>
@@ -996,8 +996,9 @@ export function S17() {
         The book places CUDA against three others. <b>OpenMP</b>: you annotate loops with directives and a compiler and
         runtime produce the parallel code; it was born on CPUs and extended to GPUs, and it buys convenience at the
         price of control. <b>MPI</b>: for clusters whose nodes share no memory, so every exchange is an explicit
-        message; that is the level above one GPU, which this course leaves out (its chapter 23 keeps only streams,
-        asynchronous copies and pinned memory). <b>OpenCL</b>: close to
+        message; that is the level above one GPU, which this course treats only briefly (its{' '}
+        <a href={href('ch23')}>chapter 23</a> keeps streams, asynchronous copies and pinned memory, and reads the
+        book's MPI loop only to see who waits). <b>OpenCL</b>: close to
         CUDA in concepts, built more on API calls and less on language extensions; an OpenCL program runs unchanged on
         any device that supports it, and usually needs modification to run well on a new one.
       </p>

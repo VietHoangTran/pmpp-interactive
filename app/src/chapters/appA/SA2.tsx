@@ -566,7 +566,7 @@ export const questionsSA2: Record<string, Question> = {
       { label: 'FP16', why: 'Near 1000 FP16 values are 0.5 apart, so 1001 is exact; but its largest value is 65504, and 100,000 becomes infinity.' },
       { label: 'BF16', why: "BF16 has FP32's range, so 100,000 survives (as 99,840). But near 1000 its values are 4 apart, and 1001 rounds to 1000." },
       { label: 'Both', why: 'Each loses one of the two: FP16 the range, BF16 the resolution.' },
-      { label: 'FP32 only', correct: true },
+      { label: 'FP32', correct: true },
     ],
     explain: (
       <p>
@@ -588,19 +588,19 @@ export const questionsSA2: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Flushes single-precision denormals to zero, which turns denormal support off. The default is false; --use_fast_math implies true.',
+        label: 'Flushes single-precision denormals to zero, so denormals are off. The default is false; --use_fast_math implies true.',
         correct: true,
       },
       {
-        label: 'Turns denormal support on; without it, denormals are flushed.',
+        label: 'Turns denormal support on; without it, nvcc flushes single-precision denormals to zero by default.',
         why: "That is the book's \"(on)\" read literally. NVIDIA's documentation: --ftz=true flushes denormals, and the default, false, preserves them.",
       },
       {
-        label: 'Flushes denormals to zero in every precision, double included.',
+        label: 'Flushes denormals to zero in every precision, double included; --use_fast_math does the same.',
         why: 'The flag controls single-precision denormals only.',
       },
       {
-        label: 'Makes a float atomicAdd on global memory keep its denormals.',
+        label: 'Makes a float atomicAdd on global memory keep its denormals instead of flushing them.',
         why: 'That operation always flushes denormals, whatever the flag says.',
       },
     ],

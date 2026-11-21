@@ -11,7 +11,8 @@
 #pragma once
 #include <cstddef>
 
-// ---- CUDA calls the course's stub header does not declare (ch23-facts, "Notes for the lab runtime")
+// ---- CUDA calls the course's stub header once lacked (ch23-facts, "Notes for the lab runtime");
+// the stub now declares them too, and these identical redeclarations still compile
 extern "C" {
 cudaError_t cudaDeviceGetStreamPriorityRange(int* leastPriority, int* greatestPriority);
 cudaError_t cudaStreamCreateWithPriority(cudaStream_t* pStream, unsigned int flags, int priority);

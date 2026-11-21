@@ -72,7 +72,7 @@ export const questionsWrap: Record<string, Question> = {
         correct: true,
       },
       {
-        label: 'Output-centric, and parallelism decides: one thread per output element gives twice the threads.',
+        label: 'Output-centric, and parallelism decides: one thread per output element instead of per pair gives the device twice as many threads.',
         why: 'Twice the threads, each reading both inputs of its pair and computing the same sine and cosine as its partner: the extra threads redo work. And each still writes only its own element, so the split changes the grain, not the decomposition.',
       },
     ],
@@ -98,7 +98,7 @@ export const questionsWrap: Record<string, Question> = {
     options: [
       { label: 'Take the argmax of the logits and drop the softmax: it keeps the order of the values.', correct: true },
       {
-        label: 'Compute the softmax in 16 bits: it halves the bytes it moves.',
+        label: 'Compute the softmax in 16 bits: it halves the bytes it moves, and the argmax reads only the order of the values.',
         why: 'It does halve the bytes, but rounding to 16 bits can turn two close probabilities into the same value, and a tie then goes to the lower index, which may be the smaller logit.',
       },
       {

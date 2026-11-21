@@ -20,19 +20,19 @@ export const questionsS151: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'A = x (batch × in, row-major); B = Wᵀ, which in memory is the book\'s B stored column-major; C = b repeated on every row; α = β = 1.',
+        label: 'A = x, row-major; B = Wᵀ, which is W\'s memory read column-major; C = b on every row; α = β = 1.',
         correct: true,
       },
       {
-        label: 'A = x; B = W as it is stored, row-major; C = b repeated on every row; α = β = 1.',
+        label: 'A = x; B = W exactly as it is stored, row-major, out × in; C = b repeated on every row; α = β = 1.',
         why: 'W is out × in, and the book\'s B has to be K × N, in × out. Used as stored you would compute x W, which only even has matching sizes when in = out.',
       },
       {
-        label: 'A = x; B = Wᵀ; C = y; α = β = 1.',
+        label: 'A = x; B = Wᵀ stored column-major; C = y, the layer\'s output; α = β = 1.',
         why: 'C is the matrix added to the product. The result is D.',
       },
       {
-        label: 'A = x; B = Wᵀ; C = b repeated on every row; α = 1/batch, β = 1.',
+        label: 'A = x; B = Wᵀ; C = b repeated on every row; α = 1/batch to average over the batch, β = 1.',
         why: 'Nothing in a linear layer averages over the batch. Each row is transformed on its own, with α = 1.',
       },
     ],
@@ -57,19 +57,19 @@ export const questionsS151: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'cuBLAS reads each row-major array as its column-major transpose, so it computes Cᵀ = Bᵀ Aᵀ, and Cᵀ stored column-major is C stored row-major.',
+        label: 'Each row-major array, read column-major, is its transpose, so cuBLAS computes Cᵀ = Bᵀ Aᵀ, and Cᵀ column-major is C row-major.',
         correct: true,
       },
       {
-        label: 'cuBLAS notices row-major input and transposes it into a hidden copy first.',
+        label: 'cuBLAS sees leading dimensions equal to the row lengths, recognises row-major input, and transposes it into a hidden copy first.',
         why: 'Nothing is copied. The arguments only describe how to read memory that is already there.',
       },
       {
-        label: 'It works only for square matrices; other shapes must be padded to square.',
+        label: 'It works only for square matrices; other shapes must be padded to square before the call.',
         why: 'Run a 3 × 4 example in the explorer above: it agrees cell for cell.',
       },
       {
-        label: 'Passing B first makes cuBLAS compute B A, and B A equals A B.',
+        label: 'Passing B first makes cuBLAS compute B A, and B A equals A B for matrices of matching sizes.',
         why: 'Matrix products do not commute. The order swaps because transposing a product reverses it: (A B)ᵀ = Bᵀ Aᵀ.',
       },
     ],
@@ -87,15 +87,15 @@ export const questionsS151: Record<string, Question> = {
     id: 'ch15/15.1/q-qkt',
     prompt: (
       <>
-        Attention scores S = Q Kᵀ, with Q (n_q × d) and K (n_kv × d), both row-major. Which operand is stored like{' '}
+        Attention scores S = Q Kᵀ, with Q (n_q × d) and K (n_kv × d), both row-major. Which operand plays the role of{' '}
         <code>nn.Linear</code>'s weight?
       </>
     ),
     options: [
-      { label: 'K: its rows run along the inner dimension d, and it is used transposed, exactly like W (out, in).', correct: true },
-      { label: 'Q, because it is the left operand.', why: 'Q is the book\'s A, stored as the book stores A: one vector per row.' },
-      { label: 'Both of them.', why: 'The left operand is stored as the book expects. Only the right one is turned around.' },
-      { label: 'Neither: attention needs a layout of its own.', why: 'Pick Q Kᵀ in the explorer. Its call has the same shape as nn.Linear\'s, with transa = T.' },
+      { label: 'K: its rows run along d, and it is used transposed, like W (out, in).', correct: true },
+      { label: 'Q, because the left operand of a product is the one a library treats as the weight.', why: 'Q is the book\'s A, stored as the book stores A: one vector per row.' },
+      { label: 'Both: in Q Kᵀ each operand is read transposed, as W is in x Wᵀ.', why: 'The left operand is stored as the book expects. Only the right one is turned around.' },
+      { label: 'Neither: attention needs a layout of its own, with K stored column by column.', why: 'Pick Q Kᵀ in the explorer. Its call has the same shape as nn.Linear\'s, with transa = T.' },
     ],
     explain: (
       <p>

@@ -93,11 +93,11 @@ export const questionsS40: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'A GPU is built for instruction throughput across many threads, and caches and predictors mostly buy latency.',
+        label: 'Caches and predictors mostly cut one thread\'s latency, and a GPU is built for throughput.',
         correct: true,
       },
       { label: 'GPU programs rarely branch and rarely reuse data, so caches and predictors would sit idle.', why: 'Kernels branch (every range test is one) and reuse data constantly.' },
-      { label: 'GPU memory is fast enough that a cache would add nothing a kernel could measure.', why: 'The opposite: an access to global memory is the slow operation of this chapter.' },
+      { label: 'GPU memory is so fast that a cache in front of it would add nothing a kernel could measure.', why: 'The opposite: an access to global memory is the slow operation of this chapter.' },
       { label: 'Simple cores run each thread faster than a complex core would, so the area is better spent.', why: 'Each thread runs slower. There are many more of them.' },
     ],
     explain: (

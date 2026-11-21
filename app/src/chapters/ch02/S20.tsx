@@ -78,16 +78,16 @@ export const questionsS20: Record<string, Question> = {
         why: 'There is never more than one thing ready to run, so only the speed of a single thread matters. That is what a CPU core is built for.',
       },
       {
-        label: 'The same small computation applied to millions of elements, none of which needs another.',
+        label: 'The same small computation over millions of elements that do not need each other.',
         correct: true,
         why: 'Millions of pieces of work are ready at once, so throughput decides.',
       },
       {
-        label: 'A handful of large tasks with heavy, unpredictable branching.',
+        label: 'A handful of large, independent tasks, each with heavy and unpredictable branching.',
         why: 'A few threads, and the branch prediction and large caches that serve them are what the CPU spent its area on.',
       },
       {
-        label: 'Any of them. A GPU is the faster processor.',
+        label: 'Any of the three, since a GPU has many times the arithmetic units of a CPU core.',
         why: 'With one or a few threads a CPU wins. The book is explicit that applications should use both.',
       },
     ],
@@ -116,15 +116,15 @@ export const questionsS20: Record<string, Question> = {
         why: 'It performs exactly n additions, the same as the loop.',
       },
       {
-        label: 'Memory-bound execution: the speed of moving bytes sets the pace, not the arithmetic.',
+        label: 'Memory-bound execution: moving the bytes takes longer than the additions.',
         correct: true,
       },
       {
-        label: 'Input sensitivity: some threads get much more work than others.',
+        label: 'Input sensitivity: some elements cost more than others, so the threads finish unevenly.',
         why: 'Every element costs the same, whatever the values are.',
       },
       {
-        label: 'Synchronisation overhead: threads wait for each other.',
+        label: 'Synchronisation overhead: threads spend their time waiting for each other at barriers.',
         why: 'No thread needs anything from another thread. The book calls such work embarrassingly parallel.',
       },
     ],

@@ -508,19 +508,19 @@ export const questionsS157: Record<string, Question> = {
     prompt: <>With one block per SM, what does the hardware no longer do for you that it did for chapter 5's kernel?</>,
     options: [
       {
-        label: 'Overlap one block\'s loading phase with another block\'s computing phase. The lone block alternates between a memory-bound and a compute-bound phase, and software has to overlap them.',
+        label: 'Overlap one block\'s loading with another block\'s computing.',
         correct: true,
       },
       {
-        label: 'Coalesce the loads of the input tiles.',
+        label: 'Coalesce the loads of the input tiles, which needs enough warps in flight to merge their addresses.',
         why: 'Coalescing is about how one warp\'s addresses fall, not about how many blocks are resident. The tile loads coalesce as well as before.',
       },
       {
-        label: 'Keep the output tile in registers.',
+        label: 'Keep the output tile in registers: a lone block must spill its accumulators to make room for the loads.',
         why: 'The output tile is in registers precisely because each thread was given so many of them. That is the cause of the low occupancy, not something it takes away.',
       },
       {
-        label: 'Hide the latency of shared-memory reads.',
+        label: 'Hide the latency of shared-memory reads, which needs other blocks\' warps to switch to.',
         why: 'Register tiling (section 15.4) already cut the shared-memory reads eightfold, and unrolling exposes independent FMAs to cover the rest. The gap that remains is the whole loading phase.',
       },
     ],
@@ -545,20 +545,20 @@ export const questionsS157: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Without it HIP compiles for the largest block the device allows, 1024 threads, and limits the registers per thread to fit, which pushes the tiles out of registers.',
+        label: 'Without it HIP compiles for the largest block allowed and caps registers per thread to match.',
         correct: true,
       },
       {
-        label: 'Without it HIP refuses to launch blocks of 256 threads.',
+        label: 'Without it HIP rejects any launch whose block is not the default 1024 threads.',
         why: 'The bound is an upper limit for code generation and launch validation. A block of 256 is within the default.',
       },
       {
-        label: 'HIP ignores __launch_bounds__, so it makes no difference there.',
+        label: 'HIP ignores __launch_bounds__, so on HIP it changes nothing in the compiled code.',
         why: 'HIP honours it; its second argument even means something different from CUDA\'s (waves per execution unit, not blocks per SM).',
       },
       {
-        label: 'AMD wavefronts have 64 threads, so a 256-thread block must be declared.',
-        why: 'Any multiple of the wavefront width works without a declaration. The issue is the register budget the compiler assumes.',
+        label: 'AMD wavefronts can be 64 wide, so a 256-thread block of 4 wavefronts must be declared to the compiler.',
+        why: 'AMD wavefronts are 64 or 32 wide, and any multiple of the width works without a declaration. The issue is the register budget the compiler assumes.',
       },
     ],
     explain: (
@@ -582,15 +582,15 @@ export const questionsS157: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Nothing documented. Apple publishes no register count or occupancy rule; MLX\'s shapes are a design to measure against, not evidence about the hardware.',
+        label: 'Nothing: Apple documents no register count or occupancy rule, so MLX\'s shapes are a design, not evidence.',
         correct: true,
       },
       {
-        label: 'It is a quarter the size of an NVIDIA SM\'s, since the threadgroups are a quarter as large.',
+        label: 'Its register file is about a quarter the size of an NVIDIA SM\'s, since MLX\'s threadgroups are a quarter as large.',
         why: 'That reads a hardware figure off a library\'s choice. Tile shapes depend on many things: the matrix instructions used, the threadgroup memory, the data type, measured speed.',
       },
       {
-        label: 'Apple GPUs allow at most 128 threads per threadgroup.',
+        label: 'Apple GPUs allow at most 128 threads per threadgroup, or MLX would use the book\'s 256.',
         why: 'Metal documents 1024 as the theoretical maximum on Apple4 and later; the real cap is per pipeline. MLX chose fewer.',
       },
     ],

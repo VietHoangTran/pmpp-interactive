@@ -29,9 +29,47 @@
 #define __shared__ _Pragma("GCC error \"pmpp-emu: this __shared__ declaration was not understood by labs/tools/cu2emu.py\"") static
 
 // ---- vector types (vector_types.h / vector_functions.h in the CUDA toolkit) --
-// Field names and order follow CUDA. The alignments (8 for the 2-vectors, 16
-// for the 4-vectors) are from memory of vector_types.h and were not re-checked;
-// they do not change sizeof.
+// Field names and order follow CUDA. Sizes and alignments are those of Table 49
+// "Alignment Requirements" in the CUDA Programming Guide 13.5, section 5.4.2.3
+// (notes/today/infra-facts.md, E1, read 2026-11-21).
+// 8- and 16-bit vectors (char4 and uchar4 are what __dp4a takes, x2-facts A2, A5).
+struct char1 { signed char x; };
+struct alignas(2) char2 { signed char x, y; };
+struct char3 { signed char x, y, z; };
+struct alignas(4) char4 { signed char x, y, z, w; };
+struct uchar1 { unsigned char x; };
+struct alignas(2) uchar2 { unsigned char x, y; };
+struct uchar3 { unsigned char x, y, z; };
+struct alignas(4) uchar4 { unsigned char x, y, z, w; };
+struct short1 { short x; };
+struct alignas(4) short2 { short x, y; };
+struct short3 { short x, y, z; };
+struct alignas(8) short4 { short x, y, z, w; };
+struct ushort1 { unsigned short x; };
+struct alignas(4) ushort2 { unsigned short x, y; };
+struct ushort3 { unsigned short x, y, z; };
+struct alignas(8) ushort4 { unsigned short x, y, z, w; };
+inline char1 make_char1(signed char x) { return char1{x}; }
+inline char2 make_char2(signed char x, signed char y) { return char2{x, y}; }
+inline char3 make_char3(signed char x, signed char y, signed char z) { return char3{x, y, z}; }
+inline char4 make_char4(signed char x, signed char y, signed char z, signed char w) { return char4{x, y, z, w}; }
+inline uchar1 make_uchar1(unsigned char x) { return uchar1{x}; }
+inline uchar2 make_uchar2(unsigned char x, unsigned char y) { return uchar2{x, y}; }
+inline uchar3 make_uchar3(unsigned char x, unsigned char y, unsigned char z) { return uchar3{x, y, z}; }
+inline uchar4 make_uchar4(unsigned char x, unsigned char y, unsigned char z, unsigned char w) { return uchar4{x, y, z, w}; }
+inline short1 make_short1(short x) { return short1{x}; }
+inline short2 make_short2(short x, short y) { return short2{x, y}; }
+inline short3 make_short3(short x, short y, short z) { return short3{x, y, z}; }
+inline short4 make_short4(short x, short y, short z, short w) { return short4{x, y, z, w}; }
+inline ushort1 make_ushort1(unsigned short x) { return ushort1{x}; }
+inline ushort2 make_ushort2(unsigned short x, unsigned short y) { return ushort2{x, y}; }
+inline ushort3 make_ushort3(unsigned short x, unsigned short y, unsigned short z) { return ushort3{x, y, z}; }
+inline ushort4 make_ushort4(unsigned short x, unsigned short y, unsigned short z, unsigned short w) { return ushort4{x, y, z, w}; }
+#define PMPP_EMU_CHECK_VEC(T, S, A) static_assert(sizeof(T) == S && alignof(T) == A, #T " differs from Table 49");
+PMPP_EMU_CHECK_VEC(char1, 1, 1) PMPP_EMU_CHECK_VEC(char2, 2, 2) PMPP_EMU_CHECK_VEC(char3, 3, 1) PMPP_EMU_CHECK_VEC(char4, 4, 4)
+PMPP_EMU_CHECK_VEC(uchar4, 4, 4) PMPP_EMU_CHECK_VEC(short2, 4, 4) PMPP_EMU_CHECK_VEC(short3, 6, 2) PMPP_EMU_CHECK_VEC(short4, 8, 8)
+PMPP_EMU_CHECK_VEC(ushort4, 8, 8)
+// 32- and 64-bit vectors.
 struct uint3 { unsigned x, y, z; };
 struct alignas(8)  uint2 { unsigned x, y; };
 struct alignas(16) uint4 { unsigned x, y, z, w; };
@@ -57,6 +95,10 @@ inline float4 make_float4(float x, float y, float z, float w) { return float4{x,
 inline double2 make_double2(double x, double y) { return double2{x, y}; }
 inline double3 make_double3(double x, double y, double z) { return double3{x, y, z}; }
 inline double4 make_double4(double x, double y, double z, double w) { return double4{x, y, z, w}; }
+PMPP_EMU_CHECK_VEC(uint2, 8, 8) PMPP_EMU_CHECK_VEC(uint3, 12, 4) PMPP_EMU_CHECK_VEC(int4, 16, 16)
+PMPP_EMU_CHECK_VEC(float2, 8, 8) PMPP_EMU_CHECK_VEC(float3, 12, 4) PMPP_EMU_CHECK_VEC(float4, 16, 16)
+PMPP_EMU_CHECK_VEC(double2, 16, 16) PMPP_EMU_CHECK_VEC(double3, 24, 8) PMPP_EMU_CHECK_VEC(double4, 32, 16)
+#undef PMPP_EMU_CHECK_VEC
 
 struct dim3 {
   unsigned x, y, z;
@@ -132,6 +174,21 @@ struct cudaDeviceProp {
   int unifiedAddressing;
   int managedMemory;
   int integrated;
+};
+
+// cudaFuncGetAttributes fills this (Runtime API reference 13.5, structcudaFuncAttributes,
+// read 2026-11-21). Only the fields with a meaning here, not in the real order; the values
+// describe the emulator (see emu_host.h), not code compiled for a GPU.
+struct cudaFuncAttributes {
+  int binaryVersion;
+  size_t constSizeBytes;
+  size_t localSizeBytes;
+  int maxDynamicSharedSizeBytes;
+  int maxThreadsPerBlock;
+  int numRegs;
+  int preferredShmemCarveout;
+  int ptxVersion;
+  size_t sharedSizeBytes;
 };
 
 // The real `warpSize` is a run-time value ("commonly 32"); here it is fixed.

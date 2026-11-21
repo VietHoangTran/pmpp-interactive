@@ -720,15 +720,16 @@ export const questionsS172: Record<string, Question> = {
     id: 'ch17/17.2/q-ell-assign',
     prompt: (
       <>
-        Fig. 17.12 ends with <code>y[row] = sum;</code>. You build a hybrid ELL-COO SpMV and launch the COO part first, then the ELL
-        kernel exactly as printed. What happens?
+        Fig. 17.12 ends with <code>y[row] = sum;</code>. You build a hybrid ELL-COO SpMV for <code>y = A·x + y</code>, where{' '}
+        <code>y</code> holds the previous iterate (non-zero), and launch the COO part first, then the ELL kernel exactly as
+        printed. What happens?
       </>
     ),
     options: [
       { label: 'It is correct either way: the COO part only holds rows the ELL part does not touch.', why: 'Every row has an ELL part, even if it is all pads, and the ELL kernel writes y[row] for every row.' },
-      { label: <>Every row loses what was in <code>y</code> before the ELL kernel ran: its COO contribution and the starting <code>y</code>. The fix is <code>y[row] += sum</code>, as in Fig. 17.9 and in every library.</>, correct: true },
-      { label: 'Only the rows longer than K come out wrong.', why: 'Those lose their COO tails, but every row also loses the y it started with: SpMV is y = A·x + y.' },
-      { label: 'The two kernels race on y.', why: 'Nothing here needs two threads at once: the ELL kernel simply writes over what the COO part left.' },
+      { label: <>Every row loses what <code>y</code> held before the ELL kernel ran, its COO part and its starting value; the fix is <code>y[row] += sum</code>.</>, correct: true },
+      { label: 'Only the rows longer than K come out wrong: the ELL kernel overwrites their COO tails, and every shorter row comes out right.', why: 'Those lose their COO tails, but every row also loses the y it started with: SpMV is y = A·x + y.' },
+      { label: 'The result changes from run to run, because the two kernels race on y[row] without an atomic.', why: 'The two launches run one after the other, so nothing races: the ELL kernel simply writes over what the COO part left, the same way every run.' },
     ],
     explain: (
       <p>
@@ -752,7 +753,7 @@ export const questionsS172: Record<string, Question> = {
       { label: 'NaN in every row that has a pad, because 0 × Inf is NaN.', correct: true },
       { label: 'The correct result: the pads are zero, so they add nothing.', why: 'Zero times a finite number is zero; zero times infinity is NaN in IEEE arithmetic.' },
       { label: 'Only row 0 is wrong, the row that really has column 0.', why: 'Every pad slot points at column 0, whatever row it belongs to.' },
-      { label: 'Inf in every row.', why: 'A non-zero times Inf is Inf, but a pad gives 0 × Inf = NaN, and NaN wins any sum it enters.' },
+      { label: 'Inf in every row, because x[0] is infinite.', why: 'A non-zero times Inf is Inf, but a pad gives 0 × Inf = NaN, and NaN wins any sum it enters.' },
     ],
     explain: (
       <p>
@@ -773,10 +774,10 @@ export const questionsS172: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Stopping at nnzPerRow keeps CSR\'s divergence and does no pad work; the full width removes trip-count divergence, but every thread runs as many iterations as the longest row.', correct: true },
-      { label: 'The full width is always faster.', why: 'It trades waiting lanes for pad work, and one long row makes every thread pay for that row.' },
-      { label: 'ELL removes divergence either way.', why: 'With nnzPerRow, lanes stop at their row\'s length exactly as in CSR (pp. 413–414).' },
-      { label: 'Stopping at nnzPerRow breaks coalescing.', why: 'The active lanes of an iteration still read neighbouring slots; an idle lane reads nothing.' },
+      { label: 'nnzPerRow keeps CSR\'s divergence but reads no pads; the full width has a fixed trip count, set by the longest row.', correct: true },
+      { label: 'The full width is faster, because no lane waits for a longer row and the pads cost nothing.', why: 'It trades waiting lanes for pad work, and one long row makes every thread pay for that row.' },
+      { label: 'Both remove divergence, because ELL gives every row the same padded width.', why: 'With nnzPerRow, lanes stop at their row\'s length exactly as in CSR (pp. 413–414).' },
+      { label: 'Stopping at nnzPerRow breaks coalescing, because the lanes that are still active no longer read one contiguous run.', why: 'A finished lane leaves a gap, but the active lanes\' slots still sit inside the same few segments as the full-width loop\'s, so the accesses still coalesce. An idle lane reads nothing.' },
     ],
     explain: (
       <p>
@@ -800,10 +801,10 @@ export const questionsS172: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: <>CSC: the non-zeros of <code>x</code> name the columns to visit, and each column's non-zeros sit together, so the kernel reads about 2% of A. It pays with atomics on <code>y</code>.</>, correct: true },
-      { label: <>CSR: one thread per row owns <code>y[row]</code>, so it skips the work and needs no atomics.</>, why: 'It needs no atomics, but it skips nothing: a zero x entry kills a column, and CSR groups by row, so every row must still be read to find which of its entries meet a non-zero x.' },
-      { label: 'COO: its triples can sit in any order, so it balances the remaining work best.', why: 'Balance comes after finding the work. The entries of the chosen columns are spread over all z triples, so finding them means reading every triple, unless they are sorted by column, which is CSC with a longer index array.' },
-      { label: 'CSC, with no atomics, because each thread owns one column.', why: 'A thread owns a column, but the output is indexed by row: two columns with a non-zero in the same row add into the same y element (pp. 419–420).' },
+      { label: <>CSC: <code>x</code>'s non-zeros pick the columns, each stored together; a kernel reads about 2% of A but needs atomics on <code>y</code>.</>, correct: true },
+      { label: <>CSR: one thread per row owns <code>y[row]</code>, so it can skip the entries that meet a zero of <code>x</code> and needs no atomics.</>, why: 'It needs no atomics, but it skips nothing: a zero x entry kills a column, and CSR groups by row, so every row must still be read to find which of its entries meet a non-zero x.' },
+      { label: 'COO: its triples can sit in any order, so the useful ones can go first and the remaining work is balanced best.', why: 'Balance comes after finding the work. The entries of the chosen columns are spread over all z triples, so finding them means reading every triple, unless they are sorted by column, which is CSC with a longer index array.' },
+      { label: 'CSC, with no atomics, because each thread owns one column and therefore its own share of the output.', why: 'A thread owns a column, but the output is indexed by row: two columns with a non-zero in the same row add into the same y element (pp. 419–420).' },
     ],
     explain: (
       <p>
@@ -845,9 +846,9 @@ export const questionsS172: Record<string, Question> = {
     ),
     options: [
       { label: 'ELL and JDS: both need K, the length of the longest row.', correct: true },
-      { label: 'COO and CSR.', why: 'COO is 3z and CSR is 2z + m + 1.' },
-      { label: 'All four, because each needs n.', why: 'None of COO, CSR, ELL or JDS stores anything per column, so n appears in none of the counts.' },
-      { label: 'Only ELL.', why: 'JDS stores iterPtr, one entry per iteration plus one: K + 1 entries.' },
+      { label: 'COO and CSR: both depend on how rows are filled.', why: 'COO is 3z and CSR is 2z + m + 1: neither depends on how the non-zeros are spread over the rows.' },
+      { label: 'All four, because each needs n, the column count.', why: 'None of COO, CSR, ELL or JDS stores anything per column, so n appears in none of the counts.' },
+      { label: 'ELL alone: JDS has no pads, so m and z fix it.', why: 'JDS has no pads, but it stores iterPtr, one entry per iteration plus one: K + 1 entries.' },
     ],
     explain: (
       <p>
@@ -971,8 +972,7 @@ export function S172() {
       <Source section="17.2" pages="406–407" />
       <p>
         The vendor libraries turn that second cost into a switch: a faster algorithm whose result may differ in the last bits from
-        run to run, or a deterministic one that is slower. Which one runs is chosen in the call, not by the format. The stepper
-        below makes both costs concrete.
+        run to run, or a deterministic one that is slower. Which one runs is chosen in the call, not by the format.
       </p>
       <Today checked="2026-11-20 (notes/today/ch17-facts.md, A2, A7, B5)">
         <p>
@@ -980,6 +980,13 @@ export function S172() {
           pair. cuSPARSE assumes COO sorted by row (A7); the book's kernel does not.
         </p>
       </Today>
+      <p>The stepper below makes both costs concrete, the lost update first and then the order.</p>
+      <Simplification>
+        <p>
+          A plain <code>+=</code> is three steps, load, add and store, on one shared <code>y[0]</code>; the atomic is one
+          indivisible step that costs nothing. No caches, no timing. The order panel rounds every add to float32.
+        </p>
+      </Simplification>
       <RaceStepper />
 
       <h2>CSR: one thread per row</h2>
@@ -1041,6 +1048,13 @@ export function S172() {
         pads are added for alignment, as below.
       </p>
       <Source section="17.4" pages="410–411" figs="Fig. 17.10" />
+      <p>The animation below runs CSR on the running example, then builds its ELL and runs the same four threads again.</p>
+      <Simplification>
+        <p>
+          Four threads in one group, as the book's figures draw them. It shows which slot each thread reads and which lanes
+          wait, not when: no caches, no timing.
+        </p>
+      </Simplification>
       <EllScene />
       <p>
         The kernel is CSR's with the index changed. Because <code>i</code> is a function of <code>row</code>, and <code>row</code> of{' '}
@@ -1181,8 +1195,8 @@ export function S172() {
       <ScoreTable st={st} set={set} />
       <p>
         Which one is fastest depends on how the non-zeros are spread, which the book calls data-dependent performance, and sparse code
-        reaches far fewer FLOPS than dense code, on CPUs and GPUs alike. The <a href={href('ch17', 'labs')}>lab</a>, Lab 17.1: CSR and ELL SpMV
-        on skewed rows, measures CSR against ELL on your device. Make its prediction before you run it.
+        reaches far fewer FLOPS than dense code, on CPUs and GPUs alike. <a href={href('ch17', 'labs')}>Lab 17.1</a>, CSR and ELL
+        SpMV on skewed rows, measures CSR against ELL on your device. Make its prediction before you run it.
       </p>
       <Source section="17.8" pages="421–422" />
       <Ask q={questionsS172['ch17/17.2/q-ex1-pads']} label="Work it out" />

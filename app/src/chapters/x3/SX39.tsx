@@ -228,10 +228,10 @@ export const questionsSX39: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Step 41’s top two logits were within rounding of each other. Check its margin before suspecting a kernel.', correct: true },
-      { label: 'A kernel has a bug that only shows after 40 tokens, such as a KV cache overflow.', why: 'Then teacher-forced logits at step 41 and later would disagree too, by far more than 1e-10.' },
-      { label: 'The reference is wrong from step 41.', why: 'Possible but not indicated: the teacher-forced logits agree with it everywhere.' },
-      { label: 'NMSE cannot see errors in late steps.', why: 'It is computed per step; at 1e-10 every step agrees.' },
+      { label: 'Step 41’s top two logits were within rounding of each other; check its margin.', correct: true },
+      { label: 'A kernel has a bug that only shows after 40 tokens, such as a KV cache that overflows its allocation.', why: 'Then teacher-forced logits at step 41 and later would disagree too, by far more than 1e-10.' },
+      { label: 'The reference is wrong from step 41 on, and your GPU is the one computing correctly.', why: 'Possible but not indicated: the teacher-forced logits agree with it everywhere.' },
+      { label: 'NMSE cannot see errors in late steps, because it averages over the whole sequence.', why: 'It is computed per step; at 1e-10 every step agrees.' },
     ],
     explain: (
       <p>
@@ -253,16 +253,16 @@ export const questionsSX39: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'n / 256 threads in total, so most elements are never touched. MLX’s grid counts threads; pass grid=(n, 1, 1).', correct: true },
-      { label: 'n threads, as in CUDA.', why: 'That is CUDA’s meaning of the grid: a count of blocks. MLX’s is a count of threads.' },
-      { label: '256 × n threads.', why: 'Nothing multiplies here; the grid is already the total.' },
-      { label: 'An error: MLX’s CUDA kernels have no threadgroup argument.', why: 'The grid and threadgroup sizes are both given; only the grid’s unit differs.' },
+      { label: 'Only n / 256 threads: MLX’s grid counts threads, not blocks, so most elements are skipped.', correct: true },
+      { label: 'n threads, as in CUDA: n / 256 blocks of 256 threads each.', why: 'That is CUDA’s meaning of the grid: a count of blocks. MLX’s is a count of threads.' },
+      { label: '256 × n threads, because MLX multiplies the grid by the threadgroup size.', why: 'Nothing multiplies here; the grid is already the total.' },
+      { label: 'An error: MLX’s cuda_kernel takes no threadgroup argument, because it chooses the block size itself.', why: 'The grid and threadgroup sizes are both given; only the grid’s unit differs.' },
     ],
     explain: (
       <p>
         MLX's documentation for <code>cuda_kernel</code> says the grid is in threads and not in threadgroups, for compatibility with{' '}
         <code>metal_kernel</code>. A CUDA habit of passing the number of blocks launches 256 times too few threads, and a kernel with a
-        bounds check fails silently: most of the output is never written.
+        bounds check fails silently: most of the output is never written. Pass <code>grid=(n, 1, 1)</code>.
       </p>
     ),
     source: 'x3-facts D8 (python/src/fast.cpp)',
@@ -278,11 +278,11 @@ export const questionsSX39: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'The two are compiled differently: metal_kernel uses math_mode "safe" by default, while MLX’s own softmax calls fast::exp; the sums also run in different orders.',
+        label: 'metal_kernel compiles in math_mode "safe" by default while MLX’s softmax calls fast::exp, and the sums run in other orders.',
         correct: true,
       },
-      { label: 'Your port must have a bug: a correct port matches bit for bit.', why: 'Different exp implementations and summation orders change the last bits of a correct result.' },
-      { label: 'mx.softmax runs on the CPU.', why: 'It has a Metal kernel, softmax_single_row.' },
+      { label: 'Your port must have a bug: a correct port of the same algorithm on the same GPU matches mx.softmax bit for bit.', why: 'Different exp implementations and summation orders change the last bits of a correct result.' },
+      { label: 'mx.softmax runs on the CPU by default, so you are comparing a CPU result with a GPU one.', why: 'It has a Metal kernel, softmax_single_row.' },
       { label: 'metal_kernel converts the input to half precision.', why: 'Nothing in its documentation says so; the dtypes are yours.' },
     ],
     explain: (
@@ -299,10 +299,10 @@ export const questionsSX39: Record<string, Question> = {
     id: 'x3/X3.9/q-new-op',
     prompt: <>You want to add a new fused op to llama.cpp, with a CUDA and a Metal kernel. What does its CONTRIBUTING.md ask?</>,
     options: [
-      { label: 'CPU support first, then the backends; test-backend-ops cases for the op; and a test-backend-ops run, which needs at least two backends.', correct: true },
-      { label: 'Register your kernel through the plug-in API; no CPU version is needed.', why: 'There is no plug-in API: a new op is a GGML_OP_* with a CPU implementation.' },
-      { label: 'A benchmark showing a speed-up on every backend.', why: 'The rules quoted ask for consistency tests, not a speed-up on every backend.' },
-      { label: 'The CUDA kernel only; maintainers port it to Metal and HIP.', why: 'HIP does compile the CUDA file, but Metal is separate code, and the rules start from the CPU.' },
+      { label: 'CPU support first, then each backend, plus test-backend-ops cases and a run on two backends.', correct: true },
+      { label: 'Register your kernel through the backend plug-in API; no CPU version is needed for a GPU-only op.', why: 'There is no plug-in API: a new op is a GGML_OP_* with a CPU implementation.' },
+      { label: 'A benchmark showing a speed-up over the unfused ops on every backend the op supports.', why: 'The rules quoted ask for consistency tests, not a speed-up on every backend.' },
+      { label: 'The CUDA kernel only; the maintainers port it to Metal and HIP once it is merged.', why: 'HIP does compile the CUDA file, but Metal is separate code, and the rules start from the CPU.' },
     ],
     explain: (
       <p>

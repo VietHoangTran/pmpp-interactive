@@ -88,14 +88,14 @@ export const questionsS127: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Only that it is slower.', why: 'Relaxed is the faster choice. The problem is correctness.' },
+      { label: 'Only that it is slower: relaxed loads see the flag later, so blocks spin longer.', why: 'Relaxed is the faster choice. The problem is correctness.' },
       {
-        label: 'Nothing: block j still waits until it sees the flag.',
+        label: 'Nothing: block j still spins until it sees the flag, and block i sets the flag only after all its threads have read their keys.',
         why: 'Waiting orders the flag. Without release and acquire it does not order the other memory accesses around it.',
       },
       {
         label:
-          "Seeing a relaxed flag orders nothing else, so block j may overwrite a key that block i has not finished reading: a data race, and a wrong result on some runs.",
+          'Seeing a relaxed flag orders nothing else: block j may overwrite a key block i has not read yet, a data race.',
         correct: true,
       },
     ],
@@ -113,12 +113,12 @@ export const questionsS127: Record<string, Question> = {
     id: 'ch12/12.7/q-blockidx',
     prompt: <>Why must a block that waits on its predecessor take its number from an atomic counter rather than from <code>blockIdx.x</code>?</>,
     options: [
-      { label: 'Reading an atomic counter is faster than reading blockIdx.', why: 'blockIdx costs nothing to read. The counter costs an atomic. The point is the order.' },
-      { label: 'blockIdx is not unique in a large grid.', why: 'It is unique. The problem is when each block starts, not which block it is.' },
+      { label: 'Reading an atomic counter is cheaper than reading blockIdx.x in a grid larger than the device holds at once.', why: 'blockIdx costs nothing to read. The counter costs an atomic. The point is the order.' },
+      { label: 'blockIdx.x is not unique in a large grid: a second wave of blocks reuses the indices of finished ones.', why: 'It is unique. The problem is when each block starts, not which block it is.' },
       { label: 'Device-scope atomics only work with a dynamic index.', why: 'Scopes and the block index are unrelated.' },
       {
         label:
-          'With blockIdx, block b may be running and spinning on block b − 1, which has not been scheduled. CUDA promises progress only to threads that have started, so the wait may never end. With a counter, a lower number always belongs to a block that has started.',
+          'With blockIdx, block b may spin on a block b − 1 that has not been scheduled, and CUDA promises progress only to started blocks.',
         correct: true,
       },
     ],
@@ -126,7 +126,8 @@ export const questionsS127: Record<string, Question> = {
       <p>
         The book introduces the counter in chapter 11 to prevent deadlock. NVIDIA's execution model now states the
         rule underneath it: once a thread has made progress, the threads of its block (its cluster) will keep making
-        progress; a block that has not started is promised nothing.
+        progress; a block that has not started is promised nothing. A block takes its number from the counter only once
+        it is running, so the number it waits on always belongs to a block that has already started.
       </p>
     ),
     source: 'ch. 11 p. 280; notes/today/ch12-facts.md A10 (CUDA programming guide section 5.9)',
@@ -137,15 +138,15 @@ export const questionsS127: Record<string, Question> = {
     prompt: <>Which in-place stable filter design rests only on behaviour Apple documents?</>,
     options: [
       {
-        label: 'A single dispatch with a decoupled look-back between threadgroups.',
+        label: 'A single dispatch with a decoupled look-back between threadgroups, numbered from an atomic counter as on CUDA.',
         why: 'Apple documents no forward progress between threadgroups, and an Apple engineer called the chained wait undefined behaviour.',
       },
       {
-        label: 'One threadgroup walks its range in order, with threadgroup barriers only (one threadgroup per row of a batch).',
+        label: 'One threadgroup walks its range in order, with threadgroup barriers only; one per row of a batch.',
         correct: true,
       },
       {
-        label: 'Several dispatches: count, scan the counts, scatter.',
+        label: 'Several dispatches (count, scan the counts, scatter), since each dispatch ends before the next begins.',
         why: 'Out of place that is the safe design. In place, the scatter dispatch still lets a later threadgroup overwrite keys an earlier one has not read yet.',
       },
     ],
@@ -585,8 +586,9 @@ export function S127() {
       <p>
         Take the book's coarsened example, Fig. 12.10: sixteen keys, two blocks of four threads, eight keys per block,
         with k1, k3, k4, k6, k8, k10, k11 and k14 kept. k3 is the second kept key, so it lands in slot 1, where k1 lived.
-        Both keys belong to block 0, so the fix is the one you have used since chapter 5: a barrier between "all threads
-        of the block have read their keys" and "any thread writes".
+        Both keys belong to block 0, so the fix is the one you have used since chapter 4 (
+        <a href={href('ch04', '4.3')}>section 4.3</a>): a barrier between "all threads of the block have read their
+        keys" and "any thread writes".
       </p>
       <Aside>
         <p>

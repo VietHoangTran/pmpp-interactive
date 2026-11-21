@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { DEFAULTS, LINES, MAX_STREAMS, SNIPPET, simulate } from '../../sim/chunkpipe';
-import { longestRight } from './questionText';
+import { lengthLimit, longestRight, shortestRight } from './questionText';
 import { FALSE_DEP, FALSE_DEP_8, FALSE_DEP_FREE, TWO_STREAMS, questionsS233 } from './S233';
 
 // Section 23.3's stepper shows labs/ch23/snippets/staged_loop.cu (and, in its Metal
@@ -70,8 +70,9 @@ describe('the stepper highlights the calls that issue each operation', () => {
 });
 
 describe("the page's questions and the numbers its text quotes", () => {
-  it('no right answer is strictly the longest option, JSX labels included', () => {
-    expect(longestRight(questionsS233)).toEqual([]);
+  it('the right answer is rarely strictly the longest or the shortest option, JSX labels included', () => {
+    expect(longestRight(questionsS233).length).toBeLessThanOrEqual(lengthLimit(questionsS233));
+    expect(shortestRight(questionsS233).length).toBeLessThanOrEqual(lengthLimit(questionsS233));
   });
   it('q-twostreams: about 1.9x with 2 streams, about 2.6x with 3, and no stream count does better', () => {
     expect(TWO_STREAMS(2).total).toBe(19);

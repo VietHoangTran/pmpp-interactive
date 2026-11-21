@@ -152,7 +152,7 @@ check('the 3D port is described with the facts it runs into', text0.includes('13
 
 // ---- errata
 const errata = await page.$$eval('ul[data-list="errata"] > li', (lis) => lis.map((li) => li.textContent));
-check(`the errata list has ${errata.length} items`, errata.length === 17, String(errata.length));
+check(`the errata list has ${errata.length} items`, errata.length === 18, String(errata.length));
 for (const [name, frag] of [
   ['the Gaussian', 'GaussianBlur'],
   ['x[3] for y[3]', '“for x[3]”'],
@@ -193,7 +193,7 @@ check('the next chapter is named and linked', text0.includes('picks up where thi
 
 // ---- links
 const links = await page.$$eval('.prose a[href^="#/"]', (as) => [...new Set(as.map((a) => a.getAttribute('href')))]);
-const known = new Set(['#/ch07/7.1', '#/ch07/7.2', '#/ch07/7.5', '#/ch07/7.6', '#/ch07/labs', '#/ch08/start']);
+const known = new Set(['#/ch07/7.1', '#/ch07/7.2', '#/ch07/7.5', '#/ch07/7.6', '#/ch07/labs', '#/ch08/start', '#/ch19/19.3']);
 check(`links go to routes that exist (${links.join(', ')})`, links.length >= 6 && links.every((l) => known.has(l)), links.join(', '));
 await page.evaluate(() => [...document.querySelectorAll('.prose a')].find((a) => a.getAttribute('href') === '#/ch07/labs').click());
 await page.waitForFunction(() => document.querySelector('.page h1')?.textContent.includes('Labs'), { timeout: 10000 });

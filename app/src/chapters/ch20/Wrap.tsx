@@ -166,8 +166,9 @@ export const questionsWrap: Record<string, Question> = {
         Eq. 20.12 per token: 2 × {Q8.l} layers × {Q8.hkv} K/V heads × {Q8.d} = 65,536 values, at 34/32 bytes each:{' '}
         {Q8.bytes.toLocaleString('en-US')} bytes, {Q8.bytes / KiB} KiB. The same model with 32 K/V heads in fp16 would
         take 512 KiB per token: grouping gives 4×, 8-bit storage almost 2× more. Both also cut the bytes a decode step
-        reads per token, which is what sets its time (section <a href={href('ch20', '20.6')}>20.6</a>). Quantised cache
-        kernels are module X2&rsquo;s.
+        reads per token, which is what sets its time (section <a href={href('ch20', '20.6')}>20.6</a>). Module{' '}
+        <a href={href('x2', 'X2.7')}>X2</a> (X2.7) quantises the weights of a decode step that has no attention, so it has
+        no cache to quantise; no lab in the course builds a quantised cache.
       </p>
     ),
     source: 'Eq. 20.12, p. 509; q8_0 block size, notes/today/ch20-facts.md D3; the model shape is ours',
@@ -408,14 +409,17 @@ export function Wrap() {
         Every section of the chapter has its own page. Kept to a sentence or a pointer: the chapter&rsquo;s history and
         terminology footnotes (pp. 477–478); tokenizer, embedding and positional encoding (pp. 479–480), which you know
         and no kernel here depends on; why heads specialise (p. 482); retrieval-augmented generation (p. 481); the
-        persistent grid with a grid-wide barrier (p. 493), whose mechanism chapter 10 covers; FlashAttention-3&rsquo;s
+        persistent grid with a grid-wide barrier (p. 493), whose mechanism <a href={href('ch18', '18.6')}>section
+        18.6</a> covers; FlashAttention-3&rsquo;s
         Hopper techniques (p. 504); and mixture of experts (p. 510), one paragraph and a question. Not covered: training
         and the backward pass (pp. 482, 493), which the book defers to its reference [6]. LayerNorm and the feed-forward
         of Fig. 20.1 are classified in <a href={href('ch20', '20.1')}>20.1</a>, not implemented.
       </p>
       <p>
-        Not in the book and not built here, though named where they matter: half-precision and tensor-core attention,
-        split-KV decoding across blocks, paged-cache kernels, sliding windows, rotary embeddings, and quantised caches.
+        Not in the book and not built in this chapter, though named where they matter: half-precision and tensor-core
+        attention, split-KV decoding across blocks, paged-cache kernels, sliding windows, rotary embeddings and quantised
+        caches. Of these, only rotary embeddings are built elsewhere in the course, in module X3 (
+        <a href={href('x3', 'X3.7')}>X3.7, the Llama step: RMSNorm, RoPE and SwiGLU</a>, and its first lab).
       </p>
 
       <h2>The project so far</h2>

@@ -217,9 +217,9 @@ check('the Python bridge is labelled unverified on CUDA', prose.includes('torch.
 
 // ---------------------------------------------------------------- questions
 q = await question('at most 16,896 threads of my kernel are in progress');
-await pick(q, 'No correction: one thread per core');
+await pick(q, 'No correction: one thread runs per core');
 check('cores question: "one thread per core" is marked wrong with its reason', (await qText(q)).includes('Not quite.') && (await qText(q)).includes('sixteen times more threads than it has cores'), await qText(q));
-await pick(q, 'Cores bound what executes in one cycle');
+await pick(q, 'Too low: cores bound what executes in one cycle');
 t = await qText(q);
 check('cores question: the right answer is accepted, with both products from the model', t.includes('Correct.') && t.includes('132 × 128 = 16,896') && t.includes(`132 × 2048 = ${fmt(residentThreads(BOOK_DEVICE), 6)}`) && residentThreads(BOOK_DEVICE) === 270336, t);
 q = await question('where does the data behind');

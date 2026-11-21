@@ -159,7 +159,7 @@ const six = await page.evaluateHandle(() => [...document.querySelectorAll('.q')]
 await (await six.$$('input[type=radio]'))[1].click();
 await (await six.$('button.primary')).click();
 await pause(120);
-check('q-sixteen: the shift distractor is marked wrong with its reason', (await six.evaluate((e) => e.textContent)).includes('A shift by 16 is as cheap as a shift by 1'));
+check('q-sixteen: the one-byte-digit distractor is marked wrong with its reason', (await six.evaluate((e) => e.textContent)).includes('Nothing limits a digit to a byte'));
 
 // ---- themes and a narrow screen
 await page.evaluate(() => { document.documentElement.dataset.theme = 'dark'; });

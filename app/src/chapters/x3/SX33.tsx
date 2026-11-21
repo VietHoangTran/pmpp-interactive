@@ -106,16 +106,17 @@ export const questionsSX33: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'The float4 path: 576 is a multiple of 4 and the destination is aligned. A 577-wide row would take the scalar path.', correct: true },
-      { label: 'The scalar path, because 576 is below 1024.', why: 'The 1024 threshold picks the scalar path\'s block size (256 or 1024 threads); it is not what decides between the two paths.' },
+      { label: 'The float4 path: 576 is a multiple of 4 and the destination is aligned.', correct: true },
+      { label: 'The scalar path, because rows under 1024 elements take the scalar kernel with 256 threads.', why: 'The 1024 threshold picks the scalar path\'s block size (256 or 1024 threads); it is not what decides between the two paths.' },
       { label: 'The float4 path, whatever the row length, because the destination is aligned.', why: 'Both conditions must hold: ncols % 4 == 0 as well as the alignment test.' },
-      { label: 'The scalar path, because float4 loads are only used for the weight.', why: 'The row is loaded through rms_norm_load4 too; the weight pointer is cast to float4 as well.' },
+      { label: 'The scalar path, because the float4 loads are used only for the weight, never for the row.', why: 'The row is loaded through rms_norm_load4 too; the weight pointer is cast to float4 as well.' },
     ],
     explain: (
       <p>
         The vector path is chosen only when <code>ncols % 4 == 0</code> and{' '}
         <code>((uintptr_t) dst % (4*sizeof(T))) == 0</code>. Like MLX and PyTorch, llama.cpp makes the book's pointer cast
-        to a vector type safe by testing alignment at run time; no vendor documents the cast itself (infra A6).
+        to a vector type safe by testing alignment at run time; no vendor documents the cast itself (infra A6). A 577-wide
+        row would take the scalar path.
       </p>
     ),
     source: `${FACTS} B2 (norm.cu line 473), D4 (hidden_size 576)`,
@@ -132,10 +133,10 @@ export const questionsSX33: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'They are different computations: expect differences far larger than float32 rounding, so a reference must say which one it follows.',
+        label: 'Different results, far beyond float32 rounding: a reference must name the order it follows.',
         correct: true,
       },
-      { label: 'They are the same up to float32 rounding, because multiplication commutes.', why: 'The order is not the point. Hugging Face rounds to bfloat16, 8 significant bits, before the multiply; that rounding is not undone.' },
+      { label: 'They are the same up to float32 rounding, because multiplying by the weight before or after a cast commutes.', why: 'A cast is not a multiplication: Hugging Face rounds to bfloat16, 8 significant bits, before the multiply, and that rounding is not undone.' },
       { label: "They differ only when the weight is 1.", why: 'With a weight of 1 the Hugging Face output is the rounded row, which still differs from the float one.' },
       { label: 'Hugging Face is wrong, and a good kernel should match llama2.c.', why: 'Neither is wrong. A model was trained or validated against one of them, and that is the one to match.' },
     ],
@@ -159,12 +160,12 @@ export const questionsSX33: Record<string, Question> = {
     ),
     options: [
       {
-        label: "Both reductions use the same shared buffer: without the barrier a fast warp can write its partial sum into a slot a slow warp has not yet read for the max.",
+        label: 'One shared buffer serves both reductions: a fast warp’s partial sum could overwrite a max a slow warp has not read.',
         correct: true,
       },
-      { label: 'expf is not thread-safe, so the threads must take turns.', why: 'Each thread computes its own exponentials in registers; nothing is shared there.' },
-      { label: 'The max must reach global memory before the sum can start.', why: 'The max never goes to global memory; it stays in shared memory and registers.' },
-      { label: 'It is not needed; the comment is about a different backend.', why: 'This is the CUDA file, which is also the HIP file, and the hazard is the same on both.' },
+      { label: 'expf is not thread-safe on the GPU, so the threads of a block must take turns computing exponentials.', why: 'Each thread computes its own exponentials in registers; nothing is shared there.' },
+      { label: 'The max must reach global memory, where every block can see it, before any block starts on the sum.', why: 'The max never goes to global memory; it stays in shared memory and registers.' },
+      { label: 'It is not needed on CUDA, only in the HIP build of the same source file, where a warp can be 64 threads wide.', why: 'This is the CUDA file, which is also the HIP file, and the hazard is the same at any warp width.' },
     ],
     explain: (
       <p>
@@ -181,10 +182,10 @@ export const questionsSX33: Record<string, Question> = {
     id: 'x3/X3.3/q-excerpt-online',
     prompt: <>MLX CUDA's lines above: which idea from the course is this, and how does it differ from milestone M4's softmax?</>,
     options: [
-      { label: "Chapter 20's (m, D) update applied to one row: it reads the row twice where M4 reads it three times.", correct: true },
-      { label: "A compensated (Kahan) sum from appendix A.", why: 'The factor exp(prevmax − maxval) rescales the sum to a new maximum; it does not carry a rounding error forward.' },
-      { label: "M4 itself, with other names.", why: 'M4 finds the maximum of the whole row before it computes a single exponential. Here exponentials are taken against a maximum that may still rise.' },
-      { label: "Flash-decoding's merge of partial results from several blocks.", why: 'That merge uses the same algebra, but across blocks. Here one block reads one row.' },
+      { label: "Chapter 20's (m, D) update on one row: two reads of the row where M4 makes three.", correct: true },
+      { label: "A compensated (Kahan) sum from appendix A, carrying each chunk's rounding error into the next.", why: 'The factor exp(prevmax − maxval) rescales the sum to a new maximum; it does not carry a rounding error forward.' },
+      { label: "M4 itself, with other names: the maximum over the row first, then the sum, then the write.", why: 'M4 finds the maximum of the whole row before it computes a single exponential. Here exponentials are taken against a maximum that may still rise.' },
+      { label: "Flash-decoding's merge of the partial results that several blocks computed over parts of the row.", why: 'That merge uses the same algebra, but across blocks. Here one block reads one row.' },
     ],
     explain: (
       <p>
@@ -228,12 +229,12 @@ export const questionsSX33: Record<string, Question> = {
     ),
     options: [
       {
-        label: "MLX's, which calls fast::exp, rather than PyTorch MPS's precise::exp; and any Metal kernel compiled in the default math mode needs a tolerance too.",
+        label: "MLX's, which calls fast::exp where PyTorch MPS calls precise::exp; and any Metal kernel needs some tolerance.",
         correct: true,
       },
-      { label: "PyTorch MPS's, because precise::exp is slower.", why: 'Speed is not accuracy. The precise variant has the tighter bound.' },
+      { label: "PyTorch MPS's, because precise::exp is the slower path and its extra steps add rounding errors of their own.", why: 'Speed is not accuracy. The precise variant has the tighter bound.' },
       { label: 'Neither: both run on the same GPU, so they give the same results.', why: 'The same GPU runs whichever exponential the kernel asks for, and the two kernels ask for different ones.' },
-      { label: "Neither needs one, because softmax divides by the sum and the errors cancel.", why: 'A relative error in each term does not cancel unless every term has the same one.' },
+      { label: "Neither needs one: softmax divides every term by the same sum, so a relative error in the exponentials cancels.", why: 'A relative error in each term does not cancel unless every term has the same one.' },
     ],
     explain: (
       <p>
@@ -251,10 +252,10 @@ export const questionsSX33: Record<string, Question> = {
     prompt: <>Could you drop MLX CUDA's softmax into this course's labs and build it for HIP and the emulator unchanged?</>,
     options: [
       {
-        label: "No: its cooperative groups (tiled_partition, cg::reduce) need other include paths on HIP, and the course's emulator does not model cg::reduce.",
+        label: "No: its cooperative-groups headers have other names on HIP, and the course's emulator does not model cg::reduce.",
         correct: true,
       },
-      { label: 'Yes: vendors/hip.h renames every CUDA identifier.', why: 'A #define can rename an identifier, not an #include path, and cg::reduce lives in a header whose name differs on HIP.' },
+      { label: 'Yes: vendors/hip.h renames every CUDA identifier, cooperative groups included, so the file compiles for HIP as it is.', why: 'A #define can rename an identifier, not an #include path, and cg::reduce lives in a header whose name differs on HIP.' },
       { label: 'Yes, because HIP does not support cooperative groups at all, so the calls are skipped.', why: 'HIP does support them, with the same namespace and class names but different header names.' },
       { label: 'Only on AMD GPUs with 32-wide wavefronts.', why: 'The warp width is a further question; the build fails before it matters, at the include.' },
     ],

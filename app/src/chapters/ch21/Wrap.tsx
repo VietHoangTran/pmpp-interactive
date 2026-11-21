@@ -174,19 +174,19 @@ export const questionsWrap: Record<string, Question> = {
     ),
     options: [
       {
-        label: `About ${SHARE_2} % of the tested atoms now pass, so fewer tests are wasted; but the list grows to ${n(BINS_2)} bins, and each block is a 4 × 4 × 4 cube of 64 threads.`,
+        label: `Fewer tests are wasted, since about ${SHARE_2} % of tested atoms pass, but the list grows to ${n(BINS_2)} bins and a block has 64 threads.`,
         correct: true,
       },
       {
-        label: 'Nothing: the cutoff sphere is the same, so every thread tests the same atoms.',
+        label: 'Nothing changes: the cutoff sphere is the same, so every thread tests the same atoms, only grouped into more bins.',
         why: `A thread tests every atom in its list's bins, not in its sphere. Smaller bins follow the sphere more closely: ${n(SCANNED_2)} Å³ scanned instead of ${n(SCANNED_4)}.`,
       },
       {
-        label: 'Fewer tested atoms pass, because more of the bins are only partly inside the cutoff.',
+        label: 'Fewer of the tested atoms pass, because more of the bins in the list now lie only partly inside the cutoff sphere.',
         why: `More bins are partial, but each is smaller, and the volume scanned falls from ${n(SCANNED_4)} to ${n(SCANNED_2)} Å³. The share that passes rises to about ${SHARE_2} %.`,
       },
       {
-        label: 'The list gets shorter, because each bin is smaller and holds fewer atoms.',
+        label: 'The list gets shorter, because each bin is smaller and holds fewer atoms, so fewer bins reach the sphere.',
         why: `It takes more small bins to cover the same super sphere: ${n(BINS_2)} against ${n(BINS_4)}.`,
       },
     ],
@@ -219,7 +219,7 @@ export const questionsWrap: Record<string, Question> = {
         correct: true,
       },
       {
-        label: 'They add the atoms of a chunk in different orders.',
+        label: 'They add the atoms of a chunk in different orders, so their running sums round differently.',
         why: 'Both walk each chunk from n = 0 upwards, and both are launched once per chunk in the same order.',
       },
       {
@@ -227,7 +227,7 @@ export const questionsWrap: Record<string, Question> = {
         why: 'Both make one += per point per launch: the coarsened kernel has four write statements, one for each of its points.',
       },
       {
-        label: 'Without atomics a GPU kernel can still give different bits on different runs.',
+        label: 'Even without atomics, warps are scheduled differently on every run, so a kernel\'s bits can change.',
         why: 'A thread\'s own additions happen in program order. With no atomic and no other thread writing its point, the same build on the same device repeats its bits.',
       },
     ],

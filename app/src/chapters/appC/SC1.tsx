@@ -293,13 +293,13 @@ export const questionsSC1: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'The address itself: it falls in the shared window of the generic address space, and the hardware maps it there.', correct: true },
+      { label: 'The address: it lies in the shared window of the generic address space.', correct: true },
       {
-        label: 'The compiler emits a separate copy of the helper for each memory.',
+        label: 'The compiler emits a separate copy of the helper for each memory, and the call site picks the shared copy.',
         why: 'Nothing requires that. One compiled function, with one generic load, handles both.',
       },
       { label: 'The driver checks the pointer at launch and patches the helper.', why: 'The helper is not even called at launch; the decision is made per load, by the address.' },
-      { label: 'You must cast the argument to a __shared__ float*.', why: 'That was the situation before Fermi, when a pointer could point only into global memory.' },
+      { label: 'A cast of the argument to __shared__ float* at the call; without it the load reads global.', why: 'That was the situation before Fermi, when a pointer could point only into global memory.' },
     ],
     explain: (
       <p>
@@ -340,11 +340,11 @@ export const questionsSC1: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'A compile error: every pointer must carry an address space.', correct: true },
-      { label: 'It compiles, and p defaults to device.', why: 'There is no default in MSL 4.0: the compiler says "pointer type must have explicit address space qualifier".' },
-      { label: 'It compiles, and p defaults to thread.', why: 'There is no default in MSL 4.0: the compiler says "pointer type must have explicit address space qualifier".' },
+      { label: 'A compile error: the pointer names no address space.', correct: true },
+      { label: 'It compiles, and p defaults to device, the address space of kernel buffer arguments.', why: 'There is no default in MSL 4.0: the compiler says "pointer type must have explicit address space qualifier".' },
+      { label: 'It compiles, and p defaults to thread, like an unqualified local variable.', why: 'There is no default in MSL 4.0: the compiler says "pointer type must have explicit address space qualifier".' },
       {
-        label: 'It compiles, and p becomes generic, as in CUDA.',
+        label: 'It compiles, and p becomes generic, as in CUDA, so one helper serves every address space.',
         why: 'Not under 4.0. At its default, MSL 4.1, the compiler on the build machine did accept it as generic; that is observed, not documented (appC-facts C1).',
       },
     ],
@@ -362,12 +362,12 @@ export const questionsSC1: Record<string, Question> = {
     prompt: <>The same CUDA helper, with the same n, is called once on shared data and once on global data. Same time?</>,
     options: [
       {
-        label: 'No. It is one instruction stream, but the loads go to different memories, and the book says the call is faster on shared memory.',
+        label: 'No: the same instructions, but the loads go to different memories, and shared is faster.',
         correct: true,
       },
-      { label: 'Yes, because generic addressing hides the difference.', why: 'It hides the spelling, not the cost.' },
-      { label: 'Yes, because both run the same compiled code.', why: 'Same instructions, different memories behind the loads.' },
-      { label: 'It depends only on n.', why: 'n sets how many loads there are; the memory sets what each one costs.' },
+      { label: 'Yes: generic addressing hides which memory a pointer refers to, so both calls cost the same.', why: 'It hides the spelling, not the cost.' },
+      { label: 'Yes: both calls run the same compiled code with the same generic loads, so they take the same time.', why: 'Same instructions, different memories behind the loads.' },
+      { label: 'It depends on n, the number of loads, not on where they go.', why: 'n sets how many loads there are; the memory sets what each one costs.' },
     ],
     explain: (
       <p>

@@ -65,9 +65,9 @@ export const questionsSX22: Record<string, Question> = {
     id: 'x2/X2.2/q-q40-zero',
     prompt: <>A block of 32 zeros goes through llama.cpp's Q4_0 reference rule. What happens?</>,
     options: [
-      { label: 'd is zero, the inverse is guarded to 0, every code is 8, every weight dequantises to 0.', correct: true },
-      { label: 'Division by zero: d is NaN and the block decodes to NaN.', why: 'The code writes id = d ? 1.0f/d : 0.0f, so it never divides by a zero d.' },
-      { label: 'Every code is 0, the lowest level.', why: 'x × 0 + 8.5 truncates to 8, the middle code, which is (8 - 8) × d = 0.' },
+      { label: 'Every code is 8 and every weight decodes to 0: the inverse of d is guarded.', correct: true },
+      { label: 'Division by zero: 1 / d is infinite, 0 times that is NaN, and every weight decodes to NaN.', why: 'The code writes id = d ? 1.0f/d : 0.0f, so it never divides by a zero d.' },
+      { label: 'Every code is 0, the lowest level, because each weight ties with the block\'s extreme.', why: 'x × 0 + 8.5 truncates to 8, the middle code, which is (8 - 8) × d = 0.' },
       { label: 'The rule skips empty blocks and writes no bytes.', why: 'Every block is 18 bytes, whatever its contents.' },
     ],
     explain: (
@@ -115,7 +115,7 @@ export const questionsSX22: Record<string, Question> = {
       },
       { label: 'scale = s, zeroPoint = bias; it works for every group, as both are offsets.', why: 'Expand scale·(q - zp) = s·q - s·zp: you need -s·zp = bias, so zp = -bias / s, not bias.' },
       { label: 'scale = 1 / s, zeroPoint = bias·s; it works whenever s is a power of two.', why: 'The scale multiplies the codes in both forms; it is the same s.' },
-      { label: 'scale = s, zeroPoint = -bias / s; it always works, as zeroPoint may be a float.', why: 'The header says the zero-point tensor must match the input tensor’s type: Int4, UInt4, Int8 or UInt8.' },
+      { label: 'scale = s, zeroPoint = -bias / s; it works for any nonzero s, as zeroPoint may be a float.', why: 'The header says the zero-point tensor must match the input tensor’s type: Int4, UInt4, Int8 or UInt8. A nonzero s is needed, but -bias / s must also be an integer.' },
     ],
     explain: (
       <p>

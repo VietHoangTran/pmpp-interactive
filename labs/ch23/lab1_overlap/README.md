@@ -171,8 +171,9 @@ the kernel take about as long as fill + drain together. Write these down first; 
 asks for the first three under the ids in brackets.
 
 1. CUDA or HIP: serial time divided by staged time at 4 streams, 16 chunks, depth-first,
-   pinned (`ch23/labs/p-staged`). On CUDA, first look up `asyncEngineCount` in the
-   benchmark's first lines (the `parts` row) and set the stepper's copy engines to match.
+   pinned (`ch23/labs/p-staged`). On CUDA, first look up `asyncEngineCount` (in
+   `python3 labs/pmpp.py doctor`, or the benchmark's first lines and its `parts` row) and set
+   the stepper's copy engines to match.
    On HIP that number means nothing (B3).
 2. The same ratio with pageable host buffers (`ch23/labs/p-pageable`).
 3. Metal: in-flight time with 1 buffer divided by in-flight time with 3 buffers, at 16
@@ -266,5 +267,5 @@ with `cudaStreamNonBlocking` (ch23-facts D3).
 
 Verified on Metal (tests and benchmark), emulator-checked, front-end-checked for
 `kernel.cu` and `probe.cu`. The front-end check sees `probeEngines`'s emulator branch only:
-the stub header declares neither `asyncEngineCount` nor `concurrentKernels`. Unverified on
+the stub header's `cudaDeviceProp` has no `asyncEngineCount`. Unverified on
 CUDA and on HIP: no machine with either has run it.

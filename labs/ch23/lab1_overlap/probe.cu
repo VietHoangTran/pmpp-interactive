@@ -29,7 +29,8 @@
 void probeEngines(int* asyncEngines, int* concurrentKernels) {
     *asyncEngines = *concurrentKernels = -1;
 #if defined(PMPP_EMU) || defined(PMPP_CUDA_FRONTEND_CHECK)
-    // Neither the emulator nor the front-end check's stub declares the fields.
+    // The emulator has neither field, and the front-end check's stub has concurrentKernels
+    // but not asyncEngineCount, so both report -1 here.
 #else
     // Same field names on HIP (hipDeviceProp_t, ch23-facts B3). Unverified on HIP:
     // not compiled against ROCm here.

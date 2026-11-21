@@ -181,7 +181,7 @@ check('the next chapter is named and linked', text0.includes('Chapter 10 keeps t
 
 // ---- links
 const links = await page.$$eval('.prose a[href^="#/"]', (as) => [...new Set(as.map((a) => a.getAttribute('href')))]);
-const known = new Set(['#/ch09/9.1', '#/ch09/9.2', '#/ch09/9.3', '#/ch09/9.4', '#/ch09/9.5', '#/ch09/9.6', '#/ch09/labs', '#/ch10']);
+const known = new Set(['#/ch09/9.1', '#/ch09/9.2', '#/ch09/9.3', '#/ch09/9.4', '#/ch09/9.5', '#/ch09/9.6', '#/ch09/labs', '#/ch05/wrap', '#/ch10', '#/ch12/12.4', '#/x1/X1.3', '#/x1/labs']);
 check(`links go to routes that exist (${links.join(', ')})`, links.length >= 7 && links.every((l) => known.has(l)), links.join(', '));
 await page.evaluate(() => [...document.querySelectorAll('.prose a')].find((a) => a.getAttribute('href') === '#/ch10').click());
 await page.waitForFunction(() => document.querySelector('.page h1') && !document.querySelector('.page h1').textContent.includes('Summary and exercises'), { timeout: 10000 });

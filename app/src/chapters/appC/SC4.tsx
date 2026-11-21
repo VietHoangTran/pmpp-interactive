@@ -312,20 +312,20 @@ export const questionsSC4: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Pinned memory is faster than pageable memory, so the GPU insists on it.',
+        label: 'Pinned memory is faster than pageable memory, so the GPU insisted on it for every buffer it read in place.',
         why: 'Pinning keeps the pages in place while the GPU reads them (§C.2). It does not explain why the kernel needed a different pointer value.',
       },
       {
-        label: 'Memory from malloc is not contiguous, so the GPU could not walk it.',
+        label: 'Memory from malloc is not contiguous, so the GPU could not walk it with one pointer.',
         why: 'A virtual range from malloc is contiguous by definition. The question is whether the GPU can even name its address.',
       },
       {
         label:
-          'A host virtual address uses up to 48 bits and cannot be written in a 32-bit GPU pointer, so the GPU had to be given a different address for the same buffer, one it could form.',
+          'A 48-bit host virtual address cannot be written in a 32-bit GPU pointer, so the kernel needed a different address for the same buffer.',
         correct: true,
       },
       {
-        label: 'A GPU cannot read DRAM attached to the CPU.',
+        label: 'A GPU cannot read DRAM attached to the CPU, so the data had to be copied first.',
         why: 'Zero-copy memory exists precisely so that a kernel can, over the interconnect (§C.2).',
       },
     ],
@@ -425,7 +425,7 @@ export function SC4() {
         Two details of that paragraph do not survive a check against NVIDIA's own documents. The book dates Kepler to
         2013 and presents it as the generation that left 32 bits behind. NVIDIA launched the first Kepler GPUs in March
         2012. And Fermi, the generation before, already had 64-bit load and store addressing, a 40-bit unified address
-        space, up to 6 GB of memory, and one address space for the host and every device of compute capability 2.0 or
+        space, more than 4 GiB of memory, and one address space for the host and every device of compute capability 2.0 or
         later in a 64-bit process.
       </p>
       <Today checked="2026-11-20 against NVIDIA's Kepler launch release, the Fermi whitepaper and the archived CUDA 11.0 guide (appC-facts.md, A6)">

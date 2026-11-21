@@ -449,13 +449,13 @@ export const questionsS142: Record<string, Question> = {
     id: 'ch14/14.2/q-flag',
     prompt: <>Every thread that swaps writes 1 to the same flag, in the same step. Which statement is right?</>,
     options: [
-      { label: 'Writes of the same value cannot race.', why: 'A race is about unordered accesses to one location, at least one a write; the values do not enter into it.' },
-      { label: 'Add __syncthreads() before the write.', why: 'A barrier orders threads of one block only, and the writers here come from every block of the grid.' },
+      { label: 'Writes of the same value cannot race: whichever store lands last, the flag reads 1, which is all the host needs to know.', why: 'A race is about unordered accesses to one location, at least one a write; the values do not enter into it.' },
+      { label: 'Put __syncthreads() before the write, so that the stores are ordered and the plain store is defined.', why: 'A barrier orders threads of one block only, and the writers here come from every block of the grid.' },
       {
-        label: 'It is a data race, undefined behaviour in the CUDA memory model even though every write stores the same value. Make the store atomic; relaxed order is enough, because the host reads the flag only after the launch has finished.',
+        label: 'A data race, undefined behaviour in CUDA though every write stores 1. Make it atomic; relaxed order is enough.',
         correct: true,
       },
-      { label: 'It only matters on AMD hardware.', why: 'The rule is in NVIDIA\'s own memory model, and it is about the language, not one vendor\'s hardware.' },
+      { label: 'Undefined on AMD hardware, but benign on NVIDIA, whose memory model allows equal-value stores.', why: 'The rule is in NVIDIA\'s own memory model, and it is about the language, not one vendor\'s hardware.' },
     ],
     explain: (
       <p>

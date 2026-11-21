@@ -348,12 +348,12 @@ if (haveLab) {
 }
 
 // ---------------------------------------------------------------- questions
-const k0 = await choose('What happens for K = 0', 'numTiles is 0, so the loop body never runs');
+const k0 = await choose('What happens for K = 0', 'numTiles is 0, so numTiles - 1 is -1');
 check('q-k0: "the loop never runs" is wrong, with the reason', k0.includes('Not quite.') && k0.includes('does not give -1'));
-check('q-k0: the unsigned wrap is right', (await choose('What happens for K = 0', 'numTiles is 0, so numTiles - 1 wraps')).includes('Correct.'));
-const bw = await choose('no barrier between', 'They touch different buffers');
+check('q-k0: the unsigned wrap is right', (await choose('What happens for K = 0', 'numTiles - 1 wraps to')).includes('Correct.'));
+const bw = await choose('no barrier between', 'They use different buffers');
 check('q-between: right, and the second job is labelled ours', bw.includes('Correct.') && bw.includes('our reading'));
-check('q-warpspec: different warps, scheduled in hardware', (await choose('warp specialisation not depend', 'Loads and FMAs are issued by different warps')).includes('Correct.'));
+check('q-warpspec: different warps, scheduled in hardware', (await choose('warp specialisation not depend', 'Different warps issue the loads')).includes('Correct.'));
 const na = await choose('what fills the next buffer', 'An asynchronous copy engine');
 check('q-no-async: the documented HIP intrinsic does not exist', na.includes('Not quite.') && na.includes('does not exist in the ROCm 10.2 compiler'));
 check('q-no-async: ordinary loads, this software pipeline', (await choose('what fills the next buffer', 'Ordinary loads')).includes('Correct.'));

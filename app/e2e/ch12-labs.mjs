@@ -106,7 +106,7 @@ for (const p of ['ch12/lab1_unstable/provided/copy_keys.cu', 'ch12/shared-g12/sc
   const ok = await page.evaluate((path) => fetch('/api/lab-file?path=' + encodeURIComponent(path)).then((r) => r.ok), p);
   check(`  the provided file exists: labs/${p}`, ok);
 }
-check('the libhipcxx sentence matches the build (linked only where ROCm provides it)', text0.includes('links only where') && !text0.includes('does not link libhipcxx'));
+check('the libhipcxx sentence matches the build (linked when CMake finds it, <cuda/atomic> unverified)', text0.includes('libhipcxx::libhipcxx when CMake finds it') && text0.includes('no ROCm machine has built this course') && !text0.includes('then compiles is unverified') && !text0.includes('builds on any ROCm') && !text0.includes('does not link libhipcxx'));
 
 // ---- status table of the reference solutions, cell by cell against the reports
 const cells = await page.$$eval('table[data-table="solution-status"] td[data-lab]', (tds) =>
@@ -411,7 +411,7 @@ for (const l of LABS) {
 
 // ---- links to other sections resolve to routes that exist
 const links = await page.$$eval('.prose a[href^="#/"]', (as) => [...new Set(as.map((a) => a.getAttribute('href')))]);
-check(`cross-links point at chapter routes (${links.join(', ')})`, links.length > 0 && links.every((h) => /^#\/(ch12\/(start|labs|wrap|12\.\d)|ch10\/10\.10|ch11\/11\.9|review)$/.test(h)), links.join(' '));
+check(`cross-links point at chapter routes (${links.join(', ')})`, links.length > 0 && links.every((h) => /^#\/(ch12\/(start|labs|wrap|12\.\d)|ch10\/10\.10|ch11\/11\.9|x1\/X1\.[46]|review)$/.test(h)), links.join(' '));
 check('no two margin notes in a row', (await page.evaluate(() => document.querySelectorAll('.prose > .note + .note').length)) === 0);
 
 const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);

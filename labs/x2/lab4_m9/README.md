@@ -63,6 +63,16 @@ step.
 - **The model** is lab 22.2's: embedding, two blocks of linear, bias and residual, the tied LM
   head, the sampler; no attention (chapter 20 builds it).
 
+## Where M9 goes next
+
+Module X3's milestone M10 (lab X3.2) runs a Llama-style step whose linear layer is a
+`LinearFn`, `(X, const float* W, Y, batch, in, out)`. It calls this lab's reference
+`launchQLinear` (and `encodeQLinear` on Metal) through `labs/x3/lab2_tinyllama/provided/m9_linear`,
+which binds each float weight pointer of its model to a `QMatrix`, so the same step runs with
+Q8_0 and Q4_0 weights and is checked against a CPU reference on the same quantised weights.
+Lab X3.2 uses the reference solution, not your `work/`, and its `provided/pieces.cmake` uses it
+only if `launchQLinear` has the signature `qdecode.h` declares.
+
 ## Files
 
 - `work/kernel.cu` (CUDA, HIP, emulators): `embedRowsQ8_0Kernel`, `embedRowsQ4_0Kernel`,

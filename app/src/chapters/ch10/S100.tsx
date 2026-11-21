@@ -51,20 +51,19 @@ export const questionsS100: Record<string, Question> = {
     prompt: <>Why can the blocks of an ordinary kernel launch not wait for each other at a barrier?</>,
     options: [
       {
-        label:
-          'Blocks may run in any order and need not be on the device at the same time, so a block waiting for one that has not been scheduled yet would never be released.',
+        label: 'Blocks run in no promised order and need not all be resident, so a waiting block may never be released.',
         correct: true,
       },
       {
-        label: 'Each block has its own shared memory, so there is nothing for them to wait on.',
+        label: 'Each block has its own shared memory, so blocks hold no common data that a barrier could protect.',
         why: 'Blocks could still share results through global memory. The obstacle is scheduling, not the lack of data to exchange.',
       },
       {
-        label: 'A barrier across blocks would be correct but too slow to be worth providing.',
+        label: 'A barrier across blocks would be correct, but too slow to be worth providing.',
         why: 'That is a cost argument. The problem is correctness: such a wait may never end.',
       },
       {
-        label: 'Blocks run in launch order, so a later block never needs to wait for an earlier one.',
+        label: 'Blocks run in launch order, so by the time block b runs, every lower-numbered block has finished.',
         why: 'No order is promised. Block 7 may finish before block 0 starts.',
       },
     ],
@@ -111,13 +110,13 @@ export const questionsS100: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'The correct total: each += is a single statement.', why: 'One statement, three steps: read, add, write. Other threads can come between them.' },
-      { label: 'The correct total up to rounding, because addition is commutative.', why: 'Commutativity is about the order of operands. Here whole updates disappear.' },
+      { label: 'The correct total: each += is a single statement, so the threads take turns.', why: 'One statement, three steps: read, add, write. Other threads can come between them.' },
+      { label: 'The correct total up to rounding, because float addition is commutative and the order does not matter.', why: 'Commutativity is about the order of operands. Here whole updates disappear.' },
       {
-        label: 'The sum of some of the 256 values: possibly all, possibly only one. Updates whose read-modify-write overlapped are lost.',
+        label: 'The sum of some of the values, from all 256 down to one: overlapping updates are lost.',
         correct: true,
       },
-      { label: 'Always the value of the last thread to write.', why: 'Only if every update overlapped with every other. Usually some survive.' },
+      { label: 'Only the last thread\'s own x, never a partial sum, because each write replaces the one before.', why: 'A thread writes old + x, so whatever value it read survives inside its write.' },
     ],
     explain: (
       <p>

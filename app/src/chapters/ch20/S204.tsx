@@ -660,7 +660,7 @@ export function S204() {
       <p>
         Chapter 5 gives the reason. In a GEMM each loaded row of K, or of a weight matrix, is reused by every row of the
         other operand; in a GEMV each loaded byte feeds one multiply-add and is never used again. Place the four products
-        of one head on your own roofline, from <a href={href('ch05', '5.1')}>lab 5.1</a>.
+        of one head on your own roofline, from <a href={href('ch05', 'labs')}>lab 5.1</a>.
       </p>
       <Simplification>
         <p>Compulsory traffic only: each operand read once and the result written once, no caches, one head’s products. Prefill’s Q Kᵀ writes its N × N scores, as the unfused baseline of section 20.3 does.</p>

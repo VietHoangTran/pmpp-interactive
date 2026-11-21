@@ -214,6 +214,85 @@ inline unsigned long long __brevll(unsigned long long x) {
   return r;
 }
 
+// ---- more integer intrinsics, from the CUDA Math API 13.5 ----------------------------
+// "Integer Intrinsics" (group__CUDA__MATH__INTRINSIC__INT), read 2026-11-21
+// (notes/today/infra-facts.md E2, E3). Same-signedness __dp4a overloads only, as NVIDIA
+// documents them; the int32 accumulation wraps modulo 2^32 here (two's complement), which the
+// page does not state. HIP has no __dp4a (x2-facts B1): code meant for HIP must not call it.
+namespace pmpp_emu {
+inline int dp4a_s(uint32_t a, uint32_t b, int32_t c) {
+  uint32_t acc = uint32_t(c);
+  for (int k = 0; k < 4; ++k)
+    acc += uint32_t(int32_t(int8_t(uint8_t(a >> 8 * k))) * int32_t(int8_t(uint8_t(b >> 8 * k))));
+  return int32_t(acc);
+}
+inline unsigned dp4a_u(uint32_t a, uint32_t b, uint32_t c) {
+  for (int k = 0; k < 4; ++k) c += uint32_t(uint8_t(a >> 8 * k)) * uint32_t(uint8_t(b >> 8 * k));
+  return c;
+}
+template <class V> inline uint32_t pack4(V v) {
+  return uint32_t(uint8_t(v.x)) | uint32_t(uint8_t(v.y)) << 8 | uint32_t(uint8_t(v.z)) << 16 | uint32_t(uint8_t(v.w)) << 24;
+}
+}  // namespace pmpp_emu
+inline int __dp4a(int srcA, int srcB, int c) { return ::pmpp_emu::dp4a_s(uint32_t(srcA), uint32_t(srcB), c); }
+inline int __dp4a(char4 srcA, char4 srcB, int c) {
+  return ::pmpp_emu::dp4a_s(::pmpp_emu::pack4(srcA), ::pmpp_emu::pack4(srcB), c);
+}
+inline unsigned int __dp4a(unsigned int srcA, unsigned int srcB, unsigned int c) { return ::pmpp_emu::dp4a_u(srcA, srcB, c); }
+inline unsigned int __dp4a(uchar4 srcA, uchar4 srcB, unsigned int c) {
+  return ::pmpp_emu::dp4a_u(::pmpp_emu::pack4(srcA), ::pmpp_emu::pack4(srcB), c);
+}
+// Byte n of the result is byte ((s >> 4n) & 7) of the 8-byte value (y << 32) | x; the other
+// bits of s are not read (the page's own pseudo-code).
+inline unsigned int __byte_perm(unsigned int x, unsigned int y, unsigned int s) {
+  const uint64_t src = uint64_t(y) << 32 | x;
+  unsigned r = 0;
+  for (int n = 0; n < 4; ++n) r |= unsigned(src >> 8 * ((s >> 4 * n) & 7u) & 0xFFu) << 8 * n;
+  return r;
+}
+inline unsigned int __umulhi(unsigned int x, unsigned int y) { return unsigned((uint64_t(x) * y) >> 32); }
+inline int __mulhi(int x, int y) { return int(uint32_t(uint64_t(int64_t(x) * y) >> 32)); }
+inline unsigned long long __umul64hi(unsigned long long x, unsigned long long y) {
+  return (unsigned long long)((unsigned __int128)x * y >> 64);
+}
+
+// ---- type casting intrinsics (group__CUDA__MATH__INTRINSIC__CAST, E4) -------------------------
+inline unsigned int __float_as_uint(float x) { unsigned u; std::memcpy(&u, &x, 4); return u; }
+inline float __uint_as_float(unsigned int x) { float f; std::memcpy(&f, &x, 4); return f; }
+inline int __float_as_int(float x) { int i; std::memcpy(&i, &x, 4); return i; }
+inline float __int_as_float(int x) { float f; std::memcpy(&f, &x, 4); return f; }
+
+// ---- single-precision math (E5) ----------------------------------------------------------------
+// expf, exp2f, logf, log2f, tanhf, erff, fmaf, fminf, fmaxf, fabsf, sqrtf, powf, copysignf
+// come from the host's <cmath>: the host library's accuracy, not NVIDIA's documented error
+// bounds. rsqrtf is ours (1 / sqrt). The fast intrinsics (__expf, __fdividef, ...) are
+// computed with the accurate host functions: the GPU's approximation error, and its
+// flush-to-zero and range behaviour, are NOT modelled. The *_rn intrinsics are left out: lab
+// A.1 defines __fadd_rn and __fsub_rn for the emulator itself (labs/appA/lab1_sumerror/sumerror.h).
+// glibc's <math.h> declares __expf, __logf, __powf, __sinf and __cosf itself (its internal
+// aliases, with C linkage), and newer C libraries may declare rsqrtf (C23). Defining C++
+// functions of the same names would clash there, so the emulator's versions live in pmpp_emu
+// and these names are macros for them, defined after every standard header was included.
+namespace pmpp_emu {
+inline float math_rsqrtf(float x) { return 1.0f / std::sqrt(x); }
+inline float math_expf(float x) { return std::exp(x); }
+inline float math_logf(float x) { return std::log(x); }
+inline float math_powf(float x, float y) { return std::pow(x, y); }
+inline float math_sinf(float x) { return std::sin(x); }
+inline float math_cosf(float x) { return std::cos(x); }
+inline float math_fdividef(float x, float y) { return x / y; }
+// NaN handling was not checked against NVIDIA's documentation (it gives +0 here).
+inline float math_saturatef(float x) { return x >= 1.0f ? 1.0f : (x > 0.0f ? x : 0.0f); }
+}  // namespace pmpp_emu
+#define rsqrtf ::pmpp_emu::math_rsqrtf
+#define __expf ::pmpp_emu::math_expf
+#define __logf ::pmpp_emu::math_logf
+#define __powf ::pmpp_emu::math_powf
+#define __sinf ::pmpp_emu::math_sinf
+#define __cosf ::pmpp_emu::math_cosf
+#define __fdividef ::pmpp_emu::math_fdividef
+#define __saturatef ::pmpp_emu::math_saturatef
+
 // ---- legacy atomic functions (guide 5.4.5.1) -------------------------------------
 // Exactly the overloads the guide lists, minus __half/__half2/__nv_bfloat16 and
 // the float2/float4 and 128-bit forms. Each returns the old value.

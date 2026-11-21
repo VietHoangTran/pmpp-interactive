@@ -297,9 +297,9 @@ export const questionsSX16: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'min(a, b), and at least 1: the maximum always survives, so min-p sees the same max after top-p', correct: true },
+      { label: "min(a, b), and at least 1: top-p keeps the max, so min-p's threshold does not move", correct: true },
       { label: 'a + b, since each filter adds the tokens it keeps', why: 'Both are prefixes of the same row; surviving both means being in the shorter one.' },
-      { label: 'It depends on which of the two filters runs first, because each renormalises', why: "In llama.cpp's order min-p's threshold uses the max logit, which top-p never removes; no renormalisation enters its test." },
+      { label: "It depends on which filter runs first, because top-p renormalises the row and that moves min-p's threshold", why: "In llama.cpp's order min-p's threshold uses the max logit, which top-p never removes; no renormalisation enters its test." },
     ],
     explain: (
       <p>

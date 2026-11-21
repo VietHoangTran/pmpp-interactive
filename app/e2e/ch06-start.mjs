@@ -114,7 +114,7 @@ let v = await answerNumber('How many array elements apart', 4);
 check('q-neighbours: a wrong answer is marked and the answer given', v.includes('Not quite. The answer is 1 elements.'), v);
 v = await answerNumber('How many array elements apart', 1);
 check('q-neighbours: 1 element apart is correct, and the explanation links ch. 3 §3.4', v.includes('Correct.') && v.includes('ch. 3 §3.4'), v);
-v = await answerChoice('form warp 0', 'threadIdx.x 0 to 15 for threadIdx.y 0 and 1');
+v = await answerChoice('form warp 0', 'threadIdx.x 0 to 15 in rows threadIdx.y = 0 and 1');
 check('q-warp2d: two 16-wide rows is correct', v && v.includes('Correct.') && v.includes('ch. 4 §4.4'), v);
 v = await answerNumber('waits 396 cycles', 1);
 check('q-hide: 1% is correct, and the explanation points to 6.2', v.includes('Correct.') && v.includes('6.2'), v);
@@ -122,7 +122,7 @@ v = await answerChoice('false', 'The one after the dot-product loop');
 check('q-false: barrier 2 is correct', v && v.includes('Correct.') && v.includes('ch. 5 §5.4'), v);
 v = await answerChoice('60% of the bandwidth', 'Tiling it through shared memory');
 check('q-vecadd: tiling is marked wrong with its reason', v && v.includes('Not quite.'), v);
-v = await answerChoice('60% of the bandwidth', 'fewer, wider, well-formed requests');
+v = await answerChoice('60% of the bandwidth', 'wider, well-formed requests');
 check('q-vecadd: wider, well-formed requests is correct', v && v.includes('Correct.') && v.includes('ch. 5 §5.1'), v);
 
 // ---- narrow screen

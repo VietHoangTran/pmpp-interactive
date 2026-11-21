@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
+import { solutionTabStatus } from '../../components/LabKit';
 import { Bench, Beyond, Simplification, Source, Today, type Tier } from '../../components/notes';
 import { useProgress } from '../../lib/progress';
 import { benchRows, fmt, num, useReports, type Reports } from '../../lib/reports';
@@ -831,6 +832,7 @@ function TwoListings({ onDone }: { onDone: () => void }) {
 function HuntThenMacro() {
   const [show, setShow] = useState(false);
   const file = useLabFile(SOLUTION);
+  const { reports } = useReports();
   const macro = file ? checkMacro(file) : null;
   return (
     <>
@@ -840,7 +842,7 @@ function HuntThenMacro() {
           tabs={[{
             label: 'CHECK, from lab 2.1',
             code: macro?.code ?? file ?? '// loading labs/' + SOLUTION,
-            status: 'emulator-checked and front-end-checked; unverified on CUDA and HIP hardware',
+            status: solutionTabStatus(reports, 'ch02/lab1_vecadd', 'kernel.cu'),
           }]}
           firstLine={macro?.firstLine ?? 1}
           caption={
@@ -963,15 +965,15 @@ export const questionsS24: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Allocation has to write a new address into your variable, and keeps its return value for the error code. Freeing only needs the address.',
+        label: 'Allocation writes a new address into your variable and returns an error code; freeing only needs the address.',
         correct: true,
       },
       {
-        label: 'cudaFree copies the data back to the host first, so it needs the pointer itself.',
+        label: 'cudaFree copies the data back to the host before it releases the memory, so it needs the pointer value itself.',
         why: 'It copies nothing. After cudaFree the data is gone, which is why the stub copies C back before it frees.',
       },
       {
-        label: 'Device pointers are twice as wide as host pointers, so they have to be passed by address.',
+        label: 'Device pointers are wider than host pointers, so they have to be passed by address.',
         why: 'To the host a device pointer is a pointer value like any other. cudaFree, cudaMemcpy and the launch all take it by value.',
       },
     ],
@@ -996,9 +998,9 @@ export const questionsS24: Record<string, Question> = {
     ),
     options: [
       { label: 'On CUDA whatever that device memory held before. On Metal zeros.', correct: true },
-      { label: 'Zeros on both: fresh device memory is always cleared.', why: 'NVIDIA\'s reference says of cudaMalloc, in so many words, that the memory is not cleared.' },
+      { label: 'Zeros on both: fresh device memory is cleared before it is handed out.', why: 'NVIDIA\'s reference says of cudaMalloc, in so many words, that the memory is not cleared.' },
       {
-        label: 'On both, what C_h held before the call.',
+        label: 'On both, what C_h held before the call, since the stale elements are never copied back.',
         why: 'The copy back writes all 1000 elements of C_h. The stale part comes from the device\'s copy, not from the host array.',
       },
       {
@@ -1026,10 +1028,10 @@ export const questionsS24: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'The finished result: shared memory is always current.', why: 'The memory is shared. The work is not finished just because it was submitted.' },
-      { label: 'Possibly old or partly written data. It has to wait for the command buffer to complete first.', correct: true },
-      { label: 'A null pointer, until the GPU is done.', why: 'contents is null only for buffers with private storage. For a shared buffer it is always a usable address.' },
-      { label: 'Nothing: the run aborts.', why: 'Nothing checks. Apple\'s header says access to buffers is not synchronised and that the caller is responsible.' },
+      { label: 'The finished result: the CPU and the GPU share one memory, so it is current.', why: 'The memory is shared. The work is not finished just because it was submitted.' },
+      { label: 'Possibly old or partly written data: it must wait for the command buffer to complete.', correct: true },
+      { label: 'A null pointer, until the GPU has finished with the buffer.', why: 'contents is null only for buffers with private storage. For a shared buffer it is always a usable address.' },
+      { label: 'Nothing: Metal stops the program for touching a busy buffer.', why: 'Nothing checks. Apple\'s header says access to buffers is not synchronised and that the caller is responsible.' },
     ],
     explain: (
       <p>
@@ -1349,8 +1351,8 @@ export function S24() {
         of them to keep the code short. A sidebar gives the pattern they leave out: keep the result in a{' '}
         <code>cudaError_t</code>, compare it with <code>cudaSuccess</code>, and on failure print{' '}
         <code>cudaGetErrorString</code> of it with the file and line, then exit. Its example of a failure worth
-        catching: the device is out of memory. It suggests wrapping the check in a macro. The snippet has a slip in it, and so has the declaration line of Fig. 2.5 from the last
-        section. Find both.
+        catching: the device is out of memory. It suggests wrapping the check in a macro. The snippet has a slip in
+        it, and so has the declaration line of Fig. 2.5 from the last section. Find both.
       </p>
       <Source section="2.4" pages="32" figs="sidebar; Fig. 2.5 is p. 27" />
       <HuntThenMacro />
@@ -1396,7 +1398,8 @@ export function S24() {
       <h2>The allocation functions the book defers</h2>
       <p>
         The book mentions, without naming them, more advanced allocation functions that make copies faster or remove
-        the explicit copy, and leaves them to chapter 23 and appendix C. A footnote on the same page defers one more
+        the explicit copy, and leaves them to <a href={href('ch23')}>chapter 23</a> and{' '}
+        <a href={href('appC')}>appendix C</a>. A footnote on the same page defers one more
         thing, multidimensional arrays allocated with <code>cudaMalloc</code>, to{' '}
         <a href={href('ch03')}>chapter 3</a>.
       </p>

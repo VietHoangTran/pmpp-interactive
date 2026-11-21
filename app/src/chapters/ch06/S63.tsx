@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
-import { LabsPage, Reveal, defineLabs, measure } from '../../components/LabKit';
+import { LabsPage, Reveal, defineLabs, measure, solutionTabStatus } from '../../components/LabKit';
 import { Beyond, Bench, Simplification, Source, Today, type Tier } from '../../components/notes';
-import { fmt, labStatus, num, useReports, type Reports } from '../../lib/reports';
+import { fmt, num, useReports, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import {
   SECTORS_PER_REQUEST, bytesPerWarpLoad, instructions, misalignedChunks, plan, widestVector, type Plan, type ThreadPlan,
@@ -32,14 +32,10 @@ function LabListing() {
   const metal = useLabFile(SOL + '/kernel.metal');
   const mm = useLabFile(SOL + '/launch.mm');
   const { reports, loading } = useReports();
-  const st = (b: string) => labStatus(reports[b], VEC.id, 'solution');
+  // The same words as the labs page's status table (LabKit's solutionTabStatus).
   const reading = loading ? 'reading reports' : null;
-  const cuda =
-    reading ??
-    (st('emu') === 'pass' ? 'emulator-checked' : 'unverified: no passing emulator run on this machine') +
-      '; ' +
-      (st('cuda') === 'pass' ? 'verified on CUDA' : 'unverified on CUDA hardware');
-  const onMetal = reading ?? (st('metal') === 'pass' ? 'verified on Metal' : 'unverified: no passing Metal run on this machine');
+  const cuda = reading ?? solutionTabStatus(reports, VEC, 'kernel.cu');
+  const onMetal = reading ?? solutionTabStatus(reports, VEC, 'kernel.metal');
   if (!cu || !metal || !mm) return <p className="muted">Loading lab 6.2's reference solution.</p>;
   return (
     <Code
@@ -55,8 +51,11 @@ function LabListing() {
           never uses its parameter <code>N</code>, so it reads and writes past the end whenever the length is not a
           multiple of four. The solution adds Exercise 4's two boundaries and makes the inputs <code>const</code>. Its
           second kernel is coarsened by four without vector accesses, so that the lab can separate four elements per
-          thread from four elements per instruction. The HIP build takes the CUDA file unchanged; it has not been
-          compiled or run on AMD hardware.
+          thread from four elements per instruction. The HIP build is meant to take the same file through the
+          project&rsquo;s name-mapping header: the file uses threads, blocks, <code>float4</code>,{' '}
+          <code>#pragma unroll</code> and the <code>{'<<<…>>>'}</code> launch, none of them among
+          the cases where CUDA and HIP spellings differ. Unless the status beside the CUDA tab shows a HIP pass, that
+          path is unverified.
         </>
       }
     />
@@ -293,8 +292,8 @@ export const questionsS63: Record<string, Question> = {
     id: 'ch06/6.3/q-when',
     prompt: <>Where should switching to 16-byte vector loads help least?</>,
     options: [
-      { label: 'A simple streaming kernel that already runs at full occupancy, close to the bandwidth you measured.', correct: true },
-      { label: 'A kernel whose occupancy is limited by its shared memory.', why: 'That is the book\'s second benefit: with few warps resident, wider loads keep enough bytes in flight.' },
+      { label: 'A streaming kernel at full occupancy, already close to the bandwidth you measured.', correct: true },
+      { label: 'A kernel whose occupancy is limited by its shared memory, so that few warps are resident.', why: 'That is the book\'s second benefit: with few warps resident, wider loads keep enough bytes in flight.' },
       { label: 'A kernel that issues few loads per thread and runs at low occupancy.', why: 'That is the book\'s second benefit: with too little in flight, more bytes per load help, as long as the extra registers do not cost occupancy.' },
     ],
     explain: (
@@ -316,8 +315,8 @@ export const questionsS63: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'No: x + 1 is 4 bytes past a 16-byte boundary, and a float4 access needs an address aligned to 16.', correct: true },
-      { label: 'Yes: the hardware splits a misaligned access into smaller ones.', why: 'No vendor promises that. NVIDIA says these instructions require aligned data.' },
+      { label: 'No: a float4 access needs a 16-byte boundary, and x + 1 is 4 bytes past one.', correct: true },
+      { label: 'Yes: the hardware splits a misaligned access into smaller aligned ones.', why: 'No vendor promises that. NVIDIA says these instructions require aligned data.' },
       { label: 'Yes: cudaMalloc aligns to 256 bytes, so any offset into the allocation works.', why: 'The allocation is aligned; the address you read at is what has to be.' },
     ],
     explain: (
@@ -343,19 +342,19 @@ export const questionsS63: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Whether the uint index held the baseline back: index both kernels with int and measure again.',
+        label: 'Whether the uint index held the baseline back: index both with int and measure again.',
         correct: true,
       },
       {
-        label: 'Nothing: wider loads are always faster, so the gain is theirs.',
-        why: 'Section 6.3 just argued that a bandwidth-bound kernel at full occupancy has little to gain. And the two kernels differ in a second way.',
+        label: 'Nothing: the float4 kernel issues a quarter of the load instructions, so the gain is theirs.',
+        why: 'Section 6.3 just argued that a bandwidth-bound kernel at full occupancy has little to gain from fewer instructions. And the two kernels differ in a second way.',
       },
       {
-        label: 'Whether uint additions are slower than int additions on the GPU.',
+        label: 'Whether uint additions are slower than int additions on Apple GPUs.',
         why: 'The cost of the addition is not the issue. What changes is what the compiler may assume about the index, and so how it can load.',
       },
       {
-        label: 'Whether the float4 buffer is bound at an offset that is a multiple of 16.',
+        label: 'Whether the float4 buffer is bound at an offset that is a multiple of 16 bytes.',
         why: 'That decides whether the float4 kernel is valid, not why the baseline is slow.',
       },
     ],

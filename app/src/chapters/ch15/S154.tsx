@@ -325,12 +325,12 @@ export const questionsS154: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'The FLOP per byte from global memory came from the 128 × 128 output tile (section 15.2); register tiling of the inputs cuts shared-memory reads per multiply-add from 2 to 0.25.',
+        label: 'Global FLOP per byte came from the 128 × 128 output tile (section 15.2); register tiling cut shared reads per multiply-add from 2 to 0.25.',
         correct: true,
       },
-      { label: 'Register tiling raises the FLOP per global byte from 32 to 256, eight times.', why: 'Global traffic per tile pair is unchanged: the same A and B tiles are loaded into shared memory either way.' },
-      { label: 'Register tiling raises intensity because the 64 accumulators no longer travel to global memory every step.', why: 'They never did: C_r has been in registers since section 15.3.' },
-      { label: 'Both are the same effect, so the book\'s wording is exact.', why: 'They act on different memories: one on DRAM traffic per FLOP, the other on shared-memory traffic per FLOP.' },
+      { label: 'Register tiling raised the FLOP per global byte eightfold, from 32 to 256, because each value loaded from global memory is now reused from registers.', why: 'Global traffic per tile pair is unchanged: the same A and B tiles are loaded into shared memory either way.' },
+      { label: 'Register tiling raised intensity because the 64 accumulators no longer travel to global memory at every step.', why: 'They never did: C_r has been in registers since section 15.3.' },
+      { label: 'Both are one effect seen in two places, so the book\'s wording is exact.', why: 'They act on different memories: one on DRAM traffic per FLOP, the other on shared-memory traffic per FLOP.' },
     ],
     explain: (
       <p>
@@ -353,12 +353,12 @@ export const questionsS154: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Reading the strips for step i + 1 from shared memory while the multiply-adds of step i still use the current strips: the false dependence of section 15.8, one level down.',
+        label: 'Reading step i + 1\'s strips from shared memory while step i\'s multiply-adds still use the current set.',
         correct: true,
       },
-      { label: 'Twice as many accumulators, so a larger output tile.', why: 'The fragments hold input strips; the accumulators are separate.' },
-      { label: 'Fewer shared-memory reads per multiply-add.', why: 'Each strip value is still read once per step; only when it is read changes.' },
-      { label: 'No bank conflicts.', why: 'Which banks a read hits depends on its addresses, not on which registers receive it.' },
+      { label: 'Twice as many accumulators per thread, so each warp can own a larger tile of the output.', why: 'The fragments hold input strips; the accumulators are separate.' },
+      { label: 'Fewer shared-memory reads per multiply-add: each strip read from shared memory now serves two steps of i instead of one.', why: 'Each strip value is still read once per step; only when it is read changes.' },
+      { label: 'Strip reads free of bank conflicts, since the two sets of registers alternate.', why: 'Which banks a read hits depends on its addresses, not on which registers receive it.' },
     ],
     explain: (
       <p>
@@ -440,6 +440,16 @@ export function S154() {
         are indexed only by constants and the compiler can keep all three in registers.
       </p>
       <Source pages="359" />
+      <p>
+        The animation follows one thread through one tile pair: the reads of the first order, the swap of the loops,
+        the outer products that fill its patch, and how the same idea repeats one level up.
+      </p>
+      <Simplification>
+        <p>
+          The animation is drawn from the same model as the explorer above: one thread, one tile pair, small integers,
+          reads counted as the source issues them. No timing and no bank conflicts.
+        </p>
+      </Simplification>
       <OuterProductScene />
       <TwoMm />
       <p>

@@ -89,8 +89,10 @@ The same three kernels go in `work/kernel.metal` (`dcs_scatter`, `dcs_gather`,
 
 ## On HIP
 
-The same `kernel.cu` builds for HIP; `cudaMemcpyToSymbol` is mapped to
-`hipMemcpyToSymbol`. Float `atomicAdd` on AMD compiles to a safe operation, possibly a
+The same `kernel.cu` is written to build for HIP unchanged (unverified: no HIP machine has
+built it yet), because it uses only what `pmpp/vendors/hip.h` carries over unchanged: threads and blocks, constant memory, a legacy atomic and runtime calls;
+`cudaMemcpyToSymbol` is mapped to `hipMemcpyToSymbol`. (Warp `_sync` intrinsics,
+cooperative groups and half-precision headers would not port unchanged.) Float `atomicAdd` on AMD compiles to a safe operation, possibly a
 compare-and-swap loop, unless the build passes `-munsafe-fp-atomics`, and RDNA1 and CDNA1
 have no hardware float atomic add (`notes/today/infra-facts.md` B1, ch21-facts B1). The
 course's HIP build does not pass the flag, so your scatter measurement on AMD is of the
@@ -151,8 +153,8 @@ Write these down first; the labs page records them.
    shrink by chunk 1,024? On NVIDIA, the documented rule counts 32-byte sectors per warp:
    the four write statements of the adjacent kernel touch 64 sectors, those of the
    strided kernel 16 (ch21-facts A8, E2). But each launch reads and writes each point
-   once, while the atom loop runs `chunk` times per point (E3). Our prediction, which is
-   ours and unverified, is that the gap shrinks as the chunk grows. AMD documents grouping
+   once, while the atom loop runs `chunk` times per point (E3). Our own prediction,
+   unverified, is that the gap shrinks as the chunk grows. AMD documents grouping
    a wavefront's addresses into 64- or 128-byte lines (B3, E2), which predicts the line
    counts but not the time; there the wavefront can be 64 lanes wide and the float atomics
    depend on a compiler flag (B1). Apple documents no coalescing rule and no cost for its

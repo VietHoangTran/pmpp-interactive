@@ -235,8 +235,8 @@ export const questionsS66: Record<string, Question> = {
     ),
     options: [
       { label: 'When A(i+1) does not depend on A(i) or B(i).', correct: true },
-      { label: 'Always: the hardware resolves dependences at run time.', why: 'A GPU thread issues in order and does not speculate. If A(i+1) needed B(i)\'s result, moving it in front would compute the wrong thing.' },
-      { label: 'Only when B does not depend on A.', why: 'Then there would be no stall to hide. B(i) depending on A(i) is the very reason to move independent work between them.' },
+      { label: 'At any time: the GPU resolves dependences at run time.', why: 'A GPU thread issues in order and does not speculate. If A(i+1) needed B(i)\'s result, moving it in front would compute the wrong thing.' },
+      { label: 'When B(i) does not depend on A(i).', why: 'Not enough: A(i+1) may still read B(i)\'s result, and then it cannot go ahead of B(i). And if B(i) did not wait on A(i), there would be no stall to hide.' },
     ],
     explain: (
       <p>
@@ -253,17 +253,18 @@ export const questionsS66: Record<string, Question> = {
     prompt: <>Why does unrolling matter more after coarsening?</>,
     options: [
       {
-        label: 'The coarsened thread keeps its values in a small array x[c], which can live in registers only once every index is a compile-time constant; otherwise it sits in off-chip local memory and that traffic can cancel the gain.',
+        label: 'The coarsened thread keeps its values in an array x[c], which can live in registers only once every index is a compile-time constant; otherwise it sits in off-chip local memory.',
         correct: true,
       },
-      { label: 'Coarsened loops have more branches than there are registers.', why: 'Branches and registers are unrelated resources.' },
-      { label: 'Unrolling raises occupancy.', why: 'If anything, unrolling keeps more values live at once and can raise register use.' },
+      { label: 'Coarsened loops have more branches than the thread has registers to track them.', why: 'Branches and registers are unrelated resources.' },
+      { label: 'Unrolling raises occupancy, which coarsening has just lowered.', why: 'If anything, unrolling keeps more values live at once and can raise register use.' },
     ],
     explain: (
       <p>
         A register has no address, so an element of an array can be in a register only if the compiler knows at compile
         time which element each instruction means. Fully unrolling the coarsening loop turns x[c] into x[0], x[1], x[2],
-        x[3], and each can become its own register.
+        x[3], and each can become its own register. Left in local memory, the array&rsquo;s traffic can cancel the
+        coarsening gain.
       </p>
     ),
     source: 'ch. 6 §6.6, pp. 145–146',
@@ -278,9 +279,9 @@ export const questionsS66: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'v is likely placed in local memory; nvcc --ptxas-options=-v reports the local-memory (lmem) bytes.', correct: true },
-      { label: 'No change: on CUDA the pragma is only a hint.', why: 'NVIDIA documents 1 as "the loop will not be unrolled" (infra A7). It is AMD that calls the numeric form a hint (B7).' },
-      { label: 'A compile error: a loop over an array must be unrolled.', why: 'It compiles. The array just has to live somewhere addressable.' },
+      { label: 'v likely goes to local memory; nvcc --ptxas-options=-v reports its lmem bytes.', correct: true },
+      { label: 'No change: on CUDA the pragma is only a hint, and the compiler unrolls the loop anyway.', why: 'NVIDIA documents 1 as "the loop will not be unrolled" (infra A7). It is AMD that calls the numeric form a hint (B7).' },
+      { label: 'A compile error: a loop that indexes a local array must be unrolled.', why: 'It compiles. The array just has to live somewhere addressable.' },
     ],
     explain: (
       <p>

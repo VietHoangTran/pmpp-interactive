@@ -403,7 +403,7 @@ export const questions10: Record<string, Question> = {
     options: [
       { label: 'Each request takes longer; requests per second go up.', correct: true },
       {
-        label: 'Each request takes less time; requests per second go up.',
+        label: 'Each request is quicker; requests per second go up.',
         why: 'A pass over 32 requests does more work than a pass over one. No single request gets its answer sooner than it would alone.',
       },
       {
@@ -437,19 +437,19 @@ export const questions10: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Halving the precision again: 16-bit values are that much cheaper to compute with.',
-        why: 'The step from 64 to 32 bits shows what narrower values buy on the same units: a factor of 2. The same step again would give about 134.',
+        label: 'Halving the precision again: a 16-bit unit is much smaller than a 32-bit one, so far more of them fit on the chip.',
+        why: 'The step from 64 to 32 bits shows what narrower values buy: a factor of 2. The same step again would give about 134, not 1,979.',
       },
       {
-        label: 'A different kind of unit and an assumption: the third figure is for matrix-multiply units (tensor cores), and it assumes sparsity.',
+        label: 'Another kind of unit, and an assumption: it is the tensor-core (matrix-multiply) rate, quoted with sparsity.',
         correct: true,
       },
       {
-        label: 'Memory: 16-bit values need half the bandwidth, so more of them arrive per second.',
+        label: 'Memory: 16-bit values need half the bandwidth, so twice as many of them arrive per second.',
         why: 'These are peak rates of the arithmetic units. Memory does not enter into them.',
       },
       {
-        label: 'A misprint in the book.',
+        label: 'A misprint: by the pattern of the first two figures, the 16-bit one should read about 134.',
         why: 'The vendor\'s own table prints the same three numbers.',
       },
     ],
@@ -484,7 +484,7 @@ export const questions10: Record<string, Question> = {
         label: `Both on B: it has ${MANY.throughput / FAST.throughput} times the peak rate.`,
         why: `A peak rate needs every unit busy. For X, B can use only ${nf(LONG_FEW.chains)} of its ${MANY.units} units: one wave of ${nf(LONG_FEW.length)}, done at ${nf(longFew.b.last)}. A runs ${nf(longFew.a.waves)} waves of ${nf(LONG_FEW.length / FAST.speed)} and is done at ${nf(longFew.a.last)}.`,
       },
-      { label: 'X on A, Y on B.', correct: true },
+      { label: 'X on A, Y on B: A for the few chains, B for the many.', correct: true },
       {
         label: 'X on B, Y on A: the bigger job goes to the design with the higher peak rate.',
         why: `That is each job on the design that suits it least: X takes ${nf(longFew.b.last)} on B against ${nf(longFew.a.last)} on A, and Y takes ${nf(shortMany.a.last)} on A against ${nf(shortMany.b.last)} on B.`,
@@ -514,15 +514,15 @@ export const questions10: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Across tokens: the GPU works on many future tokens of the request at once.',
+        label: 'Across tokens: the GPU works on many future tokens of the request at the same time.',
         why: 'Token t+1 needs token t. Along the sequence, the work is one dependent chain.',
       },
       {
-        label: 'Inside each step: every matrix product of the forward pass is thousands of dot products that do not depend on each other.',
+        label: 'Inside each step: every matrix product is thousands of dot products that do not depend on each other.',
         correct: true,
       },
       {
-        label: 'Nowhere. Generation is sequential, so a GPU cannot help a single request.',
+        label: 'Nowhere in one request: generation is sequential, so a GPU only helps once requests are batched.',
         why: 'The loop over tokens is sequential. What happens inside one turn of the loop is not.',
       },
     ],
@@ -723,7 +723,8 @@ export function S10() {
       </p>
       <Source section="1.1" pages="5" />
       <p>
-        Chapter 4 shows the mechanism (§4.6, pp. 82–85): the hardware keeps many more threads resident than it can
+        Chapter 4 shows the mechanism (<a href={href('ch04', '4.6')}>§4.6, warp scheduling and latency tolerance</a>,
+        pp. 82–85): the hardware keeps many more threads resident than it can
         execute at one instant, and at each step it picks one that is not waiting. The hundreds of thousands of
         threads the book gives the H100 are threads of this kind: resident, with far fewer executing at any moment.
       </p>
@@ -745,7 +746,8 @@ export function S10() {
         its own arithmetic, which is the shortest wait one request can have. With a large batch every request takes
         longer, and the GPU finishes more tokens per second in total. Serving at batch size 1 asks a
         throughput-oriented processor to behave like a latency-oriented one. The book draws the same parallel
-        itself: its section on batching, near the end, points back to the two designs of this chapter.
+        itself: its section on batching, <a href={href('ch22', '22.5')}>§22.5</a>, points back to the two designs of
+        this chapter.
       </p>
       <Source section="22.5" pages="539–540" />
       <Ask q={questions10['ch01/start/q-tokens']} />
@@ -766,7 +768,8 @@ export function S10() {
         </p>
         <p>
           One difference to hold on to. Fig. 1.1 draws the GPU with its own DRAM. That fits CUDA and HIP devices. It
-          does not fit Apple silicon, where CPU and GPU share system memory. Chapter 2 takes it up.
+          does not fit Apple silicon, where CPU and GPU share system memory. Chapter 2 takes it up in{' '}
+          <a href={href('ch02', '2.4')}>§2.4, device memory and data transfer</a>.
         </p>
         <p className="muted">Checked 2026-11-20.</p>
       </Beyond>

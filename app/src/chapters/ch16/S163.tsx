@@ -93,20 +93,20 @@ export const questionsS163: Record<string, Question> = {
     options: [
       {
         label:
-          "Neighbouring threads' lookups land at unrelated places in the hash table, so a warp's loads do not coalesce, and which sub-problem runs when is decided at run time.",
+          "Neighbouring threads' lookups land at unrelated places in the table, so a warp's loads do not coalesce, and the recursion fixes the order only at run time.",
         correct: true,
       },
       {
-        label: 'GPU code cannot call functions, so the recursion cannot be compiled.',
+        label: 'GPU code cannot call functions: every device function is inlined, so a recursive call has nothing to compile into.',
         why: 'Device functions can be called, and can recurse on CUDA and HIP; Metal allows recursion in kernels from Metal 2.4.',
       },
       {
-        label: 'GPUs have no hash tables.',
+        label: 'GPUs have no hash tables: device code has no associative container, so the memo table would have to stay on the host.',
         why: 'A hash table is an array and some arithmetic; any kernel can build one. The trouble is where its lookups land.',
       },
       {
-        label: 'Recursion is forbidden on every GPU backend.',
-        why: 'Only the CUDA kernel itself (the __global__ function) may not recurse. Device functions may, with a stack whose size you set.',
+        label: 'Recursion is forbidden in device code on CUDA, HIP and Metal alike, so a recursive solver does not compile on any of them.',
+        why: 'On CUDA only the kernel itself (the __global__ function) may not recurse. Device functions may, on CUDA and HIP with a stack whose size you set, and Metal allows recursion from Metal 2.4.',
       },
     ],
     explain: (
@@ -194,19 +194,19 @@ export const questionsS163: Record<string, Question> = {
     options: [
       {
         label:
-          'The thread that owns dist[i][k] computes min(dist[i][k], dist[i][k] + dist[k][k]), which with dist[k][k] = 0 is dist[i][k] again, and likewise for row k. So no value that another thread reads changes during the step.',
+          'With dist[k][k] = 0, a cell of row k or column k is updated to its own value, so nothing that another thread reads changes during the step.',
         correct: true,
       },
       {
-        label: 'The threads of a block run in lockstep, so all reads happen before any write.',
+        label: 'The threads of a block run in lockstep, so every thread reads row k and column k before any thread of the block gets as far as its own write.',
         why: 'Different blocks read row k too, and nothing orders blocks within a launch.',
       },
       {
-        label: 'Launches are ordered, so step k + 1 sees all of step k.',
+        label: 'Launches in one stream are ordered, so step k + 1 sees every write of step k, whatever order the threads of step k ran in.',
         why: 'True, but that orders the steps. The question is about threads within one step.',
       },
       {
-        label: 'min is commutative, so the order of the updates does not matter.',
+        label: 'min is commutative and associative, so whatever order the threads update in, every cell ends with the same minimum.',
         why: 'The order of updates matters as soon as a value someone reads can change. The argument has to show that it cannot.',
       },
     ],
@@ -232,20 +232,20 @@ export const questionsS163: Record<string, Question> = {
     options: [
       {
         label:
-          'The int is converted to float and compared with infinity, which no int equals, so the early exits never fire. If "no edge" is stored as INT_MAX, the sum then overflows.',
+          'The int becomes a float, and no int equals infinity, so the exits never fire; with INT_MAX as "no edge", the sum then overflows.',
         correct: true,
       },
       {
-        label: 'It works: INFINITY converts to the largest int.',
+        label: 'It works: INFINITY converts to the largest int, so the test matches entries that store INT_MAX for "no edge".',
         why: 'The conversion goes the other way. When an int meets a float in a comparison, the int becomes a float.',
       },
       {
-        label: 'The early exits fire too often, retiring blocks that do have a path.',
-        why: 'No int compares equal to positive infinity, so they never fire at all.',
+        label: 'The exits fire too often: large distances round to infinity as floats, so blocks that do have a path retire.',
+        why: 'Even INT_MAX converts to a finite float. No int compares equal to positive infinity, so the exits never fire at all.',
       },
       {
-        label: 'It is fine as long as the weights are small.',
-        why: 'The test can never be true, whatever the weights.',
+        label: 'It is fine as long as the weights are small, because then no sum of two entries can reach the int limit.',
+        why: 'The test can never be true, whatever the weights, so a "no edge" entry still goes into the sum.',
       },
     ],
     explain: (
@@ -321,19 +321,19 @@ export const questionsS163: Record<string, Question> = {
     options: [
       {
         label:
-          'Nothing promises that the block owning the row above has started. A spinning block keeps its SM, so if later rows start first, or the grid does not fit at once, nothing finishes.',
+          'Nothing promises that the block owning the row above has started, and a spinning block keeps its SM: if later rows start first, nothing finishes.',
         correct: true,
       },
       {
-        label: 'The flag must be declared volatile.',
+        label: 'The flag must be declared volatile, or the compiler keeps it in a register and the spinning block never sees it set.',
         why: 'It must be written and read as a device-scope atomic with release and acquire, which volatile is not. And a correct flag does not help if the block that sets it never runs.',
       },
       {
-        label: 'Nothing: blocks start in blockIdx order.',
+        label: 'Nothing: blocks start in blockIdx order, so the row above is running before the row below begins to wait on it.',
         why: 'No scheduler ordering is promised: blocks may run in any order (chapter 4).',
       },
       {
-        label: 'Nothing, as long as the grid has no more blocks than the GPU has SMs.',
+        label: 'Nothing, as long as the grid has no more blocks than the GPU has SMs, since then every block gets an SM of its own and none is left waiting to start.',
         why: 'A grid that fits is the condition for a cooperative launch, and only that launch promises that every block makes progress. Under an ordinary launch nothing backs it.',
       },
     ],
@@ -359,16 +359,19 @@ export const questionsS163: Record<string, Question> = {
     options: [
       {
         label:
-          'Step t needs only step t − 1 of the same sequence, and different sequences are independent, so the whole dependency stays inside one block, where a block barrier covers it.',
+          'Step t needs only step t − 1 of the same sequence, and sequences are independent, so the whole dependency stays inside one block.',
         correct: true,
       },
-      { label: 'CTC has no dependency between time steps.', why: 'alpha at step t needs three entries of step t − 1.' },
       {
-        label: 'It uses atomics instead of a barrier.',
+        label: 'CTC has no dependency between time steps: each alpha entry comes from the network\'s outputs at its own step.',
+        why: 'alpha at step t needs three entries of step t − 1.',
+      },
+      {
+        label: 'It uses atomics instead of a barrier: each thread adds its share to step t + 1 as soon as it has it.',
         why: 'The loop has a barrier at every time step; that is the synchronisation.',
       },
       {
-        label: 'PyTorch runs the batch one sequence at a time.',
+        label: 'PyTorch runs the batch one sequence at a time, one block per launch, so a block barrier is the only synchronisation it could need.',
         why: 'Blocks handle different sequences in parallel. The loop over time is inside each block.',
       },
     ],
@@ -1133,7 +1136,8 @@ export function S163() {
           <b>The whole grid waits for the whole previous front.</b> A relaunch per front does this; the book's tiled
           Smith-Waterman kernels relaunch once per anti-diagonal of tiles. A grid-wide barrier,{' '}
           <code>grid.sync()</code> under a cooperative launch, saves the launches but not the wait, and needs every block
-          resident at once (the API is in chapter 18, §18.7, pp. 445–448).
+          resident at once (the API is the book's §18.7, pp. 445–448, worked on page{' '}
+          <a href={href('ch18', '18.6')}>18.6, "Private queues and one launch for every level"</a>).
         </li>
         <li>
           <b>A unit of work waits only for its neighbours.</b> One flag per tile, set once the tile is stored. A tile
@@ -1142,7 +1146,8 @@ export function S163() {
         </li>
         <li>
           <b>Nothing waits across blocks</b>, because one block, or one warp, owns the whole chain. For short sequences one
-          block or even one warp per problem is enough, with barriers or shuffles inside (chapter 10, §10.7).
+          block or even one warp per problem is enough, with barriers or shuffles inside (shuffles are on page{' '}
+          <a href={href('ch10', '10.7')}>10.7</a>).
         </li>
       </ol>
       <Source section="16.6, 16.8" pages="384, 398" />

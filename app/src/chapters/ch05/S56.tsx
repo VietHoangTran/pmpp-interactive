@@ -817,7 +817,7 @@ export const questionsS56: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Occupancy falls to a quarter: each block now takes four times the shared memory.',
+        label: 'Occupancy falls to a quarter: each block now takes four times the shared memory, 8 KB instead of 2 KB.',
         why: 'Each block also brings four times the threads. Per thread, nothing changed.',
       },
       {
@@ -825,11 +825,11 @@ export const questionsS56: Record<string, Question> = {
         why: 'It was already full, and block slots were never the limit: 8 of 32 were in use.',
       },
       {
-        label: 'Occupancy stays full. What changes is the grain and the traffic: a quarter as many blocks per SM, each four times as large, and half the global-memory traffic per operation.',
+        label: 'Occupancy stays full: a quarter as many blocks per SM, each four times as large, and half the global traffic per operation.',
         correct: true,
       },
       {
-        label: 'Occupancy stays full and nothing else changes; the tile width only matters once shared memory runs out.',
+        label: 'Occupancy stays full and nothing else changes: the tile width only starts to matter once shared memory or the block-size limit runs out.',
         why: 'Occupancy is unchanged, but the tile width is the factor by which global-memory traffic falls. That was the point of tiling.',
       },
     ],

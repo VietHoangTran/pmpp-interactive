@@ -107,7 +107,7 @@ check('q-stencil-barriers: two is correct, and double buffering is named', v && 
 
 v = await answerChoice('Viterbi decoding', 'Yes, as long as blocks take their work');
 check('q-viterbi: the counter answer is wrong, with its reason', v && v.includes('Not quite.') && v.includes('does not shrink what a block waits for'), v);
-v = await answerChoice('Viterbi decoding', 'No: every block of step t needs');
+v = await answerChoice('Viterbi decoding', 'No: each block of step t needs');
 check('q-viterbi: correct, naming grid.sync() and CTC', v && v.includes('Correct.') && v.includes('grid.sync()') && v.includes('CTC'), v);
 
 v = await answerChoice('causal attention layer', 'Yes: row i needs the rows above it');
@@ -163,9 +163,9 @@ check('the project status says there is no milestone and the lab is optional', t
 
 // ---- links
 const links = await page.$$eval('.prose a[href^="#/"]', (as) => [...new Set(as.map((a) => a.getAttribute('href')))]);
-const known = new Set(['#/ch16/16.3', '#/ch16/16.6', '#/ch16/labs', '#/ch17/start']);
+const known = new Set(['#/ch16/16.3', '#/ch16/16.6', '#/ch16/labs', '#/ch17/start', '#/ch18/18.6', '#/ch20/start']);
 check(`every link goes to a known route (${links.join(' ')})`, links.every((l) => known.has(l)) && links.length === known.size, links.filter((l) => !known.has(l)).join(', '));
-for (const target of ['ch16/16.3', 'ch16/16.6', 'ch16/labs', 'ch17/start']) {
+for (const target of ['ch16/16.3', 'ch16/16.6', 'ch16/labs', 'ch17/start', 'ch18/18.6', 'ch20/start']) {
   await goto(page, target);
   const t = await page.$eval('.page h1', (e) => e.textContent).catch(() => '');
   check(`the link to ${target} opens a page`, t.length > 2, t);

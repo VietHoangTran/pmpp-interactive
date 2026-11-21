@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { Question } from '../../components/Ask';
 import { Predict } from '../../components/Ask';
-import { Aside, Beyond, Source, Today, type Tier } from '../../components/notes';
+import { Aside, Beyond, NoteGroup, Source, Today, type Tier } from '../../components/notes';
 import {
   BackendsAndEmulator,
   LabFiles,
@@ -27,7 +27,6 @@ import {
 import { fmt, labStatus, num, type BenchRow, type Reports, type RunResult } from '../../lib/reports';
 import { href } from '../../lib/router';
 import { rssOverSsa, type Row } from '../../sim/scantraffic';
-import { NoteGroup } from './NoteGroup';
 
 // The page is built from components/LabKit.tsx; what is here is chapter 11's own content.
 // No question on this page: the labs are the exercise. (Predictions are stored, not graded.)
@@ -416,7 +415,7 @@ function MilestoneStatus() {
         : !backends.length
           ? 'No lab results are recorded on this machine yet.'
           : done.length
-            ? `Your own lab 11.6 passes on ${done.map(name).join(' and ')} on this machine: part 1 of M5 is done there.`
+            ? `Your own lab 11.6 passes on ${done.map(name).join(' and ')} on this machine: the top-p piece of M5 is in place there.`
             : 'Your own lab 11.6 does not pass on any backend of this machine yet.'}
     </p>
   );
@@ -465,7 +464,7 @@ export function Labs() {
         Six labs, each in its own directory under <code>labs/ch11/</code>. The first two build and measure block scans:
         three ways to scan one block, then coarsening and register tiling. The third is a hunt for three defects in the
         row-wise scan that real libraries ship. The fourth and fifth scan an array of any length, with several kernels on
-        every backend and with one kernel on CUDA and HIP only. The sixth is the first part of milestone M5 of the course
+        every backend and with one kernel on CUDA and HIP only. The sixth is the top-p piece of milestone M5 of the course
         project: the top-p keep mask over sorted probabilities.
       </p>
       <p>
@@ -952,7 +951,7 @@ export function Labs() {
       <ReferenceSolution lab={l5} tiers={SINGLE_TIERS} />
 
       {/* ------------------------------------------------------------ 11.6 */}
-      <h2>Lab 11.6: top-p keep mask (milestone M5, part 1)</h2>
+      <h2>Lab 11.6: top-p keep mask (milestone M5)</h2>
       <p>
         Top-p sampling keeps the smallest set of most likely tokens whose probability reaches p. After the probabilities
         are sorted, that set is a prefix of each row, and finding it is a scan. You write one row-wise kernel over{' '}
@@ -1047,9 +1046,10 @@ export function Labs() {
         repeats the call on the same buffers, so if the copy's rate there is higher than at 64 rows, the repeats are served
         from something faster than main memory. Read the bandwidth question at 64 × 128,256 and 256 × 32,000.
       </p>
-      <h3>Project milestone M5, part 1</h3>
+      <h3>Project milestone M5, the top-p piece</h3>
       <p>
-        Lab 11.6 is the first part of milestone M5 of the through-line project, top-k and top-p sampling on the GPU. Chapter
+        Lab 11.6 is the top-p piece of milestone M5 of the through-line project, top-k and top-p sampling on the GPU, with repetition
+        penalties; lab 9.3's token counts for the penalties were the first piece. Chapter
         12 compacts the kept tokens into a short list, chapter 14 sorts the logits that this lab receives already sorted,
         and module X1 draws the sample: the sausage of section 11.1, with a uniform random number in place of the knife.
       </p>

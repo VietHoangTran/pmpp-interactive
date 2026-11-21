@@ -260,10 +260,10 @@ function RaceLine({ lab }: { lab: Lab }) {
       ) : (
         <>
           {sol.s === 'none'
-            ? `On this machine the reference solution of lab ${lab.num} has no run on the race backend yet.`
+            ? `The reference solution of lab ${lab.num} has no run on the race backend on this machine.`
             : sol.s === 'pass'
-              ? `On this machine the reference solution of lab ${lab.num} passed all ${sol.tests.length} tests on the race backend with ${sol.found ? `${sol.found} ThreadSanitizer report(s)` : 'no race reported'}: emulator-checked on this flavour.`
-              : `On this machine the reference solution of lab ${lab.num} failed on the race backend (${sol.passed} of ${sol.tests.length} tests): unverified there.`}{' '}
+              ? `On the race backend the reference solution of lab ${lab.num} is emulator-checked: all ${sol.tests.length} tests passed, with ${sol.found ? `${sol.found} ThreadSanitizer report(s)` : 'no race reported'}.`
+              : `On the race backend the reference solution of lab ${lab.num} is unverified: failed on this machine (${sol.passed} of ${sol.tests.length} tests passed).`}{' '}
           {mine.s === 'none'
             ? 'Your own kernels have no recorded run there, or are still the untouched starter.'
             : mine.s === 'pass'
@@ -384,7 +384,7 @@ export function Labs() {
         Two labs, each in its own directory under <code>labs/x3/</code>. The first writes the three kernels a Llama
         decode step needs that milestones M0 to M8 lack (RMSNorm, RoPE and SwiGLU) and reviews an RMSNorm ported in the
         structure of llama.cpp's kernels, with three defects planted in it. The second is milestone M10: it composes
-        every milestone into one greedy decode step of a Llama-style model and checks each logit and each token against a
+        the earlier milestones' reference solutions into one greedy decode step of a Llama-style model and checks each logit and each token against a
         CPU reference.
       </LabsIntro>
       <p>
@@ -411,7 +411,7 @@ export function Labs() {
       <p>
         Lab X3.2 runs other labs' reference solutions, which you do not edit. <code>provided/pieces.cmake</code> copies them
         into the build directory at configure time: labs 2.3, 6.4, 10.3, 20.4, 22.2 and X3.1 are required, and 15.6, 20.5,
-        22.1 and X1.3 are used when present. It renames what would clash and makes one-line device helpers{' '}
+        22.1, X1.3 and X2.4 (with X2.1's and X2.2's GEMVs) are used when present. It renames what would clash and makes one-line device helpers{' '}
         <code>static</code>, as lab 22.2's does. A missing required piece, or one whose signature differs from the one{' '}
         <code>llama.h</code> declares, skips the lab with a note naming it. So M10 runs the reference pieces, not your own
         versions of them: a failure in its "pieces alone" check is the course's, not yours.
@@ -673,6 +673,13 @@ export function Labs() {
           gives what the original gives in mode 1.
         </li>
         <li>
+          <b>M9 in M10.</b> When lab X2.4's solution is present, your step runs again, unchanged, with M9's quantised layer
+          as its linear layer: every projection and the head in Q8_0, then in Q4_0. Its tokens must equal those of the CPU
+          reference run on the same quantised weights, free-running, under the same margin rule as above (with the provided
+          seed one Q4_0 sequence is inconclusive from one step on), and on a GPU every logit is checked teacher-forced too.
+          The run also prints where the quantised model's greedy tokens first leave the float32 model's; that is not a test.
+        </li>
+        <li>
           <b>The sampler.</b> On a GPU, when lab X1.3's solution is present: M5 at temperature 0 gives the greedy tokens, and
           two runs at a fixed seed and temperature 0.8 give identical tokens. Sampled tokens are not compared across
           backends here.
@@ -766,10 +773,19 @@ export function Labs() {
         real checkpoint has head size 128 and the build downloads nothing.
       </p>
       <p>
-        M10 runs float32 weights without M9. The <code>LinearFn</code> indirection in <code>llama.h</code> is where a
-        quantised linear layer would plug in, but lab X2.4's <code>launchQLinear</code> takes a quantised matrix descriptor,
-        not <code>LinearFn</code>'s float pointer and sizes, so <code>pieces.cmake</code> adds no M9 row. Making the two
-        meet needs an adapter that is not built yet.
+        M10 also runs with M9's quantised layer. The <code>LinearFn</code> indirection in <code>llama.h</code> is where a
+        quantised linear layer plugs in, but lab X2.4's <code>launchQLinear</code> takes a quantised matrix descriptor, not{' '}
+        <code>LinearFn</code>'s float pointer and sizes. A provided adapter, <code>provided/m9_linear</code>, joins them
+        without changing your interface. The driver quantises every projection and the tied embedding with llama.cpp's
+        rules, as lab X2.4's driver does, keeps the dequantised values in the model's float buffers, and binds each float
+        buffer to its quantised copy. The adapter is a <code>LinearFn</code> that looks up the <code>W</code> it is handed
+        and calls <code>launchQLinear</code> with the quantised copy. It never reads the float <code>W</code>.
+      </p>
+      <p>
+        The adapter has a price, and it is ours to name. The float copies stay in device memory beside the quantised ones,
+        so the run holds more bytes than the float32 model alone, and the embedding reads its row from those floats where
+        M9's own step dequantises the row it needs. That is fine for a test of correctness; a step built to save memory
+        would pass the descriptor itself, as M9's <code>launchQDecodeStep</code> does.
       </p>
       <ReferenceSolution lab={l2} />
     </LabsPage>

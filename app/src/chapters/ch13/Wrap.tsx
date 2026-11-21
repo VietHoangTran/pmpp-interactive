@@ -67,7 +67,7 @@ export const questionsWrap: Record<string, Question> = {
         why: 'The search would still look for the split of an ascending merge: its tests would call i too high exactly when it is too low.',
       },
       {
-        label: 'Every comparison flips direction and keeps its strictness, in the merge and in both tests.',
+        label: 'Flip the merge test and both search tests; each keeps its strictness.',
         correct: true,
       },
       {
@@ -343,7 +343,9 @@ export function Wrap() {
         <li>
           p. 315 says thread 1's A slice in the Fig. 13.8 example is much smaller than its B slice; there thread 1 takes
           three elements of A and none of B. p. 321 cites the tiled kernel as "Figs. 13.12 through 13.14" (it is Figs.
-          13.11 to 13.13), and p. 322 calls it <code>merge_tile_kernel</code> once.
+          13.11 to 13.13) and says tiles start "inside A_S[0] and B_S[0]" (inside the arrays A_S and B_S); p. 322 calls
+          the tiled kernel <code>merge_tile_kernel</code> once, and introduces the circular kernel's two modulo statements
+          (<code>A_S_start</code> and <code>B_S_start</code>) as "the if-statement below".
         </li>
         <li>
           <code>ceil</code> of an integer quotient in Fig. 13.9 line 03, Fig. 13.11 lines 05 and 06, and Fig. 13.12 line
@@ -434,8 +436,10 @@ export function Wrap() {
       <p>
         This chapter adds no milestone to the through-line project: nothing on the main path of an inference step, its
         matrix products, attention or quantised arithmetic, merges two sorted lists. The merge does sit under sampling,
-        though. Lab 13.1's <code>total</code> mode is the step that combines per-block top-k lists, and the sampling
-        module of this course can reuse it. Lab 13.1 is optional.{' '}
+        though. Lab 13.1's <code>total</code> mode is the step that combines per-block top-k lists, as llama.cpp's Metal
+        backend does. Module X1 builds its top-k as a radix select instead (
+        <a href={href('x1', 'X1.4')}>X1.4, "Top-k is a selection, not a sort"</a>), so its milestone does not depend on
+        this lab. Lab 13.1 is optional.{' '}
         <span data-lab131={passing.join(',') || 'none'}>
           {backends.length === 0 && !reports['emu']
             ? 'No lab results are recorded on this machine yet.'

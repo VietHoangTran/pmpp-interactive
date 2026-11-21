@@ -16,7 +16,12 @@ tile widths 4, 8, 16 and that largest one with one binary.
 
 - Edit `work/kernel.cu` and `work/kernel.metal` + `work/launch.mm`.
 - Test: `python3 labs/pmpp.py run 5.5`
-- Measure: `python3 labs/pmpp.py run 5.5 --bench`
+- Measure: `python3 labs/pmpp.py run 5.5 --bench`. It times widths 512, 1024, 2048 and
+  4096 at every power-of-two tile width that fits. Those are the widths lab 5.2's benchmark
+  can settle on (it doubles from 512 until its naive kernel is slow enough to time, up to
+  4096), so the labs page compares the two kernels at the width lab 5.2 used. Run lab 5.2's
+  benchmark too, on the same backend.
 
-Before you benchmark, predict: at the same tile width, is this kernel faster, slower or
-the same as lab 5.2's, where the tile width was a compile-time constant? Why?
+Before you benchmark, predict: at the same tile width (16) and the same matrix width, is
+this kernel faster, slower or the same as lab 5.2's, where the tile width was a
+compile-time constant? Why?

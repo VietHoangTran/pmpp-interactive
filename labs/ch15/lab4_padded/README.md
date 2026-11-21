@@ -15,15 +15,15 @@ body of `loadTile` removed. Two changes:
    one `float4` load per thread per tile, when it is safe. The A tile's rows are
    16-byte aligned when K is a multiple of 4, the B tile's when N is (on CUDA, A and B
    come from `cudaMalloc`, aligned to at least 256 bytes; on HIP they come from
-   `hipMalloc`, whose alignment no facts file documents, so the same rule there is
-   unverified), and the four columns must lie inside the matrix. Otherwise keep the scalar path that fills zeros past the matrix. Store into
+   `hipMalloc`, for which AMD's memory reference states no alignment (ch15-facts B8), so the
+   same rule there is unverified), and the four columns must lie inside the matrix. Otherwise keep the scalar path that fills zeros past the matrix. Store into
    shared memory one float at a time: a padded row of `A_s` is 9 floats, so a `float4`
    store there would not be aligned, and NVIDIA documents no bank rule for 128-bit shared
    accesses (`notes/today/ch15-facts.md` A2).
 
-The book writes the declaration `A_s[bM*(bK + 1)]`. The CPU emulator's translator rejects
-parentheses inside a `__shared__` declaration, so give the padded leading dimension a name
-(`#define LDA_S (bK + 1)`) and write `A_s[bM * LDA_S]`.
+The book writes the declaration `A_s[bM*(bK + 1)]`. Give the padded leading dimension a
+name (`#define LDA_S (bK + 1)`), write `A_s[bM * LDA_S]`, and use the same name in every
+index into `A_s`, so that no index can keep the old width.
 
 ## Files
 

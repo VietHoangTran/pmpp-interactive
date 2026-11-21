@@ -51,8 +51,8 @@ export const questionsS225: Record<string, Question> = {
     prompt: <>Which of the section's two motivations is weak scaling, in the sense of Gustafson's law?</>,
     options: [
       { label: 'The second: more instances finished in the time available.', correct: true },
-      { label: 'The first: one problem finished sooner.', why: 'Fixed problem, more processors, less time: that is strong scaling, the setting of Amdahl\'s law.' },
-      { label: 'Both: any speed-up is weak scaling.', why: 'The two differ in what is held fixed: the problem size, or the time.' },
+      { label: 'The first: one problem, the 10-hour analysis, finished sooner.', why: 'Fixed problem, more processors, less time: that is strong scaling, the setting of Amdahl\'s law.' },
+      { label: 'Both: any speed-up that lets more work finish is weak scaling.', why: 'The two differ in what is held fixed: the problem size, or the time.' },
     ],
     explain: (
       <p>
@@ -77,8 +77,8 @@ export const questionsS225: Record<string, Question> = {
         label: 'Not by itself. M3\'s block tile is 128 rows tall and computes 128 rows whatever B is, so below 128 neither its grid nor its arithmetic changes.',
         correct: true,
       },
-      { label: 'Yes: a flat line always means memory-bound.', why: 'A flat line means something fixed sets the time. With M3 it can be the 128 rows of arithmetic the tile does anyway.' },
-      { label: 'No: a flat line means it is compute-bound.', why: 'It may be either. Flatness alone cannot tell which fixed cost sets the time.' },
+      { label: 'Yes: a time per step that stays flat as rows are added is the signature of a bandwidth-bound step.', why: 'A flat line means something fixed sets the time. With M3 it can be the 128 rows of arithmetic the tile does anyway.' },
+      { label: 'No: a flat line means the step is compute-bound, with the arithmetic units as the fixed cost.', why: 'It may be either. Flatness alone cannot tell which fixed cost sets the time.' },
     ],
     explain: (
       <p>
@@ -97,7 +97,7 @@ export const questionsS225: Record<string, Question> = {
     prompt: <>Weights and activations go from float32 to 16-bit. Where does the projection's knee B* move?</>,
     options: [
       { label: 'To about half: from about 2T rows to about T rows.', correct: true },
-      { label: 'It doubles.', why: 'Halving the bytes doubles the operations per byte at every batch, so the threshold is reached sooner, not later.' },
+      { label: 'It doubles, to about 4T rows: each row now brings fewer bytes to share the weights with.', why: 'Halving the bytes doubles the operations per byte at every batch, so the threshold is reached sooner, not later.' },
       { label: 'It does not move: the arithmetic is the same.', why: 'The arithmetic is the same and the bytes are halved. Intensity is the ratio of the two.' },
     ],
     explain: (
@@ -115,8 +115,8 @@ export const questionsS225: Record<string, Question> = {
     prompt: <>Which parts of a decode step do more operations per byte as the batch grows?</>,
     options: [
       { label: 'The projections that carry weights: Q, K, V, the attention output, the MLP and the LM head.', correct: true },
-      { label: 'Every part of the step.', why: 'Bias, residual, softmax and argmax do a fixed amount of work per element of each row, however many rows there are (E2).' },
-      { label: 'Attention most of all, which is why p. 539 names the attention heads.', why: 'Attention proper reads each request\'s own keys and values: nothing in it is shared between requests, so nothing is reused.' },
+      { label: 'Every part of the step, since every kernel now processes B rows in one launch.', why: 'Bias, residual, softmax and argmax do a fixed amount of work per element of each row, however many rows there are (E2).' },
+      { label: 'Attention most of all, which is why p. 539 names the attention heads as what batching makes more intense.', why: 'Attention proper reads each request\'s own keys and values: nothing in it is shared between requests, so nothing is reused.' },
     ],
     explain: (
       <p>
@@ -164,11 +164,11 @@ export const questionsS225: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'A serves latency and B throughput. Alone on the server, the user gets a token every t on A and every 4t on B; with 64 users waiting, B delivers 16 times A\'s tokens per second.',
+        label: 'A serves latency, B throughput. A lone user gets a token every t on A and every 4t on B; with 64 users, B gives 16 times A\'s tokens per second.',
         correct: true,
       },
       {
-        label: 'B serves both. It delivers 16 times A\'s tokens per second, so even a lone user gets each token sooner on B.',
+        label: 'B serves both. With 64 users it delivers 16 times A\'s tokens per second, so even a lone user on an empty server gets each token sooner on B.',
         why: 'The 16 times is tokens per second for the device, spread over 64 rows. A lone user fills one row of B and still waits 4t for each token, against t on A.',
       },
       {
@@ -193,11 +193,11 @@ export const questionsS225: Record<string, Question> = {
     prompt: <>Why does continuous (iteration-level) batching matter for this section's trade-off?</>,
     options: [
       {
-        label: 'It admits and retires requests at every step, so the batch stays near the slot limit and the server lives at a large B on the curve; each user then pays the step time at that B for every token.',
+        label: 'It admits and retires requests every step, so the batch stays near the slot limit; each user then pays that batch\'s step time per token.',
         correct: true,
       },
-      { label: 'It makes attention batch.', why: 'Attention proper still reads each request\'s own K and V. Orca, which introduced the technique, runs attention per request.' },
-      { label: 'It removes the latency cost of batching.', why: 'It removes the waiting for other requests to finish. Each step still takes the time of the batch it carries.' },
+      { label: 'It makes attention batch: requests decoded together share one pass over the keys and values.', why: 'Attention proper still reads each request\'s own K and V. Orca, which introduced the technique, runs attention per request.' },
+      { label: 'It removes batching\'s cost in time per token, because no request waits for the others in its batch to finish.', why: 'It removes the waiting for other requests to finish. Each step still takes the time of the batch it carries.' },
     ],
     explain: (
       <p>
@@ -219,11 +219,11 @@ export const questionsS225: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'No. The book stacks the requests\' rows into one matrix multiplied by one shared weight matrix: a single GEMM with M = B. Batched GEMM is for many independent pairs of matrices.',
+        label: 'No. The book stacks the requests\' rows into one GEMM with M = B against one shared weight matrix; batched GEMM is for many independent pairs.',
         correct: true,
       },
-      { label: 'Yes: one instance of the batch per request.', why: 'Each instance would carry its own copy of the weight operand, a matrix-vector product per request: the redundant weight traffic batching exists to remove.' },
-      { label: 'Yes, but only on HIP.', why: 'hipBLAS has the same batched entry points, and they mean the same thing there.' },
+      { label: 'Yes: one instance of the batched call per request, each multiplying that request\'s row by the weight matrix, all in one call.', why: 'Each instance would carry its own copy of the weight operand, a matrix-vector product per request: the redundant weight traffic batching exists to remove.' },
+      { label: 'Yes on HIP: hipBLAS defines its batched GEMM as one product over the stacked rows, unlike cuBLAS.', why: 'hipBLAS has the same batched entry points as cuBLAS, and they mean the same thing there: C_i = A_i B_i for each instance i.' },
     ],
     explain: (
       <p>
@@ -841,6 +841,12 @@ export function S225() {
         in passes over the weights ({fmt(wb / 1e6, 3)} MB of them in float32 for the lab's default model), so the picture
         holds for any device whose threshold is the book's example 20 FLOP/B.
       </p>
+      <Simplification>
+        <p>
+          The same model as the roofline explorer below: each piece at the bound of its own minimum traffic, pieces in
+          sequence, no launch cost, no cache, no attention. Only relative time is drawn, so no device timing appears.
+        </p>
+      </Simplification>
       <DecodeStepScene />
 
       <h2>Find the knee on the roofline</h2>

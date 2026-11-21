@@ -125,7 +125,7 @@ const choose = async (needle, label) => {
   await pause(120);
   return h.evaluate((e) => e.textContent);
 };
-check('q-pragma1: the local-memory answer is correct', (await choose('#pragma unroll 1 above a coarsening loop', 'v is likely placed in local memory')).includes('Correct.'));
+check('q-pragma1: the local-memory answer is correct', (await choose('#pragma unroll 1 above a coarsening loop', 'v likely goes to local memory')).includes('Correct.'));
 check('q-metal: "Apple documents it" is wrong, with the reason', (await choose('You port a coarsened kernel to Metal', 'Yes: Apple documents this pragma')).includes('no loop pragma at all'));
 check('q-metal: "the AIR records it" is wrong too: the driver compiles AIR again', (await choose('You port a coarsened kernel to Metal', 'Yes: the AIR records')).includes('compiled again by the driver'));
 const qm = await choose('You port a coarsened kernel to Metal', 'You cannot tell');

@@ -272,12 +272,12 @@ export const questionsS141: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Rows contiguous and in row order, but the values inside each row in no promised order.', correct: true },
+      { label: 'Rows contiguous and in row order; inside each row, values in no promised order.', correct: true },
       {
-        label: 'Fully correct: row ids are integers, so the second pass cannot go wrong.',
+        label: 'Fully correct: row ids are small integers with no fractions to compare, so the row-id pass cannot go wrong.',
         why: 'It cannot get the rows wrong. But every token of a row has the same row id, so inside a row all keys tie, and an unstable sort may shuffle them.',
       },
-      { label: 'Rows interleaved.', why: 'The last pass sorts by row id; whatever else it does, it groups the rows.' },
+      { label: 'Rows interleaved: an unstable pass may move a token in among another row\'s tokens.', why: 'The last pass sorts by row id; whatever else it does, it groups the rows.' },
     ],
     explain: (
       <p>
@@ -293,13 +293,13 @@ export const questionsS141: Record<string, Question> = {
     id: 'ch14/14.1/q-bound',
     prompt: <>Why can radix sort do better than the bound of order N log N comparisons?</>,
     options: [
-      { label: 'It uses more threads.', why: 'The bound is on comparisons, however many threads make them.' },
+      { label: 'It uses more threads: with one thread per key, the comparisons are spread over the whole grid.', why: 'The bound is on comparisons, however many threads make them.' },
       {
-        label: 'It works out each key\'s position from its digits and never compares two keys; the bound counts comparisons, so it does not apply. The price: keys must be bit patterns that order correctly.',
+        label: 'It never compares two keys: it places each key from its digits, and the bound counts only comparisons.',
         correct: true,
       },
-      { label: 'The bound only holds for sequential code.', why: 'It holds for any sort that learns about the order only by comparing pairs.' },
-      { label: 'It does not; radix sort is N log N too.', why: 'For a fixed key width, the number of passes is fixed and each pass is linear in N.' },
+      { label: 'The bound is for sequential code; a parallel sort can make its comparisons in fewer steps.', why: 'It holds for any sort that learns about the order only by comparing pairs.' },
+      { label: 'It does not: radix sort makes log N passes of N steps each, so it is N log N too.', why: 'For a fixed key width, the number of passes is fixed and each pass is linear in N.' },
     ],
     explain: (
       <p>
@@ -386,6 +386,12 @@ export function S141() {
         value and once by row id. In which order, and which pass must be stable? The explorer below gives you two rows;
         predict each one before you apply the passes.
       </p>
+      <Simplification>
+        <p>
+          Two rows of six, sorted on the CPU by the course's model. The unstable pass is the same fixed network as above,
+          so another unstable sort could scramble the ties differently.
+        </p>
+      </Simplification>
       <TwoPasses />
       <p>
         Only one combination works: values first, row id last, and the last pass stable. Rows first fails however stable

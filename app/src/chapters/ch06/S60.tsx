@@ -34,10 +34,10 @@ export const questionsS60: Record<string, Question> = {
     id: 'ch06/start/q-warp2d',
     prompt: <>A kernel runs 16 × 16 blocks on hardware with 32-wide warps. Which threads of a block form warp 0?</>,
     options: [
-      { label: 'threadIdx.x 0 to 15 for threadIdx.y 0 and 1: two rows of the block.', correct: true },
-      { label: 'threadIdx.x 0 to 31 of row 0.', why: 'The block is only 16 wide; there is no threadIdx.x above 15.' },
-      { label: 'Every second thread of the block.', why: 'Warps are consecutive threads in the linearised order, not interleaved.' },
-      { label: 'The hardware picks them at run time.', why: 'The partition is fixed: linearise row-major (x fastest), then cut into 32s.' },
+      { label: 'threadIdx.x 0 to 15 in rows threadIdx.y = 0 and 1.', correct: true },
+      { label: 'threadIdx.x 0 to 31 of row 0: a warp is 32 consecutive x values.', why: 'The block is only 16 wide; there is no threadIdx.x above 15. Consecutive in the linearised order means two rows here.' },
+      { label: 'threadIdx.y 0 to 15 in columns threadIdx.x = 0 and 1.', why: 'That linearises y fastest. The order is x fastest, so a warp takes whole rows, not columns.' },
+      { label: 'The hardware picks them at run time, so no kernel can rely on it.', why: 'The partition is fixed: linearise row-major (x fastest), then cut into 32s.' },
     ],
     explain: (
       <p>
@@ -112,12 +112,12 @@ export const questionsS60: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Moving the same bytes with fewer, wider, well-formed requests, and enough of them in flight.',
+        label: 'Fewer, wider, well-formed requests for the same bytes, with enough of them in flight.',
         correct: true,
       },
-      { label: 'Tiling it through shared memory.', why: 'Each element is used once by one thread; there is no reuse for a tile to capture.' },
-      { label: 'Doing more arithmetic per element loaded.', why: 'The computation needs one add per element. Extra arithmetic is extra work, not speed.' },
-      { label: 'A larger tile.', why: 'There is no tile, and no tile size changes a ratio fixed by the computation.' },
+      { label: 'Tiling it through shared memory, so that each element crosses the memory bus only once.', why: 'Each element already crosses once: it is used once by one thread, so there is no reuse for a tile to capture.' },
+      { label: 'Doing more arithmetic per element loaded, to raise its operations per byte.', why: 'The computation needs one add per element. Extra arithmetic is extra work, not speed.' },
+      { label: 'A larger tile, so that each block reuses more of the elements it loads.', why: 'There is no tile, and no element is used twice, so no tile size changes a ratio fixed by the computation.' },
     ],
     explain: (
       <p>

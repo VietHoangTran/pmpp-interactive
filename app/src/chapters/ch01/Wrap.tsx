@@ -130,11 +130,11 @@ export const questionsWrap: Record<string, Question> = {
       },
       { label: 'Launch many more threads than there are units, so that a unit always has one that is ready.', correct: true },
       {
-        label: 'Launch fewer threads, so that each gets its data sooner.',
+        label: "Launch fewer threads, so that each one's memory accesses come back sooner.",
         why: 'An access is slow here because the design allows it to be, not because the threads compete. Memory has throughput to spare.',
       },
       {
-        label: 'Make the arithmetic of each thread faster.',
+        label: 'Make the arithmetic of each thread faster, so it reaches its next access sooner.',
         why: 'The units already sit idle most of the time. Shorter arithmetic only makes the waits a larger share.',
       },
     ],
@@ -203,7 +203,7 @@ export const questionsWrap: Record<string, Question> = {
         label: 'Steps 2 and 5: with one memory there is nothing to allocate and nothing to launch.',
         why: 'The GPU still needs a buffer it is allowed to use, and its threads still have to be started.',
       },
-      { label: 'Steps 3 and 6, the two copies.', correct: true },
+      { label: 'Steps 3 and 6, the two copies: both processors read the same memory.', correct: true },
       {
         label: 'Step 4: the kernel can then be an ordinary host function.',
         why: 'The kernel is the computation itself, written for many threads. Where the data lives does not change who runs it.',
@@ -365,7 +365,7 @@ export function Wrap() {
       <Today checked="2026-11-20 (notes/today/ch01-facts.md, A3, A4, A6, A7, A10 to A12, A15; ch05-facts.md, A9)">
         <p>
           Everything here comes from vendors' and standards bodies' own pages. A few of those pages could only be read
-          through a tool that returns extracted text. Nothing was verified on hardware, and nothing in this chapter
+          through a tool that returns extracted text. Nothing was run on hardware, and nothing in this chapter
           rests on a measurement.
         </p>
       </Today>
@@ -385,7 +385,7 @@ export function Wrap() {
           <tr>
             <td>More than 1 billion CUDA-enabled GPUs are in use, and there are millions of CUDA programmers (pp. xvii, 6).</td>
             <td>
-              The billion could not be verified. NVIDIA's keynote of March 2026 speaks of "hundreds of millions of GPUs
+              We could not confirm the billion. NVIDIA's keynote of March 2026 speaks of "hundreds of millions of GPUs
               and computing systems around the world that run CUDA". Millions of developers is NVIDIA's own figure
               too.
             </td>
@@ -484,6 +484,10 @@ export function Wrap() {
           week.
         </li>
         <li>
+          §1.5 dates OpenCL to 2009 (p. 13), while the book's own reference [9] gives the 1.0 specification as 2008
+          (p. 18). The table above has what Khronos says.
+        </li>
+        <li>
           Smaller things on pp. 16–17: "coverts" for converts, "filter patter", "divide-and-concur", and "leverage
           techniques scatter-to-gather transformations". On p. 10 the book says "many-core GPUs" once where the rest
           of the chapter says many-thread; it means the same thing.
@@ -522,8 +526,9 @@ export function Wrap() {
         </li>
         <li>
           §1.5 (pp. 12–13): how OpenMP's directives and pragmas work, MPI's domain decomposition, and the design of
-          OpenCL. One paragraph in section 1.7. Programming at cluster level is also left out of this course's
-          chapter 23.
+          OpenCL. One paragraph in section 1.7. MPI, NCCL and NVSHMEM get a paragraph each on one page of this
+          course's chapter 23 (<a href={href('ch23', '23.4')}>23.3–23.5</a>), which keeps streams, asynchronous copies
+          and pinned memory.
         </li>
         <li>§1.6, the three goals (p. 14): one sentence each in section 1.7.</li>
         <li>

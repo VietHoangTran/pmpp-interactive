@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
-import { Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
+import { Bench, Beyond, NoteGroup as Notes, Simplification, Source, Today } from '../../components/notes';
 import { fmt, realBackends, useReports, type BackendRun, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import {
@@ -25,7 +25,6 @@ import {
   type RunLike,
   type Written,
 } from '../../sim/scantraffic';
-import { NoteGroup as Notes } from './NoteGroup';
 
 // Section 11.8: a scan's operations per byte, the bandwidth ceiling in elements per second,
 // and the 80% yardstick. Every number comes from src/sim/scantraffic.ts; the reader's own
@@ -337,11 +336,11 @@ export const questionsS118: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Yes: anything above 80% counts.', why: 'The rule has two parts. Read p. 273 again: above 80% and no redundant global accesses.' },
       {
-        label: 'No: the rule also requires no redundant global accesses. It moves 12 bytes per element where 8 suffice, so its useful rate is about two thirds of what the measurement suggests.',
-        correct: true,
+        label: 'Yes: anything above 80% of the published bandwidth counts as well optimised.',
+        why: 'The rule has two parts. Read p. 273 again: above 80% and no redundant global accesses.',
       },
+      { label: 'No: the rule also requires every global location to be touched once, and this kernel does not.', correct: true },
       { label: 'No: a scan can never pass 80%, so the measurement must be wrong.', why: 'The book says Fig. 11.13 can plausibly exceed 80% (p. 273).' },
       { label: 'It cannot be judged without knowing the device\'s FLOP/s.', why: 'At 1/8 OP/B the scan is memory-bound on any device the book considers; only bytes matter.' },
     ],

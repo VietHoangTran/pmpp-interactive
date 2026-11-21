@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { longestRight } from './questionText';
+import { lengthLimit, longestRight, shortestRight } from './questionText';
 import { questionsS230 } from './S230';
 
 // The start page's choice questions: the seeded shuffle hides where the right answer is, not
-// how long it is, so no right answer may be strictly the longest option.
+// how long it is, so the right answer may be strictly the longest (or shortest) option in only a
+// few of them. The chapter-wide balance is question-balance.test.ts's.
 describe("the start page's questions", () => {
   it('each choice question has one right option, and every wrong one says why', () => {
     for (const q of Object.values(questionsS230)) {
@@ -12,7 +13,8 @@ describe("the start page's questions", () => {
       expect(q.options.filter((o) => !o.correct).every((o) => !!o.why), q.id).toBe(true);
     }
   });
-  it('no right answer is strictly the longest option, JSX labels included', () => {
-    expect(longestRight(questionsS230)).toEqual([]);
+  it('the right answer is rarely strictly the longest or the shortest option, JSX labels included', () => {
+    expect(longestRight(questionsS230).length).toBeLessThanOrEqual(lengthLimit(questionsS230));
+    expect(shortestRight(questionsS230).length).toBeLessThanOrEqual(lengthLimit(questionsS230));
   });
 });

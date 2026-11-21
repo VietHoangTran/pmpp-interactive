@@ -67,7 +67,7 @@ export const questionsWrap: Record<string, Question> = {
         why: 'That part is true on NVIDIA, so the barriers work. But the threads that left also had jobs besides their pixel.',
       },
       {
-        label: `Bins ${lostRange}, one count short each: those bins of the last block's private copy belonged to threads that left.`,
+        label: `Bins ${lostRange}, one count short each: in the last block, nobody zeroes or commits them.`,
         correct: true,
       },
       {
@@ -75,7 +75,7 @@ export const questionsWrap: Record<string, Question> = {
         why: 'Each remaining thread counts its own pixel, whatever its value. What is missing is somebody to zero and commit the other bins.',
       },
       {
-        label: 'All of them, at random: the barriers are no longer reached by every thread.',
+        label: 'All of them, at random: the barriers are no longer reached by every thread of every block.',
         why: 'NVIDIA\'s barrier waits for the threads that have not exited, so the kernel is well defined there; the damage is deterministic and confined to the last block.',
       },
     ],
@@ -111,7 +111,7 @@ export const questionsWrap: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Float atomics can lose updates under contention; integer atomics never lose one.',
+        label: 'Float atomics can drop an update under heavy contention, which integer atomics do not.',
         why: 'Both are atomic: every update arrives. What differs is what the order of arrival does to the result.',
       },
       {
@@ -234,7 +234,8 @@ export const questionsWrap: Record<string, Question> = {
         / 2.5 M = {fmt(appendMs())} ms, during which the rest of the GPU waits on one queue, however many threads you
         launch. This is the first use of <code>fetch_add</code>'s return value, which the book says chapters 12 and 18
         need (p. 209). The cure has this chapter's shape: count a block's candidates privately, then reserve the block's
-        whole range with a single <code>fetch_add</code> of that count, one atomic per block. Chapter 12 builds it.
+        whole range with a single <code>fetch_add</code> of that count, one atomic per block. Chapter 12 builds it, in{' '}
+        <a href={href('ch12', '12.4')}>section 12.4</a>.
       </p>
     ),
     source: 'the §9.3 model, pp. 209–210; p. 209 for the return value; the sampler is ours',
@@ -441,7 +442,7 @@ export function Wrap() {
         </li>
         <li>
           p. 213 calls shared memory "private to each SM". It sits on the SM, but each block is given, and sees, its own
-          allocation; the same wording was flagged in chapter 5.
+          allocation. <a href={href('ch05', 'wrap')}>Chapter 5's summary</a> flags the same slip on p. 116 and in exercise 12.
         </li>
         <li>
           Fig. 9.15 declares <code>b</code> as <code>unsigned int</code> and <code>bNext</code> as{' '}
@@ -470,7 +471,8 @@ export function Wrap() {
         implemented. A full private histogram per thread for very few bins (p. 217) is one question in{' '}
         <a href={href('ch09', '9.6')}>9.6</a>. Fig. 9.10 appears as lab 9.2's kernel at coarsening factor 1, and Fig.
         9.12 as that lab's provided comparator; the book's compile-time <code>COARSE_FACTOR</code> is a run-time argument
-        in the labs. Not in the book and not done here either: the sign-aware repetition penalty, left to module X1.
+        in the labs. Not in the book and not done here either: the sign-aware repetition penalty, which section{' '}
+        <a href={href('x1', 'X1.3')}>X1.3</a> adds.
       </p>
 
       <h2>Where you will meet it in real code</h2>
@@ -515,7 +517,7 @@ export function Wrap() {
               : 'Your own lab 9.3 does not pass on any backend of this machine yet.'}
         </span>{' '}
         See the <a href={href('ch09', 'labs')}>labs</a>. Chapters 11, 12 and 14 add the pieces top-p and top-k need, and
-        module X1 assembles M5.
+        module X1 assembles M5 in its <a href={href('x1', 'labs')}>lab X1.3</a>.
       </p>
       <p>
         Chapter 10 keeps this chapter's shape and changes what is merged. A reduction combines everything into one value:

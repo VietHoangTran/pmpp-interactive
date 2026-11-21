@@ -645,7 +645,7 @@ export function S71() {
       <Source section="7.1" pages="160–161" figs="Figs. 7.1, 7.2" />
       <p>
         Since every output is an inner product with the same filter, a whole convolution can be written as one matrix
-        multiplication. The book leaves that to chapter 19, and it is how libraries usually run it.
+        multiplication. The book leaves that to chapter 19 (<a href={href('ch19', '19.3')}>§19.3</a>), and it is how libraries usually run it.
       </p>
       <Source pages="161" figs="footnote 1" />
 

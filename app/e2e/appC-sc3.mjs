@@ -227,10 +227,10 @@ else check('no Metal observation yet: the page says how to get one', addr.kind =
 
 // ---- questions
 let q = await question('dst came from');
-await pick(q, 'A host-to-device copy into GPU 1');
+await pick(q, 'Host to device, into GPU 1');
 check('q-direction', (await qText(q)).includes('Correct.'));
 q = await question('every pointer works everywhere');
-await pick(q, 'A kernel reading cudaMallocHost memory.');
+await pick(q, 'A kernel reading cudaMallocHost memory through');
 check('q-address-not-access: the mapped-memory distractor says it is allowed', (await qText(q)).includes('Not quite.') && (await qText(q)).includes('Allowed'));
 await pick(q, 'Host code dereferencing a cudaMalloc pointer.');
 check('q-address-not-access', (await qText(q)).includes('Correct.'));
@@ -238,9 +238,9 @@ q = await question('four-node list');
 await typeAnswer(q, 2);
 check('q-chase: 2', (await qText(q)).includes('Correct.'));
 q = await question('To debug a sampler');
-await pick(q, 'It is fine on both, only slow');
-check('q-hip-host: "fine on both, only slow" is wrong, because CUDA does not allow the read', (await qText(q)).includes('Not quite.') && (await qText(q)).includes('On CUDA the read is not allowed at all'));
-await pick(q, 'It works on HIP because AMD documents');
+await pick(q, 'It is fine on both, just slow');
+check('q-hip-host: "fine on both, just slow" is wrong, because CUDA does not allow the read', (await qText(q)).includes('Not quite.') && (await qText(q)).includes('On CUDA the read is not allowed at all'));
+await pick(q, 'AMD documents host reads of hipMalloc memory');
 check('q-hip-host: works on HIP, wrong in the CUDA build', (await qText(q)).includes('Correct.') && (await qText(q)).includes('CPUs can access memory allocated via hipMalloc()'));
 
 // ---- notes and voice
@@ -248,7 +248,7 @@ const notes = await page.$$eval('.prose > .note', (x) => x.map((e) => e.textCont
 check('Today notes cite A5, ch02-facts A4 and A12; HIP B3; Metal C3; A14', ['A5', 'A4', 'A12', 'B3', 'C3', 'A14'].every((s) => notes.includes(s)));
 const prose = await page.$eval('.prose', (e) => e.textContent);
 check('GMAC is presented as the book\'s account', prose.includes("that is the book's account"));
-check('every margin note directly follows text', await page.evaluate(() => [...document.querySelectorAll('.prose > .note')].every((n) => ['P', 'UL', 'OL'].includes(n.previousElementSibling?.tagName) || n.previousElementSibling?.classList.contains('note'))));
+check('every margin note (or note group) directly follows text, never another note', await page.evaluate(() => [...document.querySelectorAll('.prose > .note')].every((n) => ['P', 'UL', 'OL'].includes(n.previousElementSibling?.tagName))));
 check('no em dash in the page', !prose.includes('—'));
 check('answers went to the progress API (intercepted)', puts > 0);
 check('no console or page errors', errors.length === 0, errors.join(' | '));

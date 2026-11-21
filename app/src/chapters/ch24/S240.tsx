@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { Ask, Predict, type ChoiceQ, type Question } from '../../components/Ask';
 import { Aside, Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
+import { useNarrow } from '../../lib/narrow';
 import { useProgress } from '../../lib/progress';
 import { fmt, useReports } from '../../lib/reports';
 import { href } from '../../lib/router';
@@ -36,18 +37,7 @@ const P_HOSTLINK = 'ch24/start/p-hostlink';
 const P_KNEE = 'ch24/start/p-knee';
 
 /** True below 600 px of viewport width, where the two wide widgets lay themselves out again. */
-const NARROW = '(max-width: 600px)';
-function useNarrow() {
-  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.matchMedia(NARROW).matches);
-  useEffect(() => {
-    const m = window.matchMedia(NARROW);
-    const on = () => setNarrow(m.matches);
-    on();
-    m.addEventListener('change', on);
-    return () => m.removeEventListener('change', on);
-  }, []);
-  return narrow;
-}
+const useNarrow600 = () => useNarrow(600);
 
 // ---------------------------------------------------------------- 1. the steps map
 // What each goal's set of chapters shows, in one or two sentences (PLAN.md sections 2, 3 and 5).
@@ -61,7 +51,7 @@ const GOAL_NOTE: Record<GoalId, string> = {
   quantised:
     "The book offers two paragraphs on lower-precision formats in appendix A and chapter 15's intensity analysis. The kernels themselves are ours, in module X2.",
   backends:
-    "Appendix C gives the book's memory models, which we set against unified memory, and module X3 reads real HIP and Metal backends. Every lab counts as well: one .cu source serves CUDA and HIP, and Metal gets its own kernel wherever it can express the lab.",
+    "Appendix C gives the book's memory models, which we set against unified memory, and module X3 reads real HIP and Metal backends. Every lab counts as well: one .cu source serves CUDA and HIP through a header for threads, blocks, shared memory, barriers, legacy atomics and runtime calls, but warp _sync intrinsics need a typed lane mask, and cooperative groups, half-precision headers, CUB functors, matrix-core intrinsics and __dp4a (which HIP lacks) need guards or a substitute; Metal gets its own kernel wherever it can express the lab.",
   reading:
     'Chapter 19 shows how a framework hands work to a library. Module X3 reads llama.cpp, MLX and PyTorch.',
 };
@@ -379,7 +369,7 @@ function Seg<T extends string | number>({ label, value, options, onChange }: { l
 const CONTRADICTED = new Set(auditPrinted().filter((a) => !a.matches).map((a) => a.row));
 
 function Recomputed() {
-  const narrow = useNarrow();
+  const narrow = useNarrow600();
   const [set, setSet] = useState<FigureSet>('book');
   const [o, setO] = useState<Options>(DEFAULTS.book);
   const [sel, setSel] = useState<RowId>('fp32');
@@ -762,7 +752,7 @@ function Strip({ thr, tile, narrow }: { thr: number; tile: number; narrow: boole
 
 function ThresholdBench() {
   const { progress } = useProgress();
-  const narrow = useNarrow();
+  const narrow = useNarrow600();
   const committed = typeof progress.answers[P_KNEE]?.value === 'number';
   const [key, setKey] = useState('book2007');
   const [dense, setDense] = useState(false);
@@ -892,11 +882,11 @@ export const questions240: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'A sort (chapter 14), then a scan (chapter 11) of the sorted probabilities, as top-p does.',
+        label: 'A sort (chapter 14) of the row, then a scan (chapter 11) of the sorted probabilities to find where the cut-off falls, as top-p does.',
         why: "Top-p needs them because its cut-off is a running sum over the probabilities in sorted order. Min-p's cut-off depends on one number, the largest probability, so no order is needed.",
       },
       {
-        label: 'A reduction (chapter 10) for the largest probability, then a filter (chapter 12) to gather the tokens that pass.',
+        label: 'A reduction (chapter 10) for the largest probability, then a filter (chapter 12) to gather the survivors.',
         correct: true,
       },
       {
@@ -904,8 +894,8 @@ export const questions240: Record<string, Question> = {
         why: 'The threshold is a fraction of the largest probability in the row, and no thread knows that alone. Finding it is a reduction.',
       },
       {
-        label: 'A histogram (chapter 9) of the probabilities.',
-        why: 'A histogram counts items per bin. The cut-off needs one value, the maximum, not a count per bin.',
+        label: 'A histogram (chapter 9) of the probabilities, then a scan (chapter 11) of the bin counts to find the cut-off bin.',
+        why: 'That is how radix select finds a top-k cut-off without a full sort (module X1); top-p would need each bin\'s probability mass, not its count. Min-p\'s cut-off needs one value, the maximum.',
       },
     ],
     explain: (
@@ -982,20 +972,19 @@ export const questions240: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Memory bandwidth. Unified memory is fast enough that the row no longer limits a kernel.',
-        why: 'Apple publishes a chip-level memory bandwidth figure. The row exists.',
+        label: 'Memory bandwidth. CPU and GPU share one memory, so the GPU has no bandwidth of its own; contention with the CPU takes its place.',
+        why: 'Apple publishes a chip-level memory bandwidth figure, and a batch-1 kernel is still limited by it. The row exists.',
       },
       {
-        label: 'Memory capacity. With unified memory the device has no memory of its own to run out of.',
+        label: 'Memory capacity. The GPU has no memory of its own to run out of, so a model of any size is mapped and paged in on demand.',
         why: 'Unified memory still has a size, and the weights and KV cache still have to fit in it.',
       },
       {
-        label:
-          'The host-to-device link. A shared buffer is visible to both sides with no copy; what you avoid instead is waiting for a command buffer to complete before the CPU reads results.',
+        label: 'The host-to-device link. Buffers are shared with no copy; the cost left is waiting for a command buffer before the CPU reads.',
         correct: true,
       },
       {
-        label: 'Compute throughput. Apple publishes no FLOPS figure.',
+        label: 'Compute throughput. Apple publishes no FLOPS figure, so the threshold of section 5.1 gives way to occupancy as the cost to watch.',
         why: 'The published number is missing, but the limit on a kernel is still there.',
       },
     ],

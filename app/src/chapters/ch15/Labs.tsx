@@ -607,9 +607,9 @@ export function Labs() {
       </p>
       <Source section="15.6" pages="361–363" figs="Fig. 15.11; Exercise 1, p. 370; vector loads at low occupancy, §15.7 p. 364" />
       <p>
-        The book writes the declaration <code>A_s[bM*(bK + 1)]</code>. The emulator&rsquo;s translator rejects
-        parentheses inside a <code>__shared__</code> declaration, so the lab gives the padded leading dimension a name,{' '}
-        <code>#define LDA_S (bK + 1)</code>, and writes <code>A_s[bM * LDA_S]</code>.
+        The book writes the declaration <code>A_s[bM*(bK + 1)]</code>. The lab gives the padded leading dimension a
+        name, <code>#define LDA_S (bK + 1)</code>, writes <code>A_s[bM * LDA_S]</code>, and uses the same name in every
+        index into <code>A_s</code>, so that no index can keep the old width.
       </p>
       <LabFiles
         lab={l4}

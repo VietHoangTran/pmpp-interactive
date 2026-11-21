@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Ask, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
-import { Bench, Beyond, Simplification, Source, Today, type Tier } from '../../components/notes';
+import { Bench, Beyond, NoteGroup, Simplification, Source, Today, type Tier } from '../../components/notes';
 import { href } from '../../lib/router';
 import {
   bankMap,
@@ -13,7 +13,6 @@ import {
   type Phase,
 } from '../../sim/coarsescan';
 import { functionSource } from '../../sim/toolchain';
-import { NoteGroup } from './NoteGroup';
 
 const STATUS = {
   printed: 'front-end-checked; emulator-checked (N a multiple of the block segment); unverified on CUDA hardware; as printed',
@@ -374,9 +373,12 @@ export const questionsS117: Record<string, Question> = {
     id: 'ch11/11.7/q-pad-odd',
     prompt: <>You pad <code>buffer_s</code> by one word every 32 to fix factor 8, then change the factor to 3 and keep the padding. What happens on 32 banks?</>,
     options: [
-      { label: 'Still conflict-free: padding only ever helps.', why: 'Step through c at factor 3 with padding on.' },
-      { label: 'Some iterations now have a 2-way conflict that the unpadded layout did not have.', correct: true },
-      { label: 'An 8-way conflict, as before the padding.', why: 'Factor 3 had no conflict at all without padding.' },
+      {
+        label: 'Still conflict-free: one word of padding in 32 cannot create a conflict.',
+        why: 'Step through c at factor 3 with padding on.',
+      },
+      { label: 'Some iterations gain a 2-way conflict they did not have.', correct: true },
+      { label: 'An 8-way conflict, as at factor 8 before the padding.', why: 'Factor 3 had no conflict at all without padding.' },
     ],
     explain: (
       <p>
@@ -392,9 +394,12 @@ export const questionsS117: Record<string, Question> = {
     id: 'ch11/11.7/q-why-shared',
     prompt: <>In Fig. 11.13 nothing in shared memory is reused: each value is written once and read once. Why does it still go through shared memory at all?</>,
     options: [
-      { label: 'So that both global transfers can be chunk-major and coalesced while each thread still works on a contiguous run.', correct: true },
-      { label: 'Because blockScan needs the whole segment in shared memory.', why: 'blockScan takes one value per thread, in a register.' },
-      { label: 'Because a local array cannot be filled from global memory.', why: 'It can; loading each run straight into buffer_r would work, but the warp\'s addresses would be F apart.' },
+      { label: 'To keep both global transfers coalesced while each thread scans its own run.', correct: true },
+      {
+        label: 'Because blockScan needs the whole segment in shared memory to combine the runs.',
+        why: 'blockScan takes one value per thread, in a register.',
+      },
+      { label: 'Because a local array cannot be filled straight from global memory.', why: 'It can; loading each run straight into buffer_r would work, but the warp\'s addresses would be F apart.' },
       { label: 'It is a leftover from Fig. 11.12 and could be removed at no cost.', why: 'Removing it brings back the uncoalesced pattern of p. 269.' },
     ],
     explain: (
@@ -411,8 +416,11 @@ export const questionsS117: Record<string, Question> = {
     id: 'ch11/11.7/q-metal-unroll',
     prompt: <>What is the documented Metal counterpart of <code>#pragma unroll</code> in Fig. 11.13?</>,
     options: [
-      { label: 'There is none in the MSL specification. Keep the trip count a compile-time constant, keep the indices constant, and measure.', correct: true },
-      { label: '#pragma unroll, the same as CUDA and HIP.', why: 'The local compiler accepts it, but the MSL specification documents no loop pragma.' },
+      { label: 'None in the MSL spec: keep trip counts and indices constant, and measure.', correct: true },
+      {
+        label: '#pragma unroll, which the MSL specification documents with the same spelling as CUDA.',
+        why: 'The local compiler accepts it, but the MSL specification documents no loop pragma.',
+      },
       { label: '[[unroll]] on the loop.', why: 'No such attribute appears in the specification.' },
       { label: 'Nothing is needed: Metal promotes every local array to registers.', why: 'Apple warns that dynamic indexing into thread-scoped arrays can push them to device memory.' },
     ],

@@ -119,13 +119,19 @@ inline cudaError_t cudaGetDeviceProperties(cudaDeviceProp* prop, int /*device*/)
   prop->maxBlocksPerMultiProcessor = 1;
   prop->multiProcessorCount = 1;
   prop->warpSize = warpSize;
-  prop->maxThreadsDim[0] = prop->maxThreadsDim[1] = prop->maxThreadsDim[2] = ::pmpp_emu::Limits::maxThreadsPerBlock;
-  prop->maxGridSize[0] = prop->maxGridSize[1] = prop->maxGridSize[2] = 65535;
+  // The per-dimension limits are CUDA's (Programming Guide 13.5, Table 33), and the emulator
+  // enforces them at launch (emu_runtime.h, Limits).
+  for (int a = 0; a < 3; ++a) {
+    prop->maxThreadsDim[a] = int(::pmpp_emu::Limits::maxBlockDim[a]);
+    prop->maxGridSize[a] = int(::pmpp_emu::Limits::maxGridDim[a]);
+  }
   prop->cooperativeLaunch = 1;
   prop->unifiedAddressing = 1;
   prop->managedMemory = 1;
   return cudaSuccess;
 }
+// There is one device, number 0 (Runtime API reference 13.5, group__CUDART__DEVICE).
+inline cudaError_t cudaGetDevice(int* device) { *device = 0; return cudaSuccess; }
 inline cudaError_t cudaDeviceGetAttribute(int* value, cudaDeviceAttr attr, int /*device*/) {
   if (attr != cudaDevAttrCooperativeLaunch) return cudaErrorInvalidValue;
   *value = 1;
@@ -135,6 +141,18 @@ inline cudaError_t cudaDeviceGetAttribute(int* value, cudaDeviceAttr attr, int /
 // ---- streams and events (nothing is asynchronous here) ------------------------------
 inline cudaError_t cudaStreamCreate(cudaStream_t* pStream) { *pStream = new pmpp_emu_stream; return cudaSuccess; }
 inline cudaError_t cudaStreamCreateWithFlags(cudaStream_t* pStream, unsigned int /*flags*/) { return cudaStreamCreate(pStream); }
+// Stream priorities (Runtime API reference 13.5; infra-facts E7). The emulator has none, so it
+// answers as the reference says a device without priorities does: both ends of the range are
+// 0, and a requested priority is clamped into that range, so every stream has priority 0.
+inline cudaError_t cudaDeviceGetStreamPriorityRange(int* leastPriority, int* greatestPriority) {
+  if (leastPriority) *leastPriority = 0;          // NULL is allowed for either pointer
+  if (greatestPriority) *greatestPriority = 0;
+  return cudaSuccess;
+}
+inline cudaError_t cudaStreamCreateWithPriority(cudaStream_t* pStream, unsigned int /*flags*/, int /*priority*/) {
+  return cudaStreamCreate(pStream);
+}
+inline cudaError_t cudaStreamGetPriority(cudaStream_t /*hStream*/, int* priority) { *priority = 0; return cudaSuccess; }
 inline cudaError_t cudaStreamDestroy(cudaStream_t stream) {
   if (!stream) return cudaErrorInvalidResourceHandle;
   delete stream;
@@ -184,6 +202,25 @@ inline cudaError_t cudaFuncSetAttribute(T* func, cudaFuncAttribute attr, int val
     ::pmpp_emu::S().dynSharedOptin[reinterpret_cast<const void*>(func)] = size_t(value);
   }
   return cudaSuccess;   // other attributes are accepted and ignored
+}
+// cudaFuncGetAttributes, the C form (const void* func) and the C++ template (T* entry), as the
+// Runtime API reference 13.5 lists them. SYNTHETIC: the emulator compiles no device code, so
+// numRegs, localSizeBytes, sharedSizeBytes, constSizeBytes, binaryVersion, ptxVersion and
+// preferredShmemCarveout are 0;
+// maxThreadsPerBlock is the emulator's 1024 and maxDynamicSharedSizeBytes what
+// cudaFuncSetAttribute set for this kernel, else the 48 KiB default. None of it describes a GPU.
+inline cudaError_t cudaFuncGetAttributes(cudaFuncAttributes* attr, const void* func) {
+  if (!attr || !func) return cudaErrorInvalidValue;
+  std::memset(attr, 0, sizeof(*attr));
+  attr->maxThreadsPerBlock = int(::pmpp_emu::Limits::maxThreadsPerBlock);
+  auto& optin = ::pmpp_emu::S().dynSharedOptin;
+  auto it = optin.find(func);
+  attr->maxDynamicSharedSizeBytes = int(it != optin.end() ? it->second : ::pmpp_emu::Limits::sharedMemPerBlock);
+  return cudaSuccess;
+}
+template <class T>
+inline cudaError_t cudaFuncGetAttributes(cudaFuncAttributes* attr, T* entry) {
+  return cudaFuncGetAttributes(attr, (const void*)entry);
 }
 // SYNTHETIC: the largest number of blocks of this size that one emulated
 // "multiprocessor" (there is exactly one) accepts in a cooperative launch. It

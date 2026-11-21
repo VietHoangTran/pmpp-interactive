@@ -1,6 +1,6 @@
 import { useMemo, useState, type CSSProperties, type DragEvent } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
-import { Aside, Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
+import { Aside, Bench, Beyond, NoteGroup, Simplification, Source, Today } from '../../components/notes';
 import { href } from '../../lib/router';
 import {
   CHAIN_ROWS,
@@ -115,9 +115,9 @@ export const questionsSX11: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Nothing is drawn: the chain ends with the greedy sampler instead of dist, and the largest logit wins, lowest index on a tie.', correct: true },
+      { label: 'Nothing is drawn: greedy replaces dist, and the largest logit wins, lowest index on a tie.', correct: true },
       { label: 'dist runs on a distribution that is one-hot on the largest logit.', why: 'That would give the same token, but the common sampler replaces dist with greedy when the last sampler is temperature at 0.' },
-      { label: 'An error: temperature must be strictly positive.', why: "That is transformers' rule; it asks for do_sample=False instead." },
+      { label: 'An error: temperature must be strictly positive, so the common sampler rejects temp = 0 at start-up.', why: "That is transformers' rule; it asks for do_sample=False instead." },
       { label: 'A random choice among the tokens tied for the largest logit.', why: "The greedy sampler scans with a strict >, so the first maximum stays; there is no random choice." },
     ],
     explain: (
@@ -437,12 +437,14 @@ export function SX11() {
         little differently. This section names each one, shows which pairs of them interact, and fixes the order and the
         tie rule your milestone M5 will implement.
       </p>
-      <Beyond title="Ours, not the book's">
-        <p>
-          Nothing on this page is in the book. The logits it starts from are the output of the book's un-embedding layer.
-        </p>
-      </Beyond>
-      <Source section="20.1" pages="481" />
+      <NoteGroup>
+        <Beyond title="Ours, not the book's">
+          <p>
+            Nothing on this page is in the book. The logits it starts from are the output of the book's un-embedding layer.
+          </p>
+        </Beyond>
+        <Source section="20.1" pages="481" />
+      </NoteGroup>
 
       <h2>Two kinds of stage, then a draw</h2>
       <p>

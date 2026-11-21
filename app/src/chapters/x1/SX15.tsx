@@ -264,7 +264,7 @@ export const questionsSX15: Record<string, Question> = {
     prompt: <>Why must p ≥ 1 keep every token explicitly instead of relying on "mass before &lt; p"?</>,
     options: [
       { label: 'In float the mass before the last tokens can round to 1 or above, and p = 1 would then drop them', correct: true },
-      { label: 'Because p = 1 is outside the range a scan kernel accepts', why: 'A scan does not know about p; the comparison does.' },
+      { label: 'Because p = 1 is outside the range a scan kernel accepts, and the launcher would reject the call', why: 'A scan does not know about p; the comparison does.' },
       { label: "Because softmax rows never sum to exactly 1, so the last token's mass before is always above 1", why: 'Not always above 1: it can round either way, which is the problem.' },
     ],
     explain: (

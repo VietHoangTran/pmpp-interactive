@@ -410,19 +410,26 @@ export const questionsS54: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Barrier 1, after the loads.',
+        label: 'Barrier 1, after the loads into Mds and Nds.',
         why: 'A thread still reads slots that other threads write. It cannot read them before they are written, wherever they live.',
       },
       { label: 'Barrier 2, after the dot product.', correct: true },
-      { label: 'Both.', why: 'One of them guards a dependence that does not go away with more memory.' },
-      { label: 'Neither.', why: 'One of them exists only because the same locations are reused.' },
+      {
+        label: 'Both: with a fresh pair of tiles per phase, no slot is ever reused.',
+        why: 'One of them guards a dependence that does not go away with more memory: a reader still needs the writer\'s value first.',
+      },
+      {
+        label: 'Neither: every phase still writes tiles that other threads read.',
+        why: 'True of barrier 1 only. Barrier 2 exists only because the same locations are reused.',
+      },
     ],
     explain: (
       <p>
         Barrier 1 protects a <b>true</b> dependence: readers need data that writers produce (read after write). No
         amount of memory removes it. Barrier 2 protects a <b>false</b> dependence: the next phase's writers need nothing
         from this phase's readers; they only must not destroy what is still being read (write after read). Write
-        somewhere else and that conflict is gone. Chapter 6 turns this observation into a technique.
+        somewhere else and that conflict is gone. Chapter 6 turns this observation into a technique,{' '}
+        <a href={href('ch06', '6.7')}>section 6.7, Double buffering</a>.
       </p>
     ),
     source: 'ch. 5 §5.4, pp. 110–111',
@@ -483,7 +490,8 @@ export function S54() {
           caption={
             <>
               The reference solution of lab 5.2, loaded from <code>labs/ch05/lab2_tiled/solution/</code>. Try to write
-              it yourself in the lab before studying this one. The HIP build compiles the CUDA file unchanged.
+              it yourself in the lab before studying this one. The HIP build is meant to compile the CUDA file
+              unchanged; that is unverified, since no HIP machine has built it yet.
             </>
           }
         />
@@ -554,8 +562,9 @@ export function S54() {
       <p>
         In the book's model, each input element is now fetched once per block instead of once per thread, so the
         kernel's ratio rises by a factor of <code>TILE_WIDTH</code>: from 0.25 FLOP/B to 4 with 16×16 tiles, 8 with
-        32×32. On the book's example device that lifts the ceiling from about 840 GFLOP/s to 26,800, which is still
-        memory-bound and 40% of the device's peak. The rest of the gap is chapter 15.
+        32×32. On the book's example device the 32×32 tiles lift the ceiling from about 840 GFLOP/s to 26,800, which
+        is still memory-bound and 40% of the device's peak. The rest of the gap is{' '}
+        <a href={href('ch15', 'start')}>chapter 15, Advanced optimizations for matrix multiplication</a>.
       </p>
       <Source section="5.4" pages="111" />
       <Predict
@@ -643,8 +652,10 @@ export function S54() {
       <p>
         One practical consequence for goal three, reading real backends: llama.cpp builds its HIP backend from the very
         same <code>.cu</code> files as its CUDA backend, through a header that renames CUDA identifiers to HIP ones.
-        The labs in this course do the same (<code>labs/common/include/pmpp/vendors/hip.h</code>), so the CUDA you write
-        here is the HIP you would ship. That HIP path has not yet been compiled on real hardware; see the{' '}
+        The labs in this course do the same (<code>labs/common/include/pmpp/vendors/hip.h</code>), so for the features
+        this chapter uses the CUDA you write here is the HIP you would ship. That stops being true at warp
+        intrinsics, cooperative groups, half-precision headers and matrix-core intrinsics, which later chapters
+        treat one at a time. The course's HIP path is unverified: no HIP machine has compiled it yet; see the{' '}
         <a href={href('ch05', 'labs')}>labs page</a>.
       </p>
     </>

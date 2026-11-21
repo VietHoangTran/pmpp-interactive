@@ -107,7 +107,7 @@ export const questionsSC0: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'It is not allowed: host code may not dereference cudaMalloc memory. The result is undefined, typically a crash.',
+        label: 'Undefined: host code may not dereference cudaMalloc memory, and a crash is typical.',
         correct: true,
       },
       {
@@ -115,7 +115,7 @@ export const questionsSC0: Record<string, Question> = {
         why: 'That is what AMD documents for hipMalloc memory under HIP (appC-facts B3). CUDA does not allow it.',
       },
       {
-        label: 'It prints the value, because unified addressing gives host and device one address space.',
+        label: 'It prints the value: since CUDA 4, unified addressing puts host and device in one address space, so host code can follow the pointer.',
         why: 'One address space is not one access right. Section C.3 is about exactly this difference.',
       },
       {
@@ -165,10 +165,10 @@ export const questionsSC0: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'The threads of block 2, after a barrier.', correct: true },
-      { label: 'Every thread of the grid.', why: 'Shared memory has block scope: every block has its own tile.' },
-      { label: 'Only thread 5 of block 2.', why: 'That describes a register or a local array. A __shared__ variable is visible to its whole block.' },
-      { label: 'The host, after the kernel finishes.', why: 'Shared memory lives only while its block runs. To keep a value, write it to global memory.' },
+      { label: "Every thread of block 2, once a barrier separates the write from the read.", correct: true },
+      { label: 'Every thread of the grid, since every block names the same tile array.', why: 'Shared memory has block scope: every block has its own tile.' },
+      { label: 'Thread 5 of block 2 alone, which owns tile[5] the way it owns a local variable.', why: 'That describes a register or a local array. A __shared__ variable is visible to its whole block.' },
+      { label: 'The host, through cudaMemcpy, once the kernel has finished.', why: 'Shared memory lives only while its block runs. To keep a value, write it to global memory.' },
     ],
     explain: (
       <p>
@@ -266,8 +266,9 @@ export function SC0() {
       </Beyond>
       <p>
         <b>Data larger than the GPU.</b> Programs keep their data in host memory, and GPU memory tends to be faster but
-        smaller. Data that does not fit has to be cut into pieces that do and moved through piece by piece. Chapter 21
-        does exactly this, pushing a 3D grid through the GPU in 2D slices. Some structures have no good way to be cut
+        smaller. Data that does not fit has to be cut into pieces that do and moved through piece by piece. The book's
+        chapter 21 does exactly this, pushing a 3D grid through the GPU in 2D slices (this course gives it two sentences
+        in <a href={href('ch21', '21.2')}>section 21.2</a>). Some structures have no good way to be cut
         at all. The book's better answers: let the GPU read host memory directly, or let the runtime move only the data
         a kernel actually touches.
       </p>

@@ -150,7 +150,7 @@ const answer = async (needle, value) => {
 check('q-barriers accepts 6', (await answer('How many times does the hybrid kernel', 6)).includes('Correct.'));
 check('q-guard-256 accepts "8 sums and 24 reads past the end"', (await answer('launched with 256 threads per block', '24 reads past the end')).includes('Correct.'));
 check('q-w64-warps rejects 32 and gives 16', (await answer('How many per-warp partial sums', 32)).includes('The answer is 16'));
-check('q-metal-lanes: "simd_sum hands the sum to every thread" is wrong, for the SIMD-group reason', (await answer('before thread 100', 'Nothing: simd_sum hands the sum to every thread')).includes('its own SIMD-group'));
+check('q-metal-lanes: "simd_sum hands the sum to every thread" is wrong, for the SIMD-group reason', (await answer('before thread 100', 'Nothing: simd_sum hands its result to every thread')).includes('its own SIMD-group'));
 
 // ---- a narrow screen
 await page.setViewport({ width: 400, height: 900, deviceScaleFactor: 1 });

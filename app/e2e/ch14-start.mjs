@@ -75,9 +75,9 @@ v = await answerChoice('write the value 1 to the same flag', 'Not a race');
 check('q-flagrace: "not a race" is wrong, with its reason', v.includes('Not quite.') && (await (await question('write the value 1 to the same flag')).evaluate((e) => e.textContent)).includes('Idempotent is not the same as race-free'), v);
 v = await answerChoice('write the value 1 to the same flag', 'A data race');
 check('q-flagrace: a data race, undefined behaviour', v.includes('Correct.') && v.includes('p. 333'), v);
-v = await answerChoice('run a scan over the whole grid', 'Blocks are not guaranteed');
+v = await answerChoice('run a scan over the whole grid', 'Blocks need not all be resident');
 check('q-gridscan: blocks are not guaranteed to be resident', v.includes('Correct.') && v.includes('section 14.5'), v);
-v = await answerChoice('must write outputs', 'How many of the first k outputs');
+v = await answerChoice('must write outputs', 'The co-rank pair (i, j)');
 check('q-corank: the co-rank pair', v.includes('Correct.') && v.includes('section 14.3'), v);
 const links = await page.$$eval('.q .verdict a', (as) => as.map((a) => a.getAttribute('href')));
 for (const s of ['14.5', '14.4', '14.6', '14.2', '14.3'])

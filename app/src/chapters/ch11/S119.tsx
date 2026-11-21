@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
-import { Bench, Beyond, Simplification, Source, Today, type Tier } from '../../components/notes';
+import { Bench, Beyond, NoteGroup as Notes, Simplification, Source, Today, type Tier } from '../../components/notes';
 import { fmt, realBackends, useReports, type BackendRun, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import {
@@ -45,7 +45,6 @@ import {
   type RunLike,
 } from '../../sim/scantraffic';
 import { LookbackScene } from './LookbackScene';
-import { NoteGroup as Notes } from './NoteGroup';
 
 // Section 11.9: stitching block scans into a global scan. Bytes per element of each design
 // (src/sim/scantraffic.ts), blocks waiting for blocks and the flag protocol
@@ -750,13 +749,19 @@ export const questionsS119: Record<string, Question> = {
     id: 'ch11/11.9/q-rss-why',
     prompt: <>The book prefers reduce-scan-scan across blocks but scan-scan-add inside a block. Why the difference?</>,
     options: [
-      { label: 'Reduce-scan-scan does fewer additions, which only matters across blocks.', why: 'Both do two passes of work over the data; the difference the book points to is traffic and synchronisation.' },
+      { label: 'Reduce-scan-scan does fewer additions in total, and saving additions only pays once the data spans many blocks.', why: 'Both do two passes of work over the data; the difference the book points to is traffic and synchronisation.' },
       {
-        label: 'Across blocks, global traffic is the scarce resource and the reduce writes one value per block. Inside a block the values are already in registers, and a reduce\'s multi-step tree needs more synchronisation than an add.',
+        label: "Across blocks bytes are scarce and a reduce writes one value per block; inside one, values sit in registers and a reduce's tree costs barriers.",
         correct: true,
       },
-      { label: 'Scan-scan-add is not correct across blocks.', why: 'It is correct; the three-kernel version of Fig. 11.14 works. It is slower: 16 bytes per element against 12.' },
-      { label: 'Inside a block there is no reduction primitive.', why: 'Chapter 10 builds block reductions; they exist. They just cost more synchronisation than an add.' },
+      {
+        label: 'Scan-scan-add is not correct across blocks: kernel 3 can read sums kernel 2 has not written.',
+        why: 'It is correct; the three-kernel version of Fig. 11.14 works, since a kernel boundary orders them. It is slower: 16 bytes per element against 12.',
+      },
+      {
+        label: 'Inside a block there is no reduction primitive, so a reduce would need a kernel of its own.',
+        why: 'Chapter 10 builds block reductions; they exist. They just cost more synchronisation than an add.',
+      },
     ],
     explain: (
       <p>
@@ -778,10 +783,16 @@ export const questionsS119: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Nothing: the scan only needs associativity.', why: 'The two scans only need associativity. The reduce in kernel 1 is the step to check.' },
-      { label: 'That the per-block reduction only ever combines neighbouring ranges, in order. Some of chapter 10\'s optimisations assume commutativity.', correct: true },
-      { label: 'That the block sums are scanned in reverse.', why: 'Reversing the order would compose the maps the wrong way round.' },
-      { label: 'That every block has the same number of elements.', why: 'Segment sizes do not change the operator\'s properties.' },
+      {
+        label: 'Nothing: associativity is all a scan needs, so any of chapter 10\'s reductions will do.',
+        why: 'The two scans only need associativity. The reduce in kernel 1 is the step to check: some of chapter 10\'s optimisations assume commutativity.',
+      },
+      { label: 'That the reduction combines only neighbouring ranges, in order.', correct: true },
+      {
+        label: 'That the block sums are scanned in reverse, so the maps compose right to left.',
+        why: 'Reversing the order would compose the maps the wrong way round.',
+      },
+      { label: 'That every block has the same number of elements, so the maps line up.', why: 'Segment sizes do not change the operator\'s properties.' },
     ],
     explain: (
       <p>
@@ -800,7 +811,7 @@ export const questionsS119: Record<string, Question> = {
     options: [
       { label: 'Nothing: release on the writer is enough.', why: 'Release orders the writer\'s side only. The reader\'s plain load can still be moved.' },
       {
-        label: 'The plain load of partialSums[b−1] is no longer ordered after the flag read. The two blocks\' accesses to partialSums race: undefined behaviour, which in practice can return a stale sum.',
+        label: 'The load of partialSums[b−1] may move before the flag read and see a stale sum: a data race.',
         correct: true,
       },
       { label: 'The spin loop may never end, because a relaxed load can be cached forever.', why: 'A relaxed atomic load still reads the atomic; CUDA counts an atomic read as progress (facts A6). The problem is the plain load after it.' },
@@ -820,10 +831,19 @@ export const questionsS119: Record<string, Question> = {
     id: 'ch11/11.9/q-scope',
     prompt: <>Someone writes the flag protocol with <code>cuda::thread_scope_block</code> on both atomic references, keeping release and acquire. What is the result?</>,
     options: [
-      { label: 'Correct, and faster than device scope.', why: 'Faster, perhaps; correct, no. Block scope covers only the writer\'s own block.' },
-      { label: 'Undefined behaviour: a block-scope atomic only orders the threads of the writer\'s block. NVIDIA marks the variant with block scope on the store "UB: data race"; block scope on both sides is no better.', correct: true },
+      {
+        label: 'Correct, and faster: one writer and one reader per flag need no wider scope.',
+        why: 'Faster, perhaps; correct, no. Block scope covers only the writer\'s own block, and the reader is in another.',
+      },
+      {
+        label: "Undefined behaviour: with block scope on the store, only the writer's own block is ordered with it.",
+        correct: true,
+      },
       { label: 'Correct on Hopper and later only.', why: 'The memory model does not depend on the architecture here.' },
-      { label: 'A compile error.', why: 'It compiles; that is what makes it dangerous.' },
+      {
+        label: 'A compile error: a block-scope atomic cannot refer to global memory.',
+        why: 'It compiles: a scope says which threads are ordered, not where the variable lives. NVIDIA prints this variant as code that is a data race, not an error. That is what makes it dangerous.',
+      },
     ],
     explain: (
       <p>
@@ -840,13 +860,13 @@ export const questionsS119: Record<string, Question> = {
     id: 'ch11/11.9/q-deadlock',
     prompt: <>Why can a single-pass scan that waits on the block with <code>blockIdx.x − 1</code> hang on a large grid, and how does the book avoid it?</>,
     options: [
-      { label: 'The flags overflow; the book uses 64-bit flags.', why: 'A flag only ever holds 0 or 1.' },
+      { label: 'The flags overflow on a large grid; the book switches to 64-bit flags to avoid it.', why: 'A flag only ever holds 0 or 1.' },
       {
-        label: 'The scheduler may start later blocks first. If every resident block waits on one that is not resident, nothing frees a slot. Claiming the index from an atomic counter means the awaited block has already started, and CUDA documents that a started block keeps making progress.',
+        label: 'Resident blocks may all wait on one that never started; an index claimed from an atomic counter belongs to a block that has started.',
         correct: true,
       },
       { label: 'Blocks with consecutive indices run on different SMs and cannot see each other\'s memory.', why: 'Device-scope atomics are visible across SMs; that is what the scope is for.' },
-      { label: 'It cannot hang: CUDA starts blocks in index order.', why: 'The guide promises no order. CUB relies on observed launch order, which is not a documented guarantee (facts A6).' },
+      { label: 'It cannot hang: CUDA starts blocks in index order, so block b − 1 always starts before block b.', why: 'The guide promises no order. CUB relies on observed launch order, which is not a documented guarantee (facts A6).' },
     ],
     explain: (
       <p>
@@ -863,13 +883,13 @@ export const questionsS119: Record<string, Question> = {
     id: 'ch11/11.9/q-zero',
     prompt: <>A program launches the single-pass kernel twice in a row and does not reset the flags or the block counter between launches. What happens in the second launch?</>,
     options: [
-      { label: 'The same result: each launch overwrites the flags.', why: 'A block sets its flag; nothing in the kernel clears one.' },
+      { label: 'The same result: each launch overwrites the flags before any block reads them.', why: 'A block sets its flag; nothing in the kernel clears one.' },
       {
-        label: 'The counter hands out indices past the grid, and the flags already read 1, so blocks index out of range or read the previous run\'s partial sums without waiting. The host must zero both before every launch.',
+        label: "The counter hands out indices past the grid and the flags already read 1, so blocks run out of range or skip the wait.",
         correct: true,
       },
       { label: 'A deadlock: every block waits for a flag that is already set.', why: 'A set flag ends the wait immediately; the danger is not waiting.' },
-      { label: 'Only the first block is wrong.', why: 'Every block claims an index from where the counter stopped.' },
+      { label: 'Only the first block is wrong, since it alone has no predecessor to wait for.', why: 'Every block claims an index from where the counter stopped.' },
     ],
     explain: (
       <p>
@@ -887,7 +907,7 @@ export const questionsS119: Record<string, Question> = {
       { label: 'The single-pass kernel with a claimed index, MSL 4.1 acquire and release, and coherent(device) buffers.', why: 'All three are needed for the flag, and none of them gives forward progress between threadgroups, which Metal does not document.' },
       { label: 'A grid-wide barrier.', why: 'Metal has no grid-wide barrier and no cooperative launch.' },
       {
-        label: 'A hierarchical scan in several dispatches of one compute encoder, which runs them in order and makes each see the previous one\'s writes.',
+        label: 'A hierarchical scan in several dispatches of one compute encoder, which runs them in order.',
         correct: true,
       },
       { label: 'One threadgroup for the whole array.', why: 'Correct, but it uses a single threadgroup of the whole GPU.' },
@@ -907,10 +927,19 @@ export const questionsS119: Record<string, Question> = {
     id: 'ch11/11.9/q-ex5',
     prompt: <>Exercise 5 asks for decoupled lookback. One flag value per block (0 or 1) is no longer enough. Which states does a block need to publish?</>,
     options: [
-      { label: 'Two: not ready, ready.', why: 'That is single lookback. A waiting block could not tell an own total from a full prefix.' },
-      { label: 'Three: nothing published yet; own block total published; inclusive prefix published.', correct: true },
-      { label: 'One per predecessor it has added.', why: 'What a block has added is its own business; others only need to know which of its two values they may use.' },
-      { label: 'None: decoupled lookback needs no flags.', why: 'A waiting block still has to know when a value is ready, which takes a flag read with acquire.' },
+      {
+        label: 'Two, as in single lookback: not ready, and ready.',
+        why: 'That is single lookback. A waiting block could not tell an own total from a full prefix.',
+      },
+      { label: 'Three: nothing yet, own total ready, inclusive prefix ready.', correct: true },
+      {
+        label: 'One per predecessor it has added, so a waiting block can see how far it got.',
+        why: 'What a block has added is its own business; others only need to know which of its two values they may use.',
+      },
+      {
+        label: 'None: decoupled lookback reads the sums themselves and needs no flags.',
+        why: 'A waiting block still has to know when a value is ready, which takes a flag read with acquire.',
+      },
     ],
     explain: (
       <p>

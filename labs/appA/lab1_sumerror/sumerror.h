@@ -24,8 +24,9 @@ void launchFpProbe(const float* in, float* out);
 // ---------------------------------------------------------------- device side only
 // __fadd_rn and __fsub_rn: CUDA's float addition and subtraction that "the compiler never
 // merges into the FFMA or DFMA instructions" (notes/today/appA-facts.md A9, A13). HIP has
-// both under the same names (B4). The CPU emulator has neither, and the CUDA front-end
-// check (labs/pmpp.py) declares no CUDA Math API functions, so:
+// both under the same names (B4). Neither the CPU emulator nor the CUDA front-end check's
+// stub provides these _rn intrinsics (the stub declares the single-precision Math API
+// functions, not the _rn ones), so:
 //  - on the emulator they are plain + and - on the host CPU, which the host compiler does
 //    not reassociate by default (B5);
 //  - for the front-end check they are declared only. nvcc and hipcc never see either.
@@ -37,8 +38,9 @@ __device__ float __fadd_rn(float x, float y);
 __device__ float __fsub_rn(float x, float y);
 #endif
 
-// The 16-bit accumulators exist on real CUDA and HIP builds only. The emulators do not
-// model __half or __nv_bfloat16, and the front-end check's stub has neither (appA-facts E2).
+// The 16-bit accumulators exist on real CUDA and HIP builds only. The emulators and the
+// front-end check's stub model __half but not __nv_bfloat16, and this lab builds no 16-bit
+// sum there (appA-facts E2).
 // Name them only inside `#if PMPP_NARROW_ACC`.
 //  - CUDA: __half from <cuda_fp16.h>; __nv_bfloat16 from <cuda_bf16.h>, which needs compute
 //    capability 8.0 or higher (A2, A16). The driver checks the capability before it asks

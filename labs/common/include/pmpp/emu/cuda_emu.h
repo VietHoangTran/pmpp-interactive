@@ -46,9 +46,11 @@
 //
 // Threads, blocks, grids
 //   modelled:     threadIdx, blockIdx, blockDim, gridDim; private automatic variables per thread; launch
-//                 configuration checks (at most 1024 threads per block).
-//   not modelled: any limit on the grid size (the reported maxGridSize is not enforced); the order and
-//                 overlap of blocks on a GPU. In emu, blocks run one after another in index order.
+//                 configuration checks: at most 1024 threads per block, and CUDA's per-dimension limits
+//                 (block at most 1024 x 1024 x 64, grid at most (2^31 - 1) x 65535 x 65535; Programming
+//                 Guide 13.5, Table 33), refused with cudaErrorInvalidConfiguration and a message.
+//   not modelled: the order and overlap of blocks on a GPU. In emu, blocks run one after another in index
+//                 order.
 // __shared__ variables and dynamic shared memory
 //   modelled:     one copy per block, freshly allocated and filled with 0xCD for every block (reading
 //                 shared memory nobody wrote gives garbage, as on a GPU); `extern __shared__ T a[];` sized by
@@ -86,6 +88,21 @@
 // __popc, __popcll, __clz, __clzll, __ffs, __ffsll, __brev, __brevll
 //   modelled:     the bit operations (signatures from memory of device_functions.h, see emu_device.h).
 //   not modelled: nothing known.
+// __dp4a (int, unsigned, char4, uchar4), __byte_perm, __umulhi, __mulhi, __umul64hi, __float_as_uint,
+// __uint_as_float, __float_as_int, __int_as_float (CUDA Math API 13.5)
+//   modelled:     the documented overloads and results; __dp4a's bytes sign-extended in the signed forms,
+//                 its 32-bit sum wrapping modulo 2^32.
+//   not modelled: that HIP has no __dp4a (x2-facts B1): code that calls it passes here and fails for HIP.
+// Single-precision math: expf, exp2f, logf, log2f, sqrtf, rsqrtf, powf, fmaf, tanhf, erff, fminf, fmaxf,
+// fabsf, copysignf; __expf, __logf, __powf, __sinf, __cosf, __fdividef, __saturatef
+//   modelled:     the functions, computed by the host's <cmath> (rsqrtf as 1 / sqrt).
+//   not modelled: NVIDIA's error bounds, the fast intrinsics' approximation error, flush-to-zero; the _rn
+//                 intrinsics (__fadd_rn and friends) are not provided.
+// Half precision (<cuda_fp16.h>, pmpp/emu/cuda_fp16_emu.h): __half, __half2, conversions, arithmetic
+//   modelled:     binary16 bit for bit, round-to-nearest-even conversions and arithmetic, __hfma / __hfma2
+//                 rounded once.
+//   not modelled: NaN payloads, _sat / _relu / directed-rounding variants, half shuffles and atomics,
+//                 __nv_bfloat16, speed.
 // Atomics: atomicAdd, atomicSub, atomicExch, atomicMin, atomicMax, atomicInc, atomicDec, atomicCAS,
 // atomicAnd, atomicOr, atomicXor; cuda::atomic_ref and cuda::atomic from <cuda/atomic>
 //   modelled:     the operation and its return value (the old value), for exactly the legacy overloads the
@@ -100,9 +117,11 @@
 //                 offset + count is checked against the symbol's size.
 //   not modelled: read-only enforcement in kernels (a kernel that writes one compiles and runs here); the
 //                 size limit of constant memory; any caching behaviour.
-// Vector types and qualifiers: float2/3/4, int2/3/4, uint2/3/4, double2/3/4, make_*, __forceinline__,
-// __noinline__, __inline_hint__, __restrict__, #pragma unroll
-//   modelled:     the types, their field names and the make_ functions; the qualifiers compile.
+// Vector types and qualifiers: char1..4, uchar1..4, short1..4, ushort1..4, float2/3/4, int2/3/4,
+// uint2/3/4, double2/3/4, make_*, __forceinline__, __noinline__, __inline_hint__, __restrict__,
+// #pragma unroll
+//   modelled:     the types with Table 49's sizes and alignments, their field names and the make_
+//                 functions; the qualifiers compile.
 //   not modelled: `#pragma unroll` is honoured or ignored by the host compiler as it sees fit (clang knows
 //                 the pragma; gcc ignores it and warns under -Wall); inlining decisions mean nothing here.
 // Cooperative groups (<cooperative_groups.h>): this_thread_block, this_grid, coalesced_threads,
@@ -117,14 +136,17 @@
 //   not modelled: clusters, barrier_arrive / barrier_wait, tiles above 32 or tiles of tiles,
 //                 binary_partition, labeled_partition, match_any / match_all on groups, reduce, scan,
 //                 memcpy_async, invoke_one. Kernel templates cannot be launched cooperatively.
-// Host API: streams, events, async copies, pinned and managed memory, attributes, occupancy
+// Host API: streams (with priorities), events, async copies, pinned and managed memory, attributes,
+// cudaGetDevice, cudaFuncGetAttributes, occupancy
 //   modelled:     the calls exist with their documented prototypes and succeed; everything is synchronous
 //                 (a launch has finished when the launch statement returns); cudaStreamCreate/Destroy and
 //                 cudaEventCreate/Destroy allocate and free, so a leak or double destroy shows up in emu.
 //   not modelled: asynchrony, overlap of copies and kernels, stream ordering, page locking, unified-memory
 //                 migration. cudaEventElapsedTime returns host wall-clock time of the emulator, which is
 //                 meaningless for a GPU. cudaOccupancyMaxActiveBlocksPerMultiprocessor returns a synthetic
-//                 number (1024 / blockSize) that only serves to size a cooperative launch.
+//                 number (1024 / blockSize) that only serves to size a cooperative launch. Stream
+//                 priorities have no effect (the range reported is 0 to 0, as for a device without them);
+//                 cudaFuncGetAttributes reports no registers or local memory (there is no device code).
 // Failures the emulator detects (deadlocks, invalid masks, grid sync without a cooperative launch)
 //   modelled:     the launch is stopped, cudaGetLastError() returns cudaErrorLaunchFailure once, and
 //                 cudaGetErrorString() of it carries the explanation. Nothing hangs.

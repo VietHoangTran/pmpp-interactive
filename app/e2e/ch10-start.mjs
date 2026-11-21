@@ -66,13 +66,13 @@ t = await numeric('Thread 75', 11);
 check('lane 11 is accepted, and the 64-wide case is explained', t.includes('Correct.') && t.includes('lane 11 of warp 1') && t.includes('ch. 4 §4.4'), t.slice(0, 300));
 t = await numeric('How many warps diverge', 1);
 check('one divergent warp is accepted, with the warp-by-warp reasoning', t.includes('Correct.') && t.includes('splits at 48'), t.slice(0, 300));
-t = await choose('wait for each other at a barrier', 'not been scheduled yet');
+t = await choose('wait for each other at a barrier', 'may never be released');
 check('the grid-barrier question accepts the scheduling answer', t.includes('Correct.') && t.includes('Section 10.9'), t.slice(0, 300));
 t = await choose('wait for each other at a barrier', 'too slow');
 check('the cost answer is marked wrong with its reason', t.includes('Not quite.') && t.includes('cost argument'), t.slice(0, 300));
 t = await numeric('32-byte pieces', 8);
 check('eight 32-byte transactions is accepted, against four for in[t]', t.includes('Correct.') && t.includes('four pieces') && t.includes('ch06-facts.md A2'), t.slice(0, 300));
-t = await choose('without an atomic', 'The sum of some of the 256 values');
+t = await choose('without an atomic', 'The sum of some of the values');
 check('the lost-update question accepts "some of the values" and points to 10.9', t.includes('Correct.') && t.includes('section 10.9'), t.slice(0, 300));
 if (out) await page.screenshot({ path: out + '-questions.png', fullPage: true });
 

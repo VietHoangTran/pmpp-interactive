@@ -375,15 +375,16 @@ export const questionsS108: Record<string, Question> = {
     prompt: <>Why can a kernel in which more lanes compute results nobody uses be faster than one with fewer such lanes?</>,
     options: [
       {
-        label: 'After the load the reduction is latency-bound: barriers and shared-memory round trips are long waits, while idle lanes in a warp that issues anyway cost little. The cycles saved by idling lanes would mostly become stall cycles.',
+        label: 'After the load it is latency-bound: barriers and shared-memory trips are long waits, and idle lanes cost little.',
         correct: true,
       },
-      { label: 'Wasted lanes are free: the hardware skips additions whose results are never read.', why: 'Nothing skips them; every lane of the warp executes every shuffle and add.' },
-      { label: 'More active lanes raise occupancy, so more blocks fit on each SM.', why: 'Occupancy depends on resources a block reserves, not on how many lanes do useful work.' },
+      { label: 'Wasted lanes are free: the hardware detects additions whose results are never read and skips them.', why: 'Nothing skips them; every lane of the warp executes every shuffle and add.' },
+      { label: 'More lanes doing work raise occupancy, so more blocks fit on each SM and hide each other\'s memory latency.', why: 'Occupancy depends on resources a block reserves, not on how many lanes do useful work.' },
     ],
     explain: (
       <p>
-        The book's argument (pp. 243–244). The two-stage kernel trades a few long-latency operations (barriers, shared-memory
+        The book's argument (pp. 243–244): the cycles saved by idling lanes would mostly become stall cycles. The
+        two-stage kernel trades a few long-latency operations (barriers, shared-memory
         accesses) for many cheap ones (shuffles and adds in lanes whose results are never read). In a kernel that is mostly
         waiting, removing waits is what counts.
       </p>
@@ -400,13 +401,14 @@ export const questionsS108: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: '8 per-warp sums and 24 reads past the end of the array, so the sum is undefined. Guard with lane < blockDim.x / warpSize and pad with 0.', correct: true },
-      { label: '8 per-warp sums and 24 zeros, because shared memory starts out zeroed.', why: 'Shared memory is not initialised, and these reads are past the end of the array anyway. Zeros there would hide the bug, not fix it.' },
-      { label: '32 per-warp sums, because the array always has 32 entries.', why: 'It has BLOCK_DIM / WARP_SIZE = 256 / 32 = 8.' },
+      { label: '8 per-warp sums, then 24 reads past the end of the array: the sum is undefined.', correct: true },
+      { label: '8 per-warp sums and 24 zeros, because a kernel\'s shared memory starts out zeroed.', why: 'Shared memory is not initialised, and these reads are past the end of the array anyway. Zeros there would hide the bug, not fix it.' },
+      { label: '32 per-warp sums: the array has one entry per lane of warp 0, so 32 in every block.', why: 'It has BLOCK_DIM / WARP_SIZE = 256 / 32 = 8.' },
     ],
     explain: (
       <p>
-        8 warps write 8 sums into an array of 8; lanes 8 to 31 read past it. The listing is right only when there are exactly
+        8 warps write 8 sums into an array of 8; lanes 8 to 31 read past it. The guard is one comparison: read only
+        where <code>lane &lt; blockDim.x / warpSize</code>, and add 0 otherwise. The listing is right only when there are exactly
         as many warps as lanes, a block of 1,024 threads of 32-wide warps (footnote 5 has that case in mind). Lab 10.1 sizes
         the array for the largest block and the narrowest warp, and reads only <code>laneIdx() &lt; warps</code>.
       </p>
@@ -438,19 +440,19 @@ export const questionsS108: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Nothing: simd_sum hands the sum to every thread.',
+        label: 'Nothing: simd_sum hands its result to every thread, so thread 100\'s s is already the row\'s sum.',
         why: 'To every active thread of its SIMD-group. Thread 100\'s s is the sum of its own SIMD-group\'s terms only.',
       },
       {
-        label: 'Lane 0 of each SIMD-group writes its s to threadgroup memory; after a barrier, one SIMD-group sums those with simd_sum and writes the row sum back; after a second barrier, every thread reads it.',
+        label: 'Each SIMD-group\'s lane 0 stores its s; a barrier; one SIMD-group sums those and stores the total; a barrier; all read it.',
         correct: true,
       },
       {
-        label: 'Thread 100 reads lane 0\'s s with a shuffle, since only lane 0 holds the sum.',
+        label: 'Thread 100 fetches lane 0\'s s with simd_shuffle, since simd_sum leaves the row\'s sum in lane 0 of the threadgroup.',
         why: 'simd_sum already gives its result to every active lane of the group. The missing part is the other groups.',
       },
       {
-        label: 'One threadgroup_barrier after the simd_sum, so that all SIMD-groups have finished.',
+        label: 'One threadgroup_barrier(mem_flags::mem_threadgroup) after the simd_sum, so that every SIMD-group has finished before any thread divides.',
         why: 'A barrier orders memory accesses; it does not combine the groups\' sums, which are still in separate registers.',
       },
     ],

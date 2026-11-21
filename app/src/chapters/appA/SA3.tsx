@@ -431,16 +431,17 @@ export const questionsSA3: Record<string, Question> = {
     prompt: <>A softmax kernel's output contains NaN, although every input logit was a finite number. What is the most likely cause?</>,
     options: [
       { label: 'An exp overflowed to infinity, and the division gave ∞ / ∞.', correct: true },
-      { label: 'A denormal was flushed to zero.', why: 'Flushing turns a tiny value into 0. A 0 term gives a 0 probability, not a NaN.' },
-      { label: 'One of the logits was negative.', why: 'exp of a negative number is a small positive number. Very negative ones underflow to 0, which is harmless.' },
-      { label: 'Rounding errors in the sum.', why: 'Rounding errors make a sum slightly wrong; they never make it NaN.' },
+      { label: 'A tiny term was flushed to zero as a denormal, so its probability came out as 0 divided by the sum.', why: 'Flushing turns a tiny value into 0, and 0 over a nonzero sum is a 0 probability, not a NaN.' },
+      { label: 'One of the logits was negative, and exp of a negative argument has no defined value.', why: 'exp of a negative number is a small positive number. A very negative one underflows to 0, which is harmless while the sum stays nonzero.' },
+      { label: 'Rounding errors piled up over the long sum of exp terms until it became NaN.', why: 'Rounding errors make a sum slightly wrong; they never make it NaN.' },
     ],
     explain: (
       <p>
         Finite inputs produce a NaN only through one of the book's four undefined operations. In a softmax the candidates
         are ∞ / ∞ (an overflowed term over an overflowed sum) and ∞ − ∞ (an overflowed logit minus an overflowed maximum).
-        Both start with an overflow, and nothing on a GPU reports it. Subtracting the row's maximum keeps every exp
-        argument at or below 0, which removes the overflow.
+        Both start with an overflow, and nothing on a GPU reports it. A third needs every term to underflow: then the sum
+        is 0 and each probability is 0 / 0. Subtracting the row's maximum keeps every exp argument at or below 0, which
+        removes the overflow, and makes the maximum's own term exactly 1, so the sum can no longer be 0.
       </p>
     ),
     source: 'book §A.3, pp. 590–591; the softmax reading is ours',
@@ -451,12 +452,12 @@ export const questionsSA3: Record<string, Question> = {
     prompt: <>A Metal kernel compiled with the default options checks its result with <code>isnan</code> to catch a broken softmax. Can it rely on that check?</>,
     options: [
       {
-        label: 'No. Under fast math the handling of NaN and INF is undefined, and Apple documents the default mode three different ways.',
+        label: 'No. Under fast math NaN and INF handling is undefined, and Apple documents the default mode three ways.',
         correct: true,
       },
-      { label: 'Yes. isnan is a library function, so the compiler cannot change it.', why: 'Fast math lets the compiler assume there are no NaNs at all, and then isnan can be folded to false.' },
-      { label: 'Yes, because Metal supports signalling NaNs.', why: '"Signaling NaNs are not supported" in Metal, and floating-point exceptions are disabled.' },
-      { label: 'No, because Metal has no NaN at all.', why: 'Metal supports NaN for float, half and bfloat, with fast math disabled.' },
+      { label: 'Yes. isnan is a library function that tests the bits, so no math mode can change its answer.', why: 'Fast math lets the compiler assume there are no NaNs at all, and then isnan can be folded to false.' },
+      { label: 'Yes, because Metal supports signalling NaNs, which stop the kernel where they are made.', why: '"Signaling NaNs are not supported" in Metal, and floating-point exceptions are disabled.' },
+      { label: 'No, because Metal has no NaN at all: a 0 / 0 in a kernel gives 0.', why: 'Metal supports NaN for float, half and bfloat, with fast math disabled.' },
     ],
     explain: (
       <p>
@@ -590,6 +591,12 @@ export function SA3() {
         and it is printed as "NaN" for you to find afterwards.
       </p>
       <Source section="A.3" pages="590–591" />
+      <Simplification>
+        <p>
+          Each row is evaluated once by the course's IEEE 754 model: round to nearest even, denormals kept, no fast math.
+          Under Metal's fast math the handling of NaN and infinity is undefined, so a kernel there may not match.
+        </p>
+      </Simplification>
       <WhatComesOut />
 
       <h2>GPUs do not signal</h2>

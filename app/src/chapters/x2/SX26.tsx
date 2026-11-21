@@ -198,7 +198,10 @@ function BugSpot() {
       task="Mark each fragment, then check. Every verdict comes with what the model measured."
       foot={
         <>
-          Fragments from <code>labs/{FRAG_FILE}</code>, not compiled (unverified): they show the accumulator, nothing else. q, x4, w2, x2, v and u are the
+          Fragments from <code>labs/{FRAG_FILE}</code>: they show the accumulator, nothing else. Fragments 2 to 4 are
+          emulator-checked and front-end-checked (a unit test runs them, as printed, through{' '}
+          <code>labs/x2/snippets/check/accumulators_check.cu</code> and matches the model's results), unverified on
+          CUDA; fragment 1, in MSL, is not compiled (unverified). q, x4, w2, x2, v and u are the
           block's codes and activations; dot4 is dp4a's arithmetic. Their arithmetic is modelled in qdot.ts on a
           4,096-wide row: realistic seeded data, and a worst case of codes 15 against 127 with unit scales (so the float
           fragments see weights of 7 and activations of 127). The dot of half4 is modelled as a chain of half
@@ -317,7 +320,7 @@ export const questionsSX26: Record<string, Question> = {
     options: [
       { label: 'It rounds to 0, below half the smallest FP16 subnormal.', correct: true },
       { label: 'Nothing: dividing by a power of two is exact.', why: 'Exact only while the result is representable. FP16 runs out of exponent at 2^−24.' },
-      { label: 'It becomes an FP16 subnormal and loses a few bits.', why: 'It is below the smallest subnormal, so there is nothing left to round to but 0.' },
+      { label: 'It becomes an FP16 subnormal with only a few significand bits.', why: 'It is below half the smallest subnormal, so there is nothing left to round to but 0.' },
       { label: 'It overflows once the masked nibble scales it back up.', why: 'Small values underflow; it is the large ones that overflow.' },
     ],
     explain: (
@@ -356,8 +359,8 @@ export const questionsSX26: Record<string, Question> = {
     options: [
       { label: 'Not necessarily: the float sums may run in different orders.', correct: true },
       { label: 'Yes: integer arithmetic should make results identical.', why: 'Only the sums inside a block are integers; everything across blocks is float, added in whatever order each kernel chose.' },
-      { label: 'Yes: one backend must be using half somewhere.', why: 'Possible, but different orders of float additions are enough to explain a last-digit difference.' },
-      { label: 'No: GPUs are not deterministic, so it means nothing.', why: 'A given kernel on a given device is usually repeatable; the difference comes from the order of the additions, which is a property of the code.' },
+      { label: 'Probably: one backend is likely accumulating in half somewhere.', why: 'Possible, but different orders of float additions are enough to explain a last-digit difference.' },
+      { label: 'No: GPU float arithmetic varies from run to run, so ignore it.', why: 'A given kernel on a given device is usually repeatable; the difference comes from the order of the additions, which is a property of the code.' },
     ],
     explain: (
       <p>
@@ -427,6 +430,16 @@ export function SX26() {
         With int32 inside, an FP16 outer sum drifts as you drag the row longer: its absolute error grows with the row.
         int32 then FP32 stays at float rounding at every length.
       </p>
+      <p>
+        The animation adds one worst-case block into all four types side by side, then sums a whole row across its
+        blocks in half and in float.
+      </p>
+      <Simplification>
+        <p>
+          Every value comes from <code>qdot.ts</code>: one product at a time, in order, each add rounded as its type
+          rounds. No lanes, no other orders, nothing timed.
+        </p>
+      </Simplification>
       <NarrowAccumulatorScene />
 
       <h2>The rule the real kernels follow</h2>

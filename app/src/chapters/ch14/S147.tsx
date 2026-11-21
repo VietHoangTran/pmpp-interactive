@@ -358,11 +358,10 @@ export const questionsS147: Record<string, Question> = {
     id: 'ch14/14.7/q-sixteen',
     prompt: <>Why not use r = 16, and sort 32-bit keys in two passes?</>,
     options: [
-      { label: 'Two passes cannot be stable.', why: 'Each pass is a stable partition whatever its width; two stable passes sort 32-bit keys correctly. The problem is cost, not correctness.' },
-      { label: 'The hardware cannot shift a key by 16 bits.', why: 'A shift by 16 is as cheap as a shift by 1. The digit extraction is the same expression for any r.' },
+      { label: 'Two 16-bit passes cannot be stable: with 65,536 buckets the local sort cannot keep equal digits in input order.', why: 'Each pass is a stable partition whatever its width; two stable passes sort 32-bit keys correctly. The problem is cost, not correctness.' },
+      { label: 'A pass can only sort a digit that fits in one byte, so 32-bit keys need at least four passes.', why: 'Nothing limits a digit to a byte; 8 bits is a tuning choice. The digit extraction is the same expression for any r.' },
       {
-        label:
-          'Each block would have 65,536 buckets for a few hundred keys: almost every local bucket holds one key or none, so nothing coalesces; the table has 65,536 entries per block, far more than the keys; and the block\'s counts alone would need 256 KiB of shared memory.',
+        label: '65,536 buckets per block for a few hundred keys: nothing coalesces, the table outgrows the data, and the counts need 256 KiB of shared memory.',
         correct: true,
       },
     ],
@@ -458,7 +457,7 @@ export function S147() {
       <p>
         Read the bytes column from the top. Bytes per key fall almost as 1/r while the keys dominate, then flatten and turn up
         once the table catches the data; at r = 16 they explode. Meanwhile the runs per store climb towards the warp width,
-        because the local buckets shrink below a warp's 32 keys. The cheapest r in bytes is not the cheapest in sectors, and
+        because the local buckets shrink below one warp's worth of keys (the explorer's warps have 32 lanes). The cheapest r in bytes is not the cheapest in sectors, and
         neither is a time. Somewhere in between is the best digit width, and only the device can say where.
       </p>
       <Today checked="2026-11-20">

@@ -355,9 +355,9 @@ for (const l of LABS) {
   check(`lab ${l.num}: the toggle hides it again`, (await page.$$('figure.code')).length === 0);
 }
 
-// ---- links to other sections resolve to routes of this chapter
+// ---- links to other sections resolve to routes of this chapter, or to M10's lab page in module X3
 const links = await page.$$eval('.prose a[href^="#/"]', (as) => [...new Set(as.map((a) => a.getAttribute('href')))]);
-check(`cross-links point at chapter routes (${links.join(', ')})`, links.length > 0 && links.every((h) => /^#\/(ch10\/(start|labs|wrap|10\.\d+)|review)$/.test(h)), links.join(' '));
+check(`cross-links point at chapter routes (${links.join(', ')})`, links.length > 0 && links.every((h) => /^#\/(ch10\/(start|labs|wrap|10\.\d+)|x3\/labs|review)$/.test(h)), links.join(' '));
 
 const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 check(`no sideways page scroll at ${narrow ? 390 : 1440} px`, overflow <= 1, String(overflow));

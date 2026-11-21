@@ -31,7 +31,7 @@ export const questionsS201: Record<string, Question> = {
     ),
     options: [
       { label: 'M4\'s row softmax: per row, reductions then an elementwise pass.', correct: true },
-      { label: 'A tiled GEMM, because γ and β are learned parameters like weights.', why: 'γ and β are vectors applied elementwise. Nothing is multiplied by a matrix.' },
+      { label: 'A tiled GEMM, since γ and β are learned like a weight matrix.', why: 'γ and β are vectors applied elementwise. Nothing is multiplied by a matrix.' },
       { label: 'A scan, since the variance needs the mean first.', why: 'Needing one total before another is two reductions in sequence, not a running prefix.' },
       { label: 'A privatised histogram, one bin per feature.', why: 'Nothing is counted into bins; every element is read and rewritten in place.' },
     ],

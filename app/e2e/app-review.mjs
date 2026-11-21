@@ -1,9 +1,12 @@
 // Browser check for spaced review, the summary page, theme switching and every route.
 // The progress file is faked in both directions, so the real one is untouched.
-// Usage: node e2e/review.mjs
-import { open, goto } from './browser.mjs';
+// Usage: node e2e/app-review.mjs   (CHAPTERS=ch02,ch05 limits the route sweep)
+//
+// Every step waits for what it needs (a button, a saved progress file) instead of sleeping a
+// fixed time, and a step that cannot run is reported as a failed check, never a crash, so the
+// route sweep always runs to the end.
+import { open, goto, answerQuestion, stubProgress } from './browser.mjs';
 
-const { browser, page, errors } = await open({ width: 1440, height: 1000 });
 const day = (offset) => {
   const d = new Date();
   d.setDate(d.getDate() + offset);
@@ -20,99 +23,162 @@ const seeded = {
     'ch05/5.1/q-regime': { box: 2, due: day(5), seen: 3, lapses: 0 },
   },
 };
-const puts = [];
-await page.setRequestInterception(true);
-page.on('request', (r) => {
-  if (!r.url().includes('/api/progress')) return r.continue();
-  if (r.method() === 'PUT') puts.push(JSON.parse(r.postData()));
-  return r.respond({ status: 200, contentType: 'application/json', body: r.method() === 'PUT' ? '{"ok":true}' : JSON.stringify(seeded) });
-});
+
+const { browser, page: firstPage, errors } = await open({ width: 1440, height: 1000 });
+let page = firstPage;
+let puts = await stubProgress(page, { seed: seeded });
 
 const fail = [];
 const check = (name, ok, detail = '') => {
   console.log((ok ? 'ok   ' : 'FAIL ') + name + (ok ? '' : '  ' + detail));
   if (!ok) fail.push(name);
 };
-const pause = (ms) => new Promise((r) => setTimeout(r, ms));
-const body = () => page.$eval('.page', (e) => e.textContent);
+const body = () => page.$eval('.page', (e) => e.textContent).catch(() => '');
+/** Runs one part of the check; an exception becomes a failed check and the script goes on. */
+async function step(name, fn) {
+  try {
+    await fn();
+  } catch (e) {
+    check(`${name}: the step ran to the end`, false, String(e?.message ?? e).split('\n')[0] + ` | page: ${(await body()).slice(0, 160)}`);
+  }
+}
+/** Waits until a button with exactly this text is there and enabled, then clicks it. */
+async function clickButton(text, timeout = 10000) {
+  await page.waitForFunction(
+    (t) => [...document.querySelectorAll('button')].some((b) => b.textContent.trim() === t && !b.disabled),
+    { timeout },
+    text,
+  );
+  await page.evaluate((t) => [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === t && !b.disabled).click(), text);
+}
+/** Waits for a save of the progress file that satisfies `ok`; returns it, or the last one after the timeout. */
+async function savedWhere(ok, timeout = 5000) {
+  const t0 = Date.now();
+  while (Date.now() - t0 < timeout) {
+    const hit = [...puts].reverse().find((p) => p && ok(p));
+    if (hit) return hit;
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  return puts.at(-1);
+}
+const waitText = (text, timeout = 10000) =>
+  page.waitForFunction((t) => document.querySelector('.page')?.textContent.includes(t), { timeout }, text);
 
 // ---- rail reflects progress ----
-await goto(page, 'ch05/5.1');
-check('rail shows how many reviews are due', (await page.$eval('.rail', (e) => e.textContent)).includes('2 due'));
-check('rail ticks a finished section', (await page.$eval('.rail nav a[aria-current="page"]', (e) => e.textContent)).includes('✓'));
+await step('rail', async () => {
+  await goto(page, 'ch05/5.1');
+  check('rail shows how many reviews are due', (await page.$eval('.rail', (e) => e.textContent)).includes('2 due'));
+  check('rail ticks a finished section', (await page.$eval('.rail nav a[aria-current="page"]', (e) => e.textContent)).includes('✓'));
+});
 
 // ---- review session ----
-await goto(page, 'review');
-check('review starts with the most overdue question', (await body()).includes('Question 1 of 2') && (await body()).includes('By how many array elements'));
-check('review does not prefill or reveal earlier answers', !(await body()).includes('Correct.') && (await page.$eval('.q input[type=number]', (e) => e.value)) === '');
-await page.type('.q input[type=number]', '6');
-await page.click('.q button.primary');
-await pause(700);
-check('a right answer moves the item up a box and pushes it out a week', puts.at(-1)?.review['ch05/start/q-rowmajor']?.box === 2 && puts.at(-1).review['ch05/start/q-rowmajor'].due === day(7), JSON.stringify(puts.at(-1)?.review['ch05/start/q-rowmajor']));
-await page.evaluate(() => [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Next question').click());
-await pause(150);
-check('second due question appears', (await body()).includes('Question 2 of 2') && (await body()).includes('__syncthreads()'));
-await (await page.$$('.q input[type=radio]'))[2].click();
-await page.click('.q button.primary');
-await pause(700);
-const r2 = puts.at(-1)?.review['ch05/start/q-barrier'];
-check('a wrong answer sends the item back to box 0, due tomorrow, and counts a lapse', r2?.box === 0 && r2.due === day(1) && r2.lapses === 2, JSON.stringify(r2));
-check('the item not yet due was left alone', puts.at(-1).review['ch05/5.1/q-regime'].due === day(5));
-await page.evaluate(() => [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Finish').click());
-await pause(150);
-check('the session ends cleanly', (await body()).includes('That was the last one due today.'));
+await step('review session', async () => {
+  await goto(page, 'review');
+  check('review starts with the most overdue question', (await body()).includes('Question 1 of 2') && (await body()).includes('By how many array elements'));
+  check('review does not prefill or reveal earlier answers', !(await body()).includes('Correct.') && (await page.$eval('.q input[type=number]', (e) => e.value)) === '');
+  await answerQuestion(page, 'ch05/start/q-rowmajor', 6);
+  const r1 = (await savedWhere((p) => p.review?.['ch05/start/q-rowmajor']?.box === 2))?.review?.['ch05/start/q-rowmajor'];
+  check('a right answer moves the item up a box and pushes it out a week', r1?.box === 2 && r1.due === day(7), JSON.stringify(r1));
+  await clickButton('Next question');
+  await waitText('Question 2 of 2');
+  check('second due question appears', (await body()).includes('Question 2 of 2') && (await body()).includes('__syncthreads()'));
+  await answerQuestion(page, 'ch05/start/q-barrier', 2);
+  const last = await savedWhere((p) => p.review?.['ch05/start/q-barrier']?.seen === 2);
+  const r2 = last?.review?.['ch05/start/q-barrier'];
+  check('a wrong answer sends the item back to box 0, due tomorrow, and counts a lapse', r2?.box === 0 && r2.due === day(1) && r2.lapses === 2, JSON.stringify(r2));
+  check('the item not yet due was left alone', last?.review?.['ch05/5.1/q-regime']?.due === day(5), JSON.stringify(last?.review?.['ch05/5.1/q-regime']));
+  await clickButton('Finish');
+  await waitText('That was the last one due today.').catch(() => undefined);
+  check('the session ends cleanly', (await body()).includes('That was the last one due today.'), (await body()).slice(0, 200));
+});
 
 // ---- summary page ----
-await goto(page, 'ch05/wrap');
-const q = await page.evaluateHandle(() => [...document.querySelectorAll('.q')].find((e) => e.textContent.includes('guaranteed to produce the transposed tiles')));
-await (await q.$$('input[type=radio]'))[2].click();
-await (await q.$('button.primary')).click();
-await pause(200);
-check('summary: the transpose defect question accepts "only B = 1"', (await q.evaluate((e) => e.textContent)).includes('Correct.'));
-check('summary maps all twelve book exercises', (await body()).includes('The book\'s exercises') && (await page.$$('.page table.data tbody tr')).length >= 10);
+await step('summary page', async () => {
+  await goto(page, 'ch05/wrap');
+  const r = await answerQuestion(page, 'ch05/wrap/q-transpose', 2);
+  check('summary: the transpose defect question accepts "only B = 1"', r.correct === true, r.verdict.slice(0, 120));
+  check('summary maps all twelve book exercises', (await body()).includes("The book's exercises") && (await page.$$('.page table.data tbody tr')).length >= 10);
+});
 
 // ---- theme ----
-const bg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-const before = await bg();
-await page.evaluate(() => [...document.querySelectorAll('.rail button')].find((b) => / theme$/.test(b.textContent)).click());
-await pause(100);
-check('theme button switches between light and dark', (await bg()) !== before);
+await step('theme', async () => {
+  const bg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  const before = await bg();
+  await page.evaluate(() => [...document.querySelectorAll('.rail button')].find((b) => / theme$/.test(b.textContent)).click());
+  await page.waitForFunction((b) => getComputedStyle(document.body).backgroundColor !== b, { timeout: 3000 }, before).catch(() => undefined);
+  check('theme button switches between light and dark', (await bg()) !== before);
+});
 
 // ---- every route renders without errors, at desktop and phone widths ----
 // The routes come from the app's own chapter registry: every chapter that has sections.
 // CHAPTERS=ch02,ch05 limits the sweep (useful while other chapters are being built).
 const only = (process.env.CHAPTERS || '').split(',').filter(Boolean);
-const built = await page.evaluate(async () => {
-  const reg = await import('/src/chapters/registry.ts');
-  const out = [];
-  for (const id of reg.CHAPTER_IDS) {
-    const ch = await reg.loadChapter(id);
-    if (ch.sections.length) out.push([id, ch.sections.map((s) => s.id)]);
-  }
-  return out;
+let built = [];
+await step('chapter registry', async () => {
+  built = await page.evaluate(async () => {
+    const reg = await import('/src/chapters/registry.ts');
+    const out = [];
+    for (const id of reg.CHAPTER_IDS) {
+      try {
+        const ch = await reg.loadChapter(id);
+        if (ch.sections.length) out.push([id, ch.sections.map((s) => s.id)]);
+      } catch {
+        out.push([id, ['start']]); // a chapter whose index does not load: its start route will say so
+      }
+    }
+    return out;
+  });
 });
 const routes = ['', 'review', ...built.filter(([id]) => !only.length || only.includes(id)).flatMap(([id, ss]) => ss.map((s) => `${id}/${s}`))];
 console.log(`sweeping ${routes.length} routes in ${built.length} built chapters${only.length ? ` (limited to ${only.join(', ')})` : ''}`);
-for (const width of [1440, 390]) {
+
+/** A renderer that crashed (out of memory on a long sweep) is replaced, so the sweep goes on. */
+async function freshPage(width) {
+  try {
+    await page.close();
+  } catch {
+    /* already gone */
+  }
+  page = await browser.newPage();
+  await page.evaluateOnNewDocument(() => {
+    window.__PMPP_WRITTEN_ORDER__ = true;
+  });
+  page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
+  page.on('console', (m) => {
+    if (m.type() === 'error') errors.push('console: ' + m.text());
+  });
+  puts = await stubProgress(page, { seed: seeded });
   await page.setViewport({ width, height: 900, deviceScaleFactor: 1 });
+}
+const gone = (e) => /Target closed|Session closed|crash|detached|Protocol error/i.test(String(e?.message ?? e));
+
+for (const width of [1440, 390]) {
+  await page.setViewport({ width, height: 900, deviceScaleFactor: 1 }).catch(() => freshPage(width));
   for (const route of routes) {
+    const name = `route "${route || 'home'}" at ${width}px`;
     try {
       await goto(page, route);
-    } catch {
-      const text = await page.$eval('.page', (e) => e.textContent.slice(0, 160)).catch(() => '');
-      check(`route "${route}" at ${width}px: loads`, false, text);
+    } catch (e) {
+      const text = await page.$eval('.page', (el) => el.textContent.slice(0, 160)).catch(() => '');
+      check(`${name}: loads`, false, text || String(e?.message ?? e).split('\n')[0]);
+      if (gone(e) || page.isClosed()) await freshPage(width);
       continue;
     }
-    const info = await page.evaluate(() => ({
-      placeholder: document.querySelector('.page').textContent.includes('This section is being written'),
-      overflow: document.documentElement.scrollWidth - window.innerWidth,
-      h1: document.querySelector('.page h1')?.textContent,
-    }));
-    check(`route "${route || 'home'}" at ${width}px: has content, no sideways page scroll`, !info.placeholder && !!info.h1 && info.overflow <= 1, JSON.stringify(info));
+    try {
+      const info = await page.evaluate(() => ({
+        placeholder: document.querySelector('.page').textContent.includes('This section is being written'),
+        overflow: document.documentElement.scrollWidth - window.innerWidth,
+        h1: document.querySelector('.page h1')?.textContent,
+      }));
+      check(`${name}: has content, no sideways page scroll`, !info.placeholder && !!info.h1 && info.overflow <= 1, JSON.stringify(info));
+    } catch (e) {
+      check(`${name}: can be inspected`, false, String(e?.message ?? e).split('\n')[0]);
+      if (gone(e) || page.isClosed()) await freshPage(width);
+    }
   }
 }
 
-check('no console or page errors', errors.length === 0, errors.join(' | '));
+check('no console or page errors', errors.length === 0, errors.slice(0, 12).join(' | ') + (errors.length > 12 ? ` | and ${errors.length - 12} more` : ''));
 await browser.close();
 console.log(fail.length ? `\n${fail.length} check(s) failed` : '\nall checks passed');
 process.exit(fail.length ? 1 : 0);

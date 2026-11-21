@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { Ask, type Question } from '../../components/Ask';
 import { Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
 import { useReports, type Reports } from '../../lib/reports';
+import { useNarrow } from '../../lib/narrow';
 import { href } from '../../lib/router';
 import {
   ALGOS,
@@ -43,23 +44,6 @@ const int = (v: number) => Math.round(v).toLocaleString('en-US');
 const dec = (v: number, d = 2) => Number(v.toFixed(d)).toLocaleString('en-US');
 const pct = (v: number) => (v === 0 ? '0' : v < 0.001 ? '<0.1' : dec(100 * v, 1));
 
-/**
- * True while the viewport is at most 600 px wide. The plots then use a narrower drawing so
- * that their labels stay legible on a phone. (Chapter 10 has the same helper; a shared one
- * would belong in src/lib.)
- */
-function useNarrow(px = 600): boolean {
-  const query = `(max-width: ${px}px)`;
-  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.matchMedia(query).matches);
-  useEffect(() => {
-    const m = window.matchMedia(query);
-    const on = () => setNarrow(m.matches);
-    on();
-    m.addEventListener('change', on);
-    return () => m.removeEventListener('change', on);
-  }, [query]);
-  return narrow;
-}
 
 // ---------------------------------------------------------------- explorer 1: which scan
 const CHARGES: Charge[] = ['adds', 'warps'];
@@ -97,7 +81,7 @@ function Legend() {
 }
 
 function TimePlot({ pts, n, p, bkUpTo, ksFrom }: { pts: CurvePoint[]; n: number; p: number; bkUpTo: number | null; ksFrom: number | null }) {
-  const narrow = useNarrow();
+  const narrow = useNarrow(600); // a narrower drawing on a phone keeps the labels legible
   const W = narrow ? 380 : 640;
   const H = narrow ? 260 : 290;
   const pad = { l: 50, r: 12, t: 10, b: 42 };
@@ -611,7 +595,7 @@ export const questionsS221: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Brent-Kung, although it takes 19 steps to Kogge-Stone’s 10: with 32 adders a step’s additions wait their turn, so the total number of additions decides.',
+        label: 'Brent-Kung, despite 19 steps to Kogge-Stone’s 10: with 32 adders, the total additions decide.',
         correct: true,
       },
       {
@@ -644,11 +628,11 @@ export const questionsS221: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Yes, after mapping each float’s bits to an unsigned key in the same order; what radix cannot take is an arbitrary comparison.',
+        label: 'Yes, after mapping each float’s bits to an order-preserving unsigned key.',
         correct: true,
       },
       {
-        label: 'No: radix sort needs integer keys and logits are floats, so this is exactly the case merge sort is for.',
+        label: 'No: radix sort needs integer keys and logits are floats, so this is the case merge sort’s generality exists for.',
         why: 'A bit transform turns each float into an unsigned integer with the same order, and then radix sort applies.',
       },
       {
@@ -685,7 +669,7 @@ export const questionsS221: Record<string, Question> = {
         why: 'Far atoms are left out by design. Overflow atoms are near, and their contributions must be added to complete the result (p. 531).',
       },
       {
-        label: 'More work on the device, because every block must now search the overflow list for atoms near its points.',
+        label: 'More work on the device, because every block must now also search the overflow list for atoms near its grid points before it writes them.',
         why: 'The device never reads the list. It is processed after the kernel, by the host in chapter 21 (p. 527).',
       },
     ],
@@ -708,7 +692,7 @@ export const questionsS221: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Accuracy, given up a little, for steps, cut a great deal; both expose ample parallelism.', correct: true },
+      { label: 'Accuracy, given up a little, for steps, cut a great deal.', correct: true },
       {
         label: 'Parallelism for steps: the cutoff version has fewer grid points it can compute at once.',
         why: 'Both run one thread per grid point. The book says both expose ample parallelism (p. 530).',
@@ -723,7 +707,8 @@ export const questionsS221: Record<string, Question> = {
         Direct summation&rsquo;s work grows with the square of the volume; cutoff summation&rsquo;s grows linearly,
         because each grid point only sums the atoms near it. The price is the far atoms&rsquo; individual contributions,
         which the physics says are small and can be handled together. Section <a href={href('ch22', '22.4')}>22.4</a>{' '}
-        calls this kind of move a reformulation.
+        calls this kind of move a reformulation. Both expose ample parallelism, one thread per grid point (p. 530), so
+        parallelism is not what is traded.
       </p>
     ),
     source: 'ch. 22 §22.1, pp. 530–531',

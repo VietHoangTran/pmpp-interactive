@@ -101,7 +101,7 @@ check(`q-c5-direct: correct, with ${g.threads.toLocaleString('en-US')} threads, 
 
 v = await answerChoice('subsampling layer', 'About a factor of 4');
 check('q-subsample: "a factor of 4" is wrong, with its reason', v && v.includes('Not quite.') && v.includes('no input is in two windows'), v);
-v = await answerChoice('subsampling layer', 'Nothing: every input value is read by exactly one thread');
+v = await answerChoice('subsampling layer', 'Nothing: each input value is read by one thread');
 check('q-subsample: "nothing" is correct, with a link to 19.3', v && v.includes('Correct.') && v.includes('expansion ratio is 1'), v);
 
 const centre = BOOK_SHAPE.M * xToB(BOOK_SHAPE, 0, 1, 1).length;
@@ -110,7 +110,7 @@ v = await answerChoice('first attempt at the input gradient', 'Yes: each thread 
 check('q-backward: "independent threads" is wrong, with its reason', v && v.includes('Not quite.') && v.includes('which elements of dX'), v);
 v = await answerChoice('first attempt at the input gradient', 'No: it needs a __syncthreads()');
 check('q-backward: "a barrier" is wrong, with its reason', v && v.includes('Not quite.') && v.includes('different blocks'), v);
-v = await answerChoice('first attempt at the input gradient', 'No: threads with overlapping patches');
+v = await answerChoice('first attempt at the input gradient', 'No: overlapping patches');
 check(`q-backward: correct, with the model's ${centre} writers of the centre pixel and ${corner} of a corner`,
   v && v.includes('Correct.') && v.includes(`so ${centre} threads read`) && v.includes(`a corner pixel has ${corner}`) && v.includes('atomicAdd') && v.includes('Eq. B.22'), v);
 
@@ -119,7 +119,7 @@ const dense = gemmShape({ N: 1, C: 256, H: 14, W: 14, M: 256, K: 3 });
 const sh = (x) => `${x.rows} × ${x.inner} × ${x.cols}`;
 v = await answerChoice('depthwise convolution', sh(dense));
 check(`q-depthwise: the dense shape ${sh(dense)} is wrong`, v && v.includes('Not quite.') && v.includes('reads one'), v);
-v = await answerChoice('depthwise convolution', `${sh(per)}: one row`);
+v = await answerChoice('depthwise convolution', `${sh(per)}: a matrix-vector product`);
 check(`q-depthwise: ${sh(per)} is correct, against ${sh(dense)} dense`, v && v.includes('Correct.') && v.includes(sh(per)) && v.includes(sh(dense)), v);
 
 v = await answerChoice('int8 with one float scale per output map', 'In the F tile load');

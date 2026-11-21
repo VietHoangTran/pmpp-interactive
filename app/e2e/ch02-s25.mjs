@@ -193,17 +193,39 @@ const passed = (backend) => {
   const rs = (reports[backend]?.results ?? []).filter((x) => x.lab === 'ch02/lab1_vecadd' && x.variant === 'solution' && x.tests.length);
   return rs.length > 0 && rs.every((x) => x.built && x.test_rc === 0 && x.tests.every((t) => t.pass));
 };
+// The tab status of LabKit's solutionTabStatus, from this machine's runs: Metal tabs say
+// "verified on Metal" | "unverified: failed on this machine" | "unverified: no run on this machine";
+// a kernel.cu tab lists what passed (CUDA, HIP, then the emulator), then what failed, then the
+// CUDA-family backends with no run.
+const labState = (backend, labId) => {
+  const rs = (reports[backend]?.results ?? []).filter((x) => x.lab === labId && x.variant === 'solution' && x.tests.length);
+  if (!rs.length) return 'none';
+  return rs.every((x) => x.built && x.test_rc === 0 && x.tests.every((t) => t.pass)) ? 'pass' : 'fail';
+};
+const tabStatus = (labId, file) => {
+  const st = (b) => labState(b, labId);
+  if (file !== 'kernel.cu') return st('metal') === 'pass' ? 'verified on Metal' : `unverified: ${st('metal') === 'fail' ? 'failed on this machine' : 'no run on this machine'}`;
+  const NAMES = { cuda: 'CUDA', hip: 'HIP' };
+  const WHERE = { cuda: 'CUDA', hip: 'HIP', emu: 'the emulator' };
+  const and = (xs) => (xs.length < 3 ? xs.join(' and ') : xs.slice(0, -1).join(', ') + ' and ' + xs.at(-1));
+  const fam = ['cuda', 'hip', 'emu'];
+  const ok = fam.filter((b) => st(b) === 'pass').map((b) => (b === 'emu' ? 'emulator-checked' : `verified on ${NAMES[b]}`));
+  const bad = fam.filter((b) => st(b) === 'fail').map((b) => WHERE[b]);
+  const none = ['cuda', 'hip'].filter((b) => st(b) === 'none').map((b) => NAMES[b]);
+  if (!ok.length && !bad.length) return 'unverified: no run on this machine';
+  return [ok.join(', '), bad.length ? `unverified on ${and(bad)}: failed on this machine` : '', none.length ? `unverified on ${none.join(' and ')}` : ''].filter(Boolean).join('; ');
+};
 const LISTING = await page.evaluateHandle(() => [...document.querySelectorAll('figure.code')].find((f) => [...f.querySelectorAll('.tabs button')].map((b) => b.textContent).join('|') === 'CUDA|Metal'));
 const listingLines = () => LISTING.evaluate((f) => [...f.querySelectorAll('pre .ln')].map((l) => l.textContent.replace(/\n$/, '')));
 const listingStatus = () => LISTING.evaluate((f) => f.querySelector('.status')?.textContent ?? '');
 check('the listing has a CUDA tab and a Metal tab', !!(await LISTING.evaluate((f) => !!f)));
 check('the CUDA tab is vecAddKernel from the lab 2.1 solution, line for line', JSON.stringify(await listingLines()) === JSON.stringify(kCu.text.split('\n')));
-const wantCu = (passed('emu') ? 'emulator-checked' : 'no passing run on this machine') + '; unverified on CUDA and HIP';
+const wantCu = tabStatus('ch02/lab1_vecadd', 'kernel.cu');
 check('its status follows this machine\'s recorded runs, in the fixed vocabulary', (await listingStatus()) === wantCu, `${await listingStatus()} / ${wantCu}`);
 await LISTING.evaluate((f) => [...f.querySelectorAll('.tabs button')].find((b) => b.textContent === 'Metal').click());
 await pause(100);
 check('the Metal tab is vec_add from kernel.metal, line for line', JSON.stringify(await listingLines()) === JSON.stringify(kMetal.text.split('\n')));
-check('the Metal status is "verified on Metal" only with a passing run here', (await listingStatus()) === (passed('metal') ? 'verified on Metal' : 'unverified: no passing Metal run on this machine'), await listingStatus());
+check('the Metal status is "verified on Metal" only with a passing run here', (await listingStatus()) === tabStatus('ch02/lab1_vecadd', 'kernel.metal'), await listingStatus());
 const caption = await LISTING.evaluate((f) => f.querySelector('figcaption').textContent);
 check('the caption gives the lines of both files', caption.includes(`lines ${kCu.firstLine} to ${kCu.lastLine}`) && caption.includes(`lines ${kMetal.firstLine} to ${kMetal.lastLine}`), caption);
 
@@ -403,7 +425,7 @@ const exLabels = await page.$$eval('.q .kind', (ks) => ks.map((k) => k.textConte
 check('the book’s exercises 1 to 3 are labelled as such', ['Book exercise 1', 'Book exercise 2', 'Book exercise 3'].every((l) => exLabels.includes(l)), exLabels.join(' | '));
 const ngq = coverage({ n: 1000, blockDim: 256, guard: false });
 q = await question('someone deletes');
-await pick(q, 'The launch fails with an error code.');
+await pick(q, 'The launch fails with an error code,');
 check('q-noguard: "the launch fails" is refused', (await qText(q)).includes('Not quite.'));
 await pick(q, `${ngq.idle} threads read and write elements ${span(ngq.outOfRange)}`);
 t = await qText(q);

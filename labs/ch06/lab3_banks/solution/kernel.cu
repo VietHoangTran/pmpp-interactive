@@ -32,8 +32,8 @@
 
 __global__ void tiledTransposeKernel(const float* in, float* out, int rows, int cols, int pitch) {
     // TILE_WIDTH rows of TILE_WIDTH + 1 words, enough for the padded layout; pitch =
-    // TILE_WIDTH uses the first TILE_WIDTH^2 words. (Written without parentheses because
-    // the CPU emulator's translator does not accept them in a __shared__ array bound.)
+    // TILE_WIDTH uses the first TILE_WIDTH^2 words. (Written without parentheses, which the
+    // CPU emulator's translator once rejected in a __shared__ array bound; it accepts them now.)
     __shared__ float tile[TILE_WIDTH * TILE_WIDTH + TILE_WIDTH];
 
     int tx = threadIdx.x, ty = threadIdx.y;

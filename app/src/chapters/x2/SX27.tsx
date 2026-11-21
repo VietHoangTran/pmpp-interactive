@@ -82,7 +82,7 @@ export const questionsSX27: Record<string, Question> = {
     id: 'x2/X2.7/q-margin',
     prompt: <>Which greedy steps are at risk when the weights are quantised?</>,
     options: [
-      { label: 'Those whose float32 top-2 margin is smaller than the change in the logits.', correct: true },
+      { label: 'Steps whose float32 top-2 margin is below the logits\' change.', correct: true },
       { label: 'The first steps of the sequence, where the quantisation error is largest.', why: 'Each step here starts from a token, not from accumulated state; the risk is per step.' },
       { label: 'The steps whose winning token has the largest logit of the sequence.', why: 'A large winning logit is fine if the runner-up is far behind.' },
       { label: 'All of them equally, since every logit moves by about the same amount.', why: 'In the toy model a step whose margin is several times the logits error never flips.' },
@@ -101,7 +101,7 @@ export const questionsSX27: Record<string, Question> = {
     id: 'x2/X2.7/q-weights-vs-output',
     prompt: <>Q4_0 has about 9% relative RMS error on normal weights. Can you predict the error in the logits from that?</>,
     options: [
-      { label: 'No: errors cancel and mix through every layer and the residual; measure the output.', correct: true },
+      { label: 'No: the error mixes through every layer and the residual.', correct: true },
       { label: 'Yes: also about 9%, because the logits are linear in the weights.', why: 'They are not linear in the weights: each layer feeds the next, and E appears twice, at the gather and at the head.' },
       { label: 'Yes: about 9% times the number of layers the error passes through.', why: 'Errors do not add like that; some cancel, and the residual carries the unquantised part forward.' },
     ],

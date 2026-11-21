@@ -1,6 +1,6 @@
 // Fig. 23.20 (p. 568), lines 27 to 44: the NCCL version's halo exchange and the end of its
 // loop body. Lines 01 to 26 are those of Fig. 23.14 (overlap_loop.cu); line 46 swaps the
-// buffers. Section 23.4 shows the marked region, numbered from 27 as on the page, and
+// buffers. The course page 23.3–23.5 (route ch23/23.4) shows the marked region, numbered from 27 as on the page, and
 // app/src/sim/haloloop.ts cites the same numbers.
 //
 // Setup this region assumes (Fig. 23.17, p. 565; notes/today/ch23-facts.md A12):

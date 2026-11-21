@@ -33,7 +33,7 @@ describe('start page: q-chainlen asks for the count of pieces, not the amount of
   it('the question marks "X on A, Y on B" correct and explains every wrong option with the model numbers', () => {
     const q = questions10['ch01/start/q-chainlen'] as ChoiceQ;
     expect(correct(q)).toBe(2);
-    expect(String(q.options[2].label)).toBe('X on A, Y on B.');
+    expect(String(q.options[2].label)).toMatch(/^X on A, Y on B\b/);
     expect(everyWrongSaysWhy(q)).toBe(true);
     expect(String(q.options[0].why)).toContain('done at 320');
     expect(String(q.options[1].why)).toContain('done at 1,000');

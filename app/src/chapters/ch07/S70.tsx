@@ -254,7 +254,7 @@ export function S70() {
       </Beyond>
       <p>
         Production libraries rarely run it the way the book does. They mostly turn a convolution into a matrix
-        multiplication, which is chapter 19: llama.cpp&rsquo;s <code>ggml_conv_2d</code> is <code>ggml_im2col</code>{' '}
+        multiplication, which is chapter 19 (<a href={href('ch19', '19.3')}>§19.3</a>): llama.cpp&rsquo;s <code>ggml_conv_2d</code> is <code>ggml_im2col</code>{' '}
         followed by <code>ggml_mul_mat</code>, and MLX chooses between Winograd, implicit GEMM, explicit GEMM and a
         depthwise kernel.
       </p>

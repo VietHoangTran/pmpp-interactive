@@ -73,11 +73,11 @@ export const questionsSX36: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Not necessarily: the tie rules differ. Compare against a reference with the same rule, or check the margin between the top two.',
+        label: 'Not necessarily: the tie rules differ. Use a reference with the same rule, or check the top-two margin.',
         correct: true,
       },
       { label: 'Yes: a correct kernel returns the same token as torch.argmax on every input.', why: 'Only if it is written to the same tie rule. llama.cpp\'s Metal kernel is not.' },
-      { label: 'Yes: equal printed logits mean equal floats, so every argmax must agree.', why: 'Even equal floats leave the choice to the tie rule. And printed values are rounded: the floats may differ in the last bits on two backends.' },
+      { label: 'Yes: equal printed logits mean equal floats, and with equal floats every correct argmax returns the same index.', why: 'Even equal floats leave the choice to the tie rule. And printed values are rounded: the floats may differ in the last bits on two backends.' },
       { label: 'No: greedy decoding is not expected to be reproducible across devices.', why: 'It is, wherever the margin exceeds the rounding differences. That is the test to write.' },
     ],
     explain: (
@@ -96,11 +96,11 @@ export const questionsSX36: Record<string, Question> = {
     prompt: <>Same probabilities, same uniform random numbers. Why can torch.multinomial and an inverse-CDF sampler give different tokens?</>,
     options: [
       {
-        label: 'torch.multinomial(probs, 1) is argmax(p / q) with exponential noise q: a different algorithm, equal in distribution but not token by token.',
+        label: 'torch.multinomial(probs, 1) takes argmax(p / q) with exponential noise q: same distribution, other tokens.',
         correct: true,
       },
-      { label: 'torch.multinomial sorts the probabilities first, so the CDF is walked in another order.', why: 'It does not sort. For one sample it never builds a CDF at all.' },
-      { label: 'Float rounding in the cumulative sum.', why: 'That can move a boundary by a few ulps, but here the algorithms themselves differ.' },
+      { label: 'torch.multinomial sorts the probabilities in descending order first, so its CDF is walked in another token order.', why: 'It does not sort. For one sample it never builds a CDF at all.' },
+      { label: 'Float rounding in the cumulative sum, which moves every bucket boundary by a few units in the last place.', why: 'That can move a boundary by a few ulps, but here the algorithms themselves differ.' },
       { label: 'They cannot: both are exact samplers of the same distribution.', why: 'Exact samplers of one distribution can still map the same random bits to different tokens.' },
     ],
     explain: (
@@ -118,10 +118,10 @@ export const questionsSX36: Record<string, Question> = {
     id: 'x3/X3.6/q-default-place',
     prompt: <>With llama.cpp's defaults, where does the sampling chain of ordinary generation run?</>,
     options: [
-      { label: 'On the host: backend_sampling is false by default; the GPU path is opt-in with -bs and labelled experimental.', correct: true },
-      { label: 'On the GPU, in the same graph as the model.', why: 'That is the -bs path, which is off by default for generation. The speculative draft is the exception, on by default.' },
-      { label: 'Penalties on the host, everything after them on the GPU.', why: 'No such split exists by default: the whole chain is host code.' },
-      { label: 'On whichever backend computed the logits.', why: 'That describes transformers and mlx-lm, whose samplers are tensor ops.' },
+      { label: 'On the host: backend_sampling is false by default, and -bs, the GPU path, is experimental.', correct: true },
+      { label: 'On the GPU, in the same graph as the model, so only the chosen token returns to the host.', why: 'That is the -bs path, which is off by default for generation. The speculative draft is the exception, on by default.' },
+      { label: 'Penalties on the host, where the token history is; everything after them on the GPU.', why: 'No such split exists by default: the whole chain is host code.' },
+      { label: 'On whichever backend computed the logits, since the chain is written as tensor ops.', why: 'That describes transformers and mlx-lm, whose samplers are tensor ops.' },
     ],
     explain: (
       <p>

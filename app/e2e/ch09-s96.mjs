@@ -142,7 +142,7 @@ const missing = await page.$('[data-listing="missing"]');
 if (missing) check('listing: lab 9.2 not in place yet (says so)', true);
 else {
   const tabs = await page.$$eval('.code .tabs button', (b) => b.map((x) => x.textContent));
-  check('listing shows CUDA and Metal tabs', tabs.includes('CUDA') && tabs.includes('Metal'), tabs.join('|'));
+  check('listing shows CUDA and HIP and Metal tabs', tabs.includes('CUDA and HIP') && tabs.includes('Metal'), tabs.join('|'));
   const hl = await page.$$eval('.code .ln.hl', (e) => e.map((x) => x.textContent));
   check('the two flushes are highlighted', hl.length === 2 && hl.every((l) => l.includes('fetch_add(bin_r')), hl.join('|'));
 }

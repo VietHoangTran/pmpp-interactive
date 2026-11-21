@@ -55,6 +55,21 @@ export function Aside({ children }: { children: ReactNode }) {
   return <aside className="note">{children}</aside>;
 }
 
+/**
+ * Two or more margin notes that belong to one paragraph. In the .prose grid each note is its
+ * own item in the margin column, so a second note after the same paragraph starts a new row
+ * and leaves a blank gap in the text beside it. Grouped, they share the paragraph's row and
+ * stack in the margin; on narrow screens the group falls into the text column like one note.
+ * Put it right after the paragraph, like any margin note.
+ */
+export function NoteGroup({ children }: { children: ReactNode }) {
+  return (
+    <div className="note note-group" data-note-group="">
+      {children}
+    </div>
+  );
+}
+
 /** The surface an interactive sits on. */
 export function Bench({
   title,

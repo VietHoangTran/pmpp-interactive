@@ -483,6 +483,7 @@ Recorded so lab authors do not have to rediscover them; these describe this repo
 
 - No lab uses cuRAND, hipRAND or Philox yet (searched `labs/` outside the build directories). `labs/common/include/pmpp/vendors/hip.h` maps no cuRAND names, and the include paths differ (`<curand_kernel.h>` against `<hiprand/hiprand_kernel.h>`), so a lab that called the libraries would need `#if` guards. A hand-written Philox needs none.
 - Neither the emulator (`labs/common/include/pmpp/emu/emu_device.h`) nor the front-end stub (`labs/common/include/pmpp/check/cuda_stub.h`) declares `__umulhi` (searched). A lab that calls it needs a shared change (report it, do not edit shared files from a chapter build). The 64-bit product form (A5) needs no change and is the same source on Metal with `ulong`.
+  - Update 2026-11-21 (course consistency pass): both now declare `__umulhi` (`emu_device.h`, `cuda_stub.h`); the labs keep the 64-bit product form, which needs no intrinsic.
 
 ## Answers to the brief's portability questions
 

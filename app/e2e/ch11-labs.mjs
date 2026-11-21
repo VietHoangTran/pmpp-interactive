@@ -102,7 +102,7 @@ check('lab 11.5\'s HIP dependency (libhipcxx) and its unverified status are stat
 check('the page says its numbers are measurements, not expected values', text0.includes('None is an expected value'));
 const h2 = await page.$$eval('.prose h2', (hs) => hs.map((h) => h.textContent));
 for (const t of ['Lab 11.1: one block scan, three ways', 'Lab 11.2: coarsening and register tiling', 'Lab 11.3: scan race hunt',
-  'Lab 11.4: a scan of any length, hierarchically', 'Lab 11.5: single-pass scan with lookback (CUDA family, optional)', 'Lab 11.6: top-p keep mask (milestone M5, part 1)'])
+  'Lab 11.4: a scan of any length, hierarchically', 'Lab 11.5: single-pass scan with lookback (CUDA family, optional)', 'Lab 11.6: top-p keep mask (milestone M5)'])
   check(`heading present: ${t}`, h2.includes(t), h2.join(' | '));
 check('no literal "being written" placeholder', !/being written/i.test(text0));
 check('the page never presents 32 as the warp width without saying whose', !/warps? (are|is) 32/i.test(text0));
@@ -167,8 +167,8 @@ for (const l of LABS) {
   const done = ['metal', 'cuda', 'hip', 'emu'].filter((b) => reports[b] && labStatus(reports[b], L['11.6'].id, 'work') === 'pass');
   const m = await page.$eval('[data-milestone]', (e) => ({ v: e.dataset.milestone, text: e.textContent }));
   check(`milestone M5 line reads lab 11.6 from the reports (${done.join(',') || 'none'})`, m.v === (done.join(',') || 'none') &&
-    (done.length ? m.text.includes('part 1 of M5 is done there') : m.text.includes('does not pass on any backend') || m.text.includes('No lab results')), JSON.stringify(m));
-  check('the milestone names M5, chapters 12 and 14 and module X1', text0.includes('first part of milestone M5') && text0.includes('Chapter 12') && text0.includes('chapter 14') && text0.includes('module X1'));
+    (done.length ? m.text.includes('the top-p piece of M5 is in place there') : m.text.includes('does not pass on any backend') || m.text.includes('No lab results')), JSON.stringify(m));
+  check('the milestone names M5, chapters 12 and 14 and module X1', text0.includes('top-p piece of milestone M5') && text0.includes('Chapter 12') && text0.includes('chapter 14') && text0.includes('module X1'));
 }
 
 // ---- predictions

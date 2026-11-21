@@ -76,14 +76,14 @@ step (section 5).
 | 20 | Large language models (477–512) | Deep | Attention kernels, KV cache, flash attention, batching and intensity | M6 attention, M7 KV cache |
 | 21 | Electrostatic potential map (513–528) | Condensed | Keep scatter vs gather and coalescing-aware output assignment | none |
 | 22 | Algorithm selection (529–540) | Standard | Amdahl, gather/scatter choice, §22.5 batching: latency vs throughput | M8 batching study |
-| 23 | Multi-GPU (541–576) | Condensed | Keep §23.3 streams, async copies, pinned memory; drop MPI/NCCL/NVSHMEM | none |
+| 23 | Multi-GPU (541–576) | Condensed | Keep §23.3 streams, async copies, pinned memory; MPI, NCCL and NVSHMEM get a paragraph each | none |
 | 24 | Conclusion (577–580) | Condensed | Framing only | none |
 | A | Numerical considerations (583–600) | Standard | Summation order, softmax stability, §A.5 as the anchor for quantisation | feeds X2 |
 | B | Deep learning basics (601–622) | Skipped | The reader already knows all of it; kept as a reference link | none |
 | C | CUDA memories and address spaces (623–629) | Standard | The book's memory-model history; the contrast with Apple unified memory | feeds portability track |
 | X1 | Sampling kernels (not in the book) | Deep | Goal 1. Built from chs. 10, 11, 12, 14 | M5 |
-| X2 | Quantised kernels (not in the book) | Deep | Goal 1. Anchored on A.5 and ch. 15's intensity analysis | M9 int8 / 4-bit GEMM |
-| X3 | Reading real backends (not in the book) | Standard | Goal 3. Guided reading of llama.cpp, MLX and PyTorch GPU code | none |
+| X2 | Quantised kernels (not in the book) | Deep | Goal 1. Anchored on A.5 and ch. 15's intensity analysis | M9 int8 / 4-bit GEMM (built as GEMVs and the quantised decode step) |
+| X3 | Reading real backends (not in the book) | Standard | Goal 3. Guided reading of llama.cpp, MLX and PyTorch GPU code | M10 |
 
 ### Learning objectives per chapter
 
@@ -181,8 +181,8 @@ available backend.
 | M6 | ch. 20 | mask+softmax kernel, then a tiled attention kernel |
 | M7 | ch. 20 | KV cache: single-token decode path |
 | M8 | ch. 22 | batching study: latency vs throughput on the reader's device |
-| M9 | A, X2 | int8 and 4-bit-weight GEMM; measure the decode speed-up |
-| M10 | X3 | run a small real checkpoint and compare tokens with a reference implementation |
+| M9 | A, X2 | int8 and 4-bit-weight GEMM; measure the decode speed-up. As built: Q8_0 and Q4_0 GEMVs (labs X2.1, X2.2) in the quantised decode step (lab X2.4) |
+| M10 | X3 | run a small real checkpoint and compare tokens with a reference implementation. As built: a small Llama-style model generated in the repository from a fixed seed (no small real checkpoint has M7's head size of 128, and the build downloads nothing), checked logit by logit and token by token against a CPU reference (lab X3.2), also with M9's quantised layer through a provided adapter; a downloaded checkpoint is the lab README's optional path |
 
 ## 6. Stack and layout
 
@@ -223,29 +223,34 @@ Every simulation states what it simplifies. Every lesson carries its section and
 
 ## 8. Narration and video
 
-- Generated only with the ElevenLabs MCP text-to-speech tool, model `eleven_v4`, voice
+- Generated with the ElevenLabs MCP text-to-speech tool, model `eleven_v4`, voice
   `tnSpp4vdxKPjI9w0GnoV`. (`eleven_v4_turbo` was requested first; the MCP server does not
-  offer it, and the reader chose `eleven_v4` on 2026-11-20.) No other model or voice.
+  offer it, and the reader chose `eleven_v4` on 2026-11-20.) When credits run low, the
+  reader's decision of 2026-11-20 allows `eleven_v4_turbo` through the API directly
+  (`tools/tts-api.mjs`), same voice. No other model or voice.
 - Scripts are written for the ear, one `.txt` per clip beside its `.mp3`.
   `content/chNN/narration/manifest.json` maps each clip to the SHA-256 of its script, so
   only clips whose script changed are regenerated (`node tools/narration.mjs status`).
 - Audio is committed, so the app plays it anywhere without ElevenLabs access.
 - "Video" is a programmatic animation (SVG driven by a timeline) split into beats, one
-  clip per beat, so picture and sound stay in sync and both stay editable. Captions always
-  show; with audio missing the animation runs on estimated timings.
+  clip per beat, so picture and sound stay in sync and both stay editable. Captions are an
+  option, off by default and remembered (the reader's instruction, 2026-11-20); a beat with no
+  audio shows its script and runs on estimated timings.
 
 ## 9. Order of work
 
 1. Read the book, notes, this plan. **Done.**
 2. Pilot: chapter 5 to the finished standard (lessons, interactives, narration, four labs,
-   verify command). **In progress.**
+   verify command). **Done** (2026-11-20).
 3. Stop for review. The reader runs `./verify.sh` on a CUDA and a ROCm machine and brings
-   the reports back; fixes follow from those.
+   the reports back; fixes follow from those. (The reader approved the pilot without those
+   reports; CUDA and HIP stay unverified until they exist.)
 4. After approval, the remaining chapters in this order, each built by a subagent from
    the notes with chapter 5 as the template, then reviewed for accuracy and consistency:
    2, 3, 4, 6 (foundations) → 15 (matmul) → 10, 11, 12, 14, 9, X1 (sampling) →
    20, 22 (attention, batching) → A, X2 (quantisation) → 7, 19, C → X3 →
    condensed chapters 1, 8, 13, 16, 17, 18, 21, 23, 24.
+   **Built** in waves 1 to 5b (2026-11-20 and 21); see `PROGRESS.md`.
 
 ## 10. Decisions for the reader
 

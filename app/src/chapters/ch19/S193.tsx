@@ -1073,10 +1073,10 @@ export const questionsS193: Record<string, Question> = {
     id: 'ch19/19.3/q-noM',
     prompt: <>B's size is C·K·K × H_out·W_out. Why does the number of output maps M not appear in it?</>,
     options: [
-      { label: 'Every output map is computed from the same B; M sets only the height of F and of Y.', correct: true },
-      { label: 'M is folded into C·K·K.', why: 'C·K·K counts the terms of one output: input maps times filter size. M does not enter it.' },
-      { label: 'B is built once per output map, so its size is per map.', why: 'One B serves all M maps. Building it per map would multiply the cost by M.' },
-      { label: 'M is always 1 in the book.', why: 'The example has M = 2 and LeNet C3 has M = 16.' },
+      { label: 'All M output maps use the same B; M sets only the height of F and of Y.', correct: true },
+      { label: 'M is folded into C·K·K, which already counts every filter in the bank.', why: 'C·K·K counts the terms of one output: input maps times filter size. M does not enter it.' },
+      { label: 'B is built once per output map, so its size is given per map and multiplied by M.', why: 'One B serves all M maps. Building it per map would multiply the cost by M.' },
+      { label: 'M is 1 in the book’s worked example, so the formula can leave it out.', why: 'The example has M = 2 and LeNet C3 has M = 16.' },
     ],
     explain: (
       <p>
@@ -1157,13 +1157,13 @@ export const questionsS193: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: <>X = F; W = Bᵀ stored P × C·K·K (one row per output pixel); batch = M, in = C·K·K, out = P.</>, correct: true },
+      { label: <>X = F; W = Bᵀ, stored P × C·K·K (a row per pixel); batch = M, in = C·K·K, out = P.</>, correct: true },
       {
-        label: <>X = Bᵀ; W = F; batch = P, in = C·K·K, out = M.</>,
+        label: <>X = Bᵀ, stored P × C·K·K; W = F; batch = P, in = C·K·K, out = M.</>,
         why: 'That computes Bᵀ·Fᵀ = (F·B)ᵀ: P × M per sample, each pixel\'s M channels together (channels last), not NCHW.',
       },
       {
-        label: <>X = F; W = B stored C·K·K × P; batch = M, in = C·K·K, out = P.</>,
+        label: <>X = F; W = B, stored C·K·K × P; batch = M, in = C·K·K, out = P.</>,
         why: 'launchLinear reads W row by row as (out, in): row o must be output o\'s inputs. B stored C·K·K × P has them down a column.',
       },
       { label: <>X = B; W = F; batch = C·K·K, in = P, out = M.</>, why: 'The inner dimension of the product must be C·K·K, the length of each dot product.' },
@@ -1182,8 +1182,8 @@ export const questionsS193: Record<string, Question> = {
     prompt: <>You unroll all N samples into one C·K·K × N·P matrix and run a single GEMM with F. What layout comes out, and what does it cost?</>,
     options: [
       { label: 'M × N × P (CNHW): reaching NCHW takes a permute, one more pass over Y.', correct: true },
-      { label: 'N × M × P (NCHW), at no extra cost.', why: 'Row m of the product holds output map m for every sample in turn: the sample index sits inside the map index.' },
-      { label: 'N·P × M (channels last), at no extra cost.', why: 'That is what Bᵀ·Fᵀ would give. F·B keeps M as the row index.' },
+      { label: 'N × M × P (NCHW), the layout the next layer reads, at no extra cost.', why: 'Row m of the product holds output map m for every sample in turn: the sample index sits inside the map index.' },
+      { label: 'N·P × M (channels last), at no extra cost: each pixel’s maps sit together.', why: 'That is what Bᵀ·Fᵀ would give. F·B keeps M as the row index.' },
       { label: 'The same as per sample, but B no longer fits any GPU.', why: 'B grows N-fold, which can matter (see the explorer), but the question is the layout.' },
     ],
     explain: (
@@ -1201,12 +1201,12 @@ export const questionsS193: Record<string, Question> = {
     prompt: <>LeNet C5 at batch 1 gives a B of 400 × 1. Why does the GEMM formulation buy almost nothing here?</>,
     options: [
       {
-        label: 'There is one output pixel per map, so a 16-wide tile is 1/16 used and each F element is used once: it is a matrix-vector product.',
+        label: 'One pixel per map makes it a matrix-vector product: each F element is used once.',
         correct: true,
       },
-      { label: 'The expansion ratio is 25, so B is too large.', why: 'With a single output pixel nothing overlaps: B is 400 values from 400 inputs, ratio 1.' },
-      { label: 'C5\'s filters do not fit in shared memory.', why: 'The tiled kernel only ever holds a 16 × 16 tile of F, whatever the filter size.' },
-      { label: 'M = 120 is not a multiple of 16.', why: 'That costs 8 padding rows out of 128, a small loss. The missing columns cost far more.' },
+      { label: 'The expansion ratio is K² = 25 for a 5 × 5 filter, so B is too large to be worth building.', why: 'With a single output pixel nothing overlaps: B is 400 values from 400 inputs, ratio 1.' },
+      { label: 'C5’s 1920 filters do not fit in shared memory, so the tiles cannot hold them.', why: 'The tiled kernel only ever holds a 16 × 16 tile of F, whatever the filter size.' },
+      { label: 'M = 120 is not a multiple of 16, so the last row of tiles is half padding.', why: 'That costs 8 padding rows out of 128, a small loss. The missing columns cost far more.' },
     ],
     explain: (
       <p>
@@ -1245,12 +1245,12 @@ export const questionsS193: Record<string, Question> = {
     prompt: <>llama.cpp's implicit-GEMM convolution makes the filter width and height template parameters for 3 × 3 and 1 × 1 filters. Why?</>,
     options: [
       {
-        label: 'With the divisor fixed at compile time the compiler can avoid a general division (a power of two becomes a shift); NVIDIA documents up to 20 instructions for a run-time divisor, and the gather divides for every element.',
+        label: 'A divisor known at compile time spares the gather a general division, up to 20 instructions on NVIDIA, per element.',
         correct: true,
       },
-      { label: 'Template parameters let the kernel use tensor cores.', why: 'The matrix fragments are chosen elsewhere; the template parameters only fix the divisors.' },
-      { label: 'It saves the registers that would hold K.', why: 'A register or two is not the cost at stake; the divide and remainder per gathered element are.' },
-      { label: 'HIP cannot divide by a variable.', why: 'It can; AMD only says division takes many more cycles than multiplication.' },
+      { label: 'Template parameters let the compiler pick tensor-core fragments that match the filter size.', why: 'The matrix fragments are chosen elsewhere; the template parameters only fix the divisors.' },
+      { label: 'It saves the registers that would hold K, which raises occupancy.', why: 'A register or two is not the cost at stake; the divide and remainder per gathered element are.' },
+      { label: 'HIP cannot divide by a variable, so the HIP build needs the divisors fixed.', why: 'It can; AMD only says division takes many more cycles than multiplication.' },
     ],
     explain: (
       <p>
@@ -1508,8 +1508,11 @@ export function S193() {
         and using W for both is the planted bug in the hunt below.
       </p>
       <p>
-        On HIP the CUDA file compiles unchanged: it uses only shared arrays, barriers, block and thread indices and the triple-chevron
-        launch. On Metal, Fds and Bds become <code>threadgroup</code> arrays; lab 19.1's <code>implicit_gemm.metal</code> shows the rest.
+        The CUDA file is set up to build for HIP unchanged through <code>pmpp/vendors/hip.h</code> (documented, ch19-facts B1; it has
+        not been compiled or run on AMD hardware here), because it uses only shared arrays, barriers, block and thread indices and the
+        triple-chevron launch; a kernel with warp <code>_sync</code> intrinsics, cooperative groups, half-precision headers, CUB
+        functors, matrix-core intrinsics or <code>__dp4a</code> (HIP has none) would not. On Metal, Fds and Bds become <code>threadgroup</code> arrays; lab
+        19.1's <code>implicit_gemm.metal</code> shows the rest.
       </p>
       <Today checked="2026-11-20 (ch19-facts B1, C1)">
         <p>
@@ -1614,7 +1617,10 @@ export function S193() {
         adds columns to a GEMM, and it pays for them with a permute afterwards (the second question after the explorer).
       </p>
       <Simplification>
-        <p>Requested traffic only, no caches. The lab's four layers are ours, chosen to span early, middle, late and 1 × 1.</p>
+        <p>
+          Requested traffic only, no caches. Four of the lab's five layers are here (early, middle, late, 1 × 1); its fifth is the C3 row
+          at N = 64. The four are ours, not the book's.
+        </p>
       </Simplification>
       <ShapesExplorer />
       <p>
@@ -1674,8 +1680,8 @@ export function S193() {
       </p>
       <Beyond>
         <p>
-          The same slot is where a quantised GEMM unpacks and dequantises its weights while loading a tile. Chapter{' '}
-          <a href={href('x2')}>X2</a> builds on it.
+          The same slot is where a quantised GEMM unpacks and dequantises its weights while loading a tile. Module{' '}
+          <a href={href('x2')}>X2, Quantised kernels</a>, builds on it.
         </p>
       </Beyond>
     </>

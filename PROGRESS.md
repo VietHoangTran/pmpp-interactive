@@ -2,6 +2,13 @@
 
 Running state across sessions. Newest first. Decisions are dated.
 
+## State on 2026-11-21: every chapter built; final pass under way
+
+All 29 chapters and modules are built (waves 1 to 5b below), each was reviewed on its own,
+and the whole-course consistency pass is done. What is still open is the "Still open" list
+under the final pass below: chiefly a fresh verify report, three stale narration clips and
+lab X3.2's emulator time limit. CUDA and HIP remain unverified on hardware.
+
 ## State on 2026-11-20 (later): building the rest, in waves
 
 The reader approved the pilot ("looks good... go ahead and build the rest") without
@@ -55,42 +62,82 @@ pages, and commits. Per-chapter hints given to the designers are in the wave's `
       greedy tokens compared to a CPU reference; nothing downloads). Narration: 50 clips with
       eleven_v4_turbo through the API. M9 does not yet plug into M10 (launchQLinear's
       signature differs from LinearFn): the pages say so; an adapter is on the final list.
-- [ ] Final pass to-do list (collected along the way):
-      wave 5b: an adapter so M10 can run with M9's quantised layers; the shared CUDA stub
-      and emulators lack char4, __dp4a, __byte_perm and __half (X2 used plain helpers);
-      X2.6's accumulator fragments are unverified (would need __half2 in the stub);
-      wave 5a requests: e2e helpers in browser.mjs (answerQuestion, setRange through the
-      native value setter, empty GET /api/progress), a `.threads.wrap` modifier, CUDA math
-      functions and stream priorities in cuda_stub.h, asyncEngineCount and concurrentKernels
-      in device_props and doctor, `pmpp.py run --bench --reps`, benchRow matching string
-      fields, a shared RaceStatus in LabKit, scenes declaring a narrow layout; the race
-      backend once hung after a SEGV in a cooperative launch under heavy load (not
-      reproduced: six runs of the same defect exited in about 8 s with the report);
-      wave 4's Wrap pages still say "first recorded try" (fixed elsewhere: latest answer);
-      lab 5.5's prediction compares GFLOP/s at different matrix widths (2048 vs lab 5.2's
-      adaptive width): make the two benchmarks use the same width or reword the prompt;
-      deferred wave 1 requests (optional): a shared lab-status helper in lib/reports.ts,
-      a choice-type Predict, a source label and custom line numbers for Code, emulator
-      enforcement of per-dimension block and grid limits, condensed ASan reports in
-      pmpp.py, lab 4.1's kernel named like lab 3.3's;
-      the right option is still the longest in 75-90% of choice questions in most chapters:
-      rebalance distractor lengths chapter by chapter (content work, not a component fix);
-      deferred wave 3 requests: shared NoteGroup and useNarrow, a lab-status helper and a
-      bench-row picker in lib/reports.ts, a function-excerpt option for useLabFile, cu2emu
-      accepting parentheses in __shared__ bounds, cudaGetDevice and cudaFuncGetAttributes in
-      the stub, emulator and hip.h, a SHARED_DIR argument and per-backend libs in
-      pmpp_add_lab, source_hash covering provided/shared sources, PMPP_CMAKE_ARGS, a 'no
-      Metal build' message, LabKit's status table listing race;
-      deferred wave 2 requests: the race emulator gives a block one happens-before token
-      for all its barriers (can hide races between barrier 1 and 2 on small launches);
-      pmpp.py should accept appendix lab numbers (C.1); Code tabs' status text is squeezed
-      at 390 px; ch12's lab 1 comment says the HIP build does not link libhipcxx (now it
-      does where ROCm has it); (emu.json results for chapters 2–6 re-recorded after the lock: all 23 solutions pass);
-      the labs page uses two wordings for the same statuses (table vs tabs) and the
-      kernel.cu tab says "no run" when a run failed. (`app-review.mjs` now sweeps every
-      built chapter from the registry; `CHAPTERS=ch01,ch02` limits it.)
-- [ ] Final: whole-course consistency pass, spaced-review pool check, final verify
-      report, hand-off.
+- [ ] Final pass (2026-11-21: per-chapter reviews of all 29 chapters and modules, then this
+      whole-course consistency pass). The to-do list collected along the way, sorted:
+      **Done**
+      - [x] M9 to M10 adapter (labs/x3/lab2_tinyllama/provided/m9_linear.*: float weight
+        pointer -> QMatrix table; Q8_0 and Q4_0 tokens tested against the CPU reference on the
+        same quantised weights; verified on Metal, emulator-checked; x2 and x3 pages updated).
+      - [x] Lab 5.5 benchmark times 512 to 4096 (every width lab 5.2 can pick); the labs page
+        compares at lab 5.2's width only (a pre-2026-11-21 lab 5.5 report shows no comparison
+        until re-benchmarked; the "about half the speed" finding below was measured across widths).
+      - [x] ch12 lab 1's libhipcxx comment (solution comment and README; starter left as it was).
+      - [x] Shared infrastructure asked for by waves 1 to 5b, checked in the code on 2026-11-21:
+        the stub and emulators have char4, __dp4a, __byte_perm, __umulhi, __float_as_uint,
+        __half (not __nv_bfloat16), CUDA math functions and stream priorities; cu2emu accepts
+        parentheses in __shared__ bounds; the emulator enforces per-dimension block and grid
+        limits; pmpp.py accepts appendix lab numbers (C.1, A.1), `--reps`, PMPP_CMAKE_ARGS; Lab.cmake
+        has SHARED_DIR and a "no Metal build" message; doctor prints asyncEngineCount and
+        concurrentKernels; LabKit has RaceStatus, solutionTabStatus and a race column;
+        NoteGroup (components/notes) and useNarrow (lib/narrow) are shared; browser.mjs has
+        answerQuestion and setRange.
+      - [x] Wrap pages say "counting your latest answer to each"; the right option is no longer
+        the longest in most questions (question-balance.test.ts passes for every chapter).
+      - [x] Whole-course consistency pass (this list's last item, 2026-11-21): every in-app
+        link resolves and names the right section number and title (crawled all 248 pages);
+        milestone statements checked M0 to M10 across wraps and labs pages (registry PLAN rows
+        and ch24's module cards now give X2 as GEMVs plus the decode step and X3 as M10; x3's
+        "composes your milestones M0 to M8" now names what M10 really runs, reference solutions
+        of M0, M2 to M5, M7, M8, not M1 or M6; ch22's M10 sentence says M5 is used when present);
+        "next in this course's order" corrected on the x2, x3 and appC wraps against
+        sim/bookmap courseOrder(); start-page checks drawing on later chapters fixed (x1's
+        "chapters 10 and 20" label; ch14 says chapter 13 comes later in the course order);
+        "verified" kept to the vocabulary (ch02 2.2, ch14 14.9, x3 X3.5); ch20 S203 and S205
+        lab tabs use solutionTabStatus; the HIP __syncwarp note in 20.5 is qualified; stale
+        comments fixed in solution, shared and snippet files (ch06 lab 3, ch14 lab 2 and
+        snippet, ch15 labs 3 to 7, ch23 snippets and probe, appA lab 1 incl. its driver message,
+        x1 lab 3, x2 labs 3 and 4 and shared headers) and dated updates added to x1-, x2- and
+        appA-facts; PLAN.md's M9, M10, X3 and ch23 rows, §8 captions and narration, and §9
+        status brought up to what was built (§9's order is unchanged; a test reads it);
+        README.md describes the finished course.
+      **Still open, with reasons**
+      - [ ] Final verify report: the committed reports/verify-*.md are from 2026-11-20 04:05 and
+        cover chapter 5 only; every "verified on Metal" outside it rests on
+        reports/runs/ (per-machine, ignored). A fresh ./verify.sh here also fills the emulator's
+        device record (reports/runs/emu.json has an empty `device`, so section 3.1 shows no
+        emulator row; `pmpp.py run` does not write it). CUDA and HIP stay unverified until
+        reports come from those machines.
+      - [ ] Lab X3.2's emulator suite passes (93/93, run directly) but overruns pmpp.py's 900 s
+        test timeout on a busy machine, so emu.json records it failed. Needs fewer emulator
+        steps in main.cpp or a per-lab timeout (lab or runner decision).
+      - [ ] Narration: 3 clips are stale after script fixes in the chapter reviews
+        (ch02/round-trip-6, ch07/halo-from-cache-5, ch21/scatter-gather-6); regenerate centrally.
+      - [ ] Stale comments in starter/ files are left, because editing a starter turns every
+        untouched work/ copy into "edited" (pmpp.py work_state) and work/ is never overwritten:
+        parentheses in __shared__ bounds (ch06 lab 3, ch14 lab 2, ch15 lab 4), __umulhi (x1 lab 3),
+        "declares no CUDA Math API functions" (ch10 lab 3, ch20 labs 1 and 4, ch21 lab 1, x1 labs
+        2 to 4, x3 lab 1; the solutions, shared copies and ch21 snippets carry it too, kept so
+        that copies stay byte-identical, and the ch10 README says the comment is out of date).
+      - [ ] Some lesson tabs still build their status by hand: ch07 S72, S74, S75, ch08 S84,
+        ch19 S192 and S193, ch04 S48, ch06 S67, ch15 S153 and S158, ch16 S166 read the reports
+        and match LabKit's words when a run passes, but say "no passing ... run" where LabKit
+        says "failed on this machine"; ch05 S54 and ch12 S122 to S127 are fixed strings that do
+        not read the reports at all (true on this machine).
+      - [ ] LabKit prints "verified on CUDA" or "verified on HIP" from a passing run in
+        reports/runs, while CLAUDE.md asks for a reports/verify-*.md from that machine (shared
+        decision; no CUDA or HIP runs exist, so nothing shows it today).
+      - [ ] Lab 14.2's planted missing-barrier defect has not been re-run on `race` since the
+        two-token barrier fix; the race backend once hung after a SEGV in a cooperative launch
+        under heavy load (not reproduced).
+      - [ ] Metal benchmarks for 16.1, 21.1 and 23.1 were recorded on a loaded machine: rerun on
+        a quiet one.
+      - [ ] Optional requests not checked in this pass: a choice-type Predict, a source label and
+        custom line numbers for Code, a function-excerpt option for useLabFile, a bench-row
+        picker in lib/reports.ts, a `.threads.wrap` modifier, lab 4.1's kernel named like lab
+        3.3's, source_hash covering provided/shared sources, Code tabs' status text squeezed at
+        390 px.
+- [ ] Final: spaced-review pool check, final verify report, hand-off (the whole-course
+      consistency pass is done; see above).
 
 ## State on 2026-11-20: pilot complete, waiting for review
 

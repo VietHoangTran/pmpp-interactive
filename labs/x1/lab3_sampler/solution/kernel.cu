@@ -83,8 +83,9 @@ __device__ unsigned int warpsInBlock() { return (blockDim.x + warpSize - 1) / wa
 //   CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES ... ARE DISCLAIMED.
 //
 // The 32 x 32 -> 64-bit product is an unsigned long long multiplication: the same source on
-// CUDA, HIP and the emulators (x1-facts A5). __umulhi would do on CUDA and HIP (A5, B3), but
-// neither the emulator nor the front-end stub declares it (x1-facts, project notes).
+// CUDA, HIP and the emulators (x1-facts A5). __umulhi would do on CUDA and HIP (A5, B3), and
+// the emulator and the front-end stub now declare it too; the product form needs no
+// intrinsic at all.
 __device__ uint4 philox4x32_10(uint4 ctr, uint2 key) {
     for (int round = 0; round < 10; ++round) {
         if (round > 0) {                         // the key is bumped between rounds, not before the first

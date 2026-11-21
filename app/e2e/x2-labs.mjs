@@ -117,6 +117,7 @@ const wantLabs = ['Bandwidth utilisation', 'Lab X2.1: an int8-weight GEMV for ba
 check('the bandwidth section and the four labs appear in order', wantLabs.every((t, i, a) => h2.indexOf(t) >= 0 && (i === 0 || h2.indexOf(t) > h2.indexOf(a[i - 1]))), JSON.stringify(h2));
 check('the byte ratios in the prose come from the model', text0.includes(`1.0625 for Q8_0, ${fmt(M.q8)}`) && text0.includes(`4 / 0.5625 = ${fmt(M.q4)}`) && text0.includes(`1.0625 / 0.5625 = ${fmt(M.q4q8)}`));
 check('lab X2.4 states the milestone with the project conventions', text0.includes('completes milestone M9') && text0.includes('row-major float32 activations with the batch first'));
+check('lab X2.4 says how M10 calls it', text0.includes('labs/x3/lab2_tinyllama/provided/m9_linear') && text0.includes('same quantised weights'));
 check('lab X2.4 says the toy model says nothing about a trained model', text0.includes("says nothing about a trained model's"));
 check('nothing on the page says it is being written', !/being written/i.test(text0));
 check('no device figure is typed into the prose (no GB/s, KiB or measured ms outside the report-driven parts)',

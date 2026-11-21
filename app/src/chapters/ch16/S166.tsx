@@ -894,10 +894,10 @@ export const questionsS166: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'So consecutive threads write consecutive addresses of one table row: each tile row leaves as one coalesced store.',
+        label: 'So consecutive threads write consecutive addresses of one table row, and each tile row leaves coalesced.',
         correct: true,
       },
-      { label: 'So the writes avoid bank conflicts, which global memory has in the same way as shared memory.', why: 'Banks are a shared-memory structure. What matters for global memory is whether a warp\'s addresses are contiguous.' },
+      { label: 'So the writes avoid bank conflicts, which global memory has across a warp in the same way as shared memory does.', why: 'Banks are a shared-memory structure. What matters for global memory is whether a warp\'s addresses are contiguous.' },
       { label: 'Because the barrier at the end of the compute loop requires every thread to change its role.', why: 'A barrier only says that every thread has arrived; it imposes no mapping of threads to data.' },
       { label: 'So that each thread issues half as many store instructions as it would by rows.', why: 'Each thread still writes W values, one per tile row, either way.' },
     ],
@@ -947,11 +947,11 @@ export const questionsS166: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Slots standing for column 0 are never computed but are read by cells in column 1; 0 happens to be this recurrence\'s boundary value. A recurrence with another boundary would need those values instead.',
+        label: 'Slots for column 0 are never computed yet are read by column 1, and 0 is this recurrence\'s boundary value; another boundary would need other values.',
         correct: true,
       },
-      { label: 'Shared memory starts at zero on GPUs anyway; the call only makes that assumption explicit for readers of the code.', why: 'The book gives the opposite reason: without the zeroing, the unwritten slots hold garbage that load_n, load_w and load_nw can read (p. 395).' },
-      { label: 'It protects the cells in the tile\'s bottom rows, whose inputs lie below the end of the table and are never written.', why: 'No input lies below a cell: every input is north, west or north-west of it.' },
+      { label: 'Shared memory starts at zero on GPUs anyway; the call only makes that assumption explicit, which helps readers of the code and changes no value.', why: 'The book gives the opposite reason: without the zeroing, the unwritten slots hold garbage that load_n, load_w and load_nw can read (p. 395).' },
+      { label: 'It protects the cells in the tile\'s bottom rows, whose inputs lie below the last row of the table, where no launch writes anything.', why: 'No input lies below a cell: every input is north, west or north-west of it.' },
       { label: 'It removes the bank conflicts of the first step, by touching every bank once before the compute loop begins.', why: 'Touching banks earlier changes nothing about later accesses; bank conflicts depend on the addresses of one access.' },
     ],
     explain: (
@@ -976,12 +976,12 @@ export const questionsS166: Record<string, Question> = {
     prompt: <>Shearing halves the steps inside each tile. When is it likely to lose to square tiles?</>,
     options: [
       {
-        label: 'When the table is small for the device: launches approach 1.5 times as many, each holds at most about T/2 + 1 tiles, so SMs idle and launch overhead weighs more.',
+        label: 'When T is small: about 1.5 times as many launches, each holding at most about T/2 + 1 tiles, so SMs idle and launch overhead adds up.',
         correct: true,
       },
-      { label: 'Never: halving the steps inside every tile always outweighs whatever the schedule of tiles costs outside.', why: 'The steps inside a tile are only one factor; the number of launches multiplies them, and it rises.' },
-      { label: 'When W is a power of two, because the sheared tile then has bank conflicts that square tiles never have.', why: 'Those conflicts are real (later on this page), but one gap per row removes them at every width; they do not decide whether shearing pays.' },
-      { label: 'When the two sequences differ a lot, because the shear only helps when most cells score a match.', why: 'The sequences change the values in the table, not which cells depend on which or the schedule.' },
+      { label: 'Hardly ever: halving the steps inside every tile outweighs what the schedule of tiles costs outside it, whatever the size of the table.', why: 'The steps inside a tile are only one factor; the number of launches multiplies them, and it rises.' },
+      { label: 'When W is a power of two, because the sheared tile then has bank conflicts that the square tile does not have and that padding cannot remove.', why: 'Those conflicts are real (later on this page), but one gap per row removes them at every width; they do not decide whether shearing pays.' },
+      { label: 'When the two sequences differ a lot, because the shear pays off only when most cells score a match and take their diagonal input.', why: 'The sequences change the values in the table, not which cells depend on which or the schedule.' },
     ],
     explain: (
       <p>
@@ -1023,9 +1023,9 @@ export const questionsS166: Record<string, Question> = {
         label: 'No: its anti-diagonal walk strides W − 1 words, already conflict-free for W = 8 to 64 on 32 banks; padded, it strides W.',
         correct: true,
       },
-      { label: 'Yes: padding never makes an access worse, it only costs a little shared memory per row.', why: 'Padding changes the stride. For the square kernel it turns W − 1, which shares no factor with 32 here, into W, which does: 32-way at W = 32.' },
-      { label: 'Yes, but only on AMD GPUs, because those have 64 banks where NVIDIA\'s have 32.', why: 'Some AMD GPUs have 32 banks, some 64; on either, padding the square kernel turns a coprime stride into a power of two.' },
-      { label: 'It makes no difference either way, because the square kernel never touches the same bank twice.', why: 'Unpadded that is true; padded it is not.' },
+      { label: 'Yes: a gap per row spreads any stride over more banks, and it costs only one word of shared memory per tile row.', why: 'Padding changes the stride. For the square kernel it turns W − 1, which shares no factor with 32 here, into W, which does: 32-way at W = 32.' },
+      { label: 'Yes, but only on AMD GPUs: they have 64 banks where NVIDIA\'s have 32, so the unpadded W − 1 stride conflicts there.', why: 'Some AMD GPUs have 32 banks, some 64; on either, padding the square kernel turns a coprime stride into a power of two.' },
+      { label: 'It makes no difference either way, because the square kernel touches each bank at most once per access, whether it is padded or not.', why: 'Unpadded that is true; padded it is not.' },
     ],
     explain: (
       <p>
@@ -1048,12 +1048,12 @@ export const questionsS166: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'A CUDA-only guard with max4 kept as the other path, since HIP declares no DPX function; and a check against max4, since CCCL reports a miscompile before CUDA 13.4.',
+        label: 'A CUDA-only guard with max4 as the other path, since HIP declares no DPX function, and a test against max4 for a reported miscompile.',
         correct: true,
       },
-      { label: 'Nothing: pmpp/vendors/hip.h renames it to the matching HIP intrinsic, as it does the runtime calls.', why: 'There is nothing to rename it to: no HIP header and no row of HIPIFY\'s table declares a DPX function.' },
-      { label: 'New scores, because it gives a different result from max4 whenever some of its inputs are negative.', why: 'It computes max(max(max(a, b), c), 0), which equals max4(0, a, b, c) for every int: integer max is associative and commutative.' },
-      { label: 'A Hopper GPU or later, because the function does not compile for any older NVIDIA architecture.', why: 'NVIDIA lists it for older compute capabilities too, run as several instructions instead of one.' },
+      { label: 'Nothing: pmpp/vendors/hip.h renames it to the matching HIP intrinsic, as it does for the runtime calls.', why: 'There is nothing to rename it to: no HIP header and no row of HIPIFY\'s table declares a DPX function.' },
+      { label: 'New scores, because it gives a different result from max4 whenever some of its inputs are negative, so the CPU reference changes.', why: 'It computes max(max(max(a, b), c), 0), which equals max4(0, a, b, c) for every int: integer max is associative and commutative.' },
+      { label: 'A Hopper GPU or later, because the function does not compile for an older NVIDIA architecture, which must keep max4.', why: 'NVIDIA lists it for older compute capabilities too, run as several instructions instead of one.' },
     ],
     explain: (
       <p>
@@ -1076,9 +1076,9 @@ export const questionsS166: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Tiles joined by launches: a chunk is a tile, the launches are the global barrier between fronts, and the work inside a tile runs in parallel.', correct: true },
+      { label: 'Tiles joined by launches: each chunk is a tile, and the launches are the barrier between one tile and the next.', correct: true },
       { label: 'A sheared tile: each chunk is tilted so that every thread has a cell to compute at every step.', why: 'Nothing is sheared: a chunk is a run of consecutive tokens, and the dense work inside it has no idle threads to recover.' },
-      { label: 'The flag scheme of §16.8: each chunk spins on a flag that the previous chunk sets when it is done.', why: 'The state passes between chunks through the host loop\'s launches, not through flags between running blocks.' },
+      { label: 'The flag scheme of §16.8: each chunk spins on a flag that the previous chunk sets once it has finished its state.', why: 'The state passes between chunks through the host loop\'s launches, not through flags between running blocks.' },
       { label: 'A way to remove the dependency along the sequence, so all the chunks can run at the same time.', why: 'The state still flows from chunk to chunk in order. Only the work inside a chunk becomes parallel.' },
     ],
     explain: (
@@ -1112,8 +1112,10 @@ function LabListing() {
       caption={
         <>
           The reference solution of lab 16.1, both kernels, loaded from <code>labs/ch16/lab1_wavefront/solution/</code>. The
-          statuses come from this machine's reports. Try the lab before studying it; the HIP build compiles the CUDA file
-          unchanged.
+          statuses come from this machine's reports. Try the lab before studying it. The HIP build is meant to compile this same CUDA
+          file through <code>pmpp/vendors/hip.h</code> (unverified: no ROCm machine has run it). That works here because the
+          kernels use only threads, blocks, shared memory and barriers, and none of the parts that differ, such as warp
+          intrinsics or a DPX call.
         </>
       }
     />

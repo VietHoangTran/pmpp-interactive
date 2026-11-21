@@ -126,7 +126,7 @@ check('order: "nothing" is accepted, sourced to chapter 2', (await qText(q)).inc
 q = await question('Why is that a sound trade for a GPU');
 await pick(q, 'Simple cores run each thread faster');
 check('throughput: "each thread runs faster" is marked wrong', (await qText(q)).includes('Not quite.') && (await qText(q)).includes('Each thread runs slower'), await qText(q));
-await pick(q, 'A GPU is built for instruction throughput');
+await pick(q, 'Caches and predictors mostly cut one thread');
 check('throughput: the throughput answer is accepted and points at section 4.6', (await qText(q)).includes('Correct.') && (await qText(q)).includes('Section 4.6 shows the mechanism'), await qText(q));
 if (out) {
   await q.evaluate((e) => e.scrollIntoView({ block: 'end' }));

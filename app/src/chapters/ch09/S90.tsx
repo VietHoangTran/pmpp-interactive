@@ -149,9 +149,9 @@ a[idx] += 1`}
     id: 'ch09/start/q-coarsen',
     prompt: <>When does giving each thread several elements (thread coarsening) make a kernel faster?</>,
     options: [
-      { label: 'Always: fewer threads means less scheduling work for the hardware, whatever the kernel does.', why: 'With fully independent threads and no such cost there is little to gain, and too few blocks leave part of the device idle.' },
+      { label: 'Fewer threads means less scheduling work for the hardware, so it helps whatever the kernel does.', why: 'With fully independent threads and no such cost there is little to gain, and too few blocks leave part of the device idle.' },
       { label: 'When a per-block cost is paid for blocks the hardware would have run one after another anyway.', correct: true },
-      { label: 'Only when the kernel is compute-bound, since coarsening raises the arithmetic done per thread.', why: 'The test is whether parallelising costs something that coarsening removes, not the kernel\'s arithmetic intensity.' },
+      { label: 'When the kernel is compute-bound, since coarsening raises the arithmetic each thread does.', why: 'The test is whether parallelising costs something that coarsening removes, not the kernel\'s arithmetic intensity.' },
     ],
     explain: (
       <p>

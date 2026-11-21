@@ -82,7 +82,7 @@ export const questionsWrap: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Take the log of the softmax probability, log(exp(z − max) / Σ).',
+        label: 'Take the log of the softmax probability as written, log(exp(z − max) / Σ), in float.',
         why: 'exp(−90) is about 8.2 × 10⁻⁴⁰, below the smallest normal float. Flushed, it is 0, and log 0 is minus infinity.',
       },
       {
@@ -144,7 +144,7 @@ export const questionsWrap: Record<string, Question> = {
         correct: true,
       },
       {
-        label: 'A race condition inside the GEMM.',
+        label: 'A race condition between the blocks that add the partial sums of the k dimension.',
         why: 'A race would make one configuration differ from run to run. Here each one is repeatable.',
       },
       {
@@ -152,7 +152,7 @@ export const questionsWrap: Record<string, Question> = {
         why: 'Flushing is a property of the device and the compiler settings, not of the batch size.',
       },
       {
-        label: 'One of the two results is wrong and should be reported as a bug.',
+        label: 'One of the two results is wrong: a correct GEMM gives the same bits at every batch size.',
         why: 'Both orders are legitimate roundings of the same sum. Neither is the exact answer.',
       },
     ],
@@ -369,8 +369,9 @@ export function Wrap() {
         See the <a href={href('appA', 'labs')}>labs</a>.
       </p>
       <p>
-        Module X2 picks this up. It writes the int8 and 4-bit-weight GEMMs of milestone M9, where the weights are narrow
-        and the accumulator must not be, and measures what the fewer bytes buy a decode step. Milestone M4's softmax, lab
+        Module <a href={href('x2')}>X2</a> picks this up. It writes int8- and 4-bit-weight GEMVs, where the weights are
+        narrow and the accumulator must not be, and puts them into milestone M9, the quantised decode step, which
+        measures what the fewer bytes buy. Milestone M4's softmax, lab
         10.3, keeps its sum in float for the reasons sections <a href={href('appA', 'A.3')}>A.3</a> and{' '}
         <a href={href('appA', 'A.6')}>A.6</a> gave.
       </p>

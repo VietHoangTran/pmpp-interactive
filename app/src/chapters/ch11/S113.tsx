@@ -197,13 +197,16 @@ export const questionsS113: Record<string, Question> = {
     id: 'ch11/11.3/q-which-barrier',
     prompt: <>Which barrier of Fig. 11.3 does double buffering remove?</>,
     options: [
+      { label: 'Line 14, which guards only a write-after-read.', correct: true },
       {
-        label: 'Line 14, between computing temp and storing it: it only keeps writers from overwriting values still being read.',
-        correct: true,
+        label: 'Line 10, at the top of the loop: it only keeps writers from overwriting values still being read.',
+        why: "That describes line 14. Line 10 makes readers wait for the previous iteration's results, a true dependence, and two buffers do not change that.",
       },
-      { label: 'Line 10, at the top of the loop.', why: 'That one makes readers wait for the previous iteration\'s results. Two buffers do not change that.' },
-      { label: 'Both.', why: 'One of them guards data that must exist before it is read.' },
-      { label: 'Neither; it only saves shared-memory traffic.', why: 'It saves a barrier per iteration, and costs shared memory.' },
+      {
+        label: 'Both: with two buffers no thread reads a slot that another thread writes.',
+        why: 'Readers still need the values other threads wrote in the previous iteration, and one of the two barriers guards exactly that.',
+      },
+      { label: 'Neither; it only saves shared-memory traffic, not barriers.', why: 'It saves a barrier per iteration, and costs shared memory.' },
     ],
     explain: (
       <p>
@@ -220,12 +223,15 @@ export const questionsS113: Record<string, Question> = {
     id: 'ch11/11.3/q-copy',
     prompt: <>In Fig. 11.5, the threads that are not adding skip the copy into outBuffer_s. What goes wrong?</>,
     options: [
+      { label: 'Their output slots keep stale values, which later iterations read as final.', correct: true },
       {
-        label: 'Their slot in the output buffer keeps a value from two iterations earlier (or garbage, the first time), so finished positions are corrupted and later iterations read them.',
-        correct: true,
+        label: 'Nothing: those positions are final in the input buffer, so the result is unchanged.',
+        why: 'They are final in the input buffer. The next iteration reads the other buffer.',
       },
-      { label: 'Nothing: those positions are already final.', why: 'They are final in the input buffer. The next iteration reads the other buffer.' },
-      { label: 'A race between threads.', why: 'The result is wrong the same way in every order: no timing is involved.' },
+      {
+        label: 'A race: without the copy, readers of the next iteration are not ordered after the writers.',
+        why: 'The result is wrong the same way in every order: no timing is involved.',
+      },
       { label: 'Only the last output is wrong.', why: 'The positions that go idle first are the ones hit.' },
     ],
     explain: (
@@ -276,9 +282,15 @@ export const questionsS113: Record<string, Question> = {
     ),
     options: [
       { label: 'No: both guard true dependences.', correct: true },
-      { label: 'Yes, the first.', why: 'Warp 0 reads the warp sums the other warps wrote. That is a read after a write.' },
-      { label: 'Yes, the second.', why: 'The other warps read the scanned sums warp 0 wrote: a read after a write again.' },
-      { label: 'Yes, both.', why: 'Double buffering removes only write-after-read conflicts.' },
+      {
+        label: 'Yes, the first: it only protects the warp sums from being overwritten.',
+        why: 'It makes warp 0 wait for the sums the other warps wrote. That is a read after a write.',
+      },
+      {
+        label: 'Yes, the second: warp 0 writes back into the slots it has just read.',
+        why: 'Each lane rewrites the slot it read itself, which needs no barrier. The barrier makes the other warps wait for those writes: a read after a write again.',
+      },
+      { label: 'Yes, both: two buffers remove every barrier between the stages.', why: 'Double buffering removes only write-after-read conflicts.' },
     ],
     explain: (
       <p>
@@ -294,10 +306,16 @@ export const questionsS113: Record<string, Question> = {
     id: 'ch11/11.3/q-final-store',
     prompt: <>Why does Fig. 11.5 need no barrier between the end of the loop and the final store?</>,
     options: [
-      { label: 'Each thread stores the slot of inBuffer_s that it wrote itself in the last iteration.', correct: true },
-      { label: 'Global memory stores are ordered automatically.', why: 'The question is about the shared-memory read before the store.' },
-      { label: 'The loop ends with a barrier.', why: 'It starts with one; after the last write and swap there is none.' },
-      { label: 'It does need one; the book forgot it.', why: 'Check whose write the store reads.' },
+      { label: 'Each thread stores the slot it wrote itself.', correct: true },
+      {
+        label: 'Global stores are ordered after shared-memory writes automatically.',
+        why: 'The question is about the shared-memory read before the store.',
+      },
+      {
+        label: 'The loop ends with a barrier that every thread passes before the store.',
+        why: 'It starts with one; after the last write and swap there is none.',
+      },
+      { label: 'It does need one; the book forgot it, and the race rarely shows.', why: 'Check whose write the store reads.' },
     ],
     explain: (
       <p>

@@ -86,6 +86,7 @@ const choose = async (match, option) => {
 
 await goto(page, 'appC/C.9');
 await page.waitForSelector(S);
+check('every margin note (or note group) directly follows text, never another note', await page.evaluate(() => [...document.querySelectorAll('.prose > .note')].every((n) => ['P', 'UL', 'OL'].includes(n.previousElementSibling?.tagName))));
 
 // ---- the quoted declarations
 const tabs = await page.$$eval('.code .tabs button', (b) => b.map((x) => x.textContent));
@@ -226,10 +227,10 @@ check('with an 8 MiB chunk the rows still match the model', JSON.stringify(got) 
 
 // ---- the other questions
 check('q-copied: 15 chunks', (await answer('How many chunks are copied in all', 15)).includes('Correct.'));
-check('q-pointer: no new pointer', (await choose('need a new pointer', 'No. The base address does not change')).includes('Correct.'));
+check('q-pointer: no new pointer', (await choose('need a new pointer', 'No: the base address stays')).includes('Correct.'));
 const wrongPeer = await choose('What does PyTorch', 'expandable_segments turns peer access on by itself');
 check('q-peer: a wrong pick explains why', wrongPeer.includes('Not quite.'));
-check('q-peer: the runtime peer call does not reach cuMemMap memory', (await choose('What does PyTorch', 'cudaDeviceEnablePeerAccess does not work for memory allocated with cuMemMap')).includes('Correct.'));
+check('q-peer: the runtime peer call does not reach cuMemMap memory', (await choose('What does PyTorch', 'cudaDeviceEnablePeerAccess does not reach memory allocated with cuMemMap')).includes('Correct.'));
 check('the section links back to §C.5 and on to chapter 20 §20.7', (await page.$('a[href="#/appC/C.5"]')) !== null && (await page.$('a[href="#/ch20/20.7"]')) !== null);
 
 // ---- narrow screen

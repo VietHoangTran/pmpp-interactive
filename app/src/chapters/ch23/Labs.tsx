@@ -478,8 +478,9 @@ export function Labs() {
       <p>
         Use the stepper on page <a href={href('ch23', '23.3')}>23.3</a>. The driver makes the kernel take about as long as the
         copy in, so start from its &ldquo;equal stages&rdquo; preset and set the chunks and streams below. On CUDA, look up{' '}
-        <code>asyncEngineCount</code> first (the benchmark prints it in its opening lines, and the table under these
-        predictions shows it once you have run) and set the stepper&rsquo;s copy engines to match.
+        <code>asyncEngineCount</code> first (<code>python3 labs/pmpp.py doctor</code> and the benchmark&rsquo;s opening
+        lines print it, and the table under these predictions shows it once you have run) and set the stepper&rsquo;s
+        copy engines to match.
       </p>
       <Today checked="2026-11-20 (notes/today/ch23-facts.md A7, B3)">
         <p>

@@ -13,9 +13,11 @@ pmpp/emu/cuda_emu.h, which the build force-includes.
       -> struct pmpp_shared_K { T a[N], b; };
          auto& pmpp_shared_K_ref = ::pmpp_emu::shared_block<pmpp_shared_K>();
          auto& a = pmpp_shared_K_ref.a; auto& b = pmpp_shared_K_ref.b;
-      so that every block gets its own copy. Not understood: a __shared__
-      declaration at file scope, one produced by a macro, or one whose
-      declarators are not plain names with optional array bounds.
+      so that every block gets its own copy. Array bounds may hold any
+      expression, parentheses and macro calls included ([(TILE + 2) * (TILE + 2)]).
+      Not understood: a __shared__ declaration at file scope, one produced by a
+      macro, or one whose declarators are not plain names with optional array
+      bounds (no initialisers, no function declarators).
 
   extern __shared__ T name[];                (inside a function)
       -> T* name = (T*)::pmpp_emu::dyn_shared();
@@ -98,6 +100,20 @@ def split_top_level(text: str, sep: str = ","):
     return parts
 
 
+def outside_brackets(text: str) -> str:
+    """text with everything inside [ ] (nested) removed, so that an array bound such as
+    [(TILE + 2) * (TILE + 2)] is not mistaken for a function declarator or an initialiser."""
+    out, depth = [], 0
+    for ch in text:
+        if ch == "[":
+            depth += 1
+        elif ch == "]":
+            depth -= 1
+        elif depth == 0:
+            out.append(ch)
+    return "".join(out)
+
+
 def apply_edits(src: str, edits):
     """edits: (start, end, replacement); replacement keeps the newline count."""
     for a, b, new in sorted(edits, reverse=True):
@@ -133,7 +149,8 @@ def rewrite_shared(src: str) -> str:
         names = []
         for piece in split_top_level(decl):
             d = re.search(r"([A-Za-z_]\w*)\s*(\[.*)?$", piece.strip())
-            if not d or "(" in piece or "=" in piece:
+            outside = outside_brackets(piece)   # parentheses inside an array bound are fine
+            if not d or "(" in outside or "=" in outside:
                 die(src, m.start(), "this form of __shared__ declaration is not understood by the emulator: " + decl)
             names.append(d.group(1))
         count += 1

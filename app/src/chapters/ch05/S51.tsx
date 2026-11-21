@@ -428,6 +428,7 @@ export function S51() {
         Vector addition, <code>C[i] = A[i] + B[i]</code>, on 4-byte floats: each thread loads two values, adds them and
         stores one.
       </p>
+      <Source section="5.1" pages="96" />
       <Predict id="ch05/5.1/p-vecadd" prompt="How many floating-point operations does it perform per byte of global memory it touches?" unit="FLOP/B">
         {(v) => (
           <p>
@@ -440,7 +441,6 @@ export function S51() {
           </p>
         )}
       </Predict>
-      <Source section="5.1" pages="96" />
       <p>
         Now the device side. Divide peak throughput by peak bandwidth and you get the ratio at which the two limits
         meet. A kernel above that <b>threshold</b> gives the cores more work per byte than memory can starve them of; a
@@ -560,6 +560,13 @@ export function S51() {
         gives 315, also the book's. Weights dominate the traffic, and a weight fetched once can serve every row of the
         batch. Halving the bytes per weight doubles the ratio for the same reason.
       </p>
+      <Simplification>
+        <p>
+          The explorer counts ideal traffic: every weight, input and output moved exactly once, nothing cached and
+          nothing fetched twice. The 20 FLOP/B threshold is the book's example device. Lab 5.3 measures a real kernel
+          on yours.
+        </p>
+      </Simplification>
       <Ask q={questions51['ch05/5.1/q-decode']} />
     </>
   );

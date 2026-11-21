@@ -108,20 +108,19 @@ export const questionsWrap: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Both moves, unchanged.',
+        label: 'Both moves, unchanged: the window is still three planes deep.',
         why: 'In Fig. 8.12 a thread reads only its own point of the planes before and after. Here it reads nine points of each, eight of them loaded by other threads.',
       },
       {
-        label:
-          'Marching in z works. The planes before and after must stay in shared memory, because each of their values is now read by up to nine threads.',
+        label: 'Marching works, but the planes before and after must stay in shared memory: up to nine threads read each of their values.',
         correct: true,
       },
       {
-        label: 'Neither: a box stencil needs the cube tile of Fig. 8.8.',
+        label: 'Neither: a box stencil reads corners, so it needs the cube tile of Fig. 8.8.',
         why: 'Marching does not depend on the stencil\'s shape. The block still holds a rolling window of three planes; it just reads more of each.',
       },
       {
-        label: 'Register tiling works, but marching does not, because the corners lie in planes the window does not hold.',
+        label: 'Register tiling works, but marching does not: the corners lie in planes the window does not hold.',
         why: 'The stencil still has order 1 in z: planes z − 1, z and z + 1 hold every value an output needs, corners included.',
       },
     ],
@@ -188,20 +187,19 @@ export const questionsWrap: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'All of it in shared memory, which is faster than global memory.',
+        label: 'All of it in shared memory, the query, the keys and the running values, since shared memory is faster than global.',
         why: 'Shared memory is for values several threads read, or for staging data whose global loads would not coalesce. A running maximum is read by one thread only and changes at every key: keeping it in shared memory adds traffic and nothing else.',
       },
       {
-        label:
-          "The query in shared memory; each thread's running maximum and sum in its registers; no key needs sharing, since one thread reads it, once.",
+        label: "The query in shared memory, each thread's running maximum and sum in its registers, and no key shared.",
         correct: true,
       },
       {
-        label: 'The query in every thread\'s registers, 128 each, so that no thread waits for shared memory.',
+        label: 'The query copied into every thread\'s registers, 128 floats each, so that no thread waits on shared memory.',
         why: 'Every thread would hold the same 128 values: the register budget of page 8.5 spent on copies. At 1,024 threads, CUDA allows at most 64 registers per thread.',
       },
       {
-        label: 'The keys in shared memory, so that the block can reuse them.',
+        label: 'The keys in shared memory, so that the block can reuse them across threads, and the running values in registers.',
         why: 'No key is reused here: each is scored once, against one query. Reuse appears when one block scores several queries against the same keys, for instance several query heads that share one set of keys; then sharing them pays. (Staging keys through shared memory can still pay for another reason; see the explanation.)',
       },
     ],
@@ -238,16 +236,15 @@ export const questionsWrap: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'The basic kernel requests only 8 bytes per point.',
+        label: 'The basic kernel requests only 8 bytes per point, so the model\'s count of 32 was wrong.',
         why: 'It requests 32: seven loads and one store. The code fixes what is requested; the hardware decides how much of it reaches DRAM.',
       },
       {
-        label:
-          'Most of its 32 requested bytes per point never reach DRAM. DRAM already sees close to the compulsory 8, so the register-tiled kernel has little DRAM traffic left to save.',
+        label: 'Most of its 32 requested bytes per point never reach DRAM, so register tiling has little DRAM traffic left to save.',
         correct: true,
       },
       {
-        label: 'The device has bandwidth to spare, so the register-tiled kernel will run about 3.6 times faster.',
+        label: 'The device has bandwidth to spare, so the register-tiled kernel will run about 3.6 times faster, as the byte count predicts.',
         why: 'The kernel already moves data at about the rate the probe found. 3.6 times faster would mean about 2 bytes of DRAM traffic per point, less than one load and one store.',
       },
       {
@@ -555,8 +552,9 @@ export function Wrap() {
 
       <h2>The project so far</h2>
       <p>
-        This chapter adds no milestone to the through-line project. Its two techniques are on the way to one: chapter 15's
-        coarsened, register-tiled matrix multiplication is milestone M3, built on the same rule about who reads a value.
+        This chapter adds no milestone to the through-line project. Its two techniques are on the way to one:{' '}
+        <a href={href('ch15', 'start')}>chapter 15</a>'s coarsened, register-tiled matrix multiplication is milestone M3,
+        built on the same rule about who reads a value.
         Lab 8.1 is optional.{' '}
         <span data-lab81={passing.join(',') || 'none'}>
           {backends.length === 0 && !reports['emu']

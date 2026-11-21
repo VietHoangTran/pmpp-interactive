@@ -111,7 +111,7 @@ check('lab X1.3 says which draws must match', text0.includes('Tokens are compare
 check('the Philox mapping is labelled unverified', text0.includes('that is unverified on a device'));
 check('nothing on the page says it is being written', !/being written/i.test(text0));
 check('no device figure is typed into the prose (no GB/s, KiB or measured ms outside the report-driven parts)',
-  !(await page.$$eval('.prose > p', (ps) => ps.filter((p) => !p.dataset.measured && !p.dataset.race && !p.dataset.digest).some((p) => /\d+(\.\d+)? (GB\/s|KiB)\b|\d+\.\d+ ms\b/.test(p.textContent)))));
+  !(await page.$$eval('.prose > p', (ps) => ps.filter((p) => !p.dataset.measured && !p.dataset.raceLab && !p.dataset.digest).some((p) => /\d+(\.\d+)? (GB\/s|KiB)\b|\d+\.\d+ ms\b/.test(p.textContent)))));
 
 // ---- status table of the reference solutions, cell by cell against the reports
 const cells = await page.$$eval('table[data-table="solution-status"] td[data-lab]', (tds) =>
@@ -130,9 +130,9 @@ await shot('status', 'table[data-table="solution-status"]');
 for (const l of LABS) {
   const run = reports.race;
   const sol = labStatus(run, l.id, 'solution');
-  const race = await page.$eval(`[data-race="${l.num}"]`, (e) => ({ s: e.dataset.raceStatus, w: e.dataset.raceWork, text: e.textContent })).catch(() => null);
+  const race = await page.$eval(`[data-race-lab="${l.num}"]`, (e) => ({ s: e.dataset.raceStatus, w: e.dataset.raceWork, text: e.textContent })).catch(() => null);
   check(`race line of lab ${l.num} reads the reports: solution ${run ? sol : 'no run'}`, race && race.s === sol && race.w === labStatus(run, l.id, 'work') &&
-    (!run ? race.text.includes('No run on the race backend') : sol === 'pass' ? race.text.includes('emulator-checked on this flavour') : sol === 'none' ? race.text.includes('no run on the race backend yet') : race.text.includes('unverified there')), JSON.stringify(race));
+    (!run ? race.text.includes('No run on the race backend') : sol === 'pass' ? race.text.includes('emulator-checked') : sol === 'none' ? race.text.includes('no run on the race backend yet') : race.text.includes('unverified')), JSON.stringify(race));
 }
 
 // ---- status of the reader's own work
@@ -323,10 +323,17 @@ for (const l of LABS) {
   const tabs = await page.$$eval('figure.code .tabs button', (b) => b.map((x) => x.textContent));
   check(`lab ${l.num}: tabs are CUDA, Metal kernel, Metal host`, tabs.join('|') === 'CUDA|Metal kernel|Metal host', tabs.join('|'));
   const st = (b) => labStatus(reports[b], l.id, 'solution');
-  const got = [st('cuda') === 'pass' ? 'verified on CUDA' : '', st('hip') === 'pass' ? 'verified on HIP' : '', st('emu') === 'pass' ? 'emulator-checked' : ''].filter(Boolean);
-  const lacking = ['cuda', 'hip'].filter((b) => st(b) !== 'pass').map((b) => NAME[b]);
-  const cuStatus = got.length ? got.join(', ') + (lacking.length ? `; unverified on ${lacking.join(' and ')}` : '') : 'unverified (no run on this machine)';
-  const metalStatus = st('metal') === 'pass' ? 'verified on Metal' : st('metal') === 'fail' ? 'unverified (failed on this machine)' : 'unverified (no run on this machine)';
+  // The words of LabKit's solutionTabStatus.
+  const fam = ['cuda', 'hip', 'emu'];
+  const WHERE = { cuda: 'CUDA', hip: 'HIP', emu: 'the emulator' };
+  const and = (xs) => (xs.length < 3 ? xs.join(' and ') : xs.slice(0, -1).join(', ') + ' and ' + xs.at(-1));
+  const passed = fam.filter((b) => st(b) === 'pass').map((b) => (b === 'emu' ? 'emulator-checked' : `verified on ${NAME[b]}`));
+  const failed = fam.filter((b) => st(b) === 'fail').map((b) => WHERE[b]);
+  const none = ['cuda', 'hip'].filter((b) => st(b) === 'none').map((b) => NAME[b]);
+  const cuStatus = !passed.length && !failed.length
+    ? 'unverified: no run on this machine'
+    : [passed.join(', '), failed.length ? `unverified on ${and(failed)}: failed on this machine` : '', none.length ? `unverified on ${none.join(' and ')}` : ''].filter(Boolean).join('; ');
+  const metalStatus = st('metal') === 'pass' ? 'verified on Metal' : `unverified: ${st('metal') === 'fail' ? 'failed on this machine' : 'no run on this machine'}`;
   const order = [['kernel.cu', cuStatus], ['kernel.metal', metalStatus], ['launch.mm', metalStatus]];
   for (let i = 0; i < 3; i++) {
     await page.evaluate((i) => [...document.querySelectorAll('figure.code .tabs button')][i].click(), i);

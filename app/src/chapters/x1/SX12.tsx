@@ -1,7 +1,9 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
-import { Aside, Bench, Beyond, Simplification, Source, Today, type Tier } from '../../components/notes';
+import { solutionTabStatus } from '../../components/LabKit';
+import { Aside, Bench, Beyond, NoteGroup, Simplification, Source, Today, type Tier } from '../../components/notes';
+import { useReports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import { OPENING_PAIR, TEMP_ROWS, argmax, entropyBits, reciprocalMismatch, softmax, temperature } from '../../sim/chain';
 import { functionSource } from '../../sim/toolchain';
@@ -9,11 +11,6 @@ import { functionSource } from '../../sim/toolchain';
 const FACTS = 'notes/today/x1-facts.md';
 const LAB = 'ch10/lab3_softmax_argmax';
 const FIELD: CSSProperties = { display: 'inline-flex', flexDirection: 'column', gap: '0.2rem', color: 'var(--ink-2)' };
-/** Status of lab 10.3's reference files, in the course's vocabulary (its tests passed on Metal and both emulators). */
-const STATUS = {
-  cu: 'front-end-checked; emulator-checked; unverified on CUDA and HIP hardware',
-  metal: 'verified on Metal',
-};
 const TIERS: Record<string, Tier> = {
   x: 'global', y: 'global', in: 'global', out: 'global',
   scratch: 'shared',
@@ -98,11 +95,11 @@ export const questionsSX12: Record<string, Question> = {
     prompt: <>A row has equal maxima at columns 3 and 7. Which statement is right?</>,
     options: [
       {
-        label: "torch.argmax documents column 3 (the first maximum), M5 returns 3, and llama.cpp's Metal argmax kernel returns 7 by our reading of its source.",
+        label: "torch.argmax documents column 3 (the first maximum), M5 returns 3, llama.cpp's Metal argmax returns 7 (our reading).",
         correct: true,
       },
-      { label: 'Every backend returns 3, because argmax is a reduction with a fixed tree.', why: 'The tree is not fixed across projects, and the combine rule decides ties, not the tree.' },
-      { label: 'Every backend returns 7: the last maximum wins.', why: "PyTorch documents the first maximum, and M5's combine keeps the lower index." },
+      { label: 'Every backend returns 3: argmax is a reduction with a fixed tree, and each combine keeps the left operand on a tie, so the first maximum wins.', why: "Not every project's combine keeps the left operand: by our reading, llama.cpp's Metal argmax takes the largest index among the lanes holding the maximum, so it returns 7." },
+      { label: 'Every backend returns 7: each combine compares with ≥, so a later maximum replaces an earlier one.', why: "PyTorch documents the first maximum, and M5's combine keeps the lower index." },
     ],
     explain: (
       <p>
@@ -119,8 +116,8 @@ export const questionsSX12: Record<string, Question> = {
     id: 'x1/X1.2/q-softmax-share',
     prompt: <>In M5 with k = 40, which softmax work dominates a sampling step at a vocabulary of 151,936?</>,
     options: [
-      { label: 'None of it: softmax runs on the 40 survivors only; the stages that read the vocabulary are the penalties and top-k.', correct: true },
-      { label: 'The softmax over the vocabulary', why: 'M5 never computes one. Top-k runs on logits and needs no probabilities.' },
+      { label: 'None of it: softmax sees only the 40 survivors; the penalties and top-k are what read the vocabulary.', correct: true },
+      { label: 'The softmax over the whole vocabulary, which M5 has to compute before top-k can rank the tokens by probability', why: 'M5 never computes one. Top-k runs on logits and needs no probabilities.' },
       { label: "The softmax's exp calls", why: 'There are 40 of them per row, against a vocabulary-sized read elsewhere.' },
     ],
     explain: (
@@ -299,6 +296,8 @@ function TemperatureExplorer() {
 
 // ---------------------------------------------------------------- the listing
 function SoftmaxListing() {
+  const { reports } = useReports();
+  const STATUS = { cu: solutionTabStatus(reports, LAB, 'kernel.cu'), metal: solutionTabStatus(reports, LAB, 'kernel.metal') };
   const cu = useLabFile(LAB + '/solution/kernel.cu');
   const metal = useLabFile(LAB + '/solution/kernel.metal');
   const k = cu ? functionSource(cu, 'softmaxRowsKernel') : null;
@@ -335,15 +334,17 @@ export function SX12() {
         decoding. This section folds it into the softmax you already wrote, and pins down what greedy returns when two
         logits are equal, which is where backends quietly disagree.
       </p>
-      <Beyond title="Ours, not the book's">
-        <p>
-          Temperature and greedy decoding are not in the book. The softmax with the maximum subtracted is the book's Eq.
-          20.2, and one block per row is its Fig. 20.4. M4's kernels are lab 10.3's: the two-stage warp reduction of §10.8
-          (p. 243) and the coarsening loop of §10.10 (p. 247).
-        </p>
-      </Beyond>
-      <Source section="20.2" pages="482–486" />
-      <Source section="20.3" pages="486–488" />
+      <NoteGroup>
+        <Beyond title="Ours, not the book's">
+          <p>
+            Temperature and greedy decoding are not in the book. The softmax with the maximum subtracted is the book's Eq.
+            20.2, and one block per row is its Fig. 20.4. M4's kernels are lab 10.3's: the two-stage warp reduction of §10.8
+            (p. 243) and the coarsening loop of §10.10 (p. 247).
+          </p>
+        </Beyond>
+        <Source section="20.2" pages="482–486" />
+        <Source section="20.3" pages="486–488" />
+      </NoteGroup>
 
       <h2>What dividing by T does</h2>
       <p>
@@ -447,18 +448,20 @@ export function SX12() {
         Metal's default math mode is not IEEE-strict, so a softmax computed on Metal is compared with the CPU reference
         within a tolerance, never bit for bit.
       </p>
-      <Today checked="2026-11-20 in the facts pass (notes/today/ch05-facts.md C7; notes/today/infra-facts.md)">
-        <p>
-          <code>fastMathEnabled</code> defaults to YES and is deprecated in favour of <code>mathMode</code>; Apple's
-          sources disagree on the default mode on Apple silicon. HIP lane masks are 64-bit on every target.
-        </p>
-      </Today>
-      <Aside>
-        <p>
-          The tolerance lab 10.3 uses, and why, is in its README, derived from each backend's documented exp error
-          bound at the longest row it tests.
-        </p>
-      </Aside>
+      <NoteGroup>
+        <Today checked="2026-11-20 in the facts pass (notes/today/ch05-facts.md C7; notes/today/infra-facts.md)">
+          <p>
+            <code>fastMathEnabled</code> defaults to YES and is deprecated in favour of <code>mathMode</code>; Apple's
+            sources disagree on the default mode on Apple silicon. HIP lane masks are 64-bit on every target.
+          </p>
+        </Today>
+        <Aside>
+          <p>
+            The tolerance lab 10.3 uses, and why, is in its README, derived from each backend's documented exp error
+            bound at the longest row it tests.
+          </p>
+        </Aside>
+      </NoteGroup>
     </>
   );
 }

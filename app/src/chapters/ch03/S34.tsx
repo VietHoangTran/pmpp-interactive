@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, MATMUL_TIERS, useLabFile } from '../../components/Code';
+import { solutionTabStatus } from '../../components/LabKit';
 import { Aside, Bench, Beyond, Simplification, Source, TierLegend, Today } from '../../components/notes';
 import { useProgress } from '../../lib/progress';
 import { benchRows, fmt, labStatus, num, realBackends, useReports, type BenchRow, type Reports } from '../../lib/reports';
@@ -968,12 +969,9 @@ function Lab3Listing() {
   const metal = useLabFile(LAB3 + '/solution/kernel.metal');
   const mm = useLabFile(LAB3 + '/solution/launch.mm');
   const { reports } = useReports();
-  const st = (b: string) => labStatus(reports[b], LAB3, 'solution');
-  const cuda =
-    (st('emu') === 'pass' ? 'emulator-checked' : 'unverified: no passing emulator run on this machine') +
-    '; ' +
-    (st('cuda') === 'pass' ? 'verified on CUDA' : 'unverified on CUDA hardware');
-  const onMetal = st('metal') === 'pass' ? 'verified on Metal' : 'unverified: no passing Metal run on this machine';
+  // The labs page's words for the same runs.
+  const cuda = solutionTabStatus(reports, LAB3, 'kernel.cu');
+  const onMetal = solutionTabStatus(reports, LAB3, 'kernel.metal');
   if (!cu || !metal || !mm) return null;
   return (
     <Code
@@ -1046,7 +1044,7 @@ export const questionsS34: Record<string, Question> = {
         label: <>N · M.</>,
         why: 'Close. The sum is element (col, row) of N · M, and the kernel stores it at (row, col).',
       },
-      { label: <>(N · M)ᵀ, the transpose of N times M.</>, correct: true },
+      { label: <>(N · M)ᵀ.</>, correct: true },
     ],
     explain: (
       <>
@@ -1075,19 +1073,19 @@ export const questionsS34: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'It launches 2,048 threads with work instead of about 4.2 million, each computing 2,048 dot products. One grid can cover a far larger matrix, but the device has far fewer threads to run at once.',
+        label: '2,048 threads with work instead of about 4.2 million, 2,048 dot products each: one grid can cover a larger matrix, but far fewer threads run at once.',
         correct: true,
       },
       {
-        label: 'It does less arithmetic in total, because a thread reuses its row of M for every column.',
+        label: 'It does less arithmetic and less memory traffic in total, because each thread loads its row of M once and reuses it for all 2,048 columns.',
         why: 'The total is Width³ multiply-adds either way, and the kernel still reads M[row*Width+k] from global memory again for every column.',
       },
       {
-        label: 'It needs a 2D grid, because P is two-dimensional.',
+        label: 'It still needs a 2D grid, because P is two-dimensional and every thread needs both a row and a column index.',
         why: 'The thread\'s only coordinate is its row; the column has become a loop. A 1D grid covers it.',
       },
       {
-        label: 'It needs a barrier, because a thread now writes several elements.',
+        label: 'It needs a barrier after each row, because one thread now writes several elements of P and those stores must be ordered.',
         why: 'Every element of P still has exactly one writer and the inputs are only read. No two threads share anything they write.',
       },
     ],

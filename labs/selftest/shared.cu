@@ -141,7 +141,40 @@ static std::string tStuck() {
 }
 #endif
 
+// ---- array bounds written with parentheses (labs/tools/cu2emu.py accepts them) ----------------
+#define ST_TILE 4
+#define ST_PAD(n) ((n) + 1)
+__global__ void kParenBounds(int* out) {
+    __shared__ float halo[(ST_TILE + 2) * (ST_TILE + 2)], edge[ST_PAD(ST_TILE)];
+    __shared__ int grid2[(ST_TILE)][ST_PAD(ST_TILE)];
+    int t = threadIdx.x;                       // 36 threads, one per halo slot
+    halo[t] = (float)t;
+    if (t < ST_PAD(ST_TILE)) edge[t] = 100.f + t;
+    if (t < ST_TILE * ST_PAD(ST_TILE)) grid2[t / ST_PAD(ST_TILE)][t % ST_PAD(ST_TILE)] = 1000 + t;
+    __syncthreads();
+    int n = (ST_TILE + 2) * (ST_TILE + 2);
+    int v = (int)halo[n - 1 - t];
+    if (t < ST_PAD(ST_TILE)) v += (int)edge[ST_PAD(ST_TILE) - 1 - t];
+    if (t < ST_TILE * ST_PAD(ST_TILE)) v += grid2[ST_TILE - 1 - t / ST_PAD(ST_TILE)][t % ST_PAD(ST_TILE)];
+    out[t] = v;
+}
+static std::string tParenBounds() {
+    const int n = (ST_TILE + 2) * (ST_TILE + 2), w = ST_PAD(ST_TILE);
+    StBuf<int> out(n, -1);
+    kParenBounds<<<1, n>>>(out.dev);
+    ST_LAUNCHED();
+    std::vector<int> o = out.host();
+    for (int t = 0; t < n; ++t) {
+        int want = n - 1 - t;
+        if (t < w) want += 100 + (w - 1 - t);
+        if (t < ST_TILE * w) want += 1000 + (ST_TILE - 1 - t / w) * w + t % w;
+        ST_REQUIRE(o[t] == want, "thread %d read %d, expected %d", t, o[t], want);
+    }
+    return "";
+}
+
 extern const pmpp_selftest_case pmpp_selftest_cases[] = {
+    {"__shared__ array bounds with parentheses and macros", tParenBounds},
     {"__shared__: several declarations, 2-D, scalar, in a __device__ function, one copy per block", tShared},
     {"dynamic shared memory (extern __shared__, third launch parameter)", tDynamic},
     {"__syncthreads_count, __syncthreads_and, __syncthreads_or", tSyncVotes},

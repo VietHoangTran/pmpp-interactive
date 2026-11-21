@@ -55,7 +55,7 @@ all integer work. That matters on Metal: both of its candidate default math mode
 signed zeros", fast math leaves NaN and INF undefined, and subnormals may be flushed to zero in
 arithmetic (C3). A float-side `x == 0.0f ? 0.0f : x` may be rewritten; an integer test may not.
 On HIP, `__float_as_uint` exists in the header but is not in AMD's published math reference
-(B6), and the course's emulator does not provide it; the unsigned view is the form that works
+(B6). The unsigned view needs no bit-cast intrinsic at all, so it is the form that works
 everywhere. (CUDA documents `__float_as_uint`, A8.)
 
 For this milestone's own input, softmax probabilities, every value is at least `+0.0`, so the

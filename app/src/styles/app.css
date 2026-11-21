@@ -317,6 +317,14 @@ select,
 .note.beyond {
   border-top: 2px solid var(--reg);
 }
+/* Several notes for one paragraph (notes.tsx NoteGroup): one grid item, each note keeps its own rule. */
+.note.note-group {
+  border-top: none;
+  padding-top: 0;
+  display: grid;
+  gap: 1.1rem;
+  align-content: start;
+}
 @media (max-width: 68rem) {
   .prose {
     grid-template-columns: minmax(0, var(--measure));
@@ -614,11 +622,28 @@ label.check {
   color: var(--ink);
   box-shadow: inset 0 -2px 0 var(--ink);
 }
+.code .tabs {
+  flex-wrap: wrap;
+}
+/* The status sits at the right of the tab buttons while there is room for it, and takes a
+   line of its own under them when there is not, instead of being squeezed into a column. */
 .code .tabs .status {
   margin-left: auto;
-  padding: 0 0.8rem;
+  flex: 1 1 13rem;
+  min-width: 0;
+  text-align: right;
+  padding: 0.3rem 0.8rem;
   color: var(--ink-3);
   font-size: 0.74rem;
+}
+/* Where the code comes from (Code's `source`). */
+.code .src {
+  font-family: var(--sans);
+  font-size: 0.74rem;
+  color: var(--ink-3);
+  padding: 0.35rem 1rem;
+  border-bottom: 1px solid var(--rule-soft);
+  overflow-wrap: anywhere;
 }
 .code pre {
   margin: 0;
@@ -881,6 +906,18 @@ table.data th.num {
   border-bottom: 1px solid var(--rule-soft);
   white-space: nowrap;
 }
+/* A thread table whose cells hold sentences or long values: they wrap instead of widening the
+   table, and on narrow screens long tokens may break too. */
+.threads.wrap th,
+.threads.wrap td {
+  white-space: normal;
+}
+@media (max-width: 52rem) {
+  .threads.wrap th,
+  .threads.wrap td {
+    overflow-wrap: anywhere;
+  }
+}
 .threads tr.cur td {
   background: var(--rule-soft);
   font-weight: 600;
@@ -923,13 +960,19 @@ table.data th.num {
 }
 /* A scene draws on a wide canvas; scaled to a phone its labels become unreadable, so on
    narrow screens the drawing keeps a readable width and scrolls sideways in its frame.
-   A scene that draws its own narrow layout marks its svg data-layout="narrow" and is left alone. */
+   A scene that draws its own narrow layout says so, either on its svg (data-layout="narrow")
+   or with <Scene narrow>, which marks the stage, and is left alone. */
 @media (max-width: 640px) {
   .scene .stage {
     overflow-x: auto;
   }
-  .scene .stage > svg:not([data-layout='narrow']) {
+  .scene .stage:not([data-layout='narrow']) > svg:not([data-layout='narrow']) {
     min-width: 560px;
+  }
+}
+@media (max-width: 52rem) {
+  .code .tabs .status {
+    text-align: left;
   }
 }
 

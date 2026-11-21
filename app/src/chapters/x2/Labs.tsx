@@ -722,7 +722,7 @@ export function Labs() {
         with llama.cpp's <code>_ref</code> rules, and runs four pairs of formats (layers, then the tied embedding and LM
         head): (F32, F32), (Q8_0, Q8_0), (Q4_0, Q4_0) and (Q4_0, F32).
       </p>
-      <Today checked={`2026-11-20 (${FACTS} A1; notes/today/ch22-facts.md D3)`}>
+      <Today checked={`2026-11-20 (${FACTS} A1; notes/today/ch15-facts.md D1)`}>
         <p>
           PyTorch measured an unfused int8 path slower than FP16. llama.cpp uses matrix-vector kernels up to 8 tokens.
         </p>
@@ -803,7 +803,11 @@ export function Labs() {
         measured on your device and its output error reported against float32, by logits and by greedy tokens. It follows
         the project's conventions so later milestones can call it: row-major float32 activations with the batch first, raw
         device pointers and explicit sizes, a <code>launch</code> host function beside each kernel, the CPU reference in{' '}
-        <code>main.cpp</code>, and the GEMVs of labs X2.1 and X2.2 with their fixed signatures.
+        <code>main.cpp</code>, and the GEMVs of labs X2.1 and X2.2 with their fixed signatures. Module X3's milestone M10
+        calls the reference solution's <code>launchQLinear</code> through a small adapter,{' '}
+        <code>labs/x3/lab2_tinyllama/provided/m9_linear</code>, which binds each float weight pointer of its Llama model to a{' '}
+        <code>QMatrix</code>: the same Llama step then runs with Q8_0 and Q4_0 weights, and its tokens are checked against a
+        CPU reference on the same quantised weights.
       </p>
       <ReferenceSolution lab={l4} tiers={TIERS_4} />
     </LabsPage>

@@ -171,7 +171,7 @@ export const questionsS175: Record<string, Question> = {
     id: 'ch17/17.5/q-jds-align',
     prompt: <>ELL can make every iteration start on a segment boundary at little cost. Why can JDS not do the same?</>,
     options: [
-      { label: 'JDS stores its elements row by row.', why: 'It is column-major, like ELL (Fig. 17.14).' },
+      { label: "JDS stores each row's elements together, row by row, as CSR does.", why: 'It is column-major, like ELL (Fig. 17.14).' },
       {
         label: (
           <>
@@ -180,8 +180,8 @@ export const questionsS175: Record<string, Question> = {
         ),
         correct: true,
       },
-      { label: 'Sorting the rows breaks coalescing.', why: 'Within an iteration, consecutive threads still read consecutive elements.' },
-      { label: 'JDS needs atomics, which ignore alignment.', why: 'One thread owns each sorted row: there are no atomics.' },
+      { label: 'Sorting the rows breaks coalescing, so alignment would buy nothing.', why: 'Within an iteration, consecutive threads still read consecutive elements.' },
+      { label: 'JDS adds into y with atomics, and atomic traffic is not counted in aligned segments.', why: 'One thread owns each sorted row: there are no atomics.' },
     ],
     explain: (
       <p>
@@ -245,10 +245,10 @@ export const questionsS175: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Fewer bytes moved per token.', why: 'Both write the same ids into the same slices; only the order inside a slice differs.' },
-      { label: 'No need for the exclusive scan.', why: 'The scan still gives each slice its start; the rank only places an entry inside it.' },
-      { label: 'The same order inside every slice, every run.', correct: true },
-      { label: 'No need to count the entries first.', why: 'The slices’ starts still come from the counts, through the scan.' },
+      { label: 'Fewer bytes moved per token, since no cursor array is read.', why: 'Both write the same ids into the same slices, and every expert’s block reads all the ids (ch17-facts D5), so the ballot version reads more bytes in total, not fewer.' },
+      { label: 'No need to count the other experts: the popcount gives each slice its start.', why: 'The popcount counts only this expert’s matching lanes, so it places an entry inside its slice. Where a slice starts is a separate count: the helper tallies the lower-numbered experts’ entries in the same sweep (nex_prev, D5), and an atomic cursor could sit in that sweep just as well.' },
+      { label: 'Tokens keep their input order inside every slice, on every run.', correct: true },
+      { label: 'One sweep over the ids: an atomic cursor would need a second pass to rank.', why: 'A cursor ranks in the same sweep: each thread takes the next free slot of the store when it meets its entry, while nex_prev is being counted. The ranking method changes only the order inside a slice.' },
     ],
     explain: (
       <p>

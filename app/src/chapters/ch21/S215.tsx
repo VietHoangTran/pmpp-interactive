@@ -50,7 +50,7 @@ export const questionsS215: Record<string, Question> = {
     options: [
       { label: '21, of which 9 are fully inside, as Fig. 21.14 labels its list.', why: 'The corner bins of the 5 × 5 square start to touch at about 2.12 b, the same radius at which the 3 × 3 block becomes fully covered. Past it the list holds 25.' },
       { label: '25, of which 5 are fully inside: the centre bin and its four edge neighbours.', why: 'The diagonal neighbours\' farthest corners are about 2.12 b from the centre, inside 2.4 b, so they are fully inside too.' },
-      { label: '25, of which 9 are fully inside: the whole 5 × 5 square touches, and the 3 × 3 block is covered.', correct: true },
+      { label: '25, of which 9 are fully inside: all of the 5 × 5 square touches the circle.', correct: true },
       { label: '29, of which 9 are fully inside: the bins three steps out along the axes join the list.', why: 'Their nearest point is 2.5 b from the centre, just outside the circle.' },
     ],
     explain: (
@@ -70,12 +70,12 @@ export const questionsS215: Record<string, Question> = {
     prompt: <>Exercise 5. How does control divergence arise when the threads of a block process a bin from their neighbourhood list?</>,
     options: [
       {
-        label: 'The list is per block and conservative, so a bin is only partly within the cutoff of some points; for an atom near the edge some lanes accept it and some reject it.',
+        label: 'A bin can lie only partly inside some points\' cutoffs, so for one atom some lanes accept and others reject.',
         correct: true,
       },
       { label: 'Different threads of the block load different bins of the list, so they run different numbers of loop iterations.', why: 'All threads of a block walk the same list and load each bin together.' },
-      { label: 'The barrier after the cooperative load makes some lanes wait for others, which splits the warp in two.', why: 'Waiting at a barrier is synchronisation, not divergence: everyone takes the same path to it.' },
-      { label: 'Dummy atoms take a different code path from real atoms, so a bin that has some of each diverges.', why: 'Dummy atoms take the same path as real ones; their charge of zero adds nothing.' },
+      { label: 'The barrier after the cooperative load makes some lanes wait for the others, which splits each warp into two paths.', why: 'Waiting at a barrier is synchronisation, not divergence: everyone takes the same path to it.' },
+      { label: 'Dummy atoms take a different code path from real atoms, so a bin that holds some of each diverges.', why: 'Dummy atoms take the same path as real ones; their charge of zero adds nothing.' },
     ],
     explain: (
       <p>
@@ -94,12 +94,12 @@ export const questionsS215: Record<string, Question> = {
     prompt: <>Why do the atoms move from constant memory to global memory, staged through shared memory, in the binned kernel?</>,
     options: [
       {
-        label: 'Each block needs its own neighbourhood of bins, and constant memory cannot hold what all active blocks need at once; staging a bin once per block keeps the reuse.',
+        label: 'Different blocks need different bins, more than constant memory holds at once; staging each bin once per block keeps the reuse.',
         correct: true,
       },
-      { label: 'Constant memory can only hold integers and pointers, so the float coordinates have to go somewhere else.', why: 'The DCS kernels keep float atoms in constant memory.' },
-      { label: 'Global memory is faster than constant memory once the atoms have been sorted into bins.', why: 'It is not; the change is about capacity and about which atoms each block needs.' },
-      { label: 'Shared memory is shared by all the blocks of a grid, so one copy of each bin serves everyone.', why: 'Shared memory is per block: each block stages its own copy.' },
+      { label: 'Constant memory can only hold integers and pointers, so the float coordinates and charges have to go somewhere else.', why: 'The DCS kernels keep float atoms in constant memory.' },
+      { label: 'Global memory is faster than constant memory once the atoms are sorted into bins, because each bin\'s reads are coalesced.', why: 'It is not; the change is about capacity and about which atoms each block needs.' },
+      { label: 'Shared memory is shared by all the blocks of a grid, so one staged copy of each bin serves every block that needs it.', why: 'Shared memory is per block: each block stages its own copy.' },
     ],
     explain: (
       <p>
@@ -122,12 +122,12 @@ export const questionsS215: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Every bin is padded to the fullest bin\'s count, so dummy atoms take memory, transfers and every block\'s scan time, to save a host pass over 2 % of the atoms.',
+        label: 'Every bin is padded to the fullest bin\'s count, so dummy atoms cost memory, transfers and scan time to save a host pass over 2 %.',
         correct: true,
       },
-      { label: 'Nothing: dummy atoms have a charge of zero, so a larger capacity adds no work to any block.', why: 'They add nothing to the sum, but each one is still loaded, staged and tested by every thread.' },
-      { label: 'The overflow pass becomes inaccurate, because the host then sums the far field the kernel left out.', why: 'The host pass is exact: a sequential cutoff sum over the overflow atoms.' },
-      { label: 'The kernel needs atomics once bins are large, because several threads then share one bin.', why: 'Ownership of the grid points does not change; each thread still writes only its own point.' },
+      { label: 'Nothing: dummy atoms have a charge of zero, so a larger capacity adds no work to any block\'s scan.', why: 'They add nothing to the sum, but each one is still loaded, staged and tested by every thread.' },
+      { label: 'The overflow pass becomes inaccurate, because the host then has to sum the far-field contributions the kernel left out.', why: 'The host pass is exact: a sequential cutoff sum over the overflow atoms.' },
+      { label: 'The kernel needs atomics once bins are large, because several threads of a block then load and update one shared bin at once.', why: 'Ownership of the grid points does not change; each thread still writes only its own point.' },
     ],
     explain: (
       <p>
@@ -296,6 +296,13 @@ export function S215() {
           <code>const device float4*</code>: Apple advises <code>device</code> for variable-size data.
         </p>
       </Today>
+      <Simplification>
+        <p>
+          The animation: 2D, one block of 16 threads, drawn as one group (fewer than NVIDIA's 32 lanes or AMD's 32 or 64; Metal's
+          width is read from the pipeline), bins of 4 slots, a super circle
+          of 2 bin widths, 160 random atoms. Counted, not timed.
+        </p>
+      </Simplification>
       <BinnedBlockScene />
       <Ask q={questionsS215['ch21/21.5/q-ex5']} label="Book exercise" />
       <Ask q={questionsS215['ch21/21.5/q-global']} />

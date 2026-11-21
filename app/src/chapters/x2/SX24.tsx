@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
 import { Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
-import { labStatus, useReports, type Reports } from '../../lib/reports';
+import { solutionTabStatus } from '../../components/LabKit';
+import { useReports, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import {
   LAYOUTS, LAYOUT_IDS, SEGMENT_MODELS, iterationPlan, iterationSpan, loadStep, loadsPerLane, problem, rowSteps,
@@ -47,7 +48,7 @@ export const questionsSX24: Record<string, Question> = {
       { label: 'Fewer: neighbouring lanes now read neighbouring bytes of a block.', correct: true },
       { label: 'More: four lanes reading one block conflict with each other.', why: 'Lanes reading neighbouring bytes of one block is what coalescing wants.' },
       { label: 'The same: 32 lanes still load 64 useful bytes in total.', why: 'The useful bytes are the same; how many segments they fall in is not.' },
-      { label: 'Fewer, because each lane now loads 4 bytes at once.', why: 'The load width is still 2 bytes. What changed is which bytes neighbouring lanes read.' },
+      { label: 'Fewer, because each lane now loads 4 bytes in one instruction instead of 2.', why: 'The load width is still 2 bytes. What changed is which bytes neighbouring lanes read.' },
     ],
     explain: (
       <p>
@@ -63,7 +64,7 @@ export const questionsSX24: Record<string, Question> = {
     id: 'x2/X2.4/q-scale',
     prompt: <>Why does the kernel multiply a lane's partial sum by its block's scale d once, instead of multiplying every product by d?</>,
     options: [
-      { label: 'd is shared by the block, so one multiply replaces one per weight.', correct: true },
+      { label: 'd is shared, so one multiply replaces one per weight.', correct: true },
       { label: 'Multiplying each product by d would overflow the float sum.', why: 'The products are floats here; nothing overflows. The reason is the count of multiplies.' },
       { label: 'The scale is only known after the loop has read the block.', why: 'It is stored with the block and loaded with it.' },
       { label: 'It must, or the result changes: the multiplies do not commute.', why: 'The two agree up to rounding: multiplication distributes over addition.' },
@@ -99,7 +100,7 @@ export const questionsSX24: Record<string, Question> = {
     options: [
       { label: '16, and nothing, if the block index is computed from warpSize / 4 rather than from 8.', correct: true },
       { label: '8, because a block still has four lanes, whatever the width.', why: '64 lanes in groups of 4 make 16 groups.' },
-      { label: '16, and the shuffle masks must be widened to 64 bits by hand.', why: 'A typed 64-bit mask is needed for HIP anyway, but the iteration count follows from warpSize.' },
+      { label: '16, and every shuffle\'s lane mask must be rewritten as a 64-bit literal.', why: 'HIP needs a 64-bit mask on every target, but a typed mask such as ~(lane_mask_t)0 already is one, and a literal is what to avoid. The iteration count follows from warpSize.' },
       { label: '32, because the wavefront is twice as wide as a warp.', why: 'Twice as wide doubles the 8 blocks of a 32-lane warp, to 16.' },
     ],
     explain: (
@@ -429,14 +430,9 @@ function TailExplorer() {
 }
 
 // ---------------------------------------------------------------- the code
+/** The same words as the labs page's status table (LabKit's solutionTabStatus). */
 function solutionStatus(reports: Reports, lab: string): { cu: string; metal: string } {
-  const st = (b: string) => labStatus(reports[b], lab, 'solution');
-  const got = [st('cuda') === 'pass' ? 'verified on CUDA' : '', st('hip') === 'pass' ? 'verified on HIP' : '', st('emu') === 'pass' ? 'emulator-checked' : ''].filter(Boolean);
-  const lacking = [st('cuda') === 'pass' ? '' : 'CUDA', st('hip') === 'pass' ? '' : 'HIP'].filter(Boolean);
-  return {
-    cu: got.length ? got.join(', ') + (lacking.length ? `; unverified on ${lacking.join(' and ')}` : '') : 'unverified (no run on this machine)',
-    metal: st('metal') === 'pass' ? 'verified on Metal' : 'unverified (no run on this machine)',
-  };
+  return { cu: solutionTabStatus(reports, lab, 'kernel.cu'), metal: solutionTabStatus(reports, lab, 'kernel.metal') };
 }
 
 function LabX22Code() {
@@ -595,8 +591,9 @@ export function SX24() {
         activations: d × (Σ q·x − 8 Σ x). The reduction and the single writer are unchanged.
       </p>
       <p>
-        On HIP the same <code>.cu</code> builds through <code>pmpp/vendors/hip.h</code>: masks and shifts need no
-        intrinsic. On Metal the block is a struct of a <code>half d</code> and <code>uchar qs[16]</code>, as llama.cpp
+        For HIP the same <code>.cu</code> is written to build through <code>pmpp/vendors/hip.h</code>: masks and
+        shifts need no intrinsic, and the reduction's shuffles take a typed lane mask, which HIP needs 64 bits wide
+        (unverified: no HIP machine has run it). On Metal the block is a struct of a <code>half d</code> and <code>uchar qs[16]</code>, as llama.cpp
         declares it, and <code>simd_sum</code> replaces the shuffles.
       </p>
       <Today checked={`2026-11-20 in the facts pass (${FACTS}, C5, D1, D3)`}>

@@ -115,8 +115,12 @@ await shot('status', 'table[data-table="solution-status"]');
   const s = labStatus(reports.race, LABS[2].id, 'solution');
   const line = await page.$eval('[data-race-status]', (e) => ({ s: e.dataset.raceStatus, text: e.textContent }));
   const n = results(reports.race, LABS[2].id, 'solution').flatMap((x) => x.tests).length;
+  // The shared LabKit line: "under both flavours" only when the emu run of the solution passed too.
+  const emuToo = labStatus(reports.emu, LABS[2].id, 'solution') === 'pass';
   check(`lab 4.3: race backend line reads the reports (${s})`, line.s === s &&
-    (s === 'pass' ? line.text.includes(`passed all ${n} tests on the race backend`) && line.text.includes('emulator-checked') : s === 'fail' ? line.text.includes('unverified there') : line.text.includes('no run on the race backend')), JSON.stringify(line));
+    (s === 'pass'
+      ? line.text.includes(`passed all ${n} tests on the race backend`) && line.text.includes(emuToo ? 'emulator-checked under both flavours' : 'emulator-checked on this flavour')
+      : s === 'fail' ? line.text.includes('unverified') : /no run on the race backend/i.test(line.text)), JSON.stringify(line));
 }
 
 // ---- status of the reader's own work

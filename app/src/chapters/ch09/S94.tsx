@@ -3,7 +3,8 @@ import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
 import { Aside, Bench, Beyond, Simplification, Source, Today, type Tier } from '../../components/notes';
 import { useProgress } from '../../lib/progress';
-import { benchRows, fmt, labStatus, num, realBackends, useReports, type Reports } from '../../lib/reports';
+import { solutionTabStatus } from '../../components/LabKit';
+import { benchRows, fmt, num, realBackends, useReports, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import {
   BROKEN,
@@ -79,14 +80,8 @@ function useBudgets() {
 
 function useListingStatus(lab: string) {
   const { reports } = useReports();
-  const st = (b: string) => labStatus(reports[b], lab, 'solution');
-  return {
-    cu:
-      (st('emu') === 'pass' ? 'emulator-checked' : 'unverified: no passing emulator run on this machine') +
-      '; ' + (st('cuda') === 'pass' ? 'verified on CUDA' : 'unverified on CUDA hardware') +
-      '; ' + (st('hip') === 'pass' ? 'verified on HIP' : 'unverified on HIP hardware'),
-    metal: st('metal') === 'pass' ? 'verified on Metal' : 'unverified: no passing Metal run on this machine',
-  };
+  // The same words as the labs page's status table and reference-solution tabs.
+  return { cu: solutionTabStatus(reports, lab, 'kernel.cu'), metal: solutionTabStatus(reports, lab, 'kernel.metal') };
 }
 
 // ---------------------------------------------------------------- listings from the labs

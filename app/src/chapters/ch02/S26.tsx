@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
 import { Aside, Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
-import { labStatus, useReports } from '../../lib/reports';
+import { solutionTabStatus } from '../../components/LabKit';
+import { useReports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import {
   BOOK_BLOCK,
@@ -816,11 +817,11 @@ export const questionsS26: Record<string, Question> = {
     ),
     options: [
       {
-        label: '4 blocks are launched and C is correct.',
+        label: '4 blocks are launched and C is correct: ceil rounds 3.90625 up to 4.',
         why: 'That is what ceil(n/256.0) does. Here both operands of the division are int.',
       },
       {
-        label: `${BAD1000.blocks} blocks are launched. Elements ${BAD1000.unprocessed[0].first} to ${BAD1000.unprocessed[0].last} of C are never written and hold whatever the allocation held.`,
+        label: `${BAD1000.blocks} blocks are launched, and elements ${BAD1000.unprocessed[0].first} to ${BAD1000.unprocessed[0].last} of C are never written.`,
         correct: true,
       },
       {
@@ -828,7 +829,7 @@ export const questionsS26: Record<string, Question> = {
         why: 'It compiles. The int is converted to double on the way into ceil, after the division has already happened.',
       },
       {
-        label: '4 blocks are launched, but the threads of the last one do nothing.',
+        label: '4 blocks are launched, but the threads of the last block all fail the guard and do nothing.',
         why: 'There is no fourth block. The guard is not involved: every thread that exists has an index below n.',
       },
     ],
@@ -893,11 +894,11 @@ export const questionsS26: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'The kernel. The other 3 ms is what cudaDeviceSynchronize itself costs.',
+        label: 'The kernel. The other 3 ms are the cost of the cudaDeviceSynchronize call itself.',
         why: 'cudaDeviceSynchronize blocks until the work already issued has completed. The 3 ms is that work.',
       },
       {
-        label: 'Handing the launch to the runtime. The grid needed about 3.1 ms, and the first timer stopped before it had finished, perhaps before it had started.',
+        label: 'Handing the launch to the runtime. When that timer stopped, the grid had not finished, perhaps not started.',
         correct: true,
       },
       {
@@ -905,7 +906,7 @@ export const questionsS26: Record<string, Question> = {
         why: 'All threads of the grid belong to the same launch. No timer on the host separates them.',
       },
       {
-        label: 'The copy of A and B to the device.',
+        label: 'The copy of A and B to the device, which the launch waits for.',
         why: 'The copies are separate calls made before the launch, outside both timers.',
       },
     ],
@@ -967,7 +968,7 @@ export const questionsS26: Record<string, Question> = {
         label: 'The block size: multiply it by four, so that each block does more.',
         why: 'The block size stays within the limit on threads per block and has nothing to do with how many blocks run together.',
       },
-      { label: 'Nothing.', correct: true },
+      { label: 'Nothing. The same launch is right for both GPUs.', correct: true },
       {
         label: 'Nothing in the source, but n must be a multiple of the new number of concurrent blocks.',
         why: 'The grid is not tied to how many blocks run together. A last, smaller group of blocks simply runs alone.',
@@ -1050,10 +1051,9 @@ export function S26() {
   const cu = useLabFile(LAB1 + '/solution/kernel.cu');
   const mm = useLabFile(LAB1 + '/solution/launch.mm');
   const { reports } = useReports();
-  const emu = labStatus(reports.emu, LAB1, 'solution') === 'pass';
-  const metal = labStatus(reports.metal, LAB1, 'solution') === 'pass';
-  const cuStatus = (emu ? 'emulator-checked and front-end-checked' : 'front-end-checked') + '; unverified on CUDA and HIP hardware';
-  const mmStatus = metal ? 'verified on Metal' : 'unverified';
+  // The same words as the labs page, from this machine's runs.
+  const cuStatus = solutionTabStatus(reports, LAB1, 'kernel.cu');
+  const mmStatus = solutionTabStatus(reports, LAB1, 'launch.mm');
 
   const host = cu ? withoutHeader(cu) : null;
   const launchLine = host ? linesWith(host.lines, 'vecAddKernel<<<')[0] : undefined;

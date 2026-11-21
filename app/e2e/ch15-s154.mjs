@@ -234,7 +234,7 @@ async function choice(prompt, optionText) {
 check('question: a value in a_r feeds 8 multiply-adds', await numeric('how many multiply-adds of that step use', 8));
 check('question: the square tile needs the fewest reads', await choice('which shape needs the fewest', '8 × 8'));
 check('question: intensity comes from the output tile; register tiling cuts shared reads', await choice('Which statement says precisely', 'came from the 128 × 128 output tile'));
-check('question: double-buffered strips overlap the next reads with this step', await choice('What does the second set make possible', 'Reading the strips for step i + 1'));
+check('question: double-buffered strips overlap the next reads with this step', await choice('What does the second set make possible', 'Reading step i + 1'));
 check('a wrong answer is marked wrong', !(await choice('which shape needs the fewest', '32 × 2')));
 
 const expected404 = (u) => /\/content\/ch15\/narration\/outer-product-\d\.mp3$/.test(u);

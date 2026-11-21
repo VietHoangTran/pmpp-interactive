@@ -21,14 +21,18 @@
 #   lab 20.5 (M7)  launchDecodeAttentionGrouped, encodeDecodeAttentionGrouped         if present
 #   lab 22.1       launchGemvGather, encodeGemvGather                                 if present
 #   lab X1.3 (M5)  launchSampleRows, encodeSampleRows, with its own pieces            if present
+#   lab X2.4 (M9)  launchQLinear, encodeQLinear, with lab X2.1's and X2.2's GEMVs     if present
+#                  (or their stand-ins in labs/x2/shared-g12), behind provided/m9_linear.*
+#                  (needs lab 22.1's gather: M9 dispatches float32 matrices to it)
 #   step_timer.cu  one pair of events around a step (the CUDA and HIP timing)         always
 # A required piece that is missing, or whose signature differs from the one llama.h
 # declares, leaves the lab skipped, with a note that names it.
 #
 # Lab X3.1's solution is the first ../../lab1_*/solution, or the directory in the CMake
-# variable or environment variable PMPP_X3_PIECES_DIR. M9 (lab X2's quantised linear layer)
-# would plug in as one more LinearFn; labs/x2 has no LinearFn-compatible solution yet, so
-# M10 runs float32 without M9 (README.md).
+# variable or environment variable PMPP_X3_PIECES_DIR. M9's layer takes a QMatrix, not
+# LinearFn's float pointer: provided/m9_linear.* binds each of the model's float weight
+# buffers to its quantised copy and calls M9's launchQLinear with it, so the step you wrote
+# runs a quantised model unchanged (README.md).
 
 get_filename_component(_x3_labs ${CMAKE_CURRENT_LIST_DIR}/../../.. ABSOLUTE)
 set(_x3_m0 ${_x3_labs}/ch02/lab3_elementwise/solution)
@@ -264,6 +268,41 @@ if(_x3_gemv AND EXISTS ${_x3_gemv}/kernel.cu AND EXISTS ${_x3_gemv}/launch.mm AN
     message(STATUS "pmpp lab x3/lab2_tinyllama: ${_x3_gemv} has no launchGemvGather/encodeGemvGather/gemv_gather "
                    "with the linear layer's signature; no gemv rows")
   endif()
+endif()
+
+# ---- lab X2.4, M9: the quantised linear layer (optional; needs lab 22.1's gather, above).
+# Its reference solution is copied whole (launchQLinear, and its embedding and step, whose
+# names clash with nothing here); provided/m9_linear.* adapts launchQLinear to LinearFn.
+set(_x3_m9lab ${_x3_labs}/x2/lab4_m9)
+set(_x3_m9 ${_x3_m9lab}/solution)
+_x3_sig(_q1 void launchQLinear "const float*" "const QMatrix&" "float*" int)
+_x3_sig(_q2 void encodeQLinear "id<MTLComputeCommandEncoder>" "const QPipelines&" ${_B} "const QMatrix&" ${_B} uint32_t)
+set(_x3_m9_ok FALSE)
+if(NOT _x3_defs MATCHES "PMPP_HAVE_GEMV")
+  message(STATUS "pmpp lab x3/lab2_tinyllama: no lab 22.1 gather, so no M9 checks (M9 sends float32 matrices to it)")
+elseif(EXISTS ${_x3_m9}/kernel.cu AND EXISTS ${_x3_m9}/launch.mm AND EXISTS ${_x3_m9lab}/qdecode.h)
+  file(READ ${_x3_m9}/kernel.cu _cu)
+  file(READ ${_x3_m9}/launch.mm _mm)
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${_x3_m9}/kernel.cu ${_x3_m9}/launch.mm)
+  if(_cu MATCHES "${_q1}" AND _mm MATCHES "${_q2}")
+    set(_x3_m9_ok TRUE)
+  else()
+    message(STATUS "pmpp lab x3/lab2_tinyllama: lab X2.4's solution has no launchQLinear/encodeQLinear with the "
+                   "signature qdecode.h declares; no M9 checks")
+  endif()
+else()
+  message(STATUS "pmpp lab x3/lab2_tinyllama: lab X2.4's solution not found in ${_x3_m9}; no M9 checks")
+endif()
+if(_x3_m9_ok)
+  include(${_x3_labs}/x2/shared-g12/qpieces.cmake)
+  pmpp_x2g12_qgemv(_x3_q x3/lab2_tinyllama Q8_0 Q4_0)
+  _x3_copy(pmpp_x3l2_cu ${_x3_m9}/kernel.cu m9_qlinear.cu)
+  _x3_copy(pmpp_x3l2_mm ${_x3_m9}/launch.mm m9_qlinear_launch.mm)
+  list(APPEND pmpp_x3l2_cu ${_x3_q_cu} ${CMAKE_CURRENT_LIST_DIR}/m9_linear.cu)
+  list(APPEND pmpp_x3l2_mm ${_x3_q_mm} ${CMAKE_CURRENT_LIST_DIR}/m9_linear.mm)
+  list(APPEND _x3_defs PMPP_HAVE_M9=1 ${_x3_q_defs})
+  list(APPEND _x3_metal_defs ${_x3_q_metal_defs})
+  list(APPEND _x3_includes ${_x3_q_includes})
 endif()
 
 # ---- lab X1.3, the sampler (optional). It is built from its own copies of earlier labs

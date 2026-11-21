@@ -26,8 +26,9 @@
 //   past row 0 reads the wrong rows (notes/ch15.md, "Unclear" 4). Here every index into A_s
 //   uses LDA_S.
 // - The book writes the declaration A_s[bM*(bK + 1)]. Here the padded leading dimension
-//   has a name, LDA_S; the CPU emulator's translator does not accept parentheses inside a
-//   __shared__ declaration.
+//   has a name, LDA_S, used in every A_s index, so no index can keep the unpadded width.
+//   (An older version of this comment blamed the CPU emulator's translator; it now accepts
+//   parentheses in a __shared__ bound.)
 // - The vector loads are our implementation of Exercise 1. They use the book's chapter 6
 //   idiom, a float pointer cast to float4*, which no vendor reference documents; NVIDIA's
 //   developer blog requires 16-byte alignment (ch06-facts.md A11). A tile row starts at
@@ -35,7 +36,8 @@
 //   with A and B from cudaMalloc (256-byte aligned, ch06-facts.md A3) the A tile's float4s
 //   are aligned when K is a multiple of 4 and the B tile's when N is. Otherwise, and for
 //   four columns not all inside the matrix, the scalar zero-filling path runs. On HIP the
-//   buffers come from hipMalloc, whose alignment no facts file documents: unverified.
+//   buffers come from hipMalloc, whose alignment AMD's reference does not state (ch15-facts
+//   B8): unverified.
 
 #include <cstdio>
 

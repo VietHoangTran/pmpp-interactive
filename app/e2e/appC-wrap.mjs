@@ -185,11 +185,11 @@ const want = devices.length === 0 && !reports.emu
       : 'Your own feed functions have not passed on this machine yet.';
 const status = await page.$eval('[data-c1]', (e) => e.textContent);
 check(`lab C.1 status is read from the reports: "${want}"`, status === want, status);
-check('the project paragraph says no milestone, names what comes next (X1) and where the mechanisms reappear (X3)', (await body()).includes('The appendix adds no milestone') && (await body()).includes('chapter X1, sampling kernels, comes next') && (await body()).includes('Chapter X3'));
+check('the project paragraph says no milestone, and names what comes next in the course order (X3), where the mechanisms reappear', (await body()).includes('The appendix adds no milestone') && (await body()).includes('module X3, Reading real backends, comes next') && (await body()).includes('production code'));
 
 // ---- links
 const links = await page.$$eval('.prose a[href^="#/"]', (as) => [...new Set(as.map((a) => a.getAttribute('href')))]);
-const known = new Set(['#/appC/start', ...['C.1', 'C.2', 'C.3', 'C.4', 'C.5', 'C.6', 'C.7', 'C.8', 'C.9'].map((s) => '#/appC/' + s), '#/appC/labs', '#/appC/wrap', '#/x1', '#/x3']);
+const known = new Set(['#/appC/start', ...['C.1', 'C.2', 'C.3', 'C.4', 'C.5', 'C.6', 'C.7', 'C.8', 'C.9'].map((s) => '#/appC/' + s), '#/appC/labs', '#/appC/wrap', '#/x1', '#/x3', '#/ch21/21.2', '#/ch23']);
 check(`links go to pages that exist (${links.length} distinct)`, links.length >= 10 && links.every((l) => known.has(l)), links.join(', '));
 await page.evaluate(() => [...document.querySelectorAll('.prose a')].find((a) => a.getAttribute('href') === '#/appC/labs').click());
 await page.waitForFunction(() => document.querySelector('.page h1')?.textContent.includes('Labs'), { timeout: 10000 });

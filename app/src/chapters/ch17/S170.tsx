@@ -111,14 +111,14 @@ export const questionsS170: Record<string, Question> = {
       <>
         <code>y[0]</code> starts at 0. Two threads each execute a plain <code>y[0] += v</code>, one with{' '}
         <code>v = 1</code> and one with <code>v = 7</code>, with no atomic and no barrier. Which final values of{' '}
-        <code>y[0]</code> are possible?
+        <code>y[0]</code> can a GPU actually produce?
       </>
     ),
     options: [
-      { label: '1, 7 or 8.', correct: true },
-      { label: 'Only 8: each += is one instruction.', why: 'It is a load, an add and a store. The other thread can run between them.' },
-      { label: '8, or 0 when the two collide.', why: 'Each thread stores a sum it computed, 1, 7 or 8. A collision loses one of them, not both.' },
-      { label: 'Any value: a race is undefined.', why: 'Formally, in C++ and CUDA, a data race is undefined behaviour. On the hardware, each store writes a whole float its thread computed, so what you observe is 1, 7 or 8.' },
+      { label: '1, 7 or 8, depending on the interleaving.', correct: true },
+      { label: '8 every time: each += is one indivisible instruction.', why: 'It is a load, an add and a store. The other thread can run between them.' },
+      { label: '8, or 0 when the two stores collide.', why: 'Each thread stores a sum it computed, 1, 7 or 8. A collision loses one of them, not both.' },
+      { label: 'Any value at all, since a race is undefined.', why: 'Formally, in C++ and CUDA, a data race is undefined behaviour. On the hardware, each store writes a whole float its thread computed, so what you observe is 1, 7 or 8.' },
     ],
     explain: (
       <p>
@@ -142,9 +142,9 @@ export const questionsS170: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Always 1: atomics make the sum exact.', why: 'An atomic makes each add indivisible. It neither fixes the order nor removes rounding.' },
-      { label: '0 or 1, depending on the order.', correct: true },
-      { label: 'Always 0: float32 cannot hold 1e8 + 1.', why: 'The 1 survives when the two large terms cancel first: (1e8 − 1e8) + 1 = 1.' },
+      { label: '1 on every run, because each atomic add is exact.', why: 'An atomic makes each add indivisible. It neither fixes the order nor removes rounding.' },
+      { label: '0 or 1, depending on the order in which the adds land.', correct: true },
+      { label: '0 on every run, because float32 cannot hold 1e8 + 1.', why: 'The 1 survives when the two large terms cancel first: (1e8 − 1e8) + 1 = 1.' },
       { label: '0, 1 or 2, as rounding goes up or down.', why: 'Round to nearest takes 1e8 + 1 back to 1e8 every time. No order produces 2.' },
     ],
     explain: (

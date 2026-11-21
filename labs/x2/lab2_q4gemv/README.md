@@ -145,7 +145,8 @@ void encodeGemvQ4_0Unfused(id<MTLComputeCommandEncoder>, id<MTLComputePipelineSt
   Metal: llama.cpp reads 16-bit words through a pointer cast (C5). The MSL specification
   describes no pointer casts (infra-facts C7), so the reference solution reads `uchar`s.
 - **The scale.** CUDA and HIP keep FP16 as `uint16_t` bits, decoded by `halfBitsToFloat`.
-  The emulators do not model `__half`, and the two vendors' headers differ (x2-facts table).
+  The two vendors' headers differ (x2-facts table), and the bits need neither. (The emulators
+  and the front-end stub now model `__half` too; this lab does not rely on it.)
   Metal reads `half` directly.
 - **4-bit types.**
   - CUDA and HIP have no 4-bit integer type in C++ (A4, the table).

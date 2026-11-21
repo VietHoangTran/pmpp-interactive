@@ -25,8 +25,8 @@
 // - numTiles is a signed int, so the loop bound numTiles - 1 cannot wrap around, and a
 //   product with K = 0 skips the tile loop instead of computing with buffers nobody loaded.
 // - The float4 paths rest on lab 15.4's alignment argument: cudaMalloc's 256 bytes on
-//   CUDA (ch06-facts.md A3); hipMalloc's alignment is documented in no facts file, so on
-//   HIP they are unverified.
+//   CUDA (ch06-facts.md A3); AMD's reference states no alignment for hipMalloc (ch15-facts
+//   B8), so on HIP they are unverified.
 // - Two padded pairs take 2 x (128 x 9 + 8 x 128) x 4 = 17,408 bytes of shared memory,
 //   under CUDA's 48 KB of static shared memory per block (notes/today/ch15-facts.md E1).
 

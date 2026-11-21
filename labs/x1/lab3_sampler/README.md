@@ -18,7 +18,7 @@ void launchSampleRows(const float* logits, const unsigned int* counts,
 `[rows x vocab]` logits and token counts in, one token id per row out. Each row brings its own
 seed, stream and step, and the token is a function of those and of the data: run it again and you
 get the same token, on any backend, for every draw that is not within rounding of a boundary
-(below). Milestone M7's decode path and M10 call it.
+(below). Milestone M10 (lab X3.2) calls it on a GPU when this lab's solution is present.
 
 - Edit `work/kernel.cu` (CUDA; also built for HIP and the emulators): `philox4x32_10`,
   `philoxKatKernel`, `uniformFromBits`, `applyRepetition`, `drawRows`, `sampleWorkspaceBytes`,
@@ -78,8 +78,9 @@ them over in column order, lab 14.3's sort is stable, argmax prefers the lowest 
 counter word 0 by `0xD2511F53` and word 2 by `0xCD9E8D57`, each a full 32 x 32 to 64-bit
 product, and forms `(hi1 ^ w1 ^ k0, lo1, hi0 ^ w3 ^ k1, lo0)`; between rounds the key grows by
 `0x9E3779B9` and `0xBB67AE85`. Write the product as an `unsigned long long` (Metal: `ulong`)
-multiplication: `__umulhi` exists on CUDA and HIP (A5, B3), but neither the course's emulator nor
-the front-end stub declares it. Random123's code is distributed under a BSD-style notice
+multiplication: `__umulhi` exists on CUDA and HIP (A5, B3), and the course's emulator and
+front-end stub accept it too, but the product form needs no intrinsic and is the same source on
+Metal. Random123's code is distributed under a BSD-style notice
 (Copyright 2010-2011, D. E. Shaw Research), reproduced in the solution; cuRAND's headers are under
 NVIDIA's licence and are not used. MSL has no random number function at all (C1).
 
@@ -214,7 +215,7 @@ machine, not targets.
 
 ## Portability
 
-- HIP: `kernel.cu` builds through `pmpp/vendors/hip.h`. The lane mask is 64 bits on every AMD
+- HIP: `kernel.cu` is written to build through `pmpp/vendors/hip.h`. The lane mask is 64 bits on every AMD
   target (infra-facts B3), and the find-first-set matches it (`__ffsll`). The 64-bit product form
   of Philox needs no intrinsic. hipRAND exists with cuRAND's names, but its `hiprand_uniform` on
   AMD converts bits differently from `curand_uniform` (B2): with M5's own Philox and conversion

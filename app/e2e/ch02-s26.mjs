@@ -133,6 +133,28 @@ const passed = (backend) => {
   const rs = (reports[backend]?.results ?? []).filter((x) => x.lab === 'ch02/lab1_vecadd' && x.variant === 'solution' && x.tests.length);
   return rs.length > 0 && rs.every((x) => x.built && x.test_rc === 0 && x.tests.every((t) => t.pass));
 };
+// The tab status of LabKit's solutionTabStatus, from this machine's runs: Metal tabs say
+// "verified on Metal" | "unverified: failed on this machine" | "unverified: no run on this machine";
+// a kernel.cu tab lists what passed (CUDA, HIP, then the emulator), then what failed, then the
+// CUDA-family backends with no run.
+const labState = (backend, labId) => {
+  const rs = (reports[backend]?.results ?? []).filter((x) => x.lab === labId && x.variant === 'solution' && x.tests.length);
+  if (!rs.length) return 'none';
+  return rs.every((x) => x.built && x.test_rc === 0 && x.tests.every((t) => t.pass)) ? 'pass' : 'fail';
+};
+const tabStatus = (labId, file) => {
+  const st = (b) => labState(b, labId);
+  if (file !== 'kernel.cu') return st('metal') === 'pass' ? 'verified on Metal' : `unverified: ${st('metal') === 'fail' ? 'failed on this machine' : 'no run on this machine'}`;
+  const NAMES = { cuda: 'CUDA', hip: 'HIP' };
+  const WHERE = { cuda: 'CUDA', hip: 'HIP', emu: 'the emulator' };
+  const and = (xs) => (xs.length < 3 ? xs.join(' and ') : xs.slice(0, -1).join(', ') + ' and ' + xs.at(-1));
+  const fam = ['cuda', 'hip', 'emu'];
+  const ok = fam.filter((b) => st(b) === 'pass').map((b) => (b === 'emu' ? 'emulator-checked' : `verified on ${NAMES[b]}`));
+  const bad = fam.filter((b) => st(b) === 'fail').map((b) => WHERE[b]);
+  const none = ['cuda', 'hip'].filter((b) => st(b) === 'none').map((b) => NAMES[b]);
+  if (!ok.length && !bad.length) return 'unverified: no run on this machine';
+  return [ok.join(', '), bad.length ? `unverified on ${and(bad)}: failed on this machine` : '', none.length ? `unverified on ${none.join(' and ')}` : ''].filter(Boolean).join('; ');
+};
 
 const host = byTab('CUDA and HIP');
 const firstCode = cu.findIndex((l) => !l.startsWith('//'));
@@ -143,14 +165,14 @@ const launchAt = cu.findIndex((l) => l.includes('vecAddKernel<<<')) + 1;
 const hostHl = host.lines.filter((l) => l.hl);
 check('the launch and the two lines after it are marked', hostHl.length === 3 && hostHl[0].n === launchAt && hostHl[0].text.includes('vecAddKernel<<<numBlocks, threadsPerBlock>>>')
   && hostHl[1].text.includes('CHECK(cudaGetLastError());') && hostHl[2].text.includes('CHECK(cudaDeviceSynchronize());'), JSON.stringify(hostHl));
-const wantCu = (passed('emu') ? 'emulator-checked and front-end-checked' : 'front-end-checked') + '; unverified on CUDA and HIP hardware';
+const wantCu = tabStatus('ch02/lab1_vecadd', 'kernel.cu');
 check('its status uses the fixed vocabulary and follows this machine\'s recorded runs', host.status === wantCu, `${host.status} / expected ${wantCu}`);
 
 const metalHost = byTab('Metal host');
 const mmFrom = mm.findIndex((l) => l.startsWith('int vecAdd('));
 check('the Metal listing is vecAdd from the lab 2.1 launch.mm, with the file\'s line numbers',
   !!metalHost && metalHost.lines.length === mm.length - mmFrom && metalHost.lines.every((l, i) => l.text === mm[mmFrom + i] && l.n === mmFrom + i + 1));
-check('the Metal status is "verified on Metal" only when this machine recorded a passing run', metalHost.status === (passed('metal') ? 'verified on Metal' : 'unverified'), metalHost.status);
+check('the Metal status is "verified on Metal" only when this machine recorded a passing run', metalHost.status === tabStatus('ch02/lab1_vecadd', 'launch.mm'), metalHost.status);
 const needles = [['id<MTLCommandQueue> queue'], ['[queue commandBuffer]'], ['computeCommandEncoder]'], ['setComputePipelineState:'], ['setBuffer:'], ['dispatchThreads:'], ['endEncoding]', 'commandBuffer commit]'], ['waitUntilCompleted]'], ['commandBuffer.status']];
 const wantLines = needles.map((ns) => ns.flatMap((x) => mm.flatMap((l, i) => (l.includes(x) ? [i + 1] : []))));
 const tableLines = await page.$$eval('table[data-metal-steps] tbody td[data-lines]', (tds) => tds.map((t) => t.dataset.lines));
@@ -335,12 +357,12 @@ await shot('hunt', bench(HUNT));
 
 // ---------------------------------------------------------------- questions of the first half
 let q = await question('What happens?');
-await pick(q, '4 blocks are launched and C is correct.');
+await pick(q, '4 blocks are launched and C is correct:');
 t = await qText(q);
 check('integer-division question: the tempting answer is refused with its reason', t.includes('Not quite.') && t.includes('That is what ceil(n/256.0) does'), t);
-await pick(q, `${bad.blocks} blocks are launched.`);
+await pick(q, `${bad.blocks} blocks are launched,`);
 t = await qText(q);
-check('and the right one names elements 768 to 999', t.includes('Correct.') && t.includes('Elements 768 to 999') && t.includes('A test with n = 1024 would pass'), t);
+check('and the right one names elements 768 to 999', t.includes('Correct.') && t.includes('elements 768 to 999') && t.includes('A test with n = 1024 would pass'), t);
 q = await question('A vector of 8000 elements');
 await typeAnswer(q, launchWith('int-ceil', 8000, 1024).threads);
 check('book exercise 4: 8192 threads', (await qText(q)).includes('Correct.') && launchWith('int-ceil', 8000, 1024).threads === 8192);

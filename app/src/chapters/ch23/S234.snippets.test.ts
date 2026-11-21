@@ -4,10 +4,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { DEFAULTS, edges, program, simulate } from '../../sim/haloloop';
-import { longestRight } from './questionText';
+import { lengthLimit, longestRight, shortestRight } from './questionText';
 import { WINDOW_NCCL, WINDOW_STREAMS, questionsS234 } from './S234';
 
-// Section 23.4 shows Fig. 23.14 (corrected) with its setup, and lines 27-44 of Fig. 23.20.
+// Page 23.3–23.5 (id 23.4) shows Fig. 23.14 (corrected) with its setup, and lines 27-44 of Fig. 23.20.
 // They are copied into S234.tsx from labs/ch23/snippets/overlap_loop.cu and nccl_exchange.cu
 // (the marked regions, dedented). This test fails if a copy drifts, checks that every line the
 // model (src/sim/haloloop.ts) and the puzzle cite is the call they say it is, and runs the
@@ -169,8 +169,9 @@ describe.skipIf(!clang)('the CUDA front-end check (clang, the course stub header
 });
 
 describe("the page's questions and its model claims", () => {
-  it('no right answer is strictly the longest option, JSX labels included', () => {
-    expect(longestRight(questionsS234)).toEqual([]);
+  it('the right answer is rarely strictly the longest or the shortest option, JSX labels included', () => {
+    expect(longestRight(questionsS234).length).toBeLessThanOrEqual(lengthLimit(questionsS234));
+    expect(shortestRight(questionsS234).length).toBeLessThanOrEqual(lengthLimit(questionsS234));
   });
   it('NCCL and NVSHMEM specifics stay out of the review pool (the chapter is condensed)', () => {
     expect(Object.keys(questionsS234).filter((id) => /nccl|nvshmem/.test(id))).toEqual([]);

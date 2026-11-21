@@ -89,7 +89,7 @@ export const questionsWrap: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Nothing. TFLOPS divided by TB/s is FLOP per byte, so the units check out.',
+        label: 'Nothing. TFLOPS divided by TB/s is FLOP per byte, so the units check out and the threshold stands as written.',
         why: 'The units do cancel, which is why this slip is easy to miss. Units say nothing about whether both numbers describe the same hardware.',
       },
       {
@@ -97,11 +97,11 @@ export const questionsWrap: Record<string, Question> = {
         correct: true,
       },
       {
-        label: 'A GEMM should be measured against the tensor-core figure, not the FP32 one.',
+        label: 'A GEMM should be measured against the tensor-core figure, not the FP32 one, which puts the threshold higher still.',
         why: 'Only if the kernel runs on the tensor cores, through a library, CUDA Tile, or TF32 switched on. A float32 GEMM written with ordinary arithmetic is limited by the FP32 figure.',
       },
       {
-        label: 'The bandwidth should be the host link, because the matrices start in host memory.',
+        label: 'The bandwidth should be the host link\'s, since the matrices start in host memory and cross it first.',
         why: "The threshold compares arithmetic with the traffic the kernel makes to device memory, where its operands live. The host link is crossed once, before the kernel runs.",
       },
     ],
@@ -160,17 +160,17 @@ export const questionsWrap: Record<string, Question> = {
     ),
     options: [
       {
-        label: "Chapter 15's register tiling: larger output tiles per thread.",
+        label: "Chapter 15's register tiling: larger output tiles held per thread.",
         why: 'Larger output tiles share fetched operands across more outputs. At batch 1 each weight is used for one output only, so there is nothing to share.',
       },
       {
-        label: 'Turning on TF32 for matmul.',
+        label: 'Turning on TF32 for matmul, so the products run on the matrix hardware.',
         why: 'It raises a compute ceiling the kernel is far below, and TF32 is not among the types of Metal\'s matmul2d.',
       },
       { label: 'Module X2: store the weights in 8 or 4 bits and dequantise in the kernel.', correct: true },
       {
-        label: 'Module X1: move sampling onto the GPU.',
-        why: 'That saves copying a row of logits to the host for every token, which is a different cost. The weights are where the bytes are.',
+        label: 'Module X1: move sampling onto the GPU, so the CPU never reads a row of logits.',
+        why: 'That takes the sampling work off the CPU for every token, and on Metal there is no logits copy to save: a different cost. The weights are where the bytes are.',
       },
     ],
     explain: (
@@ -206,12 +206,12 @@ const NEXT: { id: string; name: string; pages: string; adds: string; pytorch: Re
   },
   {
     id: 'x2', name: 'X2, quantised kernels', pages: 'not in the book',
-    adds: "int8 and 4-bit-weight GEMM, anchored on appendix A and chapter 15's intensity analysis. Milestone M9.",
+    adds: "int8 and 4-bit-weight GEMVs and the quantised decode step, anchored on appendix A and chapter 15's intensity analysis. Milestone M9.",
     pytorch: <><code>Quantized.metal</code> in <code>native/mps/kernels/</code></>,
   },
   {
     id: 'x3', name: 'X3, reading real backends', pages: 'not in the book',
-    adds: 'Find the kernel behind a given op in llama.cpp, MLX and PyTorch, and explain it.',
+    adds: 'Find the kernel behind a given op in llama.cpp, MLX and PyTorch, and explain it; then run a small generated Llama-style model on the course\'s kernels. Milestone M10.',
     pytorch: <><code>native/cuda/</code>, <code>native/mps/kernels/</code>, and <code>tools/amd_build/</code> for AMD</>,
   },
 ];
@@ -223,7 +223,7 @@ export function Wrap() {
   const { reports } = useReports();
   const all = useAllChapters();
   const built = new Map((all ?? []).filter((c) => c.sections.length).map((c) => [c.id, c]));
-  // A link where the target has pages, plain text where it is still planned.
+  // A link to the chapter's first page (plain text only if a chapter failed to load).
   const to = (id: string, text: ReactNode) => {
     const c = built.get(id);
     return c ? <a href={href(c.id, c.sections[0].id)}>{text}</a> : <>{text}</>;
@@ -271,7 +271,7 @@ export function Wrap() {
       <h2>A mixed check</h2>
       <p>
         These put the three habits to work on new numbers and new questions about the table.
-        {asked ? ` So far in this chapter your latest answer is right on ${right} of the ${asked} questions you have tried.` : ''}
+        {asked ? ` So far in this chapter you have answered ${right} of ${asked} questions correctly, counting your latest answer to each.` : ''}
       </p>
       <Ask q={questionsWrap['ch24/wrap/q-gap']} />
       <Ask q={questionsWrap['ch24/wrap/q-perboard']} />
@@ -341,7 +341,8 @@ export function Wrap() {
           The growth in GPUs per job, hyperscalers and the networking that followed (p. 579). The authors write of tens
           or even hundreds of thousands of GPUs in each training job. NVIDIA confirms a training cluster of 100,000
           GPUs; that one job used all of them, and the start date of 2017, we could not verify (ch24-facts A17). NCCL
-          itself is in {to('ch23', 'chapter 23')} (pp. 563–568), which this course condenses.
+          itself is in chapter 23, §23.4 (pp. 563–568), which this course condenses on the page{' '}
+          <a href={href('ch23', '23.4')}>“Events, priorities, and who waits”</a>.
         </li>
         <li>How the range of problems broadened since the first edition of 2010, from dense matrices and Monte Carlo to sparse and graph methods (p. 579).</li>
         <li>
@@ -409,6 +410,8 @@ export function Wrap() {
         <code>aten/src/ATen/native/cuda/</code> and Metal kernels in <code>aten/src/ATen/native/mps/kernels/</code>. For
         AMD the build translates the CUDA sources with hipify (<code>tools/amd_build/build_amd.py</code>): the same idea
         as this course's one <code>.cu</code> file for CUDA and HIP, done by a translation step instead of a header.
+        This course's header does not make everything portable: warp <code>_sync</code> intrinsics, cooperative
+        groups, half-precision headers and matrix-core intrinsics still need guards or typed masks.
       </p>
       <Today checked="2026-11-20 against the PyTorch repository (ch24-facts D2, D3)">
         <p>

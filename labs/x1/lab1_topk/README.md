@@ -137,7 +137,7 @@ skipped. The numbers are measurements of your machine, not targets.
 
 ## Portability
 
-- HIP: `kernel.cu` builds through `pmpp/vendors/hip.h`. The vote is 64 bits on every AMD target
+- HIP: `kernel.cu` is written to build through `pmpp/vendors/hip.h`. The vote is 64 bits on every AMD target
   and `__ballot_sync` and `__shfl_*_sync` take a 64-bit mask (infra-facts B3), so the lane mask
   has its own type and the popcount and find-first-set match it (`__popcll`, `__ffsll`); `__popc`
   on a 64-bit vote would silently count only the low 32 lanes (ch12-facts B1). With 64-wide

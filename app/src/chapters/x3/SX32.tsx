@@ -108,10 +108,10 @@ export const questionsSX32: Record<string, Question> = {
     id: 'x3/X3.2/q-read-unary',
     prompt: <>Which course kernel is <code>unary_op_kernel</code>, and what does it do differently?</>,
     options: [
-      { label: 'Lab 2.3’s elementwise kernel, with the op passed as a template parameter so one kernel serves every unary op.', correct: true },
+      { label: 'Lab 2.3’s elementwise kernel, with the op as a template parameter: one instantiation per unary op.', correct: true },
       { label: 'Lab 6.2’s coarsened kernel: each thread handles several elements.', why: 'Each thread computes i once and writes dst[i]: one element, as in lab 2.3.' },
       { label: 'Lab 10.3’s row softmax, with the reduction removed.', why: 'There is no row and no reduction: it is a flat index with a guard.' },
-      { label: 'Lab 2.3’s kernel, but with a grid-stride loop so any grid size works.', why: 'There is no loop. The launch computes enough blocks for k elements, as lab 2.3 does.' },
+      { label: 'Lab 2.3’s kernel, but with a grid-stride loop so that a fixed number of blocks covers any number of elements.', why: 'There is no loop. The launch computes enough blocks for k elements, as lab 2.3 does.' },
     ],
     explain: (
       <p>
@@ -128,9 +128,9 @@ export const questionsSX32: Record<string, Question> = {
     id: 'x3/X3.2/q-read-binvv',
     prompt: <>Lab 6.2’s <code>vecAdd4Kernel</code> and MLX’s <code>binary_vv</code> look alike. What does <code>binary_vv</code> add?</>,
     options: [
-      { label: 'A run-time alignment test: the vector load is taken only if the pointer is aligned to the vector’s size.', correct: true },
-      { label: 'A second launch for the tail, so no thread branches.', why: 'Neither launches twice: both handle the partial chunk in the last thread with a scalar loop.' },
-      { label: 'Shared memory, to stage the vectors before the add.', why: 'There is no shared memory in either: each thread reads its own chunk straight from global memory.' },
+      { label: 'A run-time alignment test: the vector load is taken only when the pointer is aligned for it.', correct: true },
+      { label: 'A second launch for the tail, so that no thread of the main launch has to branch on the end of the array.', why: 'Neither launches twice: both handle the partial chunk in the last thread with a scalar loop.' },
+      { label: 'Shared memory: each block stages its vectors there first, so that its global loads coalesce.', why: 'There is no shared memory in either: each thread reads its own chunk straight from global memory.' },
       { label: 'Nothing: it is the same kernel with a template for the op.', why: 'The template is new, but so is the alignment test, which lab 6.2 does not have.' },
     ],
     explain: (
@@ -150,7 +150,7 @@ export const questionsSX32: Record<string, Question> = {
     options: [
       { label: 'The function constant FC_unary_op, tested inside the one kernel body.', correct: true },
       { label: 'A Metal template parameter, exactly as in CUDA.', why: 'MSL has templates, and llama.cpp uses them for types, but the op itself is a function constant here.' },
-      { label: 'A kernel argument read from a buffer at run time.', why: 'An argument could change per dispatch; a function constant is fixed when the pipeline is made.' },
+      { label: 'A kernel argument read from the args buffer at run time.', why: 'An argument could change per dispatch; a function constant is fixed when the pipeline is made.' },
       { label: 'A preprocessor macro set when the library is compiled.', why: 'That is the ubershader approach that function constants replace, in the spec’s own words.' },
     ],
     explain: (
@@ -186,10 +186,10 @@ export const questionsSX32: Record<string, Question> = {
     id: 'x3/X3.2/q-misaligned',
     prompt: <>The same call, N_READS = 4, but on a view that starts one float into its buffer. What changes?</>,
     options: [
-      { label: 'is_aligned fails in every thread, so each one loads its four elements one at a time. The result is the same; the access pattern is not.', correct: true },
+      { label: 'is_aligned fails in every thread, so each loads its four elements one at a time; the result is unchanged.', correct: true },
       { label: 'The results are wrong: the vector loads read across the view’s start.', why: 'The test exists to stop that. No misaligned vector load is issued.' },
       { label: 'The kernel faults on the first misaligned load.', why: 'It never makes one: the scalar loop runs instead.' },
-      { label: 'Only the last thread changes, because only the tail is affected by an offset.', why: 'The offset moves every chunk, so every vector load would be misaligned.' },
+      { label: 'Only the last thread changes path, because an offset only moves where the tail starts and the other chunks stay whole.', why: 'The offset moves every chunk, so every vector load would be misaligned.' },
     ],
     explain: (
       <p>
@@ -230,10 +230,10 @@ export const questionsSX32: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'One source compiled once, with the variant fixed when the pipeline state is created instead of compiled offline per macro.', correct: true },
-      { label: 'The op can change from thread to thread at run time.', why: 'A function constant has one value per pipeline, the same for every thread.' },
+      { label: 'One compiled library; each variant is fixed when its pipeline state is created, not compiled offline.', correct: true },
+      { label: 'The op can change from thread to thread at run time, so one dispatch can mix several ops in one grid.', why: 'A function constant has one value per pipeline, the same for every thread.' },
       { label: 'Faster math: function constants enable fast::exp.', why: 'The math mode is a compile option of its own (ch05 C7).' },
-      { label: 'It lets the CUDA and Metal kernels share one source file.', why: 'They are separate files: unary.cu and unary.metal.' },
+      { label: 'It lets the CUDA and Metal kernels share one source file, with the op chosen by a constant on each side.', why: 'They are separate files: unary.cu and unary.metal.' },
     ],
     explain: (
       <p>
@@ -249,10 +249,10 @@ export const questionsSX32: Record<string, Question> = {
     id: 'x3/X3.2/q-silu-bits',
     prompt: <>Will llama.cpp’s Metal SiLU and MLX’s Metal SiLU give bit-identical outputs for the same float input?</>,
     options: [
-      { label: 'Not necessarily: one computes x / (1 + exp(−x)), the other x · sigmoid(x), and the two need not round alike; Metal’s default math mode is another source of difference.', correct: true },
-      { label: 'Yes: both are SiLU, and float SiLU has one correct answer.', why: 'The exact value has one answer; two float formulas can round to different neighbours of it.' },
-      { label: 'Yes, because both run on the same GPU with the same compiler.', why: 'Same hardware, different operations: a division against a multiply by a sigmoid.' },
-      { label: 'No: they always differ in the last bit.', why: '“Need not agree” is not “always differ”. Often they will match. Nobody measured it here.' },
+      { label: 'Not necessarily: x / (1 + exp(−x)) and x · sigmoid(x) can round differently, and Metal’s math mode adds more freedom.', correct: true },
+      { label: 'Yes: both compute SiLU, and float SiLU has one correctly rounded answer, which any careful float kernel must produce.', why: 'The exact value has one answer; two float formulas can round to different neighbours of it.' },
+      { label: 'Yes, because both run on the same GPU, through the same Metal compiler, in the same math mode.', why: 'Same hardware, different operations: a division against a multiply by a sigmoid.' },
+      { label: 'No: the two formulas always differ in the last bit, whatever the input.', why: '“Need not agree” is not “always differ”. Often they will match. Nobody measured it here.' },
     ],
     explain: (
       <p>
@@ -270,7 +270,7 @@ export const questionsSX32: Record<string, Question> = {
     options: [
       { label: 'The stored rows are quantised blocks, so the kernel dequantises each row to float as it gathers it.', correct: true },
       { label: 'Quantised rows are stored column-major, so a row is not contiguous.', why: 'Nothing in the facts says so. The difference is the encoding, not the layout.' },
-      { label: 'The token ids must be sorted first.', why: 'A gather reads rows in any order; one output row per id.' },
+      { label: 'The token ids must be sorted first, so that rows are read in order.', why: 'A gather reads rows in any order; one output row per id.' },
       { label: 'It can: the output stays quantised and later kernels dequantise it.', why: 'The output of GET_ROWS feeds float kernels, and the facts say rows are dequantised on the fly.' },
     ],
     explain: (
@@ -671,7 +671,7 @@ export function SX32() {
       <Today checked={CHECKED('A3; ch03 D6, ch06 D4')}>
         <p>
           <code>num_threads()</code> is <code>C10_WARP_SIZE * 4</code> on CUDA and 256 under <code>USE_ROCM</code>.
-          <code> can_vectorize_up_to</code> returns 8, 4, 2 or 1 from the pointer’s address.
+          {' '}<code>can_vectorize_up_to</code> returns 8, 4, 2 or 1 from the pointer’s address.
         </p>
       </Today>
       <Excerpt x={x.siluTorch} caption="PyTorch’s SiLU on CUDA, registered with REGISTER_DISPATCH(silu_stub, &silu_kernel)." />

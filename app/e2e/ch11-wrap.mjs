@@ -138,7 +138,7 @@ check('exercise 3 gives both readings', text0.includes('20,481') && text0.includ
 
 // ---- errata
 const errata = await page.$$eval('ul[data-list="errata"] > li', (lis) => lis.map((li) => li.textContent));
-check(`the errata list has ${errata.length} items, covering the notes' list and the facts file`, errata.length === 15, String(errata.length));
+check(`the errata list has ${errata.length} items, covering the notes' list and the facts file`, errata.length === 17, String(errata.length));
 for (const [name, frag] of [
   ['N unused in Figs. 11.12, 11.13, 11.18', 'take N and never use it'],
   ['the missing comma', 'has no comma'],
@@ -157,6 +157,8 @@ for (const [name, frag] of [
   ['typos', 'wap-level'],
   ['66.9 against 67', '66.9'],
   ['the copy claim is unverified', 'unverified'],
+  ['what lanes below the stride receive', 'lanes below the stride'],
+  ['deadlock named only in the summary', 'prevents deadlocks'],
 ]) check(`errata include ${name}`, errata.some((e) => e.includes(frag)));
 check('readings of the PDF are marked as ours', text0.includes('our readings of one PDF'));
 check('the wrap names what of the book is left out on purpose', ['Exercise 4 and exercise 5', 'Fig. 11.16(c)', 'chapter 18', 'p. 251', 'Thrust and CUB are named, not used'].every((s) => text0.includes(s)));

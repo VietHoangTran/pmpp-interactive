@@ -219,7 +219,7 @@ function CoarseningExplorer() {
   return (
     <Bench
       title="Coarsening explorer"
-      task="Start from Fig. 10.21, then raise C on a million floats until the warning appears. Find a factor that is worse than both its neighbours."
+      task="Start from Fig. 10.21, then raise C on 2²⁰ floats (about a million) until the warning appears. Find a factor that is worse than both its neighbours."
       foot={
         <>
           Solid: fully used steps, every thread adding its own elements (2C − 1 per block). Hatched: the tree, where threads
@@ -272,7 +272,7 @@ function CoarseningExplorer() {
         <span className="ui muted">Blocks at once, R:</span>
         <span className="seg" role="group" aria-label="Blocks at once">
           <button aria-pressed={src === 'fig'} onClick={() => setSrc('fig')}>1 (Fig. 10.21)</button>
-          <button aria-pressed={src === 'ch6'} onClick={() => setSrc('ch6')}>{CH6_DEVICE_R} (chapter 6's example)</button>
+          <button aria-pressed={src === 'ch6'} onClick={() => setSrc('ch6')}>{CH6_DEVICE_R} (the book's example, ch. 6)</button>
           <button aria-pressed={src === 'slider'} onClick={() => setSrc('slider')}>choose</button>
           {yours.map((y) => (
             <button key={y.backend} aria-pressed={src === 'yours:' + y.backend} onClick={() => setSrc(`yours:${y.backend}`)}>
@@ -474,13 +474,13 @@ export const questionsS1010: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'All of them: one block uses the whole device if it is large enough.', why: 'A block runs on one SM; the others have nothing to do.' },
+      { label: 'All of them: one block uses the whole device if it is large enough, up to 1,024 threads.', why: 'A block runs on one SM; the others have nothing to do.' },
       {
-        label: 'About 1%. Split the row across blocks (partials and a second pass, or a cooperative grid barrier), or accept it if the row is small next to the rest of the step.',
+        label: 'About 1%. Split the row over blocks (a second pass or a grid barrier), or accept it when the softmax is a small part of the step.',
         correct: true,
       },
-      { label: 'About 1%, and nothing can be done: a row must stay in one block for the max and the sum to agree.', why: 'Section 10.9 is exactly how a row is split across blocks; the second pass makes the pieces agree.' },
-      { label: 'About 1%; raise the coarsening factor.', why: 'Coarsening reduces the number of blocks further. It is the cause, not the cure.' },
+      { label: 'About 1%, and nothing can be done: a row must stay in one block for its max and its sum to agree with each other.', why: 'Section 10.9 is exactly how a row is split across blocks; the second pass makes the pieces agree.' },
+      { label: 'About 1%; raise the coarsening factor, so that each thread covers more of the row.', why: 'Coarsening reduces the number of blocks further. It is the cause, not the cure.' },
     ],
     explain: (
       <p>
@@ -502,19 +502,20 @@ export const questionsS1010: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'So that the sum comes out in the same order as the sequential loop.', why: 'Neither layout reproduces the sequential order; and the order is not the point.' },
+      { label: 'So that each thread adds its elements in the same order as the sequential loop would.', why: 'Both layouts add each thread\'s elements in increasing order, so that cannot decide between them; and the order of the sum is not the point.' },
       {
-        label: 'In every step consecutive threads then read consecutive elements, so a warp\'s loads coalesce. With consecutive chunks a warp\'s reads would be 2·COARSE_FACTOR elements apart.',
+        label: 'So that in each step consecutive threads read consecutive elements and a warp\'s loads coalesce.',
         correct: true,
       },
-      { label: 'To avoid bank conflicts in shared memory.', why: 'These loads go to global memory; shared memory is used only after the loop.' },
+      { label: 'To avoid shared-memory bank conflicts between the threads of a warp.', why: 'These loads go to global memory; shared memory is used only after the loop.' },
       { label: 'Because the loop has no barrier, and strided indices keep threads from racing.', why: 'Each thread reads its own elements either way; nothing is written in the loop.' },
     ],
     explain: (
       <p>
         This is the interleaved partitioning of chapter 9's coarsened histogram. In step c, thread t reads element{' '}
         <code>segment + t + c·BLOCK_DIM</code>, so the 32 threads of a warp read 32 neighbouring elements: one coalesced
-        access, as section 6.1 defined it. A contiguous split is the natural choice on a CPU, where one core streams through its
+        access, as section 6.1 defined it. With consecutive chunks, a warp's reads in one step would be
+        2·COARSE_FACTOR elements apart. A contiguous split is the natural choice on a CPU, where one core streams through its
         own chunk; on a GPU it scatters every warp instruction.
       </p>
     ),
@@ -599,7 +600,7 @@ export function S1010() {
       <Source section="10.10" pages="248" />
       <p>
         In the explorer, the book's rule is marked on the chart as the largest factor that still launches at least R blocks.
-        On a million floats with chapter 6's 264 slots it picks C = 7, which launches 293 blocks: one full wave and a second
+        On 2<sup>20</sup> floats, with the 264 slots of the book's hypothetical device in chapter 6, it picks C = 7, which launches 293 blocks: one full wave and a second
         wave of 29. C = 8 launches 256 and finishes in one wave, with 8 slots idle. Whole waves make the rule approximate,
         and they make some factors worse than both neighbours.
       </p>
@@ -630,8 +631,8 @@ export function S1010() {
       </p>
       <Beyond>
         <p>
-          The softmax framing and the vocabulary size are ours (notes/today/ch09-facts.md, D7). The presets keep chapter 6's
-          example of {BOOK_CAPACITY} slots; on your device the number differs.
+          The softmax framing and the vocabulary size are ours (notes/today/ch09-facts.md, D7). The presets keep the book's
+          example from chapter 6, a hypothetical device with {BOOK_CAPACITY} slots; on your device the number differs.
         </p>
       </Beyond>
       <p>

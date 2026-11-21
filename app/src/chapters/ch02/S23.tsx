@@ -346,7 +346,7 @@ export const questionsS23: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'All three, always: with shared storage nothing is ever copied.',
+        label: 'All three: with shared storage the GPU uses the caller\'s arrays as they are.',
         why: 'Shared storage lets the CPU and the GPU use the same bytes. It does not put the caller\'s heap arrays inside a buffer.',
       },
       {
@@ -426,8 +426,9 @@ export function S23() {
         One line of the book's skeleton needs a warning before you type it. Line 03 of Fig. 2.5 is printed as{' '}
         <code>float *d_A *d_B, *d_C;</code>. A comma is missing, so it does not compile, and it uses a{' '}
         <code>d_</code> prefix where the text and every later figure use the suffix. The line the course uses, and
-        tests, is <code>{DECLARATION}</code>. You get to find this one yourself in{' '}
-        <a href={href('ch02', '2.4')}>section 2.4</a>.
+        tests, is <code>{DECLARATION}</code>. The hunt under Error checking in{' '}
+        <a href={href('ch02', '2.4')}>section 2.4</a> shows you the printed line again, beside the slip in the book's
+        error-check snippet.
       </p>
       <Source section="2.3" pages="27" figs="Fig. 2.5, line 03" />
 

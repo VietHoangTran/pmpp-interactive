@@ -1,5 +1,5 @@
 // Browser check for the appendix A labs page: commands (with the lab named by its
-// directory, since the runner does not resolve "A.1"), the status table and the race
+// directory prefix, the start of the run reports' id), the status table and the race
 // line, the one lab block, its three predictions, the probe and accuracy tables, the
 // timed results table and the reference-solution toggle. Everything expected is computed
 // here from /api/reports and /api/lab-file, so the check holds on any machine, with or
@@ -90,7 +90,7 @@ check('the page title is "Labs"', (await page.$eval('.page h1', (e) => e.textCon
 const text0 = await body();
 for (const c of ['./verify.sh', RUN, `${RUN} --bench`, `${RUN} --backend emu`, `${RUN} --backend race`, `${RUN} --solution`, 'python3 labs/pmpp.py reset appA/lab1 --yes'])
   check(`command shown: ${c}`, text0.includes(c));
-check('the page says why the lab is named appA/lab1 and not A.1', text0.includes('pmpp.py run A.1 does not work') && text0.includes('The lessons call it lab A.1'));
+check('the page says the runner takes A.1 or appA/lab1, and why it uses appA/lab1', text0.includes('pmpp.py run A.1') && text0.includes('the start of the id the run reports record (appA/lab1_sumerror)') && text0.includes('The lessons call it lab A.1'));
 check('the three files the reader edits are named', ['kernel.cu', 'kernel.metal', 'launch.mm'].every((f) => text0.includes(`labs/${LAB.id}/work/${f}`)));
 const accs = await page.$$eval('table[data-table="accumulators"] tbody tr', (trs) => trs.map((tr) => [...tr.children].map((td) => td.textContent.trim())));
 check('the accumulator table has Metal, CUDA, HIP and the emulators, and the emulators have no 16-bit types',

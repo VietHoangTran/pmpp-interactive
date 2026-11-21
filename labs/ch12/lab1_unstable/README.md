@@ -68,11 +68,13 @@ Files and commands:
   leader, count and rank, and it is the form that also builds for HIP.
 - **The counter is zeroed by the caller** for all three kernels. The book says so only for
   Fig. 12.2 (p. 291).
-- **Atomics on HIP.** `<cuda/atomic>` comes from libhipcxx on HIP, which this course's HIP
-  build links only where ROCm provides it (`notes/today/infra-facts.md` B2), so the lab does
-  not rely on it. Beside each `cuda::atomic_ref`,
-  write the legacy `atomicAdd` under `#if defined(__HIPCC__)`: relaxed, and valid on shared
-  and global memory (B1). The reference solution shows the pattern.
+- **Atomics on HIP.** `<cuda/atomic>` comes from AMD's libhipcxx on HIP. The course's HIP
+  build links `libhipcxx::libhipcxx` when CMake finds it (it ships with ROCm 10.1 and later,
+  `notes/today/infra-facts.md` B2). Without it, code that includes `<cuda/atomic>` does not
+  build. With it, no ROCm machine has built this course's code yet (unverified). So the lab
+  does not rely on it: beside each `cuda::atomic_ref`, write the legacy `atomicAdd` under
+  `#if defined(__HIPCC__)`, which HIP documents as relaxed and valid on shared and global
+  memory (B1) and which needs no extra library. The reference solution shows the pattern.
 
 On Metal, atomic functions take atomic types only, so the counter is `device atomic_uint*`
 and the private counter a `threadgroup atomic_uint`; there is no scope to choose

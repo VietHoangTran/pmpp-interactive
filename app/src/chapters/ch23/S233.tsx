@@ -532,7 +532,7 @@ export const questionsS233: Record<string, Question> = {
       },
       { label: 'Smaller copies reach a higher share of the link, which starves the kernels of memory bandwidth.', why: 'Nothing in the documentation checked here says so, and the model slows down without any such effect.' },
       { label: "256 chunks exceed a stream's documented limit of 64 queued operations, so the host waits for room.", why: 'No such limit appears in the documentation checked for this chapter. The 64 you may remember is Metal\'s default for uncompleted command buffers on one queue (C1).' },
-      { label: 'Smaller kernels always have higher occupancy, which slows the copies running beside them.', why: 'A small grid may not even fill the GPU; occupancy does not rise because a kernel is shorter.' },
+      { label: 'Smaller kernels have higher occupancy, which slows the copies running beside them.', why: 'A small grid may not even fill the GPU; occupancy does not rise because a kernel is shorter.' },
     ],
     explain: (
       <p>
@@ -567,10 +567,10 @@ export const questionsS233: Record<string, Question> = {
     prompt: <>Porting the staged loop to Metal on Apple silicon, what plays the role of the copy-in?</>,
     options: [
       {
-        label: 'The CPU writing chunk i + 1 into one of K shared buffers while the GPU computes chunk i.',
+        label: 'The CPU writing chunk i + 1 into one of K shared buffers while the GPU computes chunk i from another.',
         correct: true,
       },
-      { label: 'A blit pass on a dedicated copy engine, which runs beside the compute pass like a CUDA copy.', why: 'Apple documents a blit as a kind of pass, not as separate copy hardware (C4), and with shared memory there is nothing to copy.' },
+      { label: 'A blit pass on a dedicated copy engine, which runs beside the compute pass the way a CUDA copy-in does.', why: 'Apple documents a blit as a kind of pass, not as separate copy hardware (C4), and with shared memory there is nothing to copy.' },
       { label: 'cudaMemcpyAsync, through a compatibility layer that maps CUDA calls onto Metal.', why: 'There is no such layer.' },
       { label: 'A private buffer that the GPU fills from host memory before each compute pass.', why: 'Something still has to put the input there. A shared buffer the CPU writes needs no copy at all (C4).' },
     ],
@@ -927,8 +927,8 @@ export function S233() {
       <Beyond>
         <p>
           The mapping is ours (ch23-facts D1, D5, D7). In llama.cpp, the CUDA backend implements that record and wait as{' '}
-          <code>cudaEventRecord</code> and <code>cudaStreamWaitEvent</code>: section{' '}
-          <a href={href('ch23', '23.4')}>23.4</a>'s tools.
+          <code>cudaEventRecord</code> and <code>cudaStreamWaitEvent</code>: the tools of page{' '}
+          <a href={href('ch23', '23.4')}>23.3–23.5</a>.
         </p>
       </Beyond>
     </>

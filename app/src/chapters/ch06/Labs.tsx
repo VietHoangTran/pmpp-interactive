@@ -9,6 +9,7 @@ import {
   LabsIntro,
   LabsPage,
   ReferenceSolution,
+  RaceStatus,
   RunningLabs,
   VerificationStatus,
   defineLabs,
@@ -20,7 +21,7 @@ import {
   type BenchSet,
   type Col,
 } from '../../components/LabKit';
-import { fmt, labStatus, num, type BenchRow, type Reports, type RunResult } from '../../lib/reports';
+import { fmt, labStatus, num, type BenchRow, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
 
 // The page is built from components/LabKit.tsx; what is here is chapter 6's own content.
@@ -167,43 +168,6 @@ const vsStride1: Col = {
 };
 const msOrBlank: Col = { ...msCol, cell: (r) => (r.name === 'simd_width' ? '' : msCol.cell(r)) };
 
-// ---------------------------------------------------------------- the race backend
-/** One line on lab 6.5 on the race backend, which the status table does not show. */
-function RaceStatus() {
-  const { reports, loading } = useLabs();
-  const run = reports.race;
-  const line = (variant: 'solution' | 'work') => {
-    const rs = (run?.results.filter((x) => x.lab === l5.id && x.variant === variant) ?? []) as (RunResult & { tsan?: unknown[] })[];
-    const tests = rs.flatMap((x) => x.tests);
-    const reportsFound = rs.reduce((n, x) => n + (Array.isArray(x.tsan) ? x.tsan.length : 0), 0);
-    return { s: labStatus(run, l5.id, variant), tests, passed: tests.filter((t) => t.pass).length, reportsFound };
-  };
-  const sol = line('solution');
-  const mine = line('work');
-  return (
-    <p data-race-status={loading ? 'loading' : sol.s} data-race-work={loading ? 'loading' : mine.s}>
-      {loading ? (
-        'Reading reports.'
-      ) : !run ? (
-        'No run on the race backend on this machine yet.'
-      ) : (
-        <>
-          {sol.s === 'none'
-            ? 'On this machine the reference solution has no run on the race backend yet.'
-            : sol.s === 'pass'
-              ? `On this machine the reference solution passed all ${sol.tests.length} tests on the race backend with ${sol.reportsFound ? `${sol.reportsFound} ThreadSanitizer report(s)` : 'no race reported'}: emulator-checked under both flavours.`
-              : `On this machine the reference solution failed on the race backend (${sol.passed} of ${sol.tests.length} tests): unverified there.`}{' '}
-          {mine.s === 'none'
-            ? 'Your own kernel has no recorded run there, or is still the untouched starter.'
-            : mine.s === 'pass'
-              ? `Your own kernel passed all ${mine.tests.length} tests there with ${mine.reportsFound ? `${mine.reportsFound} ThreadSanitizer report(s): read them` : 'no race reported'}.`
-              : `Your own kernel passed ${mine.passed} of ${mine.tests.length} tests there, with ${mine.reportsFound} ThreadSanitizer report(s) in the run.`}
-        </>
-      )}
-    </p>
-  );
-}
-
 // ---------------------------------------------------------------- milestone M2
 function MilestoneStatus() {
   const { reports, loading } = useLabs();
@@ -246,7 +210,7 @@ export function Labs() {
       />
       <BackendsAndEmulator />
       <p>
-        The emulator has a second flavour, <code>race</code>, which labs 6.3 and 6.5 are also built for. It runs the emulated
+        The emulator has a second flavour, <code>race</code>, which labs 6.3, 6.4 and 6.5 are also built for. It runs the emulated
         threads concurrently under ThreadSanitizer and reports two threads that touch the same element without
         synchronisation, with both source lines. Ask for it with <code>--backend race</code>;{' '}
         <code>python3 labs/pmpp.py doctor</code> says whether your compiler can build it. The tables on this page show
@@ -615,7 +579,7 @@ export function Labs() {
         product reading the other pair. A clean run is evidence, not proof: the race backend sees only the schedules that
         happened, and ten launches are ten schedules. The argument in TODO 4 is what shows the kernel correct.
       </p>
-      <RaceStatus />
+      <RaceStatus lab={l5} />
       <LabPrediction
         id="ch06/labs/p-lab5-onebarrier"
         prompt={

@@ -62,7 +62,7 @@ check('the shuffle edge question accepts "Its own v"', (await answerChoice('lane
 check('the sector question accepts 16', (await answerNumber('4*lane', 16)).includes('Correct.'));
 check('the block order question accepts "No"', (await answerChoice('block 7 spins', 'No:')).includes('Correct.'));
 check('the false dependence question accepts "The one after the read"', (await answerChoice('A loop reads a neighbour', 'The one after the read')).includes('Correct.'));
-check('the memory order question shows its explanation', (await answerChoice('memory_order_relaxed', 'Nothing the thread does')).includes('release and acquire'));
+check('the memory order question shows its explanation', (await answerChoice('memory_order_relaxed', 'No other access of the thread')).includes('release and acquire'));
 
 // Labs.
 const text = await page.$eval('.prose', (e) => e.textContent);

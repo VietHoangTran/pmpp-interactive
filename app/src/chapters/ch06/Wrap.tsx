@@ -90,19 +90,19 @@ export const questionsWrap: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Give each warp one token and let its 32 lanes split the d loop, then add their 32 partial sums.',
+        label: 'One token per warp, its 32 lanes splitting the d loop, then a sum of their partial results.',
         correct: true,
       },
       {
-        label: 'Read K with float4 loads, four values of d per lane.',
+        label: 'Read K with float4 loads, four values of d per lane, so that each sector is fully used.',
         why: `Each lane then uses 16 bytes of its sector instead of 4, but its neighbour is still ${4 * H * D} bytes away: ${SCORES_K4.transactions} sectors per warp, as before.`,
       },
       {
-        label: 'Pad each row of K by one float.',
+        label: 'Pad each row of K by one float, so that neighbouring tokens fall in different banks.',
         why: 'Padding moves a column off one bank of shared memory. In global memory the lanes would still be H × D + 1 floats apart, each in its own sector.',
       },
       {
-        label: 'Stage K in shared memory first, with the same thread mapping.',
+        label: 'Stage K in shared memory first, with the same thread mapping, and compute from there.',
         why: 'The load into shared memory would be the same scattered load. Corner turning works because the threads change which element they load, and that is a remapping.',
       },
     ],
@@ -189,7 +189,7 @@ export const questionsWrap: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'No: that barrier guards a true dependence. Threads read values other threads loaded this phase, and no number of buffers makes them arrive sooner.',
+        label: 'No: that barrier guards a true dependence, which no number of buffers removes.',
         correct: true,
       },
       {
@@ -226,7 +226,7 @@ export const questionsWrap: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Look for ways to move fewer bytes from DRAM (more reuse, smaller types), then profile again.',
+        label: 'Move fewer bytes from DRAM, then profile again.',
         correct: true,
       },
       {
@@ -244,7 +244,7 @@ export const questionsWrap: Record<string, Question> = {
     ],
     explain: (
       <p>
-        Near the memory roof the only lever left is fewer bytes. The bank conflicts are real, and once DRAM traffic falls
+        Near the memory roof the only lever left is fewer bytes: more reuse, or smaller types. The bank conflicts are real, and once DRAM traffic falls
         they may become the bottleneck: that is why you profile again after each change and judge it by the
         kernel&rsquo;s duration, not by a percentage.
       </p>
@@ -441,7 +441,7 @@ export function Wrap() {
         </li>
         <li>
           Exercise 3 has two defensible answers. If &ldquo;coalesced&rdquo; means one run of 32 addresses per warp,
-          only a tile width of 32 qualifies; under NVIDIA&rsquo;s sector rule an aligned 16-wide tile wastes nothing
+          only a tile width of 32 qualifies; under NVIDIA&rsquo;s sector rule an aligned 8- or 16-wide tile wastes nothing
           either. Exercise 5&rsquo;s &ldquo;number of bank conflicts&rdquo; could mean lanes per bank or extra passes;
           this course gives lanes per bank, the book&rsquo;s &ldquo;k-way&rdquo; usage.
         </li>
@@ -459,9 +459,19 @@ export function Wrap() {
           The summary (p. 154) leaves out vector loads and bank conflicts, although sections 6.3 and 6.4 cover them.
         </li>
         <li>
+          p. 147 never shows where <code>inBuffer</code> and <code>outBuffer</code> live, their types, or what{' '}
+          <code>swap</code> is; it has to exchange each thread&rsquo;s own pointers. Section{' '}
+          <a href={href('ch06', '6.7')}>6.7</a>&rsquo;s snippet writes them out.
+        </li>
+        <li>
+          Fig. 6.4 shades each matrix with a gradient the text never explains; we read it as the direction of
+          increasing address (row-major M and P, column-major N).
+        </li>
+        <li>
           Small typos: the sidebar is cited as &ldquo;Why is DRAM so slow?&rdquo; but titled &ldquo;Why are DRAMs so
           slow?&rdquo; (p. 124); &ldquo;the accesses data wall span&rdquo; (p. 126); &ldquo;Bank 0 or Channel 1&rdquo;
-          for &ldquo;of&rdquo; (p. 135); &ldquo;integer of floating point&rdquo; for &ldquo;or&rdquo; (p. 139).
+          for &ldquo;of&rdquo; (p. 135); &ldquo;integer of floating point&rdquo; for &ldquo;or&rdquo; (p. 139);
+          &ldquo;connected a large number of banks&rdquo;, missing &ldquo;to&rdquo; (p. 133).
         </li>
       </ul>
       <p>
@@ -502,7 +512,7 @@ export function Wrap() {
                 : <>Your own <code>linearKernel</code> has not passed on this machine yet.</>}
         </span>{' '}
         See the <a href={href('ch06', 'labs')}>labs</a>. Chapter 15 coarsens and register-tiles the same kernel, with the
-        same signature, into milestone M3.
+        same signature, into milestone M3 (lab 15.6 on the <a href={href('ch15', 'labs')}>chapter 15 labs page</a>).
       </p>
       <p>
         Chapter 7 opens Part 2 of the book, the parallel patterns, with convolution. Every output there needs a

@@ -164,7 +164,7 @@ check('the project paragraph says no milestone and names X2, M9 and M4', text0.i
 
 // ---- links
 const links = await page.$$eval('.prose a[href^="#/"]', (as) => [...new Set(as.map((a) => a.getAttribute('href')))]);
-const known = new Set(['#/appA/start', ...['A.1', 'A.2', 'A.3', 'A.4', 'A.5', 'A.6', 'A.7'].map((s) => '#/appA/' + s), '#/appA/labs', '#/appA/wrap']);
+const known = new Set(['#/appA/start', ...['A.1', 'A.2', 'A.3', 'A.4', 'A.5', 'A.6', 'A.7'].map((s) => '#/appA/' + s), '#/appA/labs', '#/appA/wrap', '#/x2']);
 check(`links go to pages that exist (${links.length} distinct)`, links.length >= 6 && links.every((l) => known.has(l)), links.join(', '));
 await page.evaluate(() => [...document.querySelectorAll('.prose a')].find((a) => a.getAttribute('href') === '#/appA/labs').click());
 await page.waitForFunction(() => document.querySelector('.page h1')?.textContent.includes('Labs'), { timeout: 10000 });

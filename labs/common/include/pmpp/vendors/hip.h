@@ -20,7 +20,15 @@
 //     is <hip/hip_fp16.h>, <cub/cub.cuh> is <hipcub/hipcub.hpp> (namespace
 //     hipcub), <mma.h> has no HIP counterpart;
 //   - <cuda/atomic> keeps its name but needs libhipcxx (ROCm 10.1 or later);
-//   - atomicAdd_block and the other _block atomics do not exist in HIP.
+//   - atomicAdd_block and the other _block atomics do not exist in HIP;
+//   - __dp4a does not exist in HIP (x2-facts B1: absent from the 45 amd_detail headers at
+//     therock-10.2 and from HIPIFY's device-function table). Nothing here maps it, on purpose:
+//     a #define would invent an API. Use a plain four-product helper, or AMD's own
+//     amd_mixed_dot / __builtin_amdgcn_sdot4 behind #if (x2-facts B1, B2). The emulators and
+//     the front-end stub do declare __dp4a, so code that calls it unguarded passes there and
+//     still fails to build for HIP;
+//   - <cuda_fp16.h> is <hip/hip_fp16.h> (B12); the emulators' stand-in for it
+//     (pmpp/emu/shim/cuda_fp16.h) is not on the HIP include path.
 #pragma once
 #include <hip/hip_runtime.h>
 
@@ -42,6 +50,14 @@
 #define cudaGetErrorString      hipGetErrorString
 #define cudaGetDeviceCount      hipGetDeviceCount
 #define cudaGetDeviceProperties hipGetDeviceProperties
+// HIPIFY's "CUDA Runtime API supported by HIP" table (ROCm/HIPIFY amd-develop, last commit
+// 2026-11-19, read 2026-11-21; infra-facts E9): cudaGetDevice -> hipGetDevice (HIP 1.6.0),
+// cudaFuncGetAttributes -> hipFuncGetAttributes and cudaFuncAttributes -> hipFuncAttributes
+// (HIP 1.9.0; the table marks cudaFuncAttributes as changed in CUDA 13.3). On HIP, numRegs
+// counts vector registers only (ch04-facts B10). Not compiled against ROCm here.
+#define cudaGetDevice           hipGetDevice
+#define cudaFuncGetAttributes   hipFuncGetAttributes
+#define cudaFuncAttributes      hipFuncAttributes
 
 // infra-facts.md B5 (constant memory and device symbols).
 #define cudaMemcpyToSymbol      hipMemcpyToSymbol

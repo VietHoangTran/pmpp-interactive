@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { Ask, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
-import { Aside, Bench, Simplification, Source, Today } from '../../components/notes';
+import { Aside, Bench, NoteGroup, Simplification, Source, Today } from '../../components/notes';
 import { href } from '../../lib/router';
 import {
   EXERCISE_1,
@@ -407,12 +407,21 @@ export const questionsS112: Record<string, Question> = {
     prompt: <>Why did chapter 10's in-place reduction need one barrier per iteration, while this scan needs two?</>,
     options: [
       {
-        label: 'In the reduction no active thread writes a slot that another active thread reads in the same iteration; in Kogge-Stone it does, because the trees overlap and share partial sums.',
+        label: 'Unlike the reduction, in Kogge-Stone an active thread reads a slot another active thread overwrites in the same iteration.',
         correct: true,
       },
-      { label: 'The reduction used shared memory and the scan does not.', why: 'Both work in a shared buffer here.' },
-      { label: 'The scan has more threads.', why: 'The number of threads has nothing to do with which slots are shared.' },
-      { label: 'The reduction was wrong, and also needed two.', why: 'It was right: check which slots its active threads read and write.' },
+      {
+        label: 'The reduction kept its partial sums in registers between iterations; the scan keeps them in shared memory.',
+        why: 'Neither keeps its partial sums in registers: both work in place in an array every thread reads (shared memory here, global memory in Figs. 10.6 and 10.7).',
+      },
+      {
+        label: 'The scan keeps all of its threads active in every iteration, where the reduction halves them each time.',
+        why: 'Kogge-Stone switches off the threads below the stride too. What matters is which slots the active threads share.',
+      },
+      {
+        label: 'The reduction needed two as well; chapter 10 left one out because that race rarely shows.',
+        why: 'It was right: check which slots its active threads read and write.',
+      },
     ],
     explain: (
       <p>
@@ -467,12 +476,20 @@ export function S112() {
         sharing brings the total down to N·log₂N − (N − 1) additions, 49 for 16 elements. The scene below shows the
         growth, and what goes wrong when the timing slips.
       </p>
-      <Aside>
-        <p>
-          The book's prose counts iterations from 1 ("iteration 2" has stride 2), its figures from 0 ("Step 1 (stride =
-          2)"). These pages count from 0, as the code does, and name a step by its stride when it matters.
-        </p>
-      </Aside>
+      <NoteGroup>
+        <Aside>
+          <p>
+            The book's prose counts iterations from 1 ("iteration 2" has stride 2), its figures from 0 ("Step 1 (stride =
+            2)"). These pages count from 0, as the code does, and name a step by its stride when it matters.
+          </p>
+        </Aside>
+        <Simplification>
+          <p>
+            The scene draws the stepper's model: every position of a step reads the values from before it, in lockstep.
+            Its race is one schedule, the book's, with barrier 2 removed; no warps, no timing.
+          </p>
+        </Simplification>
+      </NoteGroup>
       <KsDoublingScene />
 
       <h2>One block, one segment</h2>
@@ -504,8 +521,9 @@ export function S112() {
       </p>
       <Source section="11.2" pages="257" />
       <p>
-        The same kernel compiles for HIP through the course's header, since it uses only shared memory and{' '}
-        <code>__syncthreads()</code>. On Metal the buffer is a <code>threadgroup</code> array declared in the kernel and
+        HIP accepts <code>__shared__</code> and <code>__syncthreads()</code> as written, and the course's header maps the
+        runtime calls, so the same kernel should build for HIP (unverified: it has not been built or run on AMD hardware).
+        On Metal the buffer is a <code>threadgroup</code> array declared in the kernel and
         the barrier is <code>threadgroup_barrier(mem_flags::mem_threadgroup)</code>; lab 11.1 has both versions.
       </p>
       <Today checked="2026-11-20 (ch05-facts C1, C2; ch11-facts C2)">

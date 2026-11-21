@@ -620,12 +620,12 @@ export const questionsS107: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'A wrong sum. Lanes may run ahead of each other, so in the second line lane 0 can read s[16] before lane 16 has added s[48] into it, or after lane 16 has gone on to add s[32] as well.',
+        label: 'A wrong sum: lanes may run ahead, so lane 0 can read s[16] before lane 16 adds s[48] into it, or after it has also added s[32].',
         correct: true,
       },
-      { label: 'The right sum: volatile makes every access go to shared memory.', why: 'volatile keeps the values out of registers. It orders nothing between one lane and another.' },
+      { label: 'The right sum: volatile forces every read and write to go to shared memory in program order.', why: 'volatile keeps the values out of registers. It orders nothing between one lane and another.' },
       { label: 'The right sum: a warp issues one instruction for all its lanes.', why: 'That is the assumption the code was written on. NVIDIA says independent thread scheduling makes it invalid, and names this very pattern.' },
-      { label: 'Nothing: without a barrier the warp deadlocks.', why: 'Nothing in it waits, so nothing can hang. The reads simply race the writes.' },
+      { label: 'Nothing: without a barrier or a _sync call, the warp deadlocks at its first step.', why: 'Nothing in it waits, so nothing can hang. The reads simply race the writes.' },
     ],
     explain: (
       <p>
@@ -649,13 +649,13 @@ export const questionsS107: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Nothing: exited threads are ignored by the full mask, so warp 1 just sums its 18 values.', why: 'The mask is fine with exited lanes. Reading their values is not.' },
+      { label: 'Nothing: the full mask ignores exited threads, so warp 1 sums its 18 live values and its lane 0 holds their total.', why: 'The mask is fine with exited lanes. Reading their values is not.' },
       {
-        label: 'Lanes of warp 1 read lanes that returned (lane 2, thread 34, reads lane 18, thread 50) and get undefined values that reach lane 0. Keep every lane in the loop and give the out-of-range ones 0.',
+        label: 'Lanes of warp 1 read lanes that returned, and those undefined values reach lane 0. Keep every lane in the shuffles, giving lanes with no element 0.',
         correct: true,
       },
-      { label: 'The kernel deadlocks, because the returned lanes never reach the shuffle.', why: 'Exited lanes do not block a _sync call; they make the values read from them undefined.' },
-      { label: 'Use a smaller mask that names only the live lanes; then the reads are defined.', why: 'A lane outside the mask is not taking part either, so reading it is just as undefined.' },
+      { label: 'The kernel deadlocks, because the lanes that returned never reach the shuffle the full mask waits for.', why: 'Exited lanes do not block a _sync call; they make the values read from them undefined.' },
+      { label: 'Use a smaller mask naming only the live lanes, the low 18 bits in warp 1; then every read is defined.', why: 'A lane outside the mask is not taking part either, so reading it is just as undefined.' },
     ],
     explain: (
       <p>
@@ -678,9 +678,9 @@ export const questionsS107: Record<string, Question> = {
     ),
     options: [
       { label: 'Yes: without it warp 0 could load input_s before the last iteration has written it.', why: 'Which thread wrote the slot that lane t loads?' },
-      { label: 'No: as indexed, each lane of warp 0 loads only the slot it wrote itself in the last iteration.', correct: true },
+      { label: 'No: as indexed, each lane of warp 0 loads only the slot it wrote in the last iteration.', correct: true },
       { label: 'No: the shuffles in warp_reduce synchronise the warp, and that covers shared memory.', why: 'Shuffles do not order memory accesses at all ("these intrinsics do not provide any memory ordering").' },
-      { label: 'Yes: a barrier is always needed before a warp starts shuffling.', why: 'Shuffles move registers; they do not need a block barrier.' },
+      { label: 'Yes: a block barrier is needed before any warp shuffles values it loaded from shared memory.', why: 'Shuffles move registers; they do not need a block barrier.' },
     ],
     explain: (
       <>
@@ -714,22 +714,22 @@ export const questionsS107: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'At compile time, on every AMD target. Give the mask a type that is unsigned on CUDA and unsigned long long when __HIPCC__ is defined, and pass ~(that type)0.',
+        label: 'At compile time, on every AMD target. Type the mask per vendor (64 bits under __HIPCC__) and pass the all-ones value of that type.',
         correct: true,
       },
       {
         label: 'At run time on 64-lane wavefronts, where lanes 32 to 63 are not in the mask. Write 0xffffffffffffffff instead.',
         why: 'HIP never gets as far as running it: the mask\'s type is checked at compile time. And CUDA\'s mask parameter is an unsigned, 32 bits.',
       },
-      { label: 'Only on gfx10 and later, where wavefronts are 32 wide.', why: 'The check is on the mask\'s type, not its value, and it applies in wave32 mode too.' },
-      { label: 'Nowhere: the loop already starts at warpSize / 2.', why: 'The loop is portable; the mask literal is not.' },
+      { label: 'Only on gfx10 and later, which run 32-wide wavefronts and so need a mask of their own width.', why: 'The check is on the mask\'s type, not its value, and it applies in wave32 mode too.' },
+      { label: 'Nowhere: the loop already starts at warpSize / 2, so it adapts to 64-lane wavefronts.', why: 'The loop is portable; the mask literal is not.' },
     ],
     explain: (
       <p>
         Each HIP <code>_sync</code> function has a <code>static_assert</code> that the mask is a 64-bit integer ("Implicitly
         promoting a smaller integer is almost always an error"), on every AMD target, wave32 included. A type chosen per
-        vendor keeps one file: lab 10.1 calls it <code>lane_mask_t</code>, the name AMD's own example uses, and llama.cpp
-        calls it <code>ggml_cuda_thread_mask_t</code>. This loop already starts at <code>warpSize / 2</code>; the book's
+        vendor keeps one file: lab 10.1 calls it <code>lane_mask_t</code>, the name AMD's own example uses, and passes{' '}
+        <code>~lane_mask_t(0)</code>, all ones; llama.cpp calls it <code>ggml_cuda_thread_mask_t</code>. This loop already starts at <code>warpSize / 2</code>; the book's
         starts at 16, which is the next question.
       </p>
     ),
@@ -952,7 +952,7 @@ export function S107() {
         The book's <code>warp_reduce</code> fails under HIP in three separate ways: the 32-bit mask literal is a compile
         error, because HIP checks that every mask is 64 bits; warps are 64 lanes wide on AMD's gfx9 devices, so a loop that
         starts at 16 reduces each half separately; and HIP's <code>warpSize</code> has not been a compile-time constant since
-        ROCm 7.0, so it cannot be relied on where one is needed, such as the size of an array. The fix is in the portable tab above: a mask type chosen per vendor, a loop
+        ROCm 7.0, so it cannot be relied on where one is needed, such as the size of an array. The fix is in the "portable (lab 10.1)" tab of the <code>warp_reduce</code> listing above: a mask type chosen per vendor, a loop
         from <code>warpSize / 2</code>, and no literal 32.
       </p>
       <Beyond>

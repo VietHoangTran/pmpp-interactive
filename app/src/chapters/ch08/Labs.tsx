@@ -7,6 +7,7 @@ import {
   LabResults,
   LabsIntro,
   LabsPage,
+  RaceStatus,
   ReferenceSolution,
   RunningLabs,
   VerificationStatus,
@@ -20,7 +21,7 @@ import {
   useLabs,
   type BenchSet,
 } from '../../components/LabKit';
-import { fmt, labStatus, num, type BenchRow, type Reports, type RunResult } from '../../lib/reports';
+import { fmt, num, type BenchRow, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
 
 // The page is built from components/LabKit.tsx; what is here is chapter 8's own content.
@@ -113,42 +114,6 @@ const depthCell = (r: BenchRow): string => {
   if (d === (num(r.tile) ?? 0) - 2) return `${d} (book's)`;
   return String(d);
 };
-
-/** One line on lab 8.1 on the race backend, which the status table does not show. */
-function RaceStatus() {
-  const { reports, loading } = useLabs();
-  const run = reports.race;
-  const line = (variant: 'solution' | 'work') => {
-    const rs = (run?.results.filter((x) => x.lab === l1.id && x.variant === variant) ?? []) as (RunResult & { tsan?: unknown[] })[];
-    const tests = rs.flatMap((x) => x.tests);
-    const reportsFound = rs.reduce((n, x) => n + (Array.isArray(x.tsan) ? x.tsan.length : 0), 0);
-    return { s: labStatus(run, l1.id, variant), tests, passed: tests.filter((t) => t.pass).length, reportsFound };
-  };
-  const sol = line('solution');
-  const mine = line('work');
-  return (
-    <p data-race-status={loading ? 'loading' : sol.s} data-race-work={loading ? 'loading' : mine.s}>
-      {loading ? (
-        'Reading reports.'
-      ) : !run ? (
-        'No run on the race backend on this machine yet.'
-      ) : (
-        <>
-          {sol.s === 'none'
-            ? 'On this machine the reference solution has no run on the race backend yet.'
-            : sol.s === 'pass'
-              ? `On this machine the reference solution passed all ${sol.tests.length} tests on the race backend with ${sol.reportsFound ? `${sol.reportsFound} ThreadSanitizer report(s)` : 'no race reported'}: emulator-checked on this flavour.`
-              : `On this machine the reference solution failed on the race backend (${sol.passed} of ${sol.tests.length} tests): unverified there.`}{' '}
-          {mine.s === 'none'
-            ? 'Your own kernel has no recorded run there, or is still the untouched starter.'
-            : mine.s === 'pass'
-              ? `Your own kernel passed all ${mine.tests.length} tests there with ${mine.reportsFound ? `${mine.reportsFound} ThreadSanitizer report(s): read them` : 'no race reported'}.`
-              : `Your own kernel passed ${mine.passed} of ${mine.tests.length} tests there, with ${mine.reportsFound} ThreadSanitizer report(s) in the run.`}
-        </>
-      )}
-    </p>
-  );
-}
 
 /** The thread limits lab 8.1 recorded: on Metal each belongs to a compiled pipeline. */
 function Limits() {
@@ -287,7 +252,7 @@ export function Labs() {
         <code>inCurr_s</code> against the neighbours' reads of it. A clean run is evidence, not proof: it sees only the
         schedules that happened.
       </p>
-      <RaceStatus />
+      <RaceStatus lab={l1} />
       <p>
         Do not return early. Every thread of the block must reach both barriers in every iteration of the z loop: a
         thread on the block's edge or the grid's boundary computes nothing but still loads its element of the halo.
@@ -304,10 +269,12 @@ export function Labs() {
         One trap the tests cannot show here. On CUDA a 1024-thread block leaves at most 64 registers per thread; a kernel
         compiled to more fails at launch with "too many resources requested". If your T = 32 build does that,{' '}
         <code>nvcc --resource-usage</code> shows the count, and <a href={href('ch08', '8.5')}>8.5</a> explains the fix,{' '}
-        <code>__launch_bounds__</code>. The lab's kernels do not carry it yet, for a reason of our own tooling: the
-        emulator and the stub headers of the CUDA front-end check do not define it, so a kernel that used it would not
-        build there. On Metal the driver reads each pipeline's thread cap and skips T = 32, with a message, where it is
-        below 1024.
+        <code>__launch_bounds__</code>. The lab's kernels do not carry it, and you may add{' '}
+        <code>__launch_bounds__(TILE_WIDTH * TILE_WIDTH)</code> to your register-tiled kernel (not the basic one, whose
+        block is a fixed 8 × 8 × 8, more threads than that bound allows at T = 16 or 8): the emulator accepts it and
+        ignores it, and
+        the CUDA front-end check only parses it, so neither can tell you whether a device build needs it. On Metal the
+        driver reads each pipeline's thread cap and skips T = 32, with a message, where it is below 1024.
       </p>
       <Today checked="2026-11-20 (notes/today/ch08-facts.md A4, B4, C1)">
         <p>

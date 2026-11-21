@@ -282,8 +282,8 @@ export const questionsS91: Record<string, Question> = {
     options: [
       { label: 'Each pixel needs an integer division by the interval width, and integer division is slow on every CPU.', why: 'The listing uses one bin per value and divides by nothing. Even with a division, it is a few cycles of arithmetic.' },
       { label: 'The loop branch mispredicts often, because the pixel values it reads are unpredictable.', why: 'The loop has one branch, the loop test, and it does not depend on the pixel values.' },
-      { label: 'The bins stay in the L1 cache, so increments are cheap; the image streams in from DRAM once and sets the pace.', correct: true },
-      { label: 'The increments miss in the cache, because neighbouring pixels usually update bins far apart.', why: '256 counters of 4 bytes fit easily in a level-one cache.' },
+      { label: 'The bins sit in L1, so increments are cheap; streaming the image in from DRAM sets the pace.', correct: true },
+      { label: 'The increments miss in the cache, because neighbouring pixels usually update bins that are far apart.', why: '256 counters of 4 bytes fit easily in a level-one cache.' },
     ],
     explain: (
       <p>

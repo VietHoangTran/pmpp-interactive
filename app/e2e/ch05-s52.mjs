@@ -251,9 +251,9 @@ try {
   };
   v = await choose('why', 'Reading shared memory is faster');
   check('shared vs registers, wrong option: "Not quite" with the reason for that option', v.includes('Not quite.') && v.includes('shared memory needs a load instruction'), v);
-  v = await choose('why', 'A register belongs to one thread');
+  v = await choose('why', 'A register serves only its own thread');
   check('shared vs registers, right option: correct, citing exercise 4', v.includes('Correct.') && v.includes('exercise 4'), v);
-  v = await choose('unified', 'They disappear because CPU and GPU address the same allocation');
+  v = await choose('unified', 'They disappear: CPU and GPU address the same allocation');
   check('unified memory, right option: correct, sourced to the facts file', v.includes('Correct.') && v.includes('ch05-facts.md, C6'), v);
 
   await settle(700); // progress is flushed 400 ms after the last answer

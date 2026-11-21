@@ -34,13 +34,13 @@ The emulator runs streams synchronously, so it checks what each chunk computes a
 lands, never whether anything overlapped; overlap is lab 23.1's measurement. Nothing here has
 run on CUDA or HIP hardware.
 
-## Section 23.4: the book's loops (front-end-checked only, never run)
+## Page 23.3–23.5 (id 23.4): the book's loops (front-end-checked only, never run)
 
 | File | Shown in | Status | Test in `app/src/chapters/ch23/` |
 |---|---|---|---|
-| `overlap_loop.cu` | section 23.4, beside the puzzle "What enforces each ordering?": the marked regions `[setup]` and `[loop]` (Fig. 23.14 with its line numbers 01 to 43, line 19 corrected) | front-end-checked | `S234.snippets.test.ts`: the lesson's copies equal the dedented regions; every line `app/src/sim/haloloop.ts` and the puzzle cite holds the call they name; the front-end check passes, and fails on line 19 as the page prints it |
-| `nccl_exchange.cu` | section 23.4, the NCCL paragraph: region `[exchange]`, Fig. 23.20 lines 27 to 44 | front-end-checked | the same test |
-| `check/mpi_nccl_decls.h` | nothing (declarations only) | | included by both; declares the MPI, NCCL and CUDA priority calls the course stub lacks, with signatures from `notes/today/ch23-facts.md` A1, A10, A12 |
+| `overlap_loop.cu` | page 23.3–23.5 (id 23.4), beside the puzzle "What enforces each ordering?": the marked regions `[setup]` and `[loop]` (Fig. 23.14 with its line numbers 01 to 43, line 19 corrected) | front-end-checked | `S234.snippets.test.ts`: the lesson's copies equal the dedented regions; every line `app/src/sim/haloloop.ts` and the puzzle cite holds the call they name; the front-end check passes, and fails on line 19 as the page prints it |
+| `nccl_exchange.cu` | page 23.3–23.5 (id 23.4), the NCCL paragraph: region `[exchange]`, Fig. 23.20 lines 27 to 44 | front-end-checked | the same test |
+| `check/mpi_nccl_decls.h` | nothing (declarations only) | | included by both; declares the MPI and NCCL calls the course stub lacks, with signatures from `notes/today/ch23-facts.md` A10, A12; its redeclarations of the two CUDA priority calls (A1) are now also in the stub, identical, and still compile |
 
 Both files need MPI (and NCCL) and one GPU per rank, which the course does not assume, so they
 are parsed and never built or run. `check.py` does not touch them; the vitest file above runs

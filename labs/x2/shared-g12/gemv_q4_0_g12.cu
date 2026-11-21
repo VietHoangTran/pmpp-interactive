@@ -29,7 +29,7 @@ typedef unsigned long long g12_q4_lane_mask_t;
 typedef unsigned int g12_q4_lane_mask_t;
 #endif
 
-// FP16 bits to float, exact (qref::halfToFloat on the device; the emulators model no __half).
+// FP16 bits to float, exact (qref::halfToFloat on the device; no __half type is relied on).
 static __device__ float g12Q4HalfToFloat(uint16_t h) {
     const unsigned sign = (unsigned)(h & 0x8000u) << 16;
     const unsigned e = (h >> 10) & 0x1Fu, m = h & 0x3FFu;

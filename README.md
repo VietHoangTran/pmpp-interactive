@@ -4,8 +4,12 @@ An interactive study copy of *Programming Massively Parallel Processors* (5th ed
 built for one reader: lessons with simulations and narrated animation in a local web
 app, and labs that run on your own GPUs through CUDA, HIP or Metal.
 
-Status: chapter 5 is the finished pilot. The rest is planned in `PLAN.md`; current state
-is in `PROGRESS.md`.
+Status (2026-11-21): every chapter is built. That is chapters 1 to 24, appendices A and C
+(B is skipped: deep learning basics), and three modules the book does not have: X1 sampling
+kernels, X2 quantised kernels, X3 reading real backends. There are 79 labs, and they carry the
+project milestones M0 to M10 (see `PLAN.md`, section 5). Chapter 5 was the pilot and the
+template. `PROGRESS.md` holds the current state and what is still open; the plan is in
+`PLAN.md`.
 
 ## Run the app
 
@@ -32,10 +36,11 @@ python3 labs/pmpp.py run 5.2 --solution
 Needs CMake 3.21 or newer, a C++17 compiler and Python 3. Backends are detected and the
 missing ones are skipped:
 
-| Backend | Needs | Status of the pilot's reference solutions |
+| Backend | Needs | Status of the reference solutions |
 |---|---|---|
-| `metal` | macOS with Xcode command line tools | verified on Metal (Apple M3 Max) |
-| `emu` | nothing extra | emulator-checked: a CPU emulator of the CUDA subset, logic only |
+| `metal` | macOS with Xcode command line tools | verified on Metal (the author's Mac), except labs 11.5, 12.5 and 18.1 part B, which are CUDA-family only |
+| `emu` | nothing extra | emulator-checked: a CPU emulator of the CUDA subset, logic only. Lab X3.2's suite passed 93 of 93 run directly, but overran `pmpp.py`'s 900 s test limit on a busy machine, so its recorded run reads failed |
+| `race` | nothing extra | the same emulator with threads run concurrently under ThreadSanitizer, for the labs that opt in |
 | `cuda` | NVIDIA CUDA toolkit | front-end-checked; **never run on a CUDA device** |
 | `hip` | AMD ROCm (`ROCM_PATH` or `/opt/rocm`) | **unverified**, never compiled |
 

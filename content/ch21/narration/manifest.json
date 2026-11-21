@@ -103,10 +103,10 @@
   },
   "scatter-gather-6": {
    "file": "scatter-gather-6.mp3",
-   "sha256": "6141a239af54e2b52e272084b13dd651dbf08590788ca27d9df82a8b4e7d1bbc",
-   "duration": 19.76,
-   "bytes": 334400,
-   "generated": "2026-11-20",
+   "sha256": "9e11cf111c96a67d44d644a23d11d5c22936c0ab4edd34ad37d8888d6d2b148d",
+   "duration": 20.08,
+   "bytes": 339415,
+   "generated": "2026-11-21",
    "model": "eleven_v4",
    "take": 1
   }

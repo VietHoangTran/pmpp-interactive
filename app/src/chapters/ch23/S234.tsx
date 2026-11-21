@@ -618,7 +618,7 @@ export const questionsS234: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'No: a runtime switch, on by default, treats every stream as normal priority, whatever the device reports.',
+        label: 'No: a runtime switch, on by default, treats every stream as normal priority, whatever the property and the range say.',
         correct: true,
       },
       {
@@ -626,7 +626,7 @@ export const questionsS234: Record<string, Question> = {
         why: 'That is what the reports say. The runtime switch overrides them (B2).',
       },
       {
-        label: 'Yes, but only their copies: AMD applies stream priorities to memory transfers rather than to kernel launches.',
+        label: 'Yes, but only their copies: AMD applies stream priorities to the memory transfers in a stream rather than to its kernel launches.',
         why: 'Nothing in AMD’s sources says so, and the switch makes every stream normal priority.',
       },
       {
@@ -699,7 +699,7 @@ export const questionsS234: Record<string, Question> = {
         correct: true,
       },
       {
-        label: 'Nothing extra: the host launches the top kernel before it queues the copy, and the runtime keeps that call order across all streams.',
+        label: 'Nothing extra: the host launches the top kernel first, and the runtime keeps call order across streams.',
         why: 'The runtime keeps call order within a stream. Across streams, work may run in any order (p. 556).',
       },
       {
@@ -745,8 +745,8 @@ export const questionsS234: Record<string, Question> = {
         why: 'MTLSharedEvent adds waits from the CPU, other devices and other processes, not counting (C2).',
       },
       {
-        label: 'No: work in one Metal command queue has no way at all to wait for work that runs in another queue.',
-        why: 'It has: a command buffer can wait for an event value that a buffer in another queue signals (C2).',
+        label: 'No: a command buffer cannot wait for work in another Metal queue, so the host must wait for both passes.',
+        why: 'It can: a command buffer can wait for an event value that a buffer in another queue signals (C2).',
       },
     ],
     explain: (
@@ -1017,6 +1017,13 @@ export function S234() {
         {DEFAULTS.boundary}, exchanges of {DEFAULTS.exTop}.
       </p>
       <Source section="23.3" pages="561–562" figs="Fig. 23.15" />
+      <Simplification>
+        <p>
+          The model of the explorer below, whose note lists what it leaves out: one rank, a GPU of 8 block slots, no
+          preemption, each exchange on its own link, unitless times. In the NCCL and NVSHMEM bars, NCCL&rsquo;s own
+          kernels take no block slots, and each NVSHMEM put travels as soon as its row is computed.
+        </p>
+      </Simplification>
       <LoopScene />
       <p>
         The bottom rows were ready at {r2(it.bottom.end)} and left at {r2(it.exBottom.start)}. Nothing on the GPU caused
@@ -1062,7 +1069,9 @@ export function S234() {
         <p>
           One rank whose neighbours behave exactly like it. A GPU of 8 block slots; a kernel is equal-length blocks and
           nothing is preempted. Each exchange has its own link. MPI calls hold the host until their exchange ends. A
-          pageable copy is fully synchronous. Every API call costs the same small time. Times are unitless.
+          pageable copy is fully synchronous. Every API call costs the same small time. NCCL&rsquo;s own kernels take no
+          block slots. An NVSHMEM put travels as soon as the blocks of its row finish, and the barrier on the stream
+          ends a fixed small time after the last put lands. Times are unitless.
         </p>
       </Simplification>
       <WhoWaits />
@@ -1129,8 +1138,8 @@ export function S234() {
         caption={
           <>
             The NCCL loop&rsquo;s exchange and the end of its body, with the book&rsquo;s line numbers; lines 1–26 are
-            those of Fig. 23.14. The comment on line 38 is ours. The setup it assumes is in the file&rsquo;s header:
-            each rank calls <code>cudaSetDevice</code> before <code>ncclCommInitRank</code>, which Fig. 23.17 leaves out.
+            those of Fig. 23.14. The comment on line 38 is ours. The setup it assumes, <code>cudaSetDevice</code> before{' '}
+            <code>ncclCommInitRank</code>, is in the file&rsquo;s header.
           </>
         }
       />

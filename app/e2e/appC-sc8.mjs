@@ -74,6 +74,7 @@ const matches = (ps, script, at, m = 3, r = 1) => {
 await goto(page, 'appC/C.8');
 await page.waitForSelector(C);
 await page.waitForSelector(O);
+check('every margin note (or note group) directly follows text, never another note', await page.evaluate(() => [...document.querySelectorAll('.prose > .note')].every((n) => ['P', 'UL', 'OL'].includes(n.previousElementSibling?.tagName))));
 
 // ---- the numeric question before the explorer
 const q1 = await page.evaluateHandle(() => [...document.querySelectorAll('.q')].find((e) => e.textContent.includes('Sixty-four managed pages')));
@@ -223,10 +224,10 @@ check('q-cliff: "All of them" is right', (await answer('Weights are 105% of devi
 const sig = await answer('How do you write the prefetch?', 'Leave it to the rename');
 check('q-signature: relying on the rename is wrong, and the int device is named', sig.includes('Not quite.') && sig.includes('takes an int device'), sig.slice(0, 200));
 check('q-signature: branching with #if is right', (await answer('How do you write the prefetch?', 'Branch with #if')).includes('Correct.'));
-const hints = await answer('Delete that one call', 'The hint was keeping the pages correct');
+const hints = await answer('Delete that one call', 'The hint kept the pages coherent');
 check('q-hints: a wrong answer is marked and explained with NVIDIA\'s words', hints.includes('Not quite.') && hints.includes('Performance hints never impact the correctness'), hints.slice(0, 200));
 check('q-hints: the missing synchronise is right', (await answer('Delete that one call', 'A missing synchronise')).includes('Correct.'));
-check('q-pingpong: mapping is right', (await answer('take turns updating the same small counter page', 'Keep the page in one place')).includes('Correct.'));
+check('q-pingpong: mapping is right', (await answer('take turns updating the same small counter page', 'Keep it in one memory')).includes('Correct.'));
 
 // ---- themes and a narrow screen
 await page.$eval(C, (e) => e.scrollIntoView({ block: 'start' }));

@@ -25,8 +25,8 @@
 #define BLOCK_DIM 256
 #define MAX_KEYS_PER_THREAD 8
 #define MAX_RADIX_BITS 8
-#define MAX_BUCKETS 256   // 2^MAX_RADIX_BITS, spelled out: the emulator's translator takes no
-                          // parentheses in a __shared__ array bound
+#define MAX_BUCKETS 256   // 2^MAX_RADIX_BITS, spelled out and checked below (the emulator's
+                          // translator now also accepts (1 << MAX_RADIX_BITS) in a bound)
 static_assert(MAX_BUCKETS == 1 << MAX_RADIX_BITS, "MAX_BUCKETS must be 2^MAX_RADIX_BITS");
 
 // Provided in ../../shared-g11/scan.cu.

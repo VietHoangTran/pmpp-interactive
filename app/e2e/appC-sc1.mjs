@@ -115,7 +115,7 @@ let r = await readout();
 check('clicking the strip inside the shared window moves the address there', r.window === 'shared', JSON.stringify(r));
 if (out) await page.screenshot({ path: out + '-window.png' });
 let q = await question('What makes the first call');
-await pick(q, 'The address itself');
+await pick(q, 'The address: it lies');
 check('q-who-decides', (await qText(q)).includes('Correct.'));
 
 // ---- cards
@@ -167,7 +167,7 @@ check('the Metal tab is labs/appC/snippets/c1_helper_overloads.metal, line for l
 check('its status is verified on Metal', (await page.$eval('.code .tabs .status', (s) => s.textContent)) === 'verified on Metal');
 
 q = await question('Same time?');
-await pick(q, 'No. It is one instruction stream');
+await pick(q, 'No: the same instructions');
 check('q-speed', (await qText(q)).includes('Correct.'));
 
 // ---- notes and voice
@@ -175,7 +175,7 @@ const today = await page.$$eval('.note.today', (n) => n.map((x) => x.textContent
 check('the Today note gives PTX generic addressing, cvta, isspacep and March 2010', ['generic addressing', 'cvta', 'isspacep', 'March 2010'].every((s) => today.includes(s)));
 const beyond = await page.$$eval('.note.beyond', (n) => n.map((x) => x.textContent).join(' '));
 check('HIP is sourced to the LLVM AMDGPU documentation, and the MSL 4.1 observation is labelled', beyond.includes('LLVM AMDGPU') && beyond.includes('Observed on the build machine'));
-check('every margin note directly follows text', await page.evaluate(() => [...document.querySelectorAll('.prose > .note')].every((n) => ['P', 'UL', 'OL'].includes(n.previousElementSibling?.tagName) || n.previousElementSibling?.classList.contains('note'))));
+check('every margin note (or note group) directly follows text, never another note', await page.evaluate(() => [...document.querySelectorAll('.prose > .note')].every((n) => ['P', 'UL', 'OL'].includes(n.previousElementSibling?.tagName))));
 const prose = await page.$eval('.prose', (e) => e.textContent);
 check('no em dash in the page', !prose.includes('—'));
 check('answers went to the progress API (intercepted)', puts > 0);

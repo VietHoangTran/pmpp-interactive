@@ -522,16 +522,15 @@ export const questionsS53: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Yes, by a factor of the tile width, as for multiplication.',
+        label: 'Yes, by a factor of the tile width, as for multiplication, since each block loads whole tiles of A and B.',
         why: 'That factor is the number of threads in a block that need the same element. Count them here.',
       },
       {
-        label: 'Yes, but only by a factor of 2, because there are two input matrices.',
+        label: 'Yes, but only by a factor of 2: one tile of A and one of B are shared by the block.',
         why: 'The number of inputs is not what tiling exploits. Several threads needing the same element is.',
       },
       {
-        label:
-          'No. Each element of A and B is needed by exactly one thread, once, so there is no repeated fetch to remove.',
+        label: 'No: each element of A and B is used by one thread, once, so no fetch repeats.',
         correct: true,
       },
       {
@@ -685,8 +684,9 @@ export function S53() {
       </p>
       <Simplification>
         <p>
-          The stepper shows whole phases, with all threads of the block moving together. Real threads do not move
-          together, and nothing here shows timing or caches. Section 5.4 deals with what that changes.
+          The animation above and the stepper show whole phases, with all threads of the block moving together. Real
+          threads do not move together, and nothing here shows timing or caches. Section 5.4 deals with what that
+          changes.
         </p>
       </Simplification>
       <PhasesBench />

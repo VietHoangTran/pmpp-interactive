@@ -156,7 +156,7 @@ check('q-half: 0.25 OP/B is accepted', await answerNumeric('reads half-precision
 check('q-ceiling: 100 is accepted', await answerNumeric('a plain copy kernel measures 800 GB/s', 100));
 check('q-topp-bytes: 9 is accepted', await answerNumeric('fused top-p kernel of lab 11.6', 9));
 const q80 = await page.evaluateHandle(() => [...document.querySelectorAll('.q')].find((e) => e.textContent.includes('reads its whole input twice')));
-await q80.evaluate((e) => [...e.querySelectorAll('label')].find((l) => l.textContent.includes('no redundant global accesses. It moves 12 bytes')).querySelector('input').click());
+await q80.evaluate((e) => [...e.querySelectorAll('label')].find((l) => l.textContent.includes('every global location to be touched once')).querySelector('input').click());
 await (await q80.$('button.primary')).click();
 await pause(120);
 check('q-80: the two-part rule is the right answer', (await q80.evaluate((e) => e.textContent)).includes('Correct.'));

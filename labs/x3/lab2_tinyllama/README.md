@@ -88,10 +88,20 @@ after it, and where must the next tokens go so that the next step starts on the 
   `make_model.py --permute-qk` writes the same weights with llama.cpp's row permutation of `wq`
   and `wk`, the one its converter applies to Hugging Face checkpoints: the permuted model in
   mode 0 computes what the original computes in mode 1.
-- **M9.** The `LinearFn` indirection is where a quantised linear layer would plug in. Lab X2.4
-  (M9) exists, but its `launchQLinear(X, const QMatrix& W, Y, batch)` takes a quantised matrix
-  descriptor, not `LinearFn`'s `(X, const float* W, Y, batch, in, out)`, so
-  `provided/pieces.cmake` adds no M9 row: M10 runs float32 without M9.
+- **M9 in M10.** The `LinearFn` indirection is where a quantised linear layer plugs in. Lab
+  X2.4's (M9) `launchQLinear(X, const QMatrix& W, Y, batch)` takes a quantised matrix
+  descriptor, not `LinearFn`'s `(X, const float* W, Y, batch, in, out)`, so a provided adapter
+  joins them (`provided/m9_linear.h`, `.cu`, `.mm`). The driver quantises the seven projections
+  of every layer and the tied embedding with llama.cpp's `_ref` rules, as lab X2.4's driver
+  does (x2-facts D1), keeps the dequantised values in the model's float buffers (the embedding
+  and the CPU reference read those), and binds each float buffer to its quantised copy. The
+  adapter is a `LinearFn` that looks up the `W` it is passed and calls M9's `launchQLinear` with
+  the quantised copy; it never reads the float `W`, and a pointer it was not given is an error
+  the driver reports. Your `llama.h` interface does not change: the same step runs float32 or
+  quantised. The RMSNorm weights stay float32 (vectors, not matrices the linear layer reads).
+  It needs lab X2.4's and lab 22.1's solutions (M9 sends a float32 matrix to the gather) and
+  uses lab X2.1's and X2.2's GEMVs, or the stand-ins in `labs/x2/shared-g12`; the run prints
+  which. M9's GEMVs take a batch of at most 8 and `in` a multiple of 32.
 
 ## Files
 
@@ -103,9 +113,11 @@ after it, and where must the next tokens go so that the next step starts on the 
   device pointers per layer, `LlamaState`, `LinearFn`, `AttentionFn`, `SampleFn` and their
   Metal counterparts, every piece's declaration); `provided/pieces.cmake`, which copies the
   reference solutions of labs 2.3, 6.4, 10.3, 20.4, 22.2 and X3.1 (required) and 15.6, 20.5,
-  22.1 and X1.3 (if present) into the build directory, renaming what would clash, as lab
+  22.1, X1.3 and X2.4 (if present) into the build directory (X2.4 with lab X2.1's and X2.2's
+  GEMVs, or their stand-ins), renaming what would clash, as lab
   22.2's does (a missing required piece, or one whose signature differs from `llama.h`'s,
-  skips the lab with a note that names it); `provided/make_model.py`; `provided/step_timer.cu`,
+  skips the lab with a note that names it); `provided/m9_linear.h`, `.cu` and `.mm`, the M9
+  adapter; `provided/make_model.py`; `provided/step_timer.cu`,
   the event pair that times a step on CUDA and HIP (lab 22.2's).
 - `main.cpp`: the loader (with the E1 size check), the CPU reference (`RefSeq`: llama2.c's
   forward in double, greedy with the lowest index on a tie, D9), the tests and the benchmark.
@@ -170,6 +182,18 @@ cost the emulator least (lab 22.2 makes the same choice); M2 if neither is prese
 - **Other kernels** (GPU only): every other linear layer and attention kernel present,
   teacher-forced at batch 1. The emulator would take minutes per kernel, and the pieces-alone
   checks ran each one.
+- **M9 in M10**, if lab X2.4's solution is present: for Q8_0 and for Q4_0 (every projection and
+  the head in that format), M9's layer alone through the adapter on `wq` and `w2` against the
+  CPU on the dequantised weights; then your step with the adapter as its linear layer,
+  free-running at batch 2 over the prompt and two generated tokens on the emulators (each
+  emulated step is slow; the run must fit `pmpp.py`'s time limit), at batch 3 over all 63 steps
+  on a GPU, whose tokens must equal those of the CPU reference run
+  on the same quantised weights, under the same margin rule as above; and on a GPU, also every
+  logit of every step teacher-forced. The quantised codes, scales and float copies must be
+  unchanged afterwards. With the provided GPU seed one Q4_0 sequence has a step whose margin is
+  below the rule's (printed as inconclusive from that step on). The run also prints where each
+  sequence's greedy tokens first leave the float32 model's: not a test, since the model is
+  random and one changed token changes all that follow.
 - **RoPE pairing.** The CPU reference of the permuted model in mode 0 equals the original's in
   mode 1 to 1e-9; then the original model in mode 1 and the permuted one in mode 0, each
   teacher-forced (which also checks every step's token) and, on a GPU, free-running, against

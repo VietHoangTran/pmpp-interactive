@@ -58,11 +58,11 @@ export const questionsSX34: Record<string, Question> = {
     prompt: <>llama.cpp on CUDA, F32 activations and F16 weights, one token. Does this matrix product reach cuBLAS?</>,
     options: [
       {
-        label: 'Only if every vector and small-batch check declines it. mmvf is the first candidate, so a GEMV kernel is what to expect.',
+        label: 'Only if every check before it declines; mmvf is the first candidate, so expect a GEMV.',
         correct: true,
       },
-      { label: 'Yes: the weights are not F32, so the first check sends it to cuBLAS.', why: 'The first check reads src1->type and dst->type: the activations and the output, both F32 here. The weights are src0, and their type is what the later checks read.' },
-      { label: 'Never: one token always runs mmvf.', why: 'Within the batch limit, should_use_mmvf still decides, with branches for particular GPUs. The facts did not read all of it.' },
+      { label: 'Yes: the weights are F16, not F32, and the first check in the chain sends any non-F32 product to cuBLAS.', why: 'The first check reads src1->type and dst->type: the activations and the output, both F32 here. The weights are src0, and their type is what the later checks read.' },
+      { label: 'No: at one token the chain runs mmvf, whatever the GPU and the weight type.', why: 'Within the batch limit, should_use_mmvf still decides, with branches for particular GPUs. The facts did not read all of it.' },
       { label: 'Yes: cuBLAS is the default, and the other kernels are for quantised weights.', why: 'mmvf and mmf are for float weights; cuBLAS is what is left when every check declines.' },
     ],
     explain: (
@@ -83,8 +83,8 @@ export const questionsSX34: Record<string, Question> = {
     options: [
       { label: 'mmvf and mmvq: 9 is above their batch limit of 8. mmf, mmq or cuBLAS remain.', correct: true },
       { label: 'Only cuBLAS: above 8 tokens llama.cpp always uses its own GEMM.', why: 'cuBLAS is still the fallback when mmf and mmq decline.' },
-      { label: 'None: the limit of 8 applies only on NVIDIA GPUs.', why: 'The constants are in mmvf.cuh and mmvq.cuh, which the HIP build compiles too.' },
-      { label: 'mmf, because 9 is odd.', why: 'Nothing in the facts tests parity.' },
+      { label: 'None: the limit of 8 applies only on NVIDIA GPUs, not to the HIP build.', why: 'The constants are in mmvf.cuh and mmvq.cuh, which the HIP build compiles too.' },
+      { label: 'mmf, because its kernel needs an even number of tokens.', why: 'Nothing in the facts tests parity.' },
     ],
     explain: (
       <p>
@@ -125,11 +125,11 @@ export const questionsSX34: Record<string, Question> = {
     prompt: <>Compare MLX's <code>gemv_impl</code> with lab 22.1's gather kernel. Which statement is right?</>,
     options: [
       {
-        label: 'Same design, a warp per row of W; MLX adds vector loads without an alignment test and reduces with cg::reduce, where lab 22.1 uses a shuffle tree with a typed mask.',
+        label: 'Same design, a warp per row of W; MLX loads vectors with no alignment test and reduces with cg::reduce, not a shuffle tree.',
         correct: true,
       },
-      { label: 'MLX splits each row across several warps and adds with atomics, like lab 22.1\'s split-K kernel.', why: 'One warp owns one row and lane 0 writes out[row]: no other warp touches it, so no atomic.' },
-      { label: 'MLX gives each thread a whole row.', why: 'The lanes stride along the row together (col starts at n_per_thread * warp.thread_rank()).' },
+      { label: 'MLX splits each row across several warps and adds their partial sums into out with atomics, like lab 22.1\'s split-K kernel.', why: 'One warp owns one row and lane 0 writes out[row]: no other warp touches it, so no atomic.' },
+      { label: 'MLX gives each thread a whole row of W, which it walks alone, so no reduction across lanes is needed.', why: 'The lanes stride along the row together (col starts at n_per_thread * warp.thread_rank()).' },
       { label: 'They differ in what they compute: MLX multiplies by W, lab 22.1 by W transposed.', why: 'Both compute the dot product of a row of W with the input vector; lab 22.1 is Y = X W^T with W stored (out, in).' },
     ],
     explain: (
@@ -156,12 +156,12 @@ export const questionsSX34: Record<string, Question> = {
     ),
     options: [
       {
-        label: "A SIMD-group of 32 threads. The course reads the width from the pipeline's threadExecutionWidth and checks it (lab 15.6).",
+        label: "32 threads per SIMD-group. The course reads the width from the pipeline's threadExecutionWidth (lab 15.6).",
         correct: true,
       },
-      { label: 'A threadgroup of 32 threads; the course uses 256.', why: 'SM × SN is the shape of one SIMD-group in the kernel, not of the threadgroup.' },
-      { label: 'Nothing: Apple documents a SIMD width of 32.', why: 'Apple documents no fixed width; it is read at run time (ch04 D3).' },
-      { label: 'A matrix of 32 rows; the course pads to a multiple of 32.', why: 'The assert is about threads, as its message says.' },
+      { label: 'A threadgroup of exactly 32 threads; the course avoids it by launching threadgroups of 256 threads.', why: 'SM × SN is the shape of one SIMD-group in the kernel, not of the threadgroup.' },
+      { label: 'Nothing: Apple documents a SIMD-group width of 32 for its GPUs, so the assert only restates a guarantee.', why: 'Apple documents no fixed width; it is read at run time (ch04 D3).' },
+      { label: 'A matrix of 32 rows; the course avoids it by padding every matrix to a multiple of 32 rows.', why: 'The assert is about threads, as its message says.' },
     ],
     explain: (
       <p>
@@ -178,12 +178,12 @@ export const questionsSX34: Record<string, Question> = {
     prompt: <>Why does MLX's Metal backend stream the weights once per up to 5 input vectors instead of padding them into a GEMM tile?</>,
     options: [
       {
-        label: 'A tile sized for many rows does the arithmetic of the padded rows too and still reads every weight; for a handful of vectors a GEMV reads W once and computes only the real rows.',
+        label: 'A padded GEMM tile computes the zero rows too; a GEMV reads W once and works on the real rows only.',
         correct: true,
       },
-      { label: 'Metal has no SIMD-group matrix instructions for small tiles.', why: "MLX's steel GEMM uses SIMD-group matrices; the comment gives a traffic reason, not a missing instruction." },
-      { label: 'The GEMM tile would be wrong for fewer than 5 rows.', why: 'A padded tile gives the right answer; it wastes work.' },
-      { label: 'Because 5 is the largest batch an Apple GPU can hold.', why: '5 is a constant in MLX\'s host code, chosen by its authors, not a device figure.' },
+      { label: 'Metal has no SIMD-group matrix instructions for tiles this small, so a GEMM would fall back to scalar code.', why: "MLX's steel GEMM uses SIMD-group matrices; the comment gives a traffic reason, not a missing instruction." },
+      { label: 'A GEMM tile would give wrong results for fewer than 5 rows, since its loads assume full tiles.', why: 'A padded tile gives the right answer; it wastes work.' },
+      { label: 'Because 5 vectors is the largest batch an Apple GPU can hold in its threadgroup memory at once.', why: '5 is a constant in MLX\'s host code, chosen by its authors, not a device figure.' },
     ],
     explain: (
       <p>
@@ -201,12 +201,12 @@ export const questionsSX34: Record<string, Question> = {
     prompt: <>Your measured M8 knee is well above 8 tokens. Does that contradict llama.cpp's switch at 8?</>,
     options: [
       {
-        label: "No: llama.cpp's 8 picks between its own kernels and was tuned on its kernels and GPUs, with exceptions per type and GPU; your knee measures your kernels on your device.",
+        label: "No: llama.cpp's 8 was tuned for its own kernels on its GPUs; your knee measures your kernels on your device.",
         correct: true,
       },
       { label: "Yes: one of the two measurements is wrong.", why: 'They measure different things: where one of llama.cpp\'s kernels beats another, and where your step time starts to grow.' },
-      { label: 'Yes: the knee is a property of the GPU, so every project should switch at the same batch.', why: "The per-GPU and per-type exceptions in should_use_mmvq show that even one project switches at different points." },
-      { label: 'No, because llama.cpp counts batches in sequences, not tokens.', why: 'ne11 is the number of columns of the activations: tokens.' },
+      { label: 'Yes: the knee is a property of the GPU’s bandwidth and compute, so every project should switch kernels at the same batch.', why: "The per-GPU and per-type exceptions in should_use_mmvq show that even one project switches at different points." },
+      { label: 'No, because llama.cpp counts batches in sequences, not tokens, so its 8 means 8 whole sequences.', why: 'ne11 is the number of columns of the activations: tokens.' },
     ],
     explain: (
       <p>

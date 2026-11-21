@@ -616,13 +616,12 @@ export const questionsS146: Record<string, Question> = {
     id: 'ch14/14.6/q-layout',
     prompt: <>Why must the table list every block's zero count before any block's one count?</>,
     options: [
-      { label: 'It makes the scan of the table coalesced.', why: 'Either layout is one contiguous array; the scan reads it the same way. The order changes what the scan adds up, not how it reads.' },
+      { label: 'It makes the table scan coalesced: a scan reads the table faster when equal digits sit side by side.', why: 'Either layout is one contiguous array; the scan reads it the same way. The order changes what the scan adds up, not how it reads.' },
       {
-        label:
-          "Every one must land after every zero of every block, and an exclusive scan in that order adds up exactly the counts that come before each bucket. Block by block, a block's ones would land before the next block's zeros.",
+        label: 'Every one goes after every zero of every block; scanned in that order, each entry sums exactly the counts in front of its bucket.',
         correct: true,
       },
-      { label: 'Any order works: addition is commutative, so the scan gives the same totals.', why: 'The final total is the same, but an exclusive scan gives a different prefix at each entry. Try the block-by-block layout in the explorer.' },
+      { label: 'Any order works: addition is commutative and the table holds the same counts either way, so the scan gives every bucket the same start.', why: 'The final total is the same, but an exclusive scan gives a different prefix at each entry. Try the block-by-block layout in the explorer.' },
     ],
     explain: (
       <p>

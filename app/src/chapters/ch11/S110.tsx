@@ -120,11 +120,17 @@ export const questionsS110: Record<string, Question> = {
     prompt: <>In a grid of many blocks, block 7 spins in a loop until block 6 sets a flag in global memory. Is that safe?</>,
     options: [
       {
-        label: 'No: nothing promises block 6 has been scheduled, and if every resident block is spinning it never will be.',
+        label: 'No: block 6 may not be scheduled yet, and if every resident block spins, it never will be.',
         correct: true,
       },
-      { label: 'Yes: blocks start in order of blockIdx.x.', why: 'NVIDIA says the scheduler makes no ordering guarantees.' },
-      { label: 'Yes, as long as the flag is read with an atomic.', why: 'An atomic makes the read well defined; it does not make block 6 run.' },
+      {
+        label: 'Yes: blocks start in order of blockIdx.x, so block 6 is already running by the time block 7 spins.',
+        why: 'NVIDIA says the scheduler makes no ordering guarantees.',
+      },
+      {
+        label: 'Yes, as long as the flag is read with an atomic and written with release order.',
+        why: 'An atomic and an order make the read well defined and the data visible; they do not make block 6 run.',
+      },
       { label: 'Only if both blocks are in the same warp.', why: 'Blocks are never in the same warp.' },
     ],
     explain: (
@@ -147,12 +153,21 @@ export const questionsS110: Record<string, Question> = {
     ),
     options: [
       {
-        label: "Nothing the thread does depends on where the atomic lands relative to its other memory accesses; its one other access, the load that picks the bin, is already ordered by the data dependence.",
+        label: 'No other access of the thread needs ordering around it; the pixel load comes first anyway.',
         correct: true,
       },
-      { label: 'Relaxed is the fastest, and correctness is the same for every order.', why: 'Orders differ in what they promise about the other accesses around the atomic. Chapter 11 needs a stronger one.' },
-      { label: 'Histogram bins are in shared memory, where order does not matter.', why: 'The basic kernel updates bins in global memory, and the order question is about other accesses, not where the bin lives.' },
-      { label: 'Atomics are always sequentially consistent on GPUs.', why: 'The order is a parameter precisely because they are not, unless you ask.' },
+      {
+        label: 'Relaxed is the fastest order, and for correctness it never matters which order you pick.',
+        why: 'Orders differ in what they promise about the other accesses around the atomic. Chapter 11 needs a stronger one.',
+      },
+      {
+        label: 'Histogram bins live in shared memory, where the order of the accesses around an atomic does not matter.',
+        why: 'The basic kernel updates bins in global memory, and the order question is about other accesses, not where the bin lives.',
+      },
+      {
+        label: 'GPU atomics are sequentially consistent whatever order you pass to them.',
+        why: 'The order is a parameter precisely because they need not be: relaxed asks for less, and the hardware may give less.',
+      },
     ],
     explain: (
       <p>
@@ -190,8 +205,8 @@ export function S110() {
       <p>
         Top-p sampling sorts the next token's probabilities and keeps the shortest prefix whose cumulative probability
         reaches p. That cumulative probability is a scan, and whether the token that crosses p is kept is the difference
-        between the two kinds of scan defined in section 11.1. Lab 11.6 builds that keep mask; it is the first part of
-        milestone M5 of the course project. Scans also turn sizes into offsets: the per-sequence token counts of a
+        between the two kinds of scan defined in section 11.1. Lab 11.6 builds that keep mask; it is the top-p piece of
+        milestone M5 of the course project, which chapter 9's token counts began. Scans also turn sizes into offsets: the per-sequence token counts of a
         batch become the positions where each sequence starts in one packed buffer, and in chapter 12 a scan of 0/1 keep
         flags gives every kept token its slot in a compacted list.
       </p>
@@ -301,7 +316,7 @@ export function S110() {
         through flags in global memory (section 11.9). Metal documents no guarantee that makes this safe.
       </p>
       <p>
-        <b>Lab 11.6, top-p keep mask.</b> Milestone M5, part 1: for each row of sorted probabilities, a scan and a
+        <b>Lab 11.6, top-p keep mask.</b> The top-p piece of milestone M5: for each row of sorted probabilities, a scan and a
         threshold that keep the tokens whose mass before them is below p. It states its tie rule and the rounding band
         around p inside which either answer is accepted.
       </p>

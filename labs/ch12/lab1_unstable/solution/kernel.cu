@@ -30,9 +30,12 @@
 //   - The book prints no host code. The launchers are ours.
 //   - On HIP the atomics are the legacy atomicAdd, not cuda::atomic_ref: see below.
 
-// cuda::atomic_ref comes from <cuda/atomic>. On HIP that header is libhipcxx, which the
-// course's HIP build links only where ROCm provides it (notes/today/infra-facts.md B2). So
-// the legacy atomicAdd stands in: relaxed, valid on shared and global memory (infra B1).
+// cuda::atomic_ref comes from <cuda/atomic>. On HIP that header is AMD's libhipcxx, part of
+// the ROCm Core SDK from 10.1 (notes/today/infra-facts.md B2). The course's HIP build links
+// libhipcxx::libhipcxx when CMake finds it (labs/cmake/Backends.cmake) and builds without it
+// on an older ROCm; whether <cuda/atomic> then compiles here is unverified (no ROCm machine
+// has built it). So that this lab builds on any ROCm, the legacy atomicAdd stands in on HIP:
+// relaxed, valid on shared and global memory (infra B1).
 #if !defined(__HIPCC__)
 #include <cuda/atomic>
 #endif

@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
-import { Aside, Beyond, Source, Today } from '../../components/notes';
+import { Aside, Beyond, NoteGroup, Source, Today } from '../../components/notes';
 import { href } from '../../lib/router';
 import { DRAW, GREEDY, M5_ORDER, VOCAB, rowBytes, stage, type KernelStep } from '../../sim/chain';
 
@@ -37,7 +37,7 @@ export const questionsSX10: Record<string, Question> = {
         why: 'Overflow is not a loss of digits. The result is infinity, and infinity divided by infinity is NaN.',
       },
       {
-        label: 'Only the largest token is affected; it gets probability 1 and greedy decoding still works.',
+        label: 'Only the largest token is affected: it gets probability 1, the rest get 0, and greedy decoding still picks it.',
         why: 'Its numerator and the sum are both infinite, and their quotient is NaN, not 1.',
       },
     ],
@@ -81,11 +81,11 @@ export const questionsSX10: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'An atomic counter hands out slots in whatever order threads arrive, so the list, and any tie broken by position, can change from run to run.',
+        label: 'An atomic counter hands out slots in arrival order, so the list, and any tie broken by position, can change from run to run.',
         correct: true,
       },
-      { label: 'Atomics are too slow for a vocabulary-sized row.', why: 'Speed is not what rules them out here. Order is.' },
-      { label: 'Metal has no atomics, and the filter must run on every backend.', why: 'Metal has 32-bit integer atomics (notes/today/ch09-facts.md C1).' },
+      { label: 'Atomics are too slow for a vocabulary-sized row, where thousands of threads hit one counter.', why: 'Speed is not what rules them out here. Order is.' },
+      { label: 'Metal has no atomics on device memory, and the filter must run on all three backends, so it has to use a scan.', why: 'Metal has 32-bit integer atomics (notes/today/ch09-facts.md C1).' },
       { label: 'A scan needs less memory than a counter.', why: 'A scan needs more: an offset per element against one counter per row.' },
     ],
     explain: (
@@ -149,10 +149,10 @@ export const questionsSX10: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: '1/S: one block, and a block runs on one multiprocessor', correct: true },
-      { label: 'All of them, because a vocabulary-sized row is long', why: 'The length of the row decides how long the one block works, not how many multiprocessors it occupies.' },
-      { label: 'Half of them', why: 'Nothing in the launch puts work on half the device.' },
-      { label: 'It depends on the vocabulary size', why: 'The vocabulary sets how much work the block does. The grid has one block either way.' },
+      { label: '1/S: the grid is one block, and a block runs on one multiprocessor', correct: true },
+      { label: 'All of them, because a vocabulary-sized row is long enough to fill the device', why: 'The length of the row decides how long the one block works, not how many multiprocessors it occupies.' },
+      { label: 'Half of them, with the rest held back for the next kernel in the stream', why: 'Nothing in the launch puts work on half the device.' },
+      { label: 'It depends on the vocabulary size: a longer row spreads over more of them', why: 'The vocabulary sets how much work the block does. The grid has one block either way.' },
     ],
     explain: (
       <p>
@@ -225,13 +225,15 @@ export function SX10() {
         of float32 scores, one row per request. The next kernel has to turn each row into one token id. That kernel is the
         sampler, and this module builds it on the GPU, on CUDA, HIP and Metal, from kernels you have already written.
       </p>
-      <Beyond title="Ours, not the book's">
-        <p>
-          The book's transformer ends at the un-embedding layer, which turns the last layer's output into a probability
-          distribution over tokens. How one token is chosen is not in the book. Module X1 is ours.
-        </p>
-      </Beyond>
-      <Source section="20.1" pages="481" />
+      <NoteGroup>
+        <Beyond title="Ours, not the book's">
+          <p>
+            The book's transformer ends at the un-embedding layer, which turns the last layer's output into a probability
+            distribution over tokens. How one token is chosen is not in the book. Module X1 is ours.
+          </p>
+        </Beyond>
+        <Source section="20.1" pages="481" />
+      </NoteGroup>
       <p>
         A sampler is a short chain of row-wise operations: penalise tokens that were already used, keep only the most
         likely candidates in three different ways, sharpen or flatten what is left, and draw one. Each operation is small.
@@ -305,7 +307,8 @@ export function SX10() {
         That second question has an awkward answer. Each kernel in this module gives one block to one row: the shape of
         lab 10.3's softmax, of FlashInfer's sampling kernel and of llama.cpp's Metal top-k. At batch 1 that is one block on
         one multiprocessor, and the rest of the GPU idles, as <a href={href('ch10', '10.10')}>section 10.10</a> showed for
-        the softmax. Whether that matters next to the rest of a decode step is something you will measure in lab X1.3.
+        the softmax. How much that costs is something you will measure in lab X1.3, which times a sampling step at
+        batch 1 and batch 64 and against one CPU thread.
       </p>
       <Today checked={`2026-11-20 in the facts pass (${FACTS}, A6; notes/today/ch12-facts.md D2)`}>
         <p>
@@ -338,7 +341,7 @@ export function SX10() {
         Six questions on what this module assumes from chapters 9 to 14 and their labs. Each links to the section it comes
         from, and each comes back in <a href={href('review')}>review</a>.
       </p>
-      <Ask q={q['x1/start/q-max-subtract']} label="From chapters 10 and 20" />
+      <Ask q={q['x1/start/q-max-subtract']} label="From chapter 10" />
       <Ask q={q['x1/start/q-exclusive']} label="From chapter 11" />
       <Ask q={q['x1/start/q-stable']} label="From chapter 12" />
       <Ask q={q['x1/start/q-vocab-kib']} label="From chapter 9" />

@@ -118,7 +118,7 @@ const answerChoice = async (promptPart, optionPart) => {
   // the verdict, plus the reason shown beside a wrong pick
   return q.evaluate((e) => (e.querySelector('.verdict')?.textContent ?? '') + ' ' + (e.querySelector('.opts label.wrong .muted')?.textContent ?? ''));
 };
-let v = await answerChoice('compute a 2T × 2T tile of the output', 'Faster: tiling always');
+let v = await answerChoice('compute a 2T × 2T tile of the output', 'Faster: halving the global traffic');
 check('q-tiling-occ: "faster" is wrong, with its reason', v.includes('Not quite.') && v.includes('removes resident blocks'), v);
 v = await answerChoice('compute a 2T × 2T tile of the output', 'No change:');
 check('q-tiling-occ: "no change" is wrong: twice the shared memory per block at the same thread count', v.includes('Not quite.') && v.includes('twice the shared memory per block at the same thread count'), v);

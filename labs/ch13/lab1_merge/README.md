@@ -156,9 +156,10 @@ What each backend can catch:
   promises, not what its code happens to do.
 - The `total < m + n` mode is how llama.cpp's Metal backend computes top-k for short
   rows: it keeps the top k of each block, then merges the lists pairwise with a kernel
-  shaped like Fig. 13.9 that stops at `top_k` (D3). Module X1 can reuse this mode for
-  that step (a top-k list is sorted largest first, so it merges with the keys negated or
-  the comparison reversed).
+  shaped like Fig. 13.9 that stops at `top_k` (D3). A top-k list is sorted largest
+  first, so it merges with the keys negated or the comparison reversed. Module X1 builds
+  its top-k as a radix select instead (section X1.4, "Top-k is a selection, not a sort"),
+  so nothing there depends on this mode.
 
 ## The experiment
 

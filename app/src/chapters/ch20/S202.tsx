@@ -62,7 +62,7 @@ export const questionsS202: Record<string, Question> = {
     ),
     options: [
       { label: 'A row\'s shift scales its numerators and sum alike; a column shift does not.', correct: true },
-      { label: 'Because the row max is the only value that keeps every exponent finite in float32.', why: 'Any constant at least the max would also keep them finite; finiteness is not why P is unchanged.' },
+      { label: 'Because only the row max keeps every exponent finite in float32.', why: 'Any constant at least the max would also keep them finite; finiteness is not why P is unchanged.' },
       { label: 'Because softmax is applied to columns, so only a column shift reaches it.', why: 'Softmax normalises each row of S + M (Eq. 20.2): a row sums to 1.' },
       { label: 'It does change P slightly, by the float rounding of the subtraction.', why: 'Rounding is a float32 detail; the question is about the algebra, where the change is exactly none.' },
     ],

@@ -78,20 +78,19 @@ export const questionsS140: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Not a race: writes that all store the same value cannot conflict.',
+        label: 'Not a race: writes that all store the same value cannot conflict, so the flag ends up 1 either way.',
         why: 'Idempotent is not the same as race-free. The memory model defines a race by the accesses, not by the values.',
       },
       {
-        label: 'Only a problem if the threads write different values.',
+        label: 'Only a problem if the threads wrote different values; equal stores are idempotent, so the result is defined.',
         why: 'With different values the result would be unpredictable as well as undefined. With equal values it is still undefined.',
       },
       {
-        label: 'Only a problem on AMD GPUs.',
+        label: 'Undefined on AMD GPUs, but NVIDIA\'s memory model treats equal-value stores as benign.',
         why: 'The rule is NVIDIA\'s own: any data race in the CUDA memory model is undefined behaviour.',
       },
       {
-        label:
-          'A data race. It is undefined behaviour in the CUDA memory model even though every write stores the same value; the store should be atomic.',
+        label: 'A data race: undefined behaviour in the CUDA memory model although every write stores 1. Make the store atomic.',
         correct: true,
       },
     ],
@@ -117,17 +116,16 @@ export const questionsS140: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Shared memory is private to a block.',
-        why: 'True, but the scan could go through global memory. The obstacle is waiting for blocks that may not be running.',
+        label: 'Shared memory is private to a block, so no block can see the bits the other blocks extracted.',
+        why: 'Shared memory is private, but the bits can go through global memory, which every block sees. The obstacle is waiting for blocks that may not be running.',
       },
       {
-        label:
-          'Blocks are not guaranteed to be resident together or to run in any order, so a block that waits for all the others may wait for one that cannot start until it leaves.',
+        label: 'Blocks need not all be resident or run in any order, so a block waiting for the rest may wait forever.',
         correct: true,
       },
       {
-        label: 'It could, it would only be slow.',
-        why: 'Speed is not the issue: the wait may never end.',
+        label: 'It could: __syncthreads() waits for every thread of the launch, so the scan would only be slower, never wrong.',
+        why: '__syncthreads() spans one block only, and a hand-made wait across blocks may never end. Speed is not the issue.',
       },
     ],
     explain: (
@@ -152,16 +150,15 @@ export const questionsS140: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'The value of output k - 1.',
+        label: 'The value of output k − 1, so that it can carry on merging from that value in both lists.',
         why: 'Knowing a value does not say where in each input to start. It also needs the merge of everything before it.',
       },
       {
-        label: 'Element k of each input list.',
+        label: 'Element k of each input list, since the first k outputs are the k smallest of the two lists together.',
         why: 'The first k outputs can come from the two lists in any proportion; k of each is right only by accident.',
       },
       {
-        label:
-          'How many of the first k outputs come from each list: the co-rank pair (i, j) with i + j = k, found by a binary search.',
+        label: 'The co-rank pair (i, j), i + j = k: how many of the first k outputs each list supplies, by binary search.',
         correct: true,
       },
     ],
@@ -215,7 +212,8 @@ export function S140() {
       </Today>
       <p>
         Two qualifications. Top-k needs no full sort: finding the k largest is a selection, which is why PyTorch has{' '}
-        <code>torch.topk</code> and CUB now has <code>cub::DeviceTopK</code>; module X1 builds selection. And top-p over
+        <code>torch.topk</code> and CUB now has <code>cub::DeviceTopK</code>; module X1 builds one in{' '}
+        <a href={href('x1', 'X1.4')}>X1.4, "Top-k is a selection, not a sort"</a>. And top-p over
         a sorted list is the common formulation, not the only one: vLLM's default Triton path finds the cut with a pivot
         search and never sorts.
       </p>
@@ -273,7 +271,10 @@ export function S140() {
       <h2>Before you start</h2>
       <p>
         Six questions on what this chapter assumes from chapters 4, 6 and 10 to 13. Each explanation names the section
-        of this chapter that relies on it, and each question returns in <a href={href('review')}>review</a>.
+        of this chapter that relies on it, and each question returns in <a href={href('review')}>review</a>. This
+        course's order (section <a href={href('ch01', '1.7')}>1.7</a>) reads chapter 13 after this one, so if you follow
+        it, take the co-rank question as a preview: section 14.3 uses only the search's result, and{' '}
+        <a href={href('ch13', '13.3')}>section 13.3</a> works it out.
       </p>
       <Ask q={q['ch14/start/q-exscan']} label="From chapter 11" />
       <Ask q={q['ch14/start/q-filterpos']} label="From chapter 12" />

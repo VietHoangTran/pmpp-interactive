@@ -380,13 +380,13 @@ export const questionsS106: Record<string, Question> = {
     id: 'ch10/10.6/q-barrier-top',
     prompt: <>Why does Fig. 10.10 put <code>__syncthreads()</code> at the top of the loop body?</>,
     options: [
-      { label: 'To make the loop faster.', why: 'A barrier only ever adds waiting; the question is what it must order.' },
+      { label: 'To make the loop faster: at the top, threads reach their addition sooner after the barrier.', why: 'A barrier only ever adds waiting; the question is what it must order.' },
       {
-        label: 'So the shared-memory writes of the load, and of each iteration, are finished before the next iteration reads them; after the last iteration only thread 0 wrote, and thread 0 reads that slot itself.',
+        label: 'So the load\'s shared-memory writes, and each iteration\'s, are done before the next iteration reads them.',
         correct: true,
       },
-      { label: 'The bottom of the loop would work just as well.', why: 'Then nothing separates the first iteration from the load. Run "barrier at the bottom" in the hunt.' },
-      { label: 'Because a barrier at the bottom would deadlock.', why: 'It does not deadlock; every thread still reaches it. It leaves the load unprotected.' },
+      { label: 'No reason: the bottom of the loop would order the same writes and reads just as well.', why: 'Then nothing separates the first iteration from the load. Run "barrier at the bottom" in the hunt.' },
+      { label: 'Because a barrier at the bottom would deadlock in the last iteration, when only thread 0 is active.', why: 'It does not deadlock; every thread still reaches it. It leaves the load unprotected.' },
     ],
     explain: (
       <p>
@@ -408,7 +408,7 @@ export const questionsS106: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Nothing: the loop starts at blockDim.x/2, so it adapts.', why: 'The loop does. The load does not: it uses BLOCK_DIM.' },
+      { label: 'Nothing: the loop starts at blockDim.x/2, so the kernel adapts to the launched size.', why: 'The loop does. The load does not: it uses BLOCK_DIM.' },
       { label: 'Thread t loads input[t + 1024], past the row, and values 512 to 1023 are never loaded.', correct: true },
       { label: 'The launch fails, because the shared array is larger than the block.', why: 'A shared array may be larger than needed; nothing checks it against the block.' },
     ],
@@ -448,9 +448,9 @@ export const questionsS106: Record<string, Question> = {
     ),
     options: [
       { label: 'Nothing: each thread reads the max before it writes, in program order.', why: 'Program order holds within a thread. Thread 0 can write scratch[0] before thread 5 has read it.' },
-      { label: 'A barrier; it protects a read-after-write (true) dependence.', why: 'The barrier before the read protects that one: the max must be written before anyone reads it.' },
+      { label: 'A barrier, for a read-after-write (true) dependence on the max.', why: 'That one is protected by the barrier before the read. The question is about the gap after it.' },
       {
-        label: 'A barrier; it protects a write-after-read (false) dependence, which disappears if the second reduction uses another array.',
+        label: 'A barrier, for a write-after-read (false) dependence; a second array would remove it.',
         correct: true,
       },
     ],
@@ -583,7 +583,14 @@ export function S106() {
         thread are coalesced, so they take N/32 requests, plus one for the write. For 256 values: from {r256.c} requests in
         the convergent kernel to 8 + 1 = {r256.s}, four times fewer. And the input array is left as it was.
       </p>
-      <Source section="10.6" pages="236–237" />
+      <NoteGroup>
+        <Source section="10.6" pages="236–237" />
+        <Simplification>
+          <p>
+            The request rule of section 10.5's explorer, ours: no caches, no timing, no transaction sizes.
+          </p>
+        </Simplification>
+      </NoteGroup>
       <Traffic />
       <Ask q={questionsS106['ch10/10.6/q-req-shared']} label="Work it out" />
 

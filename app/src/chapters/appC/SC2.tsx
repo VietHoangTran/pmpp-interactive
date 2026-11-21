@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
-import { Aside, Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
+import { Aside, Bench, Beyond, NoteGroup, Simplification, Source, Today } from '../../components/notes';
 import { benchRows, fmt, realBackends, useReports, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import {
@@ -378,19 +378,19 @@ export const questionsSC2: Record<string, Question> = {
     options: [
       {
         label:
-          'The batches are in pageable memory, and from pageable memory a non_blocking copy may block the host. DataLoader(pin_memory=True) puts them in page-locked memory, so the copy can run asynchronously, and faster.',
+          'The batches are pageable, and a non_blocking copy from pageable memory may block. DataLoader(pin_memory=True) pins them, so the copy runs asynchronously.',
         correct: true,
       },
       {
-        label: 'non_blocking=True does nothing for host-to-GPU copies; nothing on the host side can fix it.',
+        label: 'non_blocking=True affects only GPU-to-host copies, not host-to-GPU ones; nothing on the host side fixes the stall, so overlap it with more CUDA streams.',
         why: 'PyTorch: once a tensor is pinned, you can use asynchronous GPU copies by passing non_blocking=True. The flag works; the memory it copies from was the problem.',
       },
       {
-        label: 'Have the model read each batch in place from mapped host memory, so there is no copy to wait for.',
+        label: 'Have the model read each batch in place from mapped host memory, so there is no copy for the host to wait for at all.',
         why: 'That removes the copy and puts the link under every access the model makes. PyTorch pins memory to make the copy fast and asynchronous, not to read batches in place.',
       },
       {
-        label: 'Pin the model\'s weights as well.',
+        label: "Pin the model's weights as well, so every tensor the step touches is page-locked and the copies stop stalling.",
         why: 'The weights already live on the GPU. What crosses the link at each step is the batch, and the batch is what needs page-locked memory.',
       },
     ],
@@ -421,16 +421,18 @@ export function SC2() {
       <Source section="C.2" pages="624" />
       <p>
         This zero-copy memory is pinned memory: the operating system must not page it out while the GPU reads it.
-        Chapter 23 explains pinning, and allocates its own pinned buffers with <code>cudaMallocHost</code> instead; the
-        book never relates the two calls.
+        Chapter 23 explains pinning (<a href={href('ch23', '23.3')}>section 23.3</a> here), and allocates its own pinned
+        buffers with <code>cudaMallocHost</code> instead; the book never relates the two calls.
       </p>
-      <Source section="C.2" pages="624" figs="pinning: ch. 23, pp. 562–563" />
-      <Aside>
-        <p>
-          <b>In the PDF</b> the appendix says "we mentioned" that the flag's other values are for advanced use. We found
-          no earlier mention in this edition (a search of the text finds <code>cudaHostAlloc</code> only in Appendix C).
-        </p>
-      </Aside>
+      <NoteGroup>
+        <Source section="C.2" pages="624" figs="pinning: ch. 23, pp. 562–563" />
+        <Aside>
+          <p>
+            <b>In the PDF</b> the appendix says "we mentioned" that the flag's other values are for advanced use. We found
+            no earlier mention in this edition (a search of the text finds <code>cudaHostAlloc</code> only in Appendix C).
+          </p>
+        </Aside>
+      </NoteGroup>
       <p>
         Since then the recipe has shrunk. NVIDIA now calls this <b>mapped memory</b>. Under unified addressing, which
         every 64-bit process has (section C.3), memory from <code>cudaMallocHost</code> or <code>cudaHostAlloc</code>{' '}
@@ -452,14 +454,16 @@ export function SC2() {
         without enough reuse runs at the speed of its memory. If most of its bytes now come over the link, the link is
         its memory, and it runs at a tenth of the speed or less.
       </p>
-      <Source section="C.2" pages="625" />
-      <Today checked="2026-11-20 against NVIDIA's H100 and Grace Hopper pages (notes/today/appC-facts.md, A4)">
-        <p>
-          True for PCIe. On the book's example device, H100 SXM, 128 GB/s of PCIe Gen5 against 3.35 TB/s of device
-          memory is about 3.8% (our arithmetic). NVIDIA's NVLink-C2C systems narrow the gap a lot. NVIDIA no longer
-          states a ratio: measure yours.
-        </p>
-      </Today>
+      <NoteGroup>
+        <Source section="C.2" pages="625" />
+        <Today checked="2026-11-20 against NVIDIA's H100 and Grace Hopper pages (notes/today/appC-facts.md, A4)">
+          <p>
+            True for PCIe. On the book's example device, H100 SXM, 128 GB/s of PCIe Gen5 against 3.35 TB/s of device
+            memory is about 3.8% (our arithmetic). NVIDIA's NVLink-C2C systems narrow the gap a lot. NVIDIA no longer
+            states a ratio: measure yours.
+          </p>
+        </Today>
+      </NoteGroup>
       <p>
         A mixed kernel is the realistic case: most bytes from device memory, a few from the host. Work this one out
         before you touch the explorer, then check it there with the book's 10%.
@@ -492,12 +496,14 @@ export function SC2() {
         while the bytes the kernel reads over its whole life stay below 1/(1 − ρ) tables: a little more than one
         table's worth.
       </p>
-      <Source section="C.2" pages="625" />
-      <Beyond>
-        <p>
-          The break-even rule is our derivation from the book's advice, in the bandwidth-only model of the explorer.
-        </p>
-      </Beyond>
+      <NoteGroup>
+        <Source section="C.2" pages="625" />
+        <Beyond>
+          <p>
+            The break-even rule is our derivation from the book's advice, in the bandwidth-only model of the explorer.
+          </p>
+        </Beyond>
+      </NoteGroup>
       <p>
         An embedding lookup, the book's description of the first step of a transformer (ch. 20, p. 480), is the
         textbook sparse read. Commit to a number:

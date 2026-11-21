@@ -28,20 +28,20 @@ export const questionsS183: Record<string, Question> = {
     ),
     options: [
       {
-        label: "Vertex 8's: its in-neighbours 3, 4 and 6 are all still unvisited, so it has no parent at level 1. Every other unvisited vertex finds one and breaks.",
+        label: "Vertex 8's: its in-neighbours 3, 4 and 6 are unvisited; every other unvisited vertex has a level-1 parent.",
         correct: true,
       },
       {
-        label: "Vertex 0's: it has no in-edge from level 1.",
+        label: "Vertex 0's: its one in-neighbour, 7, is not at level 1, so its scan finds no parent.",
         why: 'Vertex 0 is the root, at level 0. Its thread fails the unvisited check on line 05 and never loops.',
       },
       {
-        label: "Vertex 4's: it has two in-edges and must check both.",
+        label: "Vertex 4's: its in-neighbours are 1 and 3, and it must check both before it labels.",
         why: 'Its first in-neighbour in CSC order is 1, at level 1. It labels itself and breaks after one.',
       },
       {
-        label: 'None: every thread that loops labels its vertex.',
-        why: 'A thread loops whenever its vertex is unvisited, whether or not a parent exists yet.',
+        label: 'None: every thread that loops finds a level-1 parent, since every vertex of this graph is reachable from 0.',
+        why: 'A thread loops whenever its vertex is unvisited, whether or not a parent exists yet. Vertex 8\'s in-neighbours are all at level 2.',
       },
     ],
     explain: (
@@ -68,11 +68,11 @@ export const questionsS183: Record<string, Question> = {
         correct: true,
       },
       {
-        label: 'Push: the last level is where the work starts, so start from it.',
+        label: 'Push: the last level is where the new work starts, and 40% of the vertices give it plenty of threads.',
         why: 'Push would walk the long out-lists of 40% of the graph, mostly to find neighbours already labelled.',
       },
       {
-        label: 'Either: both read every edge once over the whole search.',
+        label: 'Either: over a whole search both read every edge once, so the choice for one level does not matter.',
         why: 'Push reads each edge once in total; pull re-reads edges level after level. Per level, the costs are very different.',
       },
     ],
@@ -96,16 +96,16 @@ export const questionsS183: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'CSR for push and CSC for pull (one pair if the graph is symmetric), and a measure of the frontier against the unvisited part, such as edges out of each.',
+        label: 'CSR and CSC (one pair if symmetric), and per level a measure such as edges out of the frontier against edges out of unvisited vertices.',
         correct: true,
       },
       {
-        label: 'CSR only, and the level number: switch at a fixed level.',
-        why: 'Pull reads incoming edges, which CSR does not give. And the right level depends on the graph, which a fixed number ignores.',
+        label: 'CSR only, since pull can scan the rows for its parents; and the level number, to switch at a fixed level.',
+        why: 'Pull reads incoming edges, which CSR gives only by searching every row. And the right level depends on the graph, which a fixed number ignores.',
       },
       {
-        label: 'COO only, since it serves both directions.',
-        why: 'COO serves the edge-centric kernel. Push needs a vertex\'s out-edges as a slice, pull its in-edges.',
+        label: 'COO only, since one list of (src, dst) pairs serves push and pull alike, and the frontier size the host already reads.',
+        why: 'COO serves the edge-centric kernel. Push needs a vertex\'s out-edges as a slice, pull its in-edges; COO gives neither without a scan.',
       },
     ],
     explain: (
@@ -144,15 +144,15 @@ export const questionsS183: Record<string, Question> = {
     prompt: <>When does edge-centric BFS beat vertex-centric push?</>,
     options: [
       {
-        label: 'On a small graph with high degree variance: more threads to fill the device, and no per-thread loop for a long list to stretch.',
+        label: 'On a small graph with skewed degrees: more threads to fill the device, and no long list stretching one thread.',
         correct: true,
       },
       {
-        label: 'On a large road network: it reads every edge once.',
+        label: 'On a large road network, because it reads every edge exactly once over the whole search, like push with frontiers.',
         why: 'It reads every edge at every level, and a road network has many levels.',
       },
       {
-        label: 'Whenever memory is short: COO is the smallest format.',
+        label: 'Whenever memory is short, because COO, with no pointer array per vertex, is the smallest of the three formats.',
         why: 'COO stores two numbers per edge; CSR and CSC store one per edge plus one per vertex.',
       },
     ],
@@ -198,15 +198,15 @@ export const questionsS183: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'In Fig. 18.6 a duplicate writes the same value. In Fig. 18.12 each winner also appends, so a duplicate lands twice in the frontier and is expanded twice.',
+        label: 'In Fig. 18.6 a duplicate rewrites the same level. In Fig. 18.12 each winner also appends, so a duplicate is expanded twice.',
         correct: true,
       },
       {
-        label: 'Fig. 18.12 runs fewer threads, so collisions are likelier.',
+        label: 'Fig. 18.12 launches far fewer threads per level, so two of them reaching one neighbour together is likelier.',
         why: 'Fewer threads make collisions rarer, not likelier. The difference is what a collision does.',
       },
       {
-        label: 'Fig. 18.6 is correct by the memory model; Fig. 18.12 is not.',
+        label: 'Fig. 18.6 is race-free under the memory model, because every racing write stores the same value; Fig. 18.12 has no such guarantee.',
         why: 'Fig. 18.6 is a data race too, undefined by the memory model. It merely works in practice.',
       },
     ],
@@ -230,16 +230,16 @@ export const questionsS183: Record<string, Question> = {
     ),
     options: [
       {
-        label: "The failed compare-and-swap on 3 writes 3's level into e. The one on 4 then compares UNVISITED with that level and fails, so 4 is missed.",
+        label: "The failed swap on 3 writes 3's level into e. The swap on 4 then compares UNVISITED with that level and fails: 4 is missed.",
         correct: true,
       },
       {
-        label: 'Both work: compare-and-swap resets e when it fails.',
+        label: 'Both work: a failed compare-and-swap resets e to UNVISITED, ready for the next neighbour.',
         why: 'It does the opposite: on failure it loads the value it found into e.',
       },
       {
-        label: "4 is labelled twice: e still holds UNVISITED from the declaration.",
-        why: 'e changed when the swap on 3 failed. Step it in the stepper to see.',
+        label: '3 is relabelled: the swap on 3 compares with the UNVISITED of the declaration, so it overwrites the winner.',
+        why: 'The swap on 3 fails, because level[3] no longer holds UNVISITED, and that failure is what changes e. Step it in the stepper to see.',
       },
     ],
     explain: (
@@ -352,10 +352,10 @@ function Listings() {
 function metalVisitStatus(reports: Reports): string {
   const rs = (reports.metal?.results ?? []).filter((r) => r.lab === 'ch18/lab1_frontier' && r.built);
   const tests = rs.flatMap((r) => r.tests.filter((t) => t.case.startsWith('provided frontier')));
-  if (!tests.length) return 'unverified (no run of lab 18.1 on this machine)';
+  if (!tests.length) return 'unverified: no run of lab 18.1 on this machine';
   return tests.every((t) => t.pass)
     ? "verified on Metal (lab 18.1's provided frontier test, which calls it, passes on this machine)"
-    : 'unverified (failed on this machine)';
+    : 'unverified: failed on this machine';
 }
 
 /** Code inside the backends table: allowed to wrap, so no column is squeezed by one long name. */

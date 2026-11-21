@@ -20,9 +20,9 @@
 //     [out x in/32]), as MLX keeps its scales apart from its packed weights (D5), so that the
 //     codes stay 4-byte aligned. llama.cpp's block_q8_0 interleaves them (34 bytes, D1).
 //   - halfBitsToFloat builds the value with integer operations and a power of two, so that a
-//     kernel can convert an FP16 scale held as uint16_t bits with no __half type: the CPU
-//     emulators and the front-end stub do not model __half (x2-facts, "Project notes";
-//     appA-facts E2), and cuda_fp16.h and hip_fp16.h are different headers (infra B12).
+//     kernel can convert an FP16 scale held as uint16_t bits with no __half type:
+//     cuda_fp16.h and hip_fp16.h are different headers (infra B12), and the emulators'
+//     newer __half model is not relied on (appA-facts E2).
 //   - floatToHalfBits rounds to nearest, ties to even, which is IEEE 754's default rounding
 //     and what GGML_FP32_TO_FP16 is meant to compute; we did not check llama.cpp's CPU
 //     conversion path bit for bit (it depends on the build's F16C support).

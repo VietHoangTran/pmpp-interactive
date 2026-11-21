@@ -143,7 +143,7 @@ t = await choose('breaks the owner-computes rule', 'softmax');
 check('owner: the softmax row is wrong, with the reduction pointer', t.includes('Not quite.') && t.includes('chapter 10'), t.slice(0, 300));
 t = await choose('breaks the owner-computes rule', 'token id');
 check('owner: counting token ids is accepted', t.includes('Correct.'));
-t = await choose('limited by memory on a CPU', 'L1 cache');
+t = await choose('limited by memory on a CPU', 'bins sit in L1');
 check('cpu: accepted with the book\'s argument', t.includes('Correct.') && t.includes('§9.1, p. 203'));
 const cpuOrder = await page.evaluate(() => {
   const kids = [...document.querySelector('.prose').children];

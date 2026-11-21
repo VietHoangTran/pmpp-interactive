@@ -177,15 +177,15 @@ export const questionsWrap: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Nothing: sizeof makes the product a size_t, which is large enough.',
+        label: 'Nothing: sizeof makes the product a size_t, and a size_t is large enough for any table.',
         why: 'The product is computed as a size_t and is right. It is then stored in an int, and that is where it stops being right.',
       },
       {
-        label: `size cannot hold ${n(TABLE_BYTES)}, so it does not hold the byte count, and the allocation and both copies ask for the wrong size.`,
+        label: `size cannot hold ${n(TABLE_BYTES)}, so cudaMalloc and both copies get a wrong byte count.`,
         correct: true,
       },
       {
-        label: 'The kernel\'s int i overflows for the last elements.',
+        label: 'The kernel\'s int i overflows for the last elements, so they are written to the wrong place.',
         why: `The largest index is ${n(TABLE_N - 1)}, well below ${n(INT_MAX)}. An index into a table of this size still fits in an int; its size in bytes does not.`,
       },
       {
@@ -473,6 +473,11 @@ export function Wrap() {
           p. 37 says the kernel of "Fig. 2.10" has no loop corresponding to the one in Fig. 2.10; the loop is in Fig.
           2.4. The same page calls the kernel <code>vecAddVecKernel</code>; it is <code>vecAddKernel</code>.
         </li>
+        <li>
+          Fig. 2.3 (p. 25) draws the host thread in pieces beside each grid and does not show whether it waits or
+          works while the grid runs, and the chapter never says whether a launch blocks.{' '}
+          <a href={href('ch02', '2.2')}>Section 2.2</a> answers it from the vendors' documentation.
+        </li>
         <li>The snippet on p. 30 prints <code>float *A_d</code> without its semicolon.</li>
         <li>
           Exercise 3 (p. 41) reads "will first process a section first", and prints the same four options as exercise
@@ -562,8 +567,8 @@ export function Wrap() {
         <li>The sidebar on pointers in C++ (pp. 26–27).</li>
         <li>
           Multidimensional arrays with <code>cudaMalloc</code> (footnote 2, p. 29): chapter 3. The faster or copy-free
-          allocation functions the book defers (p. 29) are named in section 2.4 from today's documentation; the rest is
-          chapter 23 and appendix C.
+          allocation functions the book defers (p. 29) are named in <a href={href('ch02', '2.4')}>section 2.4</a> from today's
+          documentation; the rest is <a href={href('ch23')}>chapter 23</a> and <a href={href('appC')}>appendix C</a>.
         </li>
         <li>
           The telephone-number analogy of the hierarchy sidebar (pp. 34–35) and the <code>int</code> versus{' '}

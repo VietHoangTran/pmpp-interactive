@@ -129,7 +129,7 @@ for (const [needle, value, name] of [['How many contiguous chunks', '8', 'q-chun
   check(name, (await q.evaluate((e) => e.textContent)).includes('Correct.'));
 }
 const qd = await question('12 of a warp\'s 32 lanes');
-await qd.evaluate((e) => [...e.querySelectorAll('label')].find((l) => l.textContent.includes('consecutive output slots')).querySelector('input').click());
+await qd.evaluate((e) => [...e.querySelectorAll('label')].find((l) => l.textContent.includes('consecutive slots, in lane order')).querySelector('input').click());
 await (await qd.$('button.primary')).click();
 await pause(150);
 check('q-direct: consecutive slots is right', (await qd.evaluate((e) => e.textContent)).includes('Correct.'));

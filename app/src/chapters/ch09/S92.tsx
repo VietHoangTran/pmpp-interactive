@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
 import { Bench, Beyond, Simplification, Source, Today, type Tier } from '../../components/notes';
-import { labStatus, useReports } from '../../lib/reports';
+import { solutionTabStatus } from '../../components/LabKit';
+import { useReports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import { OP_TEXT, PRESETS, atomicOrder, enumerate, nextOp, run, type PresetId, type Run } from '../../sim/histrace';
 
@@ -278,9 +279,9 @@ function BasicListing() {
   const metal = useLabFile(LAB + '/solution/kernel.metal');
   const k = region(cu, 'basic');
   const m = region(metal, 'basic');
-  const st = (b: string) => labStatus(reports[b], LAB, 'solution');
-  const cuStatus = (st('emu') === 'pass' ? 'emulator-checked' : 'no passing emulator run on this machine') + '; unverified on CUDA and HIP hardware';
-  const mStatus = st('metal') === 'pass' ? 'verified on Metal' : 'unverified: no passing Metal run on this machine';
+  // The same words as the labs page's status table and reference-solution tabs.
+  const cuStatus = solutionTabStatus(reports, LAB, 'kernel.cu');
+  const mStatus = solutionTabStatus(reports, LAB, 'kernel.metal');
   if (!k)
     return (
       <p className="muted" data-part="listing-missing">
@@ -361,8 +362,8 @@ export const questionsS92: Record<string, Question> = {
     prompt: <>Why is <code>cuda::memory_order_relaxed</code> enough in the basic histogram kernel?</>,
     options: [
       { label: 'Relaxed is the default for fetch_add, so it is what every atomic in the kernel uses anyway.', why: 'The default for fetch_add is seq_cst (notes/today/ch09-facts.md A1). The book passes relaxed on purpose.' },
-      { label: 'Relaxed is always safe for a counter, and it is the fastest order, so there is no reason to pick another.', why: 'It is the fastest, and not always safe: chapter 11 needs a stricter order to hand data from one block to another.' },
-      { label: 'Its only other memory access is the pixel load, which the bin\'s address depends on; nobody reads bins until the end.', correct: true },
+      { label: 'Relaxed trades a little accuracy for speed, and a histogram can tolerate a few lost counts.', why: 'Relaxed loses no update: every fetch_add is still atomic. The order only says how the thread\'s other memory accesses may move around the atomic.' },
+      { label: 'Its one other memory access, the pixel load, must come first anyway: the bin\'s address depends on it.', correct: true },
     ],
     explain: (
       <p>
@@ -410,8 +411,8 @@ export const questionsS92: Record<string, Question> = {
     options: [
       { label: 'race, which runs the threads concurrently under ThreadSanitizer.', why: 'race reports the unordered read and write of the bin, even in a run whose counts came out right, and a report fails the test.' },
       { label: 'A GPU run, however many times you repeat it.', why: 'Whether a count is lost depends on timing. On a constant image it usually is; nothing makes either outcome certain.' },
-      { label: 'emu, under all three of its thread orders.', correct: true },
-      { label: 'None of them: a race is never certain either way.', why: 'On emu it is: a thread is never interrupted between its load and its store, so every order there is a serial one.' },
+      { label: 'emu, under each of its three thread orders.', correct: true },
+      { label: 'None of them: whether a race shows depends on timing, on every backend.', why: 'Not on emu: there is no timing there. A thread is never interrupted between its load and its store, so every order is a serial one.' },
     ],
     explain: (
       <p>

@@ -130,9 +130,8 @@ export const questionsWrap: Record<string, Question> = {
       {
         label: (
           <>
-            Read A's CSR arrays as the CSC of Aᵀ: one thread per row of A loads <code>g[row]</code> once and adds{' '}
-            <code>value·g[row]</code> into <code>out[col]</code> with an atomic, as SpMV/CSC does. If the product repeats,
-            build the CSR of Aᵀ once and run the per-row kernel with no atomics.
+            Read A's CSR arrays as the CSC of Aᵀ and run SpMV/CSC, atomics on the output included; if the product
+            repeats, build the CSR of Aᵀ once.
           </>
         ),
         correct: true,
@@ -140,7 +139,8 @@ export const questionsWrap: Record<string, Question> = {
       {
         label: (
           <>
-            Run the CSR kernel unchanged with <code>g</code> in place of <code>x</code>.
+            Run the CSR kernel unchanged with <code>g</code> in place of <code>x</code>: one thread per row, so no
+            atomics.
           </>
         ),
         why: 'That computes A·g, which would need one entry of g per column of A. It is the wrong product.',
@@ -148,13 +148,14 @@ export const questionsWrap: Record<string, Question> = {
       {
         label: (
           <>
-            Swap <code>rowPtrs</code> and <code>colIdx</code>, then run the CSR kernel.
+            Swap the roles of <code>rowPtrs</code> and <code>colIdx</code>, which turns A's CSR into the CSR of Aᵀ,
+            then run the unchanged per-row kernel, which needs no atomics.
           </>
         ),
         why: 'rowPtrs holds m + 1 offsets, colIdx holds z column numbers: different lengths and different meanings. Grouping the entries by column takes a pass over them.',
       },
       {
-        label: 'Store A as ELL: its column-major layout already is the transpose.',
+        label: 'Store A as ELL: its column-major layout already is the transpose, so the ELL kernel computes Aᵀ·g.',
         why: 'ELL turns the storage order of the padded rectangle, not the matrix. Slot t·stride + r still belongs to row r.',
       },
     ],
@@ -235,24 +236,25 @@ export const questionsWrap: Record<string, Question> = {
     options: [
       {
         label:
-          "Give each token's row to one thread or block, which gathers its two weighted expert results through the inverse permutation and adds them in a fixed order, with no atomic.",
+          "Give each token's row one owner that gathers its two weighted results and adds them in a fixed order, with no atomic.",
         correct: true,
       },
       {
         label: (
           <>
-            Keep the atomic, with <code>memory_order_seq_cst</code> instead of relaxed.
+            Keep the atomic, with <code>memory_order_seq_cst</code> instead of relaxed, so all threads see the adds in
+            one order.
           </>
         ),
         why: 'A memory order constrains how other memory operations are seen around the add. The two adds into one element still land one at a time in an undefined order, and (r + a) + b and (r + b) + a can round differently.',
       },
       {
-        label: 'Sort the (token, expert) pairs by token before the combine.',
+        label: "Sort the (token, expert) pairs by token before the combine, so each token's two threads are neighbours.",
         why: "That orders the threads' inputs, not the moment each atomic lands. The adds still serialise in whatever order the hardware runs them.",
       },
       {
-        label: 'Accumulate in double precision with double atomics.',
-        why: 'The rounding error shrinks, but two orders can still round differently in double, and the conversion back can carry that into the last bit. Rarer is not reproducible.',
+        label: 'Accumulate in double precision with double atomics, and round to float once at the end.',
+        why: 'The double sum of three floats is exact only while their magnitudes stay within about 2^27 of each other. A wider spread, products formed in double, or more experts bring order-dependent rounding back, and the final rounding to float can carry it into the last bit. Rarer is not reproducible.',
       },
     ],
     explain: (

@@ -330,12 +330,12 @@ export const questionsS125: Record<string, Question> = {
     id: 'ch12/12.5/q-counter',
     prompt: <>Why can a stable filter not take its slot from <code>fetch_add</code> on a counter, even with only one atomic per warp?</>,
     options: [
-      { label: 'Atomics are too slow.', why: 'Speed is not the problem; order is. A fast counter still hands out slots in completion order.' },
+      { label: 'Atomics are too slow: even one per warp serialises the whole grid on the counter, which a stable filter cannot afford.', why: 'Speed is not the problem; order is. A fast counter still hands out slots in completion order.' },
       {
-        label: 'Atomics complete in no fixed order, so a later warp or key can land before an earlier one; a stable slot is the count of earlier kept keys, which is a scan.',
+        label: 'Atomics complete in no fixed order, but a stable slot must count the kept keys before it: a scan.',
         correct: true,
       },
-      { label: 'It can, with one atomic per block.', why: 'Blocks also reserve in arbitrary order: Fig. 12.5 is exactly that.' },
+      { label: 'It can, with one atomic per block: thread 0 reserves the block\'s range, and blocks reserve in index order.', why: 'Blocks also reserve in arbitrary order: Fig. 12.5 is exactly that.' },
     ],
     explain: (
       <p>
@@ -350,10 +350,10 @@ export const questionsS125: Record<string, Question> = {
     id: 'ch12/12.5/q-everycall',
     prompt: <>In Fig. 12.8 every thread calls <code>gridExclusiveScan(keep)</code>, including those whose key fails. Why must they?</>,
     options: [
-      { label: 'They need not; only threads that keep a key need an offset.', why: 'Their offsets do depend on the zeros of the others, and a scan built from barriers waits for every thread of the block.' },
-      { label: 'So that the dropped keys are written too.', why: 'Dropped keys are never written; only kept keys use their offsets.' },
+      { label: 'They need not: only threads that keep a key need an offset, so the others can return before the scan.', why: 'Their offsets do depend on the zeros of the others, and a scan built from barriers waits for every thread of the block.' },
+      { label: 'So that the dropped keys are written too, at the offsets the scan gives them.', why: 'Dropped keys are never written; only kept keys use their offsets.' },
       {
-        label: 'A scan is a collective: each offset depends on every earlier thread\'s flag, a dropped key still contributes its 0, and every thread must reach the scan\'s barriers.',
+        label: 'A scan is collective: each later offset counts this thread\'s flag, 0 or not, and every thread must reach the scan\'s barriers.',
         correct: true,
       },
     ],
@@ -416,8 +416,8 @@ export const questionsS125: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'A run of ones followed by zeros: a prefix. The job reduces to finding one cut index, and copying a prefix needs no scan.', correct: true },
-      { label: 'Ones scattered through the row: a full stable filter is needed.', why: 'The mass before a token only grows along a sorted row, so once it reaches p it stays there.' },
+      { label: 'A prefix: ones, then zeros. The job is finding one cut index, and copying a prefix needs no scan.', correct: true },
+      { label: 'Ones scattered through the row wherever a token\'s own probability is large: a full stable filter is needed.', why: 'The mass before a token only grows along a sorted row, so once it reaches p it stays there.' },
       { label: 'A suffix.', why: 'The first token always has mass 0 before it, so it is always kept.' },
     ],
     explain: (

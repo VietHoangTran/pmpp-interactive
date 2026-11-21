@@ -50,9 +50,9 @@ bool launchSumKahan(const float* x, float* partials, float* out, int n, int coar
 | emu, race | `float` | none | none |
 
 On CUDA and HIP the 16-bit instantiations go inside the `#if PMPP_NARROW_ACC` blocks the
-starter provides. The emulators do not model `__half` or `__nv_bfloat16`, and the CUDA
-front-end check's stub declares neither (appA-facts E2), so those blocks are compiled by
-nvcc and hipcc only.
+starter provides. The emulators and the CUDA front-end check's stub model `__half` but
+not `__nv_bfloat16`, and the `PMPP_NARROW_ACC` guard in `sumerror.h` leaves both 16-bit
+branches out of those builds, so those blocks are compiled by nvcc and hipcc only.
 
 ## Files
 
@@ -73,8 +73,9 @@ nvcc and hipcc only.
 
 ## Commands
 
-`pmpp.py run A.1` does not work (the runner resolves `5.2`-style numbers to chapters only and
-answers "matches nothing"): use `appA/lab1`, as every command below does.
+The runner accepts the lab's number, `A.1`, and the start of its directory, `appA/lab1`.
+Every command below uses the second, the start of the id the run reports record
+(`appA/lab1_sumerror`).
 
 - Test: `python3 labs/pmpp.py run appA/lab1 --backend emu` first, then
   `python3 labs/pmpp.py run appA/lab1`. The emulator makes over a hundred launches per test,
@@ -168,8 +169,8 @@ launching. There are no planted defects; this is a write-and-measure lab.
 ## What the tests can and cannot see
 
 - **emu** runs the threads one at a time in three orders, under AddressSanitizer: wrong
-  indices, an out-of-range read past n, a missing barrier. It has no half or bfloat16, and
-  its compiler is the host's, which does not reassociate float additions by default
+  indices, an out-of-range read past n, a missing barrier. This lab builds no half or
+  bfloat16 sum there, and its compiler is the host's, which does not reassociate float additions by default
   (appA-facts B5). So a compensated loop that passes on emu tells you nothing about what a
   GPU compiler does with it.
 - **race** runs the threads of a block concurrently under ThreadSanitizer. The tree is a
@@ -195,8 +196,8 @@ both allow the compiler to reassociate floating-point operations; only the `safe
 forbids it (appA-facts C3, ch05-facts C7). The MSL specification warns that reassociation
 breaks "code that relies on rounding behavior such as (x + 2^52) - 2^52" (C2), and a
 compensated loop is that code. On the machine this lab was built on, the compensated kernel
-without a fix was 6.5 ULPs off at n = 1000, coarse 64, where it should be within 2. That is
-bit for bit what a plain loop returns on the emulator: the compensation was gone.
+without a fix failed the 2-ULP bound at n = 1000, coarse 64, with bit for bit what a plain
+loop returns on the emulator: the compensation was gone.
 
 The fix is one line at file scope in `kernel.metal`:
 

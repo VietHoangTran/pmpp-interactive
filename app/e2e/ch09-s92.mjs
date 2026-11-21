@@ -134,7 +134,8 @@ else {
   const code = await page.$$eval('.code pre', (ps) => ps.map((p) => p.textContent).join('\n'));
   check('the CUDA region is Fig. 9.6 with const and the atomic reference', code.includes('const unsigned char* image') && code.includes('cuda::atomic_ref<unsigned int, cuda::thread_scope_device> bins_ref(bins[b]);') && code.includes('fetch_add(1, cuda::memory_order_relaxed)') && !code.includes('// region'));
   const status = await page.$eval('.code .tabs .status', (e) => e.textContent);
-  check('its status uses the project vocabulary', /emulator-checked|no passing emulator run/.test(status) && status.includes('unverified on CUDA and HIP hardware'), status);
+  // The same words as the labs page's kernel.cu tab (LabKit solutionTabStatus).
+  check('its status uses the project vocabulary, in the labs page\'s words', /^(emulator-checked|verified on (CUDA|HIP)|unverified)/.test(status) && (/verified on CUDA/.test(status) || status.includes('unverified')), status);
   await page.evaluate(() => [...document.querySelectorAll('.code .tabs button')].find((b) => b.textContent === 'Metal').click());
   await pause(80);
   const metal = await page.$$eval('.code pre', (ps) => ps.map((p) => p.textContent).join('\n'));
@@ -169,13 +170,13 @@ t = await choose('Which index does A get', 'B gets the other one');
 check('order: accepted, pointing to chapter 12', t.includes('Correct.') && t.includes('Chapter 12'));
 t = await choose('memory_order_relaxed enough', 'default');
 check('relaxed: "it is the default" is wrong (seq_cst)', t.includes('Not quite.') && t.includes('seq_cst'), t.slice(0, 300));
-t = await choose('memory_order_relaxed enough', 'only other memory access');
+t = await choose('memory_order_relaxed enough', 'one other memory access');
 check('relaxed: accepted', t.includes('Correct.'));
 t = await choose('narrower scope is faster', 'data race');
 check('scope: accepted, says no test here catches it', t.includes('Correct.') && t.includes('no test'), t.slice(0, 300));
 t = await choose('Which run is certain to pass', 'race, which runs');
 check('emu blind spot: race is not certain to pass, a report fails the test', t.includes('Not quite.') && t.includes('a report fails the test'), t.slice(0, 300));
-t = await choose('Which run is certain to pass', 'emu, under all three');
+t = await choose('Which run is certain to pass', 'emu, under each of its three');
 check('emu blind spot: emu is certain to pass, and that says nothing about atomicity', t.includes('Correct.') && t.includes('nothing about atomicity') && t.includes('race'), t.slice(0, 300));
 // Questions the next paragraphs answer come before them (predict, then read).
 const order = await page.evaluate(() => {

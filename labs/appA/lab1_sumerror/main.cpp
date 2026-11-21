@@ -300,7 +300,7 @@ static double deviceMemory() { return pmpp::device_prop("recommendedMaxWorkingSe
 static bool accWanted(Acc a, std::string* why) {
     if (a == AccFloat) return true;
     if (pmpp::is_emu()) {
-        *why = "the CPU emulators do not model __half or __nv_bfloat16 (README, \"Where the backends differ\")";
+        *why = "this lab builds no 16-bit sum on the CPU emulators: they model __half but not __nv_bfloat16 (README, \"Where the backends differ\")";
         return false;
     }
     if (a == AccBfloat && std::string(pmpp::backend()) == "cuda" && pmpp::device_prop("computeCapability.major", 0) < 8) {

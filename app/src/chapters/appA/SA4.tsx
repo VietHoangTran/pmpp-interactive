@@ -436,12 +436,12 @@ export const questionsSA4: Record<string, Question> = {
     ),
     options: [
       {
-        label: '2048. The exact 2049 is a tie between 2048 and 2050, and nearest-even picks 2048, every time.',
+        label: '2048. 2049 is a tie between 2048 and 2050, and nearest-even picks 2048 every time.',
         correct: true,
       },
-      { label: '2050. A tie rounds up, and from there it keeps climbing by 2.', why: 'Ties do not round up under this mode; they go to the neighbour whose last mantissa bit is 0.' },
-      { label: '2049. FP16 holds every integer up to 65,504.', why: 'Above 2048 the spacing of FP16 values is 2: 11 significant bits cover 2048 to 4094 in steps of 2.' },
-      { label: 'Infinity, because 2049 overflows FP16.', why: 'FP16 reaches 65,504. Nothing overflows here; the sum stops growing long before.' },
+      { label: '2050. A tie rounds up to the larger neighbour, and from there the sum keeps climbing by 2.', why: 'Ties do not round up under this mode; they go to the neighbour whose last mantissa bit is 0.' },
+      { label: '2049. FP16 holds every integer up to its largest value, 65,504, so adding 1 is exact.', why: 'Above 2048 the spacing of FP16 values is 2: 11 significant bits cover 2048 to 4094 in steps of 2.' },
+      { label: 'Infinity: 2049 needs more than the 11 significant bits FP16 has, so it overflows.', why: 'FP16 reaches 65,504. Nothing overflows here; the sum stops growing long before.' },
     ],
     explain: (
       <p>
@@ -469,14 +469,14 @@ export const questionsSA4: Record<string, Question> = {
         correct: true,
       },
       { label: "Only the book's: 0 ULP is impossible, so NVIDIA must mean something weaker.", why: 'NVIDIA counts from the correctly rounded result, not from the exact one. Zero ULP from the correctly rounded value is 0.5 ULP from the exact value.' },
-      { label: 'All three: 2.5 ulp is within the usual tolerance.', why: 'Correctly rounded means the nearest representable value, which is at most half a unit from the exact result. 2.5 ulp allows the result to be two values away.' },
-      { label: "None: GPUs never round correctly.", why: 'NVIDIA guarantees it for +, −, ×, / and 1/x under its default flags, and Metal for +, − and × in every mode.' },
+      { label: 'All three: each is a bound on the same error, and 2.5 ulp is within the usual tolerance.', why: 'Correctly rounded means the nearest representable value, which is at most half a unit from the exact result. 2.5 ulp allows the result to be two values away.' },
+      { label: 'None: GPU division is built from an approximation, so none of the three is correctly rounded.', why: 'NVIDIA guarantees it for +, −, ×, / and 1/x under its default flags, and Metal for +, − and × in every mode.' },
     ],
     explain: (
       <p>
         Before comparing two vendors' numbers, find what each counts from. NVIDIA: "the difference in ULPs between the
         value returned by the function and a correctly rounded result". Metal: "the infinitely precise result". The book:
-        the exact result. Metal's fast-math division is correctly rounded only with fast math off. AMD documents
+        the exact result. Metal's float division is correctly rounded only with fast math off. AMD documents
         measured differences against the C++ library instead (<code>__fadd_rn</code>: 0 over [−1000, 1000]), and nothing
         about the plain operators.
       </p>
@@ -536,10 +536,10 @@ export const questionsSA4: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'nvcc fused the kernel\'s multiply and add into one FMA, which rounds once; the reference rounds the product first.', correct: true },
-      { label: 'The GPU rounds toward zero.', why: 'CUDA rounds to nearest even by default; other modes need the _rz, _ru, _rd intrinsics.' },
-      { label: 'The GPU flushed a denormal.', why: 'Possible only with -ftz=true or --use_fast_math, which are off by default, and only if a value is tiny.' },
-      { label: 'A race condition between threads.', why: 'A race gives wrong or varying results, not a consistent one-bit difference in an expression with no shared data.' },
+      { label: 'nvcc fused the multiply and add into one FMA, rounding once; the reference rounds the product first.', correct: true },
+      { label: 'The GPU rounds every float operation toward zero by default, and the CPU rounds to nearest even.', why: 'CUDA rounds to nearest even by default; other modes need the _rz, _ru, _rd intrinsics.' },
+      { label: 'The GPU flushed a denormal product to zero, which the CPU reference keeps.', why: 'Possible only with -ftz=true or --use_fast_math, which are off by default, and only if a value is tiny.' },
+      { label: 'A race condition between threads that write neighbouring outputs.', why: 'A race gives wrong or varying results, not a consistent one-bit difference in an expression with no shared data.' },
     ],
     explain: (
       <>
@@ -770,6 +770,12 @@ export function SA4() {
         The order of additions and the width of the accumulator are the subject of section{' '}
         <a href={href('appA', 'A.6')}>A.6</a>, and lab A.1 measures both on your GPU (<a href={href('appA', 'labs')}>labs</a>).
       </p>
+      <Simplification>
+        <p>
+          The scene's model: 0.3 is first stored as the nearest FP16 value, and every addition rounds once to nearest
+          even, with no fused multiply-add and no compiler in between. The FP32 line uses the same model.
+        </p>
+      </Simplification>
       <Today checked={CHECKED('D1, D2')}>
         <p>
           This is why frameworks choose the accumulator. PyTorch accumulates half and bfloat16 in float on every device.

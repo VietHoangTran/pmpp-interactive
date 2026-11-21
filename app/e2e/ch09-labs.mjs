@@ -91,7 +91,7 @@ for (const c of ['./verify.sh', 'python3 labs/pmpp.py run 9.1', 'python3 labs/pm
   check(`command shown: ${c}`, text0.includes(c));
 check('the race flavour is explained as ThreadSanitizer, the only backend that sees a missing atomic', text0.includes('ThreadSanitizer') && text0.includes('the only backend'));
 check('scopes are said to be invisible to every backend here', text0.includes('Neither emulator gives scopes or memory orders any effect') && text0.includes('Check every scope by reading it'));
-check('the HIP build gap is stated, without a claim of having tried it', text0.includes('links only hip::host') && text0.includes('Nobody has tried'));
+check('the HIP build\'s libhipcxx dependency is stated, without a claim of having tried it', text0.includes('links libhipcxx::libhipcxx when CMake finds it') && text0.includes('Nobody has tried'));
 check('the CUDA/HIP caveat and the vocabulary are stated', text0.includes('front-end-checked') && text0.includes('emulator-checked means'));
 const misplaced = await page.$$eval('.prose > .note', (ns) => ns.filter((n) => n.previousElementSibling?.tagName !== 'P').map((n) => n.textContent.slice(0, 60)));
 check('every margin note follows a paragraph', misplaced.length === 0, misplaced.join(' | '));
@@ -117,7 +117,7 @@ for (const l of LABS) {
   const races = work.reduce((k, x) => k + (Array.isArray(x.tsan) ? x.tsan.length : 0), 0);
   check(`lab ${l.num}: race line reads the race reports (${run ? want : 'no run'}${races ? `, ${races} race(s) in your work` : ''})`,
     !!line && (!run ? line.text.includes('No run of lab') :
-      line.s === want && (want !== 'pass' || line.text.includes('emulator-checked under both flavours')) && (!races || line.text.includes(`ThreadSanitizer reported ${races} race`))),
+      line.s === want && (want !== 'pass' || line.text.includes('emulator-checked on the race backend')) && (!races || line.text.includes(`ThreadSanitizer reported ${races} race`))),
     JSON.stringify(line));
 }
 
@@ -280,8 +280,8 @@ for (const l of LABS) {
 
 // ---- links
 const links = await page.$$eval('.prose a[href^="#/"]', (as) => [...new Set(as.map((a) => a.getAttribute('href')))]);
-const known = new Set(['#/ch09/9.3', '#/ch09/9.4', '#/ch09/9.5', '#/ch09/9.6']);
-check(`links go to this chapter's sections (${links.join(', ')})`, links.length >= 4 && links.every((h) => known.has(h)), links.join(', '));
+const known = new Set(['#/ch09/9.3', '#/ch09/9.4', '#/ch09/9.5', '#/ch09/9.6', '#/x1/X1.3']);
+check(`links go to this chapter's sections and to X1.3 (${links.join(', ')})`, links.length >= 4 && links.every((h) => known.has(h)), links.join(', '));
 
 // ---- phone width
 await page.setViewport({ width: 390, height: 900, deviceScaleFactor: 1 });

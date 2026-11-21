@@ -4,13 +4,18 @@
   python3 labs/pmpp.py doctor                 which backends can be built here, and why not
   python3 labs/pmpp.py run 5.2                test your work for lab 5.2 on every backend
   python3 labs/pmpp.py run 5.2 --bench        ...and benchmark it
+  python3 labs/pmpp.py run 5.2 --bench --reps 5   ...five times, each repetition recorded
   python3 labs/pmpp.py run 5.2 --solution     run the reference solution instead
   python3 labs/pmpp.py run 5.2 --backend emu  one backend only (emu, race, metal, cuda, hip)
+  python3 labs/pmpp.py run 5.2 --full         print sanitizer reports in full (default: condensed)
   python3 labs/pmpp.py selftest               the emulator's own tests (labs/selftest), no report written
   python3 labs/pmpp.py verify                 everything, and write reports/verify-*.md
   python3 labs/pmpp.py reset 5.2 --yes        overwrite your work for a lab with the starter
 
 Standard library only. Needs cmake >= 3.21 and a C++17 compiler.
+Environment: PMPP_BUILD_DIR (build directory), PMPP_ONLY (configure one chapter's labs),
+PMPP_CMAKE_ARGS (extra arguments for the cmake configure step, split like a shell would,
+e.g. PMPP_CMAKE_ARGS="-DPMPP_CH15_VENDOR=OFF -DPMPP_DISABLE_RACE=ON").
 """
 import argparse
 import datetime
@@ -21,6 +26,7 @@ import json
 import os
 import platform
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -63,8 +69,12 @@ def tail(text, n):
 def configure():
     if shutil.which("cmake") is None:
         sys.exit("cmake not found. Install cmake >= 3.21 (macOS: brew install cmake; Linux: your package manager).")
-    rc, out = sh(["cmake", "-S", LABS, "-B", BUILD])
-    backends, targets, selftests = [], [], []
+    try:
+        extra = shlex.split(os.environ.get("PMPP_CMAKE_ARGS", ""))
+    except ValueError as e:
+        sys.exit("PMPP_CMAKE_ARGS could not be split into arguments: %s" % e)
+    rc, out = sh(["cmake", "-S", LABS, "-B", BUILD] + extra)
+    backends, targets, selftests, skipped, incomplete = [], [], [], [], []
     try:
         for line in open(os.path.join(BUILD, "pmpp_backends.txt")):
             name, state, why = line.rstrip("\n").split("|", 2)
@@ -79,7 +89,19 @@ def configure():
                               "expect": expect, "target": target, "exe": exe})
     except FileNotFoundError:
         pass
-    return {"rc": rc, "log": out, "backends": backends, "targets": targets, "selftests": selftests}
+    # Builds pmpp_add_lab did not make, with the reason (no kernel.metal, no RACE, a missing
+    # library), and labs it skipped as incomplete. Older build directories may lack them.
+    for fname, keys, into in (("pmpp_skipped.txt", ("lab", "variant", "backend", "why"), skipped),
+                              ("pmpp_incomplete.txt", ("lab", "missing"), incomplete)):
+        try:
+            for line in open(os.path.join(BUILD, fname)):
+                parts = line.rstrip("\n").split("|", len(keys) - 1)
+                if len(parts) == len(keys):
+                    into.append(dict(zip(keys, parts)))
+        except FileNotFoundError:
+            pass
+    return {"rc": rc, "log": out, "backends": backends, "targets": targets, "selftests": selftests,
+            "skipped": skipped, "incomplete": incomplete, "cmake_args": extra}
 
 
 def build(target):
@@ -272,6 +294,139 @@ def tsan_text(reports, limit=4):
     return "\n".join(out)
 
 
+# ---------------------------------------------------------------- condensed sanitizer reports
+# An AddressSanitizer report from the emulator runs to a hundred lines or more: every frame
+# of the emulator's thread machinery and of libc++, then the shadow-memory map. What a
+# reader needs is what went wrong, where in their code, and where the memory came from.
+# By default a run shows each report condensed (`--full` shows it all):
+#   - the first report's headline (the ERROR line, the access, where the address lies),
+#     each of its stacks cut down to the frames in the lab's own sources (the innermost
+#     frame of the faulting stack is kept even when it is not), and its SUMMARY line;
+#   - for any later report, its SUMMARY line only;
+#   - a note saying how much was left out.
+# ThreadSanitizer data-race reports (backend `race`) are condensed separately, by
+# split_tsan() and tsan_text(). Offline symbolisation (symbolize_offline) runs first, so the
+# frames it names are the ones condensed here.
+_SAN_START = re.compile(r"^(==\d+==)?(ERROR: (AddressSanitizer|ThreadSanitizer|LeakSanitizer|UndefinedBehaviorSanitizer)"
+                        r"|WARNING: ThreadSanitizer:|ThreadSanitizer: CHECK failed)")
+_SAN_FRAME = re.compile(r"^\s*#\d+ ")
+_SAN_FILE = re.compile(r"(?:^|\s)(\S+?\.[A-Za-z]+):(\d+)(?::\d+)?(?=\s|$)")
+_SAN_TRAILER = (re.compile(r"^Shadow byte"), re.compile(r"^=>0x"), re.compile(r"^\s+0x[0-9a-f]+:"),
+                re.compile(r"^\s+[A-Za-z][A-Za-z ]+:\s+([0-9a-f]{2}\s*)+$"), re.compile(r"^==\d+==ABORTING"),
+                re.compile(r"^=+$"))
+_SAN_NOISE = re.compile(r"^(==\d+==)?(AddressSanitizer:DEADLYSIGNAL|ABORTING|Register values:|"
+                        r"AddressSanitizer can not provide additional info|HINT: this may be a false positive)")
+
+
+def _frame_text(line):
+    """A frame without its address, and without the module suffix when it has a file:line."""
+    line = re.sub(r"^(\s*#\d+) 0x[0-9a-f]+ in ", r"\1 ", line)
+    line = re.sub(r"^(\s*#\d+) 0x[0-9a-f]+ ", r"\1 ", line)
+    if _SAN_FILE.search(line):
+        line = re.sub(r"\s+\([^()\s]+:(arm64e?|x86_64)\+0x[0-9a-f]+\)\s*$", "", line)
+    return line
+
+
+def _own_frame(line, own_names):
+    m = _SAN_FILE.search(line)
+    return bool(m) and os.path.basename(m.group(1)) in own_names
+
+
+def _condense_one(lines, own_names):
+    out, dropped, pending, section, kept_in_section, first_frame = [], 0, None, 0, 0, None
+    for ln in lines:
+        if _SAN_FRAME.match(ln):
+            if _own_frame(ln, own_names):
+                if pending is not None:
+                    out.append(pending)
+                    pending = None
+                out.append(_frame_text(ln))
+                kept_in_section += 1
+            else:
+                dropped += 1
+                if section == 0 and first_frame is None:
+                    first_frame = (len(out), _frame_text(ln))
+            continue
+        if not ln.strip() or _SAN_NOISE.match(ln) or any(p.match(ln) for p in _SAN_TRAILER) \
+                or len(re.findall(r"\S+ = 0x[0-9a-f]+", ln)) >= 2:
+            continue
+        # A new stack starts with a header such as "allocated by thread T0 here:".
+        if ln.rstrip().endswith(":") and ("here" in ln or "by thread" in ln or "created by" in ln):
+            if section == 0 and kept_in_section == 0 and first_frame is not None:
+                out.insert(first_frame[0], first_frame[1])
+                dropped -= 1
+            section += 1
+            kept_in_section = 0
+            pending = re.sub(r"^==\d+==", "", ln.rstrip())
+            continue
+        out.append(re.sub(r"^==\d+==", "", ln.rstrip()))
+    if section == 0 and kept_in_section == 0 and first_frame is not None:
+        out.insert(first_frame[0], first_frame[1])
+        dropped -= 1
+    return out, dropped
+
+
+def condense_sanitizer(text, own_names):
+    """The program's output with each sanitizer report condensed as described above."""
+    lines = text.splitlines()
+    keep, reports, cur, after_summary = [], [], None, False
+    for ln in lines:
+        if cur is not None:
+            if after_summary:
+                if any(p.match(ln) for p in _SAN_TRAILER) or not ln.strip():
+                    cur.append(ln)
+                    if re.match(r"^==\d+==ABORTING", ln) or re.match(r"^=+$", ln):
+                        reports.append(cur)
+                        cur, after_summary = None, False
+                    continue
+                reports.append(cur)
+                cur, after_summary = None, False
+            else:
+                cur.append(ln)
+                if ln.lstrip().startswith("SUMMARY:"):
+                    after_summary = True
+                continue
+        if _SAN_START.match(ln):
+            while keep and (re.match(r"^=+$", keep[-1]) or _SAN_NOISE.match(keep[-1])):
+                keep.pop()
+            keep.append("\0report%d" % len(reports))
+            cur, after_summary = [ln], ln.lstrip().startswith("SUMMARY:")
+            continue
+        if _SAN_NOISE.match(ln) and "DEADLYSIGNAL" in ln:
+            continue
+        keep.append(ln)
+    if cur is not None:
+        reports.append(cur)
+    if not reports:
+        return text
+    out = []
+    for ln in keep:
+        if not ln.startswith("\0report"):
+            out.append(ln)
+            continue
+        i = int(ln[len("\0report"):])
+        rep = reports[i]
+        if i == 0:
+            body, dropped = _condense_one(rep, own_names)
+            out.extend(body)
+            notes = []
+            if dropped > 0:
+                notes.append("%d stack frame%s outside this lab's sources" % (dropped, "" if dropped == 1 else "s"))
+            if any(x.startswith("Shadow byte") for x in rep):
+                notes.append("the shadow-memory map")
+            if any("Register values" in x for x in rep):
+                notes.append("the register dump")
+            if notes:
+                out.append("[sanitizer report condensed: %s left out; --full shows the whole report]" % ", and ".join(notes))
+        else:
+            summ = [x for x in rep if x.lstrip().startswith("SUMMARY:")]
+            out.append(summ[0].strip() if summ else re.sub(r"^==\d+==", "", rep[0]).strip())
+            if i == len(reports) - 1:
+                out.append("[%d more sanitizer report%s, condensed to the SUMMARY line above; --full shows them]" % (
+                    len(reports) - 1, "" if len(reports) == 2 else "s"))
+    return "\n".join(out) + ("\n" if text.endswith("\n") else "")
+
+
 def lab_dir(lab):
     return os.path.join(LABS, lab)
 
@@ -288,15 +443,181 @@ def work_state(lab):
     return "untouched"
 
 
-def source_hash(lab, variant):
-    """Hash of what a run of this lab variant compiled: the variant's files and the driver.
-    Lets a run without tests keep the last test result only when nothing has changed."""
+# What a lab's build reads. Files with these endings (and CMakeLists.txt) count as sources;
+# READMEs, notes and data do not.
+SOURCE_EXT = (".cu", ".cuh", ".cpp", ".cc", ".c", ".h", ".hpp", ".hh", ".inc", ".mm", ".m",
+              ".metal", ".cmake", ".py")
+VARIANTS = ("work", "solution", "starter")
+
+
+def _is_source(name):
+    return name == "CMakeLists.txt" or name.endswith(SOURCE_EXT)
+
+
+def _under(path, root):
+    root = os.path.abspath(root)
+    return path == root or path.startswith(root + os.sep)
+
+
+def _dir_sources(d):
+    """The source files directly in directory d (not its subdirectories)."""
+    try:
+        return [os.path.join(d, f) for f in os.listdir(d)
+                if _is_source(f) and os.path.isfile(os.path.join(d, f))]
+    except OSError:
+        return []
+
+
+def _depfile_paths(path):
+    """Prerequisites listed in a Makefile-style dependency file (`obj: a.h b.h ...`)."""
+    try:
+        text = open(path, encoding="utf-8", errors="replace").read()
+    except OSError:
+        return []
+    text = text.replace("\\\n", " ").replace("\\ ", "\0")
+    out = []
+    for i, tok in enumerate(text.split()):
+        tok = tok.replace("\0", " ")
+        if tok.endswith(":") and i == 0:
+            continue
+        if tok != ":":
+            out.append(tok)
+    return out
+
+
+def read_inputs(target):
+    """<build>/pmpp_inputs/<target>.txt (see cmake/Lab.cmake), or None for an older build."""
+    try:
+        lines = open(os.path.join(BUILD, "pmpp_inputs", target + ".txt")).read().splitlines()
+    except OSError:
+        return None
+    rec = {}
+    for ln in lines:
+        k, _, v = ln.partition("=")
+        rec[k] = [x for x in v.split("|") if x] if k != "binary_dir" else v
+    return rec
+
+
+_DEF_PATH = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*="?(/[^"]*)"?$')
+
+
+def target_inputs(t):
+    """(every file the target's build reads that lives in the repository or the build
+    directory, the subset that are the lab's own sources). The second set excludes the
+    shared runtime (labs/common) and files derived by the build (emulator translations).
+
+    Covered: the lab directory (the variant's files, main.cpp, headers, provided/ and its
+    CMake, but not the other variants); every source CMake compiles into the target,
+    including provided copies made at configure time; the source files in the directory of
+    each of those (so a provided kernel's .metal, compiled at run time, is covered); every
+    absolute path the target's compile definitions name (PMPP_METAL_SHARED_DIR, the earlier
+    labs' kernel.metal a milestone lab loads) and the source files beside it; and every
+    header the compiler's dependency files list (Makefile generators keep them; with Ninja
+    this part is missing). Not covered: the toolchain and system headers."""
+    lab = t["lab"]
+    if lab.startswith("selftest/"):
+        labdir = os.path.join(LABS, "selftest")
+    else:
+        labdir = lab_dir(lab)
+    files, own = set(), set()
+    for root, dirs, names in os.walk(labdir):
+        if os.path.abspath(root) == os.path.abspath(labdir):
+            dirs[:] = [d for d in dirs if d not in VARIANTS or d == t["variant"]]
+        dirs[:] = [d for d in dirs if not d.startswith(".") and d != "__pycache__"
+                   and not d.startswith("build")]
+        for n in names:
+            if _is_source(n):
+                files.add(os.path.join(root, n))
+    own |= files
+    rec = read_inputs(t["target"])
+    if rec is None:
+        return files, own
+    common = os.path.join(LABS, "common")
+    scanned = set()
+
+    def add(path, is_own):
+        path = os.path.abspath(path)
+        if not (_under(path, REPO) or _under(path, BUILD)) or not os.path.exists(path):
+            return
+        if os.path.isdir(path):
+            # A definition naming the whole labs tree (PMPP_LABS_DIR) says nothing about
+            # which of its files the lab reads; the dependency files do.
+            if path in (os.path.abspath(REPO), os.path.abspath(LABS)):
+                return
+            group = _dir_sources(path)
+        else:
+            # Only sources: a test model or a report a definition names is data. (Lab X3.2's
+            # generated models are covered by their checksums, which are definitions.)
+            group = [path] if _is_source(os.path.basename(path)) else []
+            d = os.path.dirname(path)
+            if not _under(d, BUILD) and d not in scanned:
+                scanned.add(d)
+                group += _dir_sources(d)
+        for f in group:
+            files.add(f)
+            if is_own and not _under(f, common):
+                own.add(f)
+
+    for src in rec.get("sources", []):
+        # The build's own derivatives (<target>.kernel.cpp from cu2emu, <target>.kernel.hip,
+        # <target>.main.mm) are hashed but are not the lab's sources; copies of provided
+        # pieces made at configure time are both.
+        src = os.path.abspath(src)
+        derived = _under(src, BUILD) and os.path.basename(src).startswith(t["target"] + ".")
+        add(src, not derived)
+        if derived and src.endswith(".cpp"):
+            # cu2emu's translation starts with `#line 1 "<the .cu it came from>"`.
+            try:
+                with open(src, encoding="utf-8", errors="replace") as fh:
+                    m = re.match(r'#line 1 "([^"]+)"', fh.readline())
+            except OSError:
+                m = None
+            if m:
+                add(m.group(1), True)
+    for d in rec.get("definitions", []):
+        m = _DEF_PATH.match(d)
+        if m:
+            add(m.group(1), True)
+    bindir = rec.get("binary_dir")
+    if bindir:
+        tdir = os.path.join(bindir, "CMakeFiles", t["target"] + ".dir")
+        for root, _, names in os.walk(tdir):
+            for n in names:
+                if n.endswith(".d"):
+                    for dep in _depfile_paths(os.path.join(root, n)):
+                        dep = os.path.abspath(dep if os.path.isabs(dep) else os.path.join(BUILD, dep))
+                        if (_under(dep, REPO) or _under(dep, BUILD)) and os.path.isfile(dep):
+                            files.add(dep)
+                            if not _under(dep, common) and not _under(dep, BUILD):
+                                own.add(dep)
+    return files, own
+
+
+def _portable(path):
+    """A path that is the same on every checkout and build directory."""
+    if _under(path, BUILD):
+        return "<build>/" + os.path.relpath(path, BUILD)
+    return os.path.relpath(path, REPO)
+
+
+def source_hash(t, inputs=None):
+    """Hash of what a build of this target read: see target_inputs(). Each file is hashed
+    with its path; the compile definitions are hashed too, so a configure option that
+    changes a define (PMPP_CMAKE_ARGS) changes the hash. Lets a benchmark-only run keep the
+    last test result only when nothing it was built from has changed."""
+    files = (inputs or target_inputs(t))[0]
     h = hashlib.sha256()
-    d = lab_dir(lab)
-    for f in [os.path.join(variant, x) for x in STUDENT_FILES] + ["main.cpp"]:
-        p = os.path.join(d, f)
-        if os.path.exists(p):
-            h.update(f.encode() + b"\0" + open(p, "rb").read() + b"\0")
+    h.update(b"v2\0")
+    for f in sorted(files, key=_portable):
+        try:
+            data = open(f, "rb").read()
+        except OSError:
+            continue
+        h.update(_portable(f).encode() + b"\0" + data + b"\0")
+    rec = read_inputs(t["target"]) or {}
+    for d in rec.get("definitions", []):
+        m = _DEF_PATH.match(d)
+        h.update((d if not m else d.replace(m.group(1), _portable(os.path.abspath(m.group(1))))).encode() + b"\0")
     return h.hexdigest()[:16]
 
 
@@ -305,6 +626,7 @@ def resolve_lab(cfg, token):
     m = re.fullmatch(r"(\d+)\.(\d+)", token)
     a = re.fullmatch(r"([A-Za-z])\.(\d+)", token)      # appendix labs: A.1 -> appA/lab1_
     x = re.fullmatch(r"[Xx](\d+)\.(\d+)", token)       # our modules: X1.3 -> x1/lab3_
+    want = None
     if m:
         want = "ch%02d/lab%s_" % (int(m.group(1)), m.group(2))
         hits = [l for l in labs if l.startswith(want)]
@@ -317,6 +639,14 @@ def resolve_lab(cfg, token):
     else:
         hits = [l for l in labs if token in l]
     if len(hits) != 1:
+        if not hits:
+            # A lab pmpp_add_lab skipped because a file it needs is missing says so.
+            inc = [i for i in cfg.get("incomplete", []) if (i["lab"].startswith(want) if want else token in i["lab"])]
+            if len(inc) == 1:
+                sys.exit("lab %s is not built: it is incomplete (missing %s)" % (inc[0]["lab"], scrub(inc[0]["missing"])))
+            if os.environ.get("PMPP_ONLY"):
+                sys.exit("lab '%s' matches nothing among the labs of PMPP_ONLY=%s: %s" % (
+                    token, os.environ["PMPP_ONLY"], ", ".join(labs)))
         sys.exit("lab '%s' matches %s. Known labs: %s" % (token, hits or "nothing", ", ".join(labs)))
     return hits[0]
 
@@ -383,22 +713,36 @@ def cuda_frontend_check():
 
 
 # ---------------------------------------------------------------- running labs
-def exercise(t, do_test, do_bench, timeout=900):
-    """Build one target, then test and/or benchmark it."""
+def exercise(t, do_test, do_bench, timeout=None, reps=1, full=False):
+    """Build one target, then test and/or benchmark it. With reps > 1 the benchmark runs
+    that many times and each repetition is kept (bench_reps); `bench` holds the first.
+    Sanitizer reports are condensed unless full is set (see condense_sanitizer).
+    The test timeout is 900 s on devices and 2400 s on the emulators, which run every
+    thread in turn (lab X3.2's suite needs more than 900 s there on a busy machine);
+    PMPP_TEST_TIMEOUT (seconds) overrides both."""
+    if timeout is None:
+        timeout = int(os.environ.get("PMPP_TEST_TIMEOUT") or 0) or (2400 if t["backend"] in EMULATED else 900)
     r = dict(t)
     r.update({"built": False, "tests": [], "bench": [], "test_rc": None, "log": "", "tsan": []})
-    if t["variant"] in ("work", "solution", "starter"):
-        r["src"] = source_hash(t["lab"], t["variant"])
     ok, out = build(t["target"])
     r["built"] = ok
+    # Hashed after the build, when the compiler's dependency files list every header read.
+    inputs = target_inputs(t) if t["variant"] in VARIANTS + ("selftest",) else None
+    if inputs and t["variant"] in VARIANTS:
+        r["src"] = source_hash(t, inputs)
     if not ok:
         r["log"] = scrub(tail(out, 60))
         return r
+    own_names = {os.path.basename(f) for f in (inputs[1] if inputs else ())}
+
+    def readable(text):
+        return text if full else condense_sanitizer(text, own_names)
     if do_test:
-        rc, rows, text = run_exe(t["exe"], ["--test"], timeout)
+        rc, rows, raw = run_exe(t["exe"], ["--test"], timeout)
         # A ThreadSanitizer report (backend `race`) is a failure in its own right,
         # whatever the tests printed; keep its key lines and drop the rest of it.
-        text, tsan = split_tsan(text)
+        text, tsan = split_tsan(raw)
+        text = raw if full else readable(text)
         r["test_rc"] = rc
         r["tests"] = [x for x in rows if x.get("kind") == "test"]
         r["tsan"] = [[scrub(l) for l in rep] for rep in tsan]
@@ -408,10 +752,21 @@ def exercise(t, do_test, do_bench, timeout=900):
             if tsan:
                 r["log"] += "\n\nThreadSanitizer reported %d data race(s). Key lines:\n%s" % (len(tsan), tsan_text(r["tsan"]))
     if do_bench and (not do_test or r["test_rc"] == 0):
-        rc, rows, text = run_exe(t["exe"], ["--bench"], timeout)
-        r["bench_rc"] = rc
-        r["bench"] = [x for x in rows if x.get("kind") == "bench"]
-        r["bench_text"] = scrub(text)
+        runs, texts, bench_rc = [], [], 0
+        for i in range(max(1, reps)):
+            at = datetime.datetime.now().isoformat(timespec="seconds")
+            rc, rows, text = run_exe(t["exe"], ["--bench"], timeout)
+            runs.append({"rep": i + 1, "at": at, "rc": rc, "rows": [x for x in rows if x.get("kind") == "bench"]})
+            head = "-- benchmark, repetition %d of %d (%s)\n" % (i + 1, reps, at) if reps > 1 else ""
+            texts.append(head + scrub(readable(text)))
+            if rc != 0:   # a repetition that crashed: keep what ran, stop repeating
+                bench_rc = rc
+                break
+        r["bench_rc"] = bench_rc
+        r["bench"] = runs[0]["rows"]
+        r["bench_text"] = "\n".join(texts)
+        if reps > 1:
+            r["bench_reps"] = runs
     return r
 
 
@@ -466,6 +821,8 @@ def _merge_runs(path, b, results, states, devs, now):
             prev = old.get(key(r))
             if not r.get("bench") and prev and prev.get("bench") and passed(r):
                 r["bench"] = prev["bench"]
+                if prev.get("bench_reps"):
+                    r["bench_reps"] = prev["bench_reps"]
                 r["bench_from"] = prev.get("bench_from") or data.get("generated")
             # Likewise a benchmark-only run (--no-test) keeps the last test result, but only
             # when the sources it compiled are the ones that result was tested on.
@@ -502,16 +859,33 @@ def counts(r):
 
 
 # ---------------------------------------------------------------- commands
+# What a few device properties mean, from the vendors' references (notes/today/infra-facts.md
+# F1, ch23-facts A7 and B3, ch22-facts), printed beside the value by `doctor`. Keyed by
+# property; a (backend, property) entry overrides it for that backend.
+PROPERTY_NOTES = {
+    "asyncEngineCount": "number of copy engines: 1 lets one copy overlap kernels, 2 lets a copy each way overlap them",
+    ("hip", "asyncEngineCount"): "on ROCm a runtime constant, not a count of copy engines (ch23-facts B3)",
+    ("emu", "asyncEngineCount"): "the emulator runs streams synchronously: nothing overlaps",
+    "concurrentKernels": "1 if the device can possibly run several kernels at once",
+    ("emu", "concurrentKernels"): "the emulator runs one kernel at a time",
+}
+
+
 def cmd_doctor(_):
     cfg = configure()
     print("build directory: %s" % BUILD)
+    if cfg["cmake_args"]:
+        print("extra cmake arguments (PMPP_CMAKE_ARGS): %s" % " ".join(cfg["cmake_args"]))
     for b in cfg["backends"]:
         print("  %-6s %-8s %s" % (b["name"], "enabled" if b["enabled"] else "skipped", b["why"]))
+    if cfg["incomplete"]:
+        print("labs skipped as incomplete: %s" % ", ".join(i["lab"] for i in cfg["incomplete"]))
     for name, d in device_info(cfg).items():
         print("\n%s device: %s" % (name, d.get("name", d.get("why", "?"))))
         for k, v in d.items():
             if k not in ("kind", "backend", "name", "available", "log"):
-                print("  %-34s %s" % (k, v))
+                note = PROPERTY_NOTES.get((name, k), PROPERTY_NOTES.get(k))
+                print("  %-34s %s%s" % (k, v, "   (%s)" % note if note else ""))
     if cfg["rc"] != 0:
         print("\ncmake configure failed:\n" + tail(cfg["log"], 30))
         return 1
@@ -522,6 +896,10 @@ def cmd_run(a):
     cfg = configure()
     if cfg["rc"] != 0:
         sys.exit("cmake configure failed:\n" + tail(cfg["log"], 30))
+    if a.reps < 1:
+        sys.exit("--reps must be at least 1")
+    if a.reps > 1 and not a.bench:
+        sys.exit("--reps repeats the benchmark: use it with --bench")
     lab = resolve_lab(cfg, a.lab)
     variant = "solution" if a.solution else "work"
     enabled = [b["name"] for b in cfg["backends"] if b["enabled"]]
@@ -532,10 +910,14 @@ def cmd_run(a):
             print("\n== %s: skipped (%s)" % (b, why))
     rc_all = 0
     ran = []
-    if "race" in want and "race" in enabled and not any(
-            t["lab"] == lab and t["backend"] == "race" for t in cfg["targets"]):
-        print("\n== race: this lab is not built for the race-detection emulator "
-              "(its CMakeLists.txt does not pass RACE to pmpp_add_lab)")
+    # A backend this machine has but this lab has no build for says why (no kernel.metal,
+    # no RACE, a library missing here) instead of running nothing in silence.
+    for b in want:
+        if b in enabled and not any(t["lab"] == lab and t["variant"] == variant and t["backend"] == b
+                                    for t in cfg["targets"]):
+            whys = [x["why"] for x in cfg["skipped"]
+                    if x["lab"] == lab and x["variant"] == variant and x["backend"] == b]
+            print("\n== %s: %s" % (b, whys[0] if whys else "no %s build of this lab's %s was configured" % (b, variant)))
     for t in cfg["targets"]:
         if t["lab"] != lab or t["variant"] != variant or t["backend"] not in want:
             continue
@@ -543,7 +925,8 @@ def cmd_run(a):
         if is_extra_tile and not a.bench:
             continue
         print("\n== %s, %s, %s%s" % (lab, variant, t["backend"], ", TILE_WIDTH=%d" % t["tile"] if is_extra_tile else ""))
-        r = exercise(t, not a.no_test and not is_extra_tile, a.bench and t["backend"] not in EMULATED)
+        r = exercise(t, not a.no_test and not is_extra_tile, a.bench and t["backend"] not in EMULATED,
+                     reps=a.reps, full=a.full)
         if not r["built"]:
             print("BUILD FAILED\n" + r["log"])
             rc_all = 1
@@ -562,10 +945,14 @@ def cmd_run(a):
         have = {b: os.path.exists(os.path.join(REPORTS, "runs", "%s.json" % b)) for b in {r["backend"] for r in ran}}
         devs = device_info(cfg) if not all(have.values()) else None
         save_runs(ran, {lab: work_state(lab)}, devs)
+    elif rc_all == 0:
+        print("\nnothing was run: %s has no build for %s on this machine" % (
+            lab, "any backend found" if a.backend == "all" else "backend " + a.backend))
+        return 1
     return rc_all
 
 
-def run_selftests(cfg, backends, only=None, echo=True):
+def run_selftests(cfg, backends, only=None, echo=True, full=False):
     """Build and run the emulator's self-tests (labs/selftest) on the given backends."""
     results = []
     for t in cfg["selftests"]:
@@ -573,7 +960,7 @@ def run_selftests(cfg, backends, only=None, echo=True):
             continue
         if echo:
             print("[%s] %s ..." % (t["backend"], t["target"]), flush=True)
-        r = exercise(t, True, False)
+        r = exercise(t, True, False, full=full)
         ok, verdict = selftest_verdict(r)
         r["ok"], r["verdict"] = ok, verdict
         if echo:
@@ -592,7 +979,7 @@ def cmd_selftest(a):
         if b not in enabled:
             why = next((x["why"] for x in cfg["backends"] if x["name"] == b), "unknown backend")
             print("== %s: skipped (%s)" % (b, why))
-    results = run_selftests(cfg, want, a.name)
+    results = run_selftests(cfg, want, a.name, full=a.full)
     for r in results:
         if not r["ok"] or a.verbose:
             print("\n== %s: %s" % (r["target"], r["verdict"]))
@@ -618,6 +1005,8 @@ def cmd_reset(a):
 
 
 def cmd_verify(a):
+    if a.reps < 1:
+        sys.exit("--reps must be at least 1")
     started = datetime.datetime.now()
     cfg = configure()
     devs = device_info(cfg) if cfg["rc"] == 0 else {}
@@ -637,10 +1026,10 @@ def cmd_verify(a):
                 continue
             do_test, do_bench = True, (edited and t["backend"] not in EMULATED and not a.quick)
         print("[%s] %s ..." % (t["backend"], t["target"]), flush=True)
-        r = exercise(t, do_test, do_bench)
+        r = exercise(t, do_test, do_bench, reps=a.reps, full=a.full)
         print("    tests: %s%s" % (counts(r), ", %d benchmark rows" % len(r["bench"]) if r["bench"] else ""), flush=True)
         results.append(r)
-    selftests = run_selftests(cfg, usable)
+    selftests = run_selftests(cfg, usable, full=a.full)
     check = cuda_frontend_check()
 
     report = {
@@ -652,6 +1041,9 @@ def cmd_verify(a):
         "configure_log": scrub(tail(cfg["log"], 60)),
         "backends": cfg["backends"], "devices": devs, "usable_backends": usable,
         "work_state": states, "results": results, "selftests": selftests, "cuda_frontend_check": check,
+        "skipped": [x for x in cfg.get("skipped", []) if x["backend"] in usable and not x["why"].startswith(
+            "this lab is not built for the race")],
+        "incomplete": cfg.get("incomplete", []), "cmake_args": cfg.get("cmake_args", []), "reps": a.reps,
     }
     os.makedirs(REPORTS, exist_ok=True)
     stamp = started.strftime("%Y%m%d-%H%M%S")
@@ -684,6 +1076,10 @@ def render(rep):
                                             rep["system"]["python"], rep["system"]["cmake"]))
     w("- Backends with a usable device: **%s**" % (", ".join(rep["usable_backends"]) or "none"))
     w("- Reference solutions: **%d of %d passed**" % (len(sols) - len(bad), len(sols)))
+    if rep.get("cmake_args"):
+        w("- Extra cmake arguments (PMPP_CMAKE_ARGS): `%s`" % " ".join(rep["cmake_args"]))
+    if rep.get("reps", 1) > 1:
+        w("- Each benchmark was run %d times; every repetition is listed" % rep["reps"])
     w("")
     w("## What this report does and does not establish")
     w("")
@@ -724,6 +1120,16 @@ def render(rep):
         for k, v in d.items():
             if k not in ("kind", "backend", "available"):
                 w("| %s | %s |" % (k, v))
+        w("")
+    if rep.get("skipped") or rep.get("incomplete"):
+        w("## Builds not made")
+        w("")
+        w("| Lab | Variant | Backend | Why |")
+        w("|---|---|---|---|")
+        for x in rep.get("incomplete", []):
+            w("| %s | all | all | incomplete: missing %s |" % (x["lab"], scrub(x["missing"])))
+        for x in rep.get("skipped", []):
+            w("| %s | %s | %s | %s |" % (x["lab"], x["variant"], x["backend"], x["why"]))
         w("")
     w("## Reference solutions")
     w("")
@@ -781,14 +1187,18 @@ def render(rep):
         any_bench = True
         w("### %s, %s, %s, TILE_WIDTH=%d" % (r["lab"], r["variant"], r["backend"], r["tile"]))
         w("")
+        rows = r["bench"]
         keys = []
-        for row in r["bench"]:
+        if r.get("bench_reps"):
+            rows = [dict(row, rep=x["rep"]) for x in r["bench_reps"] for row in x["rows"]]
+            keys = ["rep"]
+        for row in rows:
             for k in row:
                 if k not in ("kind", "lab", "variant", "backend") and k not in keys:
                     keys.append(k)
         w("| " + " | ".join(keys) + " |")
         w("|" + "---|" * len(keys))
-        for row in r["bench"]:
+        for row in rows:
             cells = []
             for k in keys:
                 v = row.get(k, "")
@@ -839,15 +1249,21 @@ def main():
     r.add_argument("--backend", default="all", choices=["all"] + BACKENDS)
     r.add_argument("--solution", action="store_true", help="run the reference solution instead of your work")
     r.add_argument("--bench", action="store_true")
+    r.add_argument("--reps", type=int, default=1, metavar="N",
+                   help="with --bench: run the benchmark N times and record each repetition")
     r.add_argument("--no-test", action="store_true")
+    r.add_argument("--full", action="store_true", help="print sanitizer reports in full instead of condensed")
     r.set_defaults(fn=cmd_run)
     t = sub.add_parser("selftest", help="run the emulator's own tests (labs/selftest); writes no report")
     t.add_argument("name", nargs="?", help="only self-tests whose name contains this")
     t.add_argument("--backend", default="all", choices=["all"] + BACKENDS)
     t.add_argument("--verbose", action="store_true", help="print every test's output, not only failures")
+    t.add_argument("--full", action="store_true", help="print sanitizer reports in full instead of condensed")
     t.set_defaults(fn=cmd_selftest)
     v = sub.add_parser("verify")
     v.add_argument("--quick", action="store_true", help="skip benchmarks")
+    v.add_argument("--reps", type=int, default=1, metavar="N", help="run each benchmark N times, recording each")
+    v.add_argument("--full", action="store_true", help="keep sanitizer reports in full instead of condensed")
     v.set_defaults(fn=cmd_verify)
     s = sub.add_parser("reset")
     s.add_argument("lab")

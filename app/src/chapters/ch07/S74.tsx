@@ -715,6 +715,12 @@ export function S74() {
       </p>
       <Source section="7.4" pages="169–171" figs="Fig. 7.10" />
       <p>The book&rsquo;s figures for those levels are generic. Here is what each vendor documents today.</p>
+      <Today checked="2026-11-20 (ch07-facts A5, B5, C4; infra-facts C13)">
+        <p>
+          The book&rsquo;s 128 KB is out of date for NVIDIA. AMD gives most sizes per GPU model, so the table keeps
+          AMD&rsquo;s generic figure and the structure only. Apple&rsquo;s descriptions come from conference talks, not reference documentation.
+        </p>
+      </Today>
       <table className="data" data-table="caches">
         <thead>
           <tr>
@@ -730,31 +736,25 @@ export function S74() {
             <td>L1, per core</td>
             <td>up to 128 KB</td>
             <td>one unified L1 and shared memory, 96 to 336 KB per SM, by compute capability</td>
-            <td>vector L1 per CU (16 KB &ldquo;typical&rdquo;; 32 KiB on MI300X), shared memory separate</td>
+            <td>vector L1 per CU (16 KB &ldquo;typical&rdquo;, larger on some GPUs), shared memory separate</td>
             <td>separate L1s for buffers and textures; no sizes</td>
           </tr>
           <tr>
             <td>L2</td>
             <td>a few hundred KB to tens of MB, tens to hundreds of cycles</td>
             <td>one L2 shared by all SMs, size in <code>l2CacheSize</code>; no latency figure</td>
-            <td>shared by the CUs of one die; MI300X: 4 MB per chiplet (XCD)</td>
+            <td>shared by the CUs of one die; on MI300X, one L2 per chiplet (XCD)</td>
             <td>a last-level cache shared by all GPU cores; no size</td>
           </tr>
           <tr>
             <td>L3</td>
             <td>hundreds of MB on some processors</td>
             <td>none documented</td>
-            <td>MI300X: 256 MiB last-level cache</td>
+            <td>on MI300X, a last-level cache shared by the whole GPU</td>
             <td>a system-level cache is mentioned; no size</td>
           </tr>
         </tbody>
       </table>
-      <Today checked="2026-11-20 (ch07-facts A5, B5, C4; infra-facts C13)">
-        <p>
-          The book&rsquo;s 128 KB is out of date for NVIDIA. Apple&rsquo;s descriptions come from conference talks, not
-          reference documentation.
-        </p>
-      </Today>
       <YourConstantMemory />
 
       <h2>The constant cache</h2>

@@ -3,7 +3,8 @@ import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
 import { Aside, Bench, Beyond, Simplification, Source, TierLegend, Today, type Tier } from '../../components/notes';
 import { useProgress } from '../../lib/progress';
-import { labStatus, useReports } from '../../lib/reports';
+import { solutionTabStatus } from '../../components/LabKit';
+import { useReports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import {
   BOOK_BLOCK_MULTIPLE,
@@ -52,26 +53,17 @@ const AMD_INDEX = `const std::size_t index = threadIdx.x + blockDim.x * blockIdx
 const AMD_GUARD = `if(index < size)`;
 
 // ---------------------------------------------------------------- the kernel, from the lab
+// The same words as the labs page (LabKit's solutionTabStatus), from this machine's runs.
 function useKernelStatus() {
   const { reports } = useReports();
-  const st = (b: string) => labStatus(reports[b], LAB, 'solution');
-  const got = [
-    st('cuda') === 'pass' ? 'verified on CUDA' : '',
-    st('hip') === 'pass' ? 'verified on HIP' : '',
-    st('emu') === 'pass' ? 'emulator-checked' : '',
-  ].filter(Boolean);
-  const lacking = ['cuda', 'hip'].filter((b) => st(b) !== 'pass').map((b) => (b === 'cuda' ? 'CUDA' : 'HIP'));
-  return {
-    cu: (got.length ? got.join(', ') : 'no passing run on this machine') + (lacking.length ? `; unverified on ${lacking.join(' and ')}` : ''),
-    metal: st('metal') === 'pass' ? 'verified on Metal' : 'unverified: no passing Metal run on this machine',
-  };
+  return { cu: solutionTabStatus(reports, LAB, 'kernel.cu'), metal: solutionTabStatus(reports, LAB, 'kernel.metal') };
 }
 
 function KernelListing({ cu, metal }: { cu: string | null; metal: string | null }) {
   const status = useKernelStatus();
   const k = cu ? functionSource(cu, 'vecAddKernel') : null;
   const m = metal ? functionSource(metal, 'vec_add') : null;
-  if (!k || !m) return <p className="muted">The kernel is loaded from <code>labs/{LAB}/solution/</code> once that lab is in place.</p>;
+  if (!k || !m) return <p className="muted">Loading the kernel from <code>labs/{LAB}/solution/</code>.</p>;
   return (
     <Code
       tabs={[
@@ -911,18 +903,18 @@ export const questionsS25: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Nothing. The runtime clips the grid to n threads.', why: 'The runtime does not know n. It was given a number of blocks and a block size, and it runs all of them.' },
+      { label: 'Nothing. The runtime clips the last block to the threads that have an element.', why: 'The runtime does not know n. It was given a number of blocks and a block size, and it runs all of them.' },
       {
         label: (
           <>
-            {NOGUARD.idle} threads read and write elements {span(NOGUARD.outOfRange)}, outside all three arrays. A GPU is not
-            documented to report it. The emulator build with AddressSanitizer stops at the line.
+            {NOGUARD.idle} threads read and write elements {span(NOGUARD.outOfRange)}, outside all three arrays. Nothing
+            reports it by default on a GPU; the emulator's AddressSanitizer stops at the line.
           </>
         ),
         correct: true,
       },
-      { label: 'The launch fails with an error code.', why: 'The launch parameters are valid. The launch statement returns no error code in any case, and what the docs describe checking afterwards is the configuration.' },
-      { label: 'A compile error.', why: 'The compiler cannot know how long the arrays will be at run time.' },
+      { label: 'The launch fails with an error code, because the grid is larger than the data.', why: 'The launch parameters are valid. The launch statement returns no error code in any case, and what the docs describe checking afterwards is the configuration.' },
+      { label: 'A compile error, because the index can run past the arrays.', why: 'The compiler cannot know how long the arrays will be at run time.' },
     ],
     explain: (
       <p>
@@ -948,10 +940,10 @@ export const questionsS25: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Never. Metal checks buffer bounds for you.', why: 'Not by default. Apple documents out-of-bounds reporting as a job for Shader Validation, a debugging tool you switch on.' },
-      { label: 'Always, exactly as in CUDA.', why: 'With dispatchThreads over n threads no thread has an index at or past n.' },
+      { label: 'Never: Metal checks each access against the buffer\'s length.', why: 'Not by default. Apple documents out-of-bounds reporting as a job for Shader Validation, a debugging tool you switch on.' },
+      { label: 'Always, exactly as in CUDA, whichever dispatch call the host uses.', why: 'With dispatchThreads over n threads no thread has an index at or past n.' },
       {
-        label: 'Not when the host calls dispatchThreads with a grid of exactly n threads. It does when the host calls dispatchThreadgroups, which launches whole threadgroups.',
+        label: 'Not when the host calls dispatchThreads over exactly n threads. It does with dispatchThreadgroups, which launches whole threadgroups.',
         correct: true,
       },
       { label: 'Only when n is larger than the largest threadgroup.', why: 'The size of a group does not decide it. What decides it is whether the grid is rounded up to whole groups.' },

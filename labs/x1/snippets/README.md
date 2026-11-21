@@ -17,8 +17,8 @@ The summary page shows no kernel of its own, so there is no wrap snippet.
 ## `philox.cu` and `philox.metal`
 
 Random123's round, constants and key schedule, written here (not copied). `philox.cu` forms the
-32 x 32 to 64-bit product as an `unsigned long long` multiplication: the course's emulator and
-the front-end stub have no `__umulhi` (`notes/today/x1-facts.md`, project notes). `philox.metal`
+32 x 32 to 64-bit product as an `unsigned long long` multiplication, which needs no intrinsic
+(`__umulhi` would also do: the course's emulator and the front-end stub now accept it). `philox.metal`
 takes the high half from MSL's `mulhi` and the low half from the wrapping 32-bit product
 (x1-facts C4), as Random123's own MSL does. Lab X1.3's `kernel.metal` uses the other form, a
 `ulong` product; both pass the same known-answer vectors.

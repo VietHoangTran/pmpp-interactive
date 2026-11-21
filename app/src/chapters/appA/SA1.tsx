@@ -536,15 +536,15 @@ export const questionsSA1: Record<string, Question> = {
         correct: true,
       },
       {
-        label: 'No: the exponent is stored with a bias, so integer order and value order differ.',
+        label: 'No: the exponent is stored with a bias of 127, so the integer order and the value order differ.',
         why: 'The bias is what makes it work: excess codes rise with the exponents they stand for.',
       },
       {
-        label: 'Only if none of the values is subnormal.',
+        label: 'Not if some are subnormal: without the hidden bit, their mantissas no longer order them.',
         why: 'Subnormals have exponent code 0, below every normal value, and their mantissas order them among themselves. Still correct.',
       },
       {
-        label: 'Only among values that share an exponent.',
+        label: 'Within one exponent, yes; values with different exponents can still come out in the wrong order.',
         why: 'The exponent field is more significant than the mantissa field, so different exponents are compared first, which is the right order.',
       },
     ],
@@ -568,17 +568,17 @@ export const questionsSA1: Record<string, Question> = {
     id: 'appA/A.1/q-bf16-top',
     prompt: <>You keep the top 16 bits of an FP32 value and drop the low 16. What do you have?</>,
     options: [
-      { label: 'A BF16 value rounded toward zero: off by up to almost one BF16 step.', correct: true },
+      { label: 'A BF16 value rounded toward zero: off by up to almost one step.', correct: true },
       {
-        label: 'A BF16 value rounded to nearest: off by at most half a BF16 step.',
+        label: 'A BF16 value rounded to nearest, ties to even: off by at most half a BF16 step.',
         why: 'Dropping bits never rounds up. FP32 1.0078124 keeps 1.0, though 1.0078125 is nearer.',
       },
       {
-        label: 'An FP16 value.',
+        label: 'An FP16 value: the sign, the exponent and the top of the mantissa, like any 16-bit float.',
         why: 'FP16 has 5 exponent bits. The top 16 bits of FP32 keep all 8 of its exponent bits: that is the BF16 layout.',
       },
       {
-        label: 'Nothing meaningful: the exponent field is cut in half.',
+        label: 'Nothing meaningful: the 16-bit cut falls in the middle of the 8-bit exponent field.',
         why: 'The sign and the 8 exponent bits are the top 9 bits, so they survive whole.',
       },
     ],

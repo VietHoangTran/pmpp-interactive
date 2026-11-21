@@ -102,7 +102,7 @@ check('N 64, 8 threads, C 4, R 1: 10 steps', Number((await shown()).total) === 1
 await setField(X, 'C', 1);
 check('and C 1: 16 steps in 4 waves', Number((await shown()).total) === 16 && Number((await shown()).waves) === 4);
 
-// A million floats on 264 slots: wave quantisation around C = 7 and 8.
+// 2^20 floats on 264 slots: wave quantisation around C = 7 and 8.
 await click(X, '2²⁰ floats');
 await setField(X, 'C', 7);
 r = coarsenSteps({ N: 1 << 20, block: 256, C: 7, R: CH6_DEVICE_R });
@@ -130,7 +130,7 @@ await click(X, '1 (Fig. 10.21)');
 check('R = 1: every block is its own wave', Number((await shown()).waves) === Number((await shown()).blocks));
 
 // Rows and threads per block.
-await click(X, '264 (chapter 6\'s example)');
+await click(X, '264 (the book\'s example, ch. 6)');
 await setField(X, 'threads per block', 1024);
 await setField(X, 'rows', 3);
 r = coarsenSteps({ N: 1 << 20, block: 1024, C: 8, R: 264, rows: 3 });

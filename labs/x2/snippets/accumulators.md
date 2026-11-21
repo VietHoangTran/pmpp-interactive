@@ -1,11 +1,17 @@
 # Accumulator fragments
 
 The four fragments of section X2.6's bug spot, "Safe or unsafe?". Each shows one way to hold a
-quantised dot product's sum; nothing else is meant to be complete. They are not compiled
-(unverified). `q`, `x4`, `w2`, `x2`, `v` and `u` are the block's codes and activations, and
-`dot4` is dp4a's arithmetic. `app/src/sim/qdot.ts` (`runFragment`, `FRAGMENT_MODEL`) models
-their arithmetic, and `app/src/sim/qdot.snippets.test.ts` ties each fragment's accumulator
-to that model. The section parses this file by its `##` headings: keep one fenced block per
+quantised dot product's sum; nothing else is meant to be complete. `q`, `x4`, `w2`, `x2`, `v`
+and `u` are the block's codes and activations, and `dot4` is dp4a's arithmetic.
+`app/src/sim/qdot.ts` (`runFragment`, `FRAGMENT_MODEL`) models their arithmetic, and
+`app/src/sim/qdot.snippets.test.ts` ties each fragment's accumulator to that model.
+
+Status: the three CUDA fragments (2, 3 and 4) are emulator-checked and front-end-checked. The
+same test pastes each one, as printed here, into `check/accumulators_check.cu`, runs it on the
+course's CPU emulator (`__half2`, `__hfma2` and `__dp4a` are modelled there, `dot4` is
+`__dp4a`) and gets `runFragment`'s results: equal worst-case results and equal realistic
+errors. They have not been run on a GPU (unverified on CUDA). Fragment 1 is MSL and is not
+compiled (unverified). The section parses this file by its `##` headings: keep one fenced block per
 fragment.
 
 ## metal-half-dot

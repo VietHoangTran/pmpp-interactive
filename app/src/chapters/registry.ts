@@ -113,6 +113,6 @@ export const PLAN: PlanRow[] = [
   { id: null, num: 'B', title: 'Deep learning basics', pages: '601–622', tier: 'Skipped', why: 'You already know all of it.' },
   { id: 'appC', num: 'C', title: 'CUDA memories, address spaces, and pointers', pages: '623–629', tier: 'Standard', why: 'Memory models; the contrast with unified memory.' },
   { id: 'x1', num: 'X1', title: 'Sampling kernels', pages: 'not in the book', tier: 'Deep', why: 'Greedy, top-k, top-p on the GPU.', milestone: 'M5', ours: true },
-  { id: 'x2', num: 'X2', title: 'Quantised kernels', pages: 'not in the book', tier: 'Deep', why: 'int8 and 4-bit-weight GEMM.', milestone: 'M9', ours: true },
-  { id: 'x3', num: 'X3', title: 'Reading real backends', pages: 'not in the book', tier: 'Standard', why: 'llama.cpp, MLX and PyTorch GPU code.', ours: true },
+  { id: 'x2', num: 'X2', title: 'Quantised kernels', pages: 'not in the book', tier: 'Deep', why: 'int8 and 4-bit-weight GEMVs; the quantised decode step.', milestone: 'M9', ours: true },
+  { id: 'x3', num: 'X3', title: 'Reading real backends', pages: 'not in the book', tier: 'Standard', why: 'llama.cpp, MLX and PyTorch GPU code; a Llama-style model end to end.', milestone: 'M10', ours: true },
 ];

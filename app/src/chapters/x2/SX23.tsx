@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
-import { Bench, Beyond, Simplification, Today } from '../../components/notes';
+import { Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
 import { href } from '../../lib/router';
 import {
   LAYOUT_LABEL,
@@ -64,7 +64,7 @@ export const questionsSX23: Record<string, Question> = {
         correct: true,
       },
       { label: 'It compresses better: nibbles 16 apart tend to be similar in size.', why: 'Both orders store exactly 4 bits per weight.' },
-      { label: 'It keeps every block\'s codes 2-byte aligned within the row.', why: 'Alignment is set by the FP16 d and the block size, not by the nibble order.' },
+      { label: 'It keeps each block\'s codes 2-byte aligned, for 16-bit word reads.', why: 'Alignment is set by the FP16 d and the block size, not by the nibble order.' },
       { label: 'GPUs load the high nibble of a byte first, so j + 16 comes next.', why: 'No load reads nibbles; loads read bytes and words.' },
     ],
     explain: (
@@ -103,7 +103,7 @@ export const questionsSX23: Record<string, Question> = {
     prompt: <>MSL now has <code>uint4b_format</code> and <code>unpack</code>. Why does lab X2.2's Metal kernel unpack with masks instead?</>,
     options: [
       {
-        label: 'Their nibble order is undocumented, and so are the GPU families they run on.',
+        label: 'Their nibble order and GPU support are undocumented.',
         correct: true,
       },
       { label: 'The packed types are slower than masking the bytes by hand.', why: 'Nobody has published a measurement either way, and nothing here claims one.' },
@@ -381,6 +381,7 @@ export function SX23() {
         those bytes is a choice, and the three layouts you are most likely to read make three different ones. This
         section is about why, and about the one trap in reading llama.cpp's blocks.
       </p>
+      <Source section="A.5" pages="592" />
       <Beyond title="Ours, not the book's">
         <p>
           The book names 4-bit data (appendix A, §A.5, p. 592) and nothing more. The orders, alignments and idioms here
@@ -512,7 +513,7 @@ export function SX23() {
       </Today>
       <Ask q={q['x2/X2.3/q-int4b']} />
       <p>
-        One bridge for goal three. The bytes of a Q4_0 tensor in a GGUF file are exactly these 18-byte blocks, and
+        One bridge to reading llama.cpp itself. The bytes of a Q4_0 tensor in a GGUF file are exactly these 18-byte blocks, and
         llama.cpp's <code>gguf-py</code> package quantises with the same rule in NumPy, so it is a usable oracle when you
         write your own tests. Lab X2.2 (on the <a href={href('x2', 'labs')}>labs page</a>) reads these blocks on the GPU.
       </p>

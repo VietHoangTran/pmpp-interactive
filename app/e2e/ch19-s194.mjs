@@ -263,13 +263,13 @@ const answerChoice = async (part, option) => {
   return ok && (await h.evaluate((e) => (e.querySelector('.verdict')?.textContent ?? '') + ' | ' + (e.querySelector('.opts label.wrong .muted')?.textContent ?? '')));
 };
 const QS = [
-  ['K = 64', 'K = 64, M = 3, C = 32.', 'M = 64 output maps', 'keeps cuDNN’s letters'],
-  ['better memory alignment', 'It rounds each row', 'It adds pad_h rows of zeros', 'Padding of that kind exists inside cuDNN'],
+  ['K = 64', 'K = 64 output maps, M = 3', 'M = 64 output maps, a 3 × 3', 'keeps cuDNN’s letters'],
+  ['better memory alignment', 'It rounds each row', 'It adds pad_h zero rows', 'Padding of that kind exists inside cuDNN'],
   ['argues against on p. 467', 'IMPLICIT_GEMM; the workspace holds tiles', 'GEMM; the workspace holds the unfolded input matrix.', 'never forms the matrix'],
   ['needs a workspace that', 'A copy of the unfolded input', 'Precomputed indices into the input', 'That is GEMM, the explicit algorithm'],
-  ['differs from', 'Whether cuDNN flipped the filter.', 'Whether cuDNN ran the convolution in TF32', 'PyTorch selects cross-correlation'],
-  ['Find step', 'Both make results deterministic.', 'Both time several algorithms', 'separate flag'],
-  ['receives a 1 × 1 convolution', 'The direct kernel.', 'A cuBLAS GEMM directly on the input.', 'C·K·K = 256 is not below 64'],
+  ['differs from', 'Whether cuDNN flipped the filter', 'Whether cuDNN ran the convolution in TF32', 'PyTorch selects cross-correlation'],
+  ['Find step', 'Both make results deterministic', 'Both time several algorithms', 'separate flag'],
+  ['receives a 1 × 1 convolution', 'The direct kernel, since', 'A cuBLAS GEMM directly on the input.', 'C·K·K = 256 is not below 64'],
 ];
 for (const [part, wrongOpt, rightOpt, why] of QS) {
   const w = await answerChoice(part, wrongOpt);

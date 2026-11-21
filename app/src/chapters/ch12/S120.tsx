@@ -43,16 +43,15 @@ export const questionsS120: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Neither: an atomic is one hardware operation, whatever its address.',
+        label: 'Neither: an atomic is a single read-modify-write instruction, so 100,000 of them take the same time whatever addresses they name.',
         why: 'The hardware still allows only one atomic on a given address at a time. The others queue behind it.',
       },
       {
-        label:
-          'A. Atomics on one address are serialised: only one can be in progress, each takes about a load latency plus a store latency, and they cannot overlap. Atomics on different addresses proceed in parallel.',
+        label: 'A. Atomics on one address are serialised, each taking about a load plus a store latency; on different addresses they overlap.',
         correct: true,
       },
       {
-        label: 'B, because it touches 100,000 locations instead of one.',
+        label: 'B: 100,000 counters means 100,000 separate locations to fetch and write back, where A keeps reusing one.',
         why: 'Memory traffic is not what limits A. The queue on one address is.',
       },
     ],
@@ -90,16 +89,15 @@ export const questionsS120: Record<string, Question> = {
     prompt: <>What does giving each block a private copy of a shared output buy, and what does it cost?</>,
     options: [
       {
-        label: 'It removes the need for atomics.',
+        label: 'It removes the need for atomics: each block owns its copy, so its threads can update it with plain loads and stores.',
         why: 'The threads of one block still share the private copy, so their updates still need atomics: cheaper ones, in shared memory.',
       },
       {
-        label: 'It is faster whatever the input.',
+        label: 'A speedup on every input, since shared-memory updates are cheaper than global ones and the final merge is one pass.',
         why: 'Initialising and merging the copies costs something per block. When contention was low to begin with, that cost can outweigh the gain.',
       },
       {
-        label:
-          'Far fewer updates to the public copy and no contention between blocks, paid for with on-chip memory per block and a merge step at the end.',
+        label: 'Far fewer updates to the public copy, paid for with on-chip memory per block and a merge step at the end.',
         correct: true,
       },
     ],
@@ -127,11 +125,11 @@ export const questionsS120: Record<string, Question> = {
         correct: true,
       },
       {
-        label: 'B: spreading the stores spreads them over more of the memory.',
+        label: 'B: stores 128 bytes apart fall in different memory banks, so all 32 lanes are served at once.',
         why: 'Global memory is served in segments of adjacent bytes. B uses 4 bytes of each segment it touches and pays for all of them.',
       },
       {
-        label: 'Neither: each lane stores 4 bytes either way.',
+        label: 'Neither: each lane stores 4 bytes either way, so both cases move the same 128 bytes in the same number of transactions.',
         why: 'The bytes stored are the same. The number of segments touched is not.',
       },
     ],
@@ -156,16 +154,16 @@ export const questionsS120: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Nothing: the mask is a hint about which lanes are likely to take part.',
+        label: 'Nothing: the mask only hints at which lanes will take part, and the hardware skips any lane that is absent.',
         why: 'It is a contract. Every lane named in it must make the call.',
       },
       {
-        label: 'Only that the lanes outside the branch receive 0.',
+        label: 'Only that the lanes outside the branch receive 0, which is harmless since they never read the result.',
         why: 'No result is defined for this call at all. The programming guide classes it as invalid.',
       },
       {
         label:
-          'The mask names lanes that do not call the intrinsic. CUDA requires every lane in the mask to execute it with the same mask, so the call is invalid: it may hang or behave in an undefined way.',
+          'The mask names lanes that never make the call, and CUDA requires every lane in the mask to make it with the same mask: the call is invalid and may hang.',
         correct: true,
       },
     ],
@@ -278,7 +276,9 @@ export function S120() {
           <tr>
             <td>Sampling</td>
             <td>one token drawn from the survivors</td>
-            <td>module X1</td>
+            <td>
+              module X1, <a href={href('x1', 'X1.8')}>section X1.8</a>
+            </td>
           </tr>
         </tbody>
       </table>

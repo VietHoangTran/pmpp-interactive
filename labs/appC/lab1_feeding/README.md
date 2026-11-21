@@ -69,7 +69,8 @@ in host memory the driver owns, `passes`, and two callbacks. `produce` writes th
 ## Commands
 
 - Test: `python3 labs/pmpp.py run appC/lab1_feeding --backend emu` first, then
-  `python3 labs/pmpp.py run appC/lab1_feeding`.
+  `python3 labs/pmpp.py run appC/lab1_feeding`. The runner also accepts the lab's number,
+  `C.1`, in place of the directory.
 - Measure: `python3 labs/pmpp.py run appC/lab1_feeding --bench` (real devices only).
 - The reference solution: add `--solution`.
 

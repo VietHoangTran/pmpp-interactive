@@ -349,8 +349,7 @@ export function S42() {
           <p>
             <b>{waiting}</b>. The device runs {FIG42.units} × {FIG42.slotsPerUnit} = {cap} blocks at once, so{' '}
             {PICTURE_BLOCKS} − {cap} = {waiting} wait.{' '}
-            {v === waiting ? 'You had it.' : v === cap ? `${cap} is the number that start; the question was how many do not.` : 'Step through it below.'}{' '}
-            The stepper starts on exactly this launch.
+            {v === waiting ? 'You had it.' : v === cap ? `${cap} is the number that start; the question was how many do not.` : 'Step through it below.'}
           </p>
         )}
       </Predict>

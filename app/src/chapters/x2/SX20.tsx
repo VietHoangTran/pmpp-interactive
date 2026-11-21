@@ -79,7 +79,7 @@ export const questionsSX20: Record<string, Question> = {
       { label: 'Yes for (out, in); no for (in, out), where lanes are out floats apart.', correct: true },
       { label: 'Both are coalesced, because every lane reads exactly one float.', why: 'Coalescing is about the addresses of neighbouring lanes, not the size of each read.' },
       { label: 'Neither: each weight is read only once, so nothing can be combined.', why: 'Combining happens across the lanes of one load instruction, not across time.' },
-      { label: 'No for (out, in), where lanes skip a row; yes for (in, out).', why: 'In (in, out) the lanes jump a whole row of out values each.' },
+      { label: 'No for (out, in), where lanes skip a row; yes for (in, out), side by side.', why: 'It is the other way round. In (out, in) lane L + 1 reads the float after lane L; in (in, out) the lanes jump a whole row of out values each.' },
     ],
     explain: (
       <p>
@@ -121,7 +121,7 @@ export const questionsSX20: Record<string, Question> = {
         label: 'Small addends vanish against a large sum, and FP16 gets there far sooner.',
         correct: true,
       },
-      { label: 'FP16 overflows after 2048 terms, and the rest of the sum is lost.', why: 'Overflow depends on the size of the sum, not the number of terms. The loss here happens long before any overflow.' },
+      { label: 'FP16 overflows after 2048 terms, its largest exact integer; the rest is lost.', why: '2048 is where FP16 stops holding every integer, not where it overflows: that is 65,504, and it depends on the size of the sum, not the number of terms. The loss here starts long before any overflow.' },
       { label: 'FP16 rounds toward zero, while float32 rounds to the nearest value.', why: 'Both round to nearest by default. The difference is how many bits each keeps.' },
       { label: 'It does not: the order of the additions is all that matters.', why: 'Order matters in both. The narrower format makes the same order worse.' },
     ],
@@ -147,7 +147,7 @@ export const questionsSX20: Record<string, Question> = {
     options: [
       { label: 'Every lane after the xor butterfly; only lane 0 after shuffle-down.', correct: true },
       { label: 'Only lane 0 in both cases, since lane 0 is where the sum ends.', why: 'In a butterfly each lane exchanges with a partner and both keep the sum, so all lanes end with it.' },
-      { label: 'Every lane in both cases: each shuffle moves values to all lanes.', why: 'With shuffle-down the upper lanes receive values from past the end of the warp and their sums are partial.' },
+      { label: 'Every lane in both: in either shuffle, each lane takes a partner\'s value.', why: 'With shuffle-down a lane whose source would be past the end of the warp gets its own value back, so the upper lanes end with partial or doubled sums; only lane 0 is sure to hold the total.' },
       { label: 'The last lane after the butterfly; lane 0 after shuffle-down.', why: 'The butterfly is symmetric: no lane is special.' },
     ],
     explain: (

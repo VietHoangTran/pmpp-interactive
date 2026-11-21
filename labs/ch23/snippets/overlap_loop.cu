@@ -1,6 +1,6 @@
 // Fig. 23.14 (p. 557): the host loop of the MPI version that overlaps computation and
 // communication with three streams and three events, together with the setup the book shows
-// in pieces in the text. Section 23.4 shows the two marked regions; the loop keeps the
+// in pieces in the text. The course page 23.3–23.5 (route ch23/23.4) shows the two marked regions; the loop keeps the
 // book's line numbers 01 to 43, and app/src/sim/haloloop.ts cites the same numbers.
 //
 // Differences from the page:

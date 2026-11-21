@@ -959,6 +959,12 @@ export function SA6() {
           where each step can be written in units of 2⁻²⁵.
         </p>
       </Beyond>
+      <Simplification>
+        <p>
+          Every step rounds once to nearest even in FP32, with no reassociation and no fused multiply-add: what the bug
+          hunt's C++ does when it is compiled without fast math.
+        </p>
+      </Simplification>
       <KahanScene />
       <p>
         The four statements have to be exactly these, in exactly this order. Below are four versions of the loop. Decide

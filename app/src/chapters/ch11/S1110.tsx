@@ -528,13 +528,13 @@ export const questionsS1110: Record<string, Question> = {
     id: 'ch11/11.10/q-warp',
     prompt: <>After coarsening, why does the book keep Kogge-Stone for the warp-level scan, despite its extra work?</>,
     options: [
-      { label: 'Brent-Kung cannot be written with shuffles.', why: 'Both networks only ever read a value a power of two to the left, which a shuffle-up delivers.' },
+      { label: 'Brent-Kung cannot be written with shuffles, because its steps need values a shuffle cannot reach.', why: 'Both networks only ever read a value a power of two to the left, which a shuffle-up delivers.' },
       {
-        label: 'Inside a warp the lanes Brent-Kung leaves idle are occupied anyway, so its savings buy nothing while its extra steps cost time.',
+        label: 'In a warp the lanes Brent-Kung leaves idle are occupied anyway, so its extra steps cost time and save nothing.',
         correct: true,
       },
-      { label: 'Kogge-Stone does fewer additions within one warp.', why: 'It does more: 129 against 57 for 32 lanes.' },
-      { label: 'Brent-Kung needs a barrier per step and Kogge-Stone does not.', why: 'Inside a warp neither uses a block barrier.' },
+      { label: 'Kogge-Stone does fewer additions within one warp, because each lane adds only once per stride.', why: 'It does more: 129 against 57 for 32 lanes.' },
+      { label: 'Brent-Kung needs a barrier between its steps even inside a warp, and Kogge-Stone does not.', why: 'Inside a warp neither uses a block barrier.' },
     ],
     explain: (
       <p>
@@ -557,13 +557,13 @@ export const questionsS1110: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Brent-Kung has fewer steps, so it can afford to skip one.', why: 'It has more steps, and skipping a needed barrier is never affordable.' },
+      { label: 'Brent-Kung has fewer steps, so it can drop the second barrier without the race ever showing.', why: 'It has more steps, and skipping a needed barrier is never affordable.' },
       {
-        label: 'In each Brent-Kung step no position written by one thread is read by another, so nothing is overwritten before it is read; only the dependence between steps needs a barrier.',
+        label: 'In a Brent-Kung step no thread reads a position another thread writes; only the dependence between steps needs a barrier.',
         correct: true,
       },
-      { label: 'Shared memory serialises writes to the same bank.', why: 'Bank behaviour is about speed, not about the order of reads and writes.' },
-      { label: 'Only one thread is active in each step.', why: 'The first step of the reduction tree has N/2 active threads.' },
+      { label: 'Shared memory serialises writes to the same bank, so a read and another thread\'s write cannot overlap.', why: 'Bank behaviour is about speed, not about the order of reads and writes.' },
+      { label: 'Only one thread is active in each step, so no other thread is there to race with.', why: 'The first step of the reduction tree has N/2 active threads.' },
     ],
     explain: (
       <p>
@@ -670,6 +670,12 @@ export function S1110() {
         The animation runs both phases once on sixteen positions, then moves into a single warp, where the comparison turns
         around.
       </p>
+      <Simplification>
+        <p>
+          Drawn from the stepper's model. In the warp view a step is one issue of the addition for all 32 lanes; an idle
+          lane only occupies the warp. No memory, no barriers, no time per step.
+        </p>
+      </Simplification>
       <BkSweepsScene />
 
       <h2>Why Kogge-Stone still wins inside a warp</h2>

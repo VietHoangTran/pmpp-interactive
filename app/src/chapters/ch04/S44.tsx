@@ -776,7 +776,8 @@ export function S44() {
       <Aside>
         <p>
           NVIDIA's sentence: “The use of multi-dimensional thread blocks and grids is for convenience only and does not
-          affect performance.” (notes/today/ch04-facts.md A8). The forward references are to the book's §6.1 and §6.4.
+          affect performance.” (notes/today/ch04-facts.md A8). The forward references are to the book's §6.1 and §6.4,
+          here <a href={href('ch06', '6.1')}>6.1</a> and <a href={href('ch06', '6.4')}>6.4</a>.
         </p>
       </Aside>
       <Ask q={questionsS44['ch04/4.4/q-rows']} />

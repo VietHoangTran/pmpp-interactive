@@ -7,6 +7,7 @@ import {
   LabResults,
   LabsIntro,
   LabsPage,
+  RaceStatus,
   ReferenceSolution,
   RunningLabs,
   VerificationStatus,
@@ -15,11 +16,10 @@ import {
   msCol,
   numCol,
   rawCol,
-  useLabs,
   type BenchSet,
   type Col,
 } from '../../components/LabKit';
-import { fmt, labStatus, num, type BenchRow, type Reports, type RunResult } from '../../lib/reports';
+import { fmt, num, type BenchRow, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
 
 // The page is built from components/LabKit.tsx; what is here is chapter 18's own content.
@@ -117,42 +117,6 @@ const COLS: Col[] = [
   numCol('µs per level', 'us_per_level'),
   numCol('Million edges/s', 'medges_per_s'),
 ];
-
-/** One line on lab 18.1 on the race backend, which the status table does not show. */
-function RaceStatus() {
-  const { reports, loading } = useLabs();
-  const run = reports.race;
-  const line = (variant: 'solution' | 'work') => {
-    const rs = (run?.results.filter((x) => x.lab === l1.id && x.variant === variant) ?? []) as (RunResult & { tsan?: unknown[] })[];
-    const tests = rs.flatMap((x) => x.tests);
-    const found = rs.reduce((n, x) => n + (Array.isArray(x.tsan) ? x.tsan.length : 0), 0);
-    return { s: labStatus(run, l1.id, variant), tests, passed: tests.filter((t) => t.pass).length, found };
-  };
-  const sol = line('solution');
-  const mine = line('work');
-  return (
-    <p data-race-status={loading ? 'loading' : sol.s} data-race-work={loading ? 'loading' : mine.s}>
-      {loading ? (
-        'Reading reports.'
-      ) : !run ? (
-        'No run on the race backend on this machine yet.'
-      ) : (
-        <>
-          {sol.s === 'none'
-            ? 'On this machine the reference solution has no run on the race backend yet.'
-            : sol.s === 'pass'
-              ? `On this machine the reference solution passed all ${sol.tests.length} tests on the race backend with ${sol.found ? `${sol.found} ThreadSanitizer report(s)` : 'no race reported'}: emulator-checked on this flavour.`
-              : `On this machine the reference solution failed on the race backend (${sol.passed} of ${sol.tests.length} tests): unverified there.`}{' '}
-          {mine.s === 'none'
-            ? 'Your own kernels have no recorded run there, or are still the untouched starter.'
-            : mine.s === 'pass'
-              ? `Your own kernels passed all ${mine.tests.length} tests there with ${mine.found ? `${mine.found} ThreadSanitizer report(s): read them` : 'no race reported'}.`
-              : `Your own kernels passed ${mine.passed} of ${mine.tests.length} tests there, with ${mine.found} ThreadSanitizer report(s) in the run.`}
-        </>
-      )}
-    </p>
-  );
-}
 
 /** What each backend calls the pieces of the lab (notes/today/ch18-facts.md, "Where the backends really differ"). */
 function BackendsTable() {
@@ -378,7 +342,7 @@ export function Labs() {
         <code>python3 labs/pmpp.py run 18.1 --backend race</code> before you trust a pass. A GPU shows duplicates or lost
         vertices only when its schedule produces them, and a missing barrier can pass there.
       </p>
-      <RaceStatus />
+      <RaceStatus lab={l1} />
       <p>
         On Metal, part A runs as one compute dispatch per level, each in its own command buffer, waited on before the
         count is read back. The dispatches run in order and each sees the previous one's writes, because the course's

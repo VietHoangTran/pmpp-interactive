@@ -39,7 +39,7 @@ export const questionsS128: Record<string, Question> = {
     id: 'ch12/12.8/q-noscan',
     prompt: <>Why does removing columns of a matrix by index need no scan?</>,
     options: [
-      { label: 'Because the columns of a matrix are contiguous in memory.', why: 'In a row-major matrix a column is strided: its elements are a whole row apart.' },
+      { label: 'Because the columns of a matrix are contiguous in memory, so a block can move each one with a plain copy.', why: 'In a row-major matrix a column is strided: its elements are a whole row apart.' },
       { label: 'It does need a scan, of the keep flags of every element.', why: 'It could use one, but nothing about the data decides who survives, so the count before each key is known from the index.' },
       {
         label: 'Whether a key survives, and how many removed columns come before it, depend only on its column index, so its destination is a closed formula.',
@@ -65,9 +65,9 @@ export const questionsS128: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'The same order as filtering: earlier blocks read before later blocks write.', why: 'That protects keys from writes coming from behind. Here the writes come from in front.' },
+      { label: 'The same order as filtering: each block waits for the block before it, so earlier blocks read before later ones write.', why: 'That protects keys from writes coming from behind. Here the writes come from in front.' },
       {
-        label: 'Each block must finish reading before any earlier block writes, because keys move outwards into later slots: the chain runs from the last block to the first.',
+        label: 'Each block must finish reading before any earlier block writes, because keys move outwards: the chain runs from the last block to the first.',
         correct: true,
       },
       { label: 'None: nothing is removed, so nothing is overwritten.', why: 'Row 1 moves from slots 6 to 11 into slots 8 to 13, and slots 12 and 13 still hold row 2, which may not have been read yet.' },
@@ -86,9 +86,9 @@ export const questionsS128: Record<string, Question> = {
     id: 'ch12/12.8/q-order-only',
     prompt: <>You remove rows of a matrix by index, in place, with the single-pass scan's machinery between blocks. What does each block pass on to the next?</>,
     options: [
-      { label: 'Only a flag that says "I have finished reading"; no partial sum is needed.', correct: true },
-      { label: 'The number of rows it kept, as in the stable filter.', why: 'Every block can compute that from the indices of the removed rows. Nobody needs it passed on.' },
-      { label: 'Nothing at all: the destinations are known.', why: 'Known destinations remove the scan, not the hazard. A later block still must not write before an earlier block has read.' },
+      { label: 'Only a flag that says "I have finished reading"; no partial sum.', correct: true },
+      { label: 'The number of rows it kept, added to a running total, exactly as in the stable filter\'s scan.', why: 'Every block can compute that from the indices of the removed rows. Nobody needs it passed on.' },
+      { label: 'Nothing at all: the destinations are known, so no block depends on another.', why: 'Known destinations remove the scan, not the hazard. A later block still must not write before an earlier block has read.' },
     ],
     explain: (
       <p>

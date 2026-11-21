@@ -138,11 +138,11 @@ export const questionsWrap: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'No: a fast thread can now overwrite the buffer that mm is reading.',
+        label: 'No: a fast thread\'s loads now come before its mm, so they can overwrite the buffer a slower thread\'s mm is reading.',
         why: 'The loads write buf[(tile + 1) & 1] and mm reads buf[tile & 1]: different buffers in every iteration.',
       },
       {
-        label: 'Yes: the loads write the buffer whose last reads finished before the previous barrier, and mm reads the buffer that barrier completed.',
+        label: 'Yes: the loads fill the buffer freed before the last barrier, and mm reads the one that barrier completed.',
         correct: true,
       },
       {
@@ -150,7 +150,7 @@ export const questionsWrap: Record<string, Question> = {
         why: 'A barrier there would order the loads before mm, but mm does not read anything these loads write.',
       },
       {
-        label: 'Only when numTiles is even.',
+        label: 'Only when numTiles is even, so that the epilogue reads the buffer the last load filled.',
         why: 'The parity alternates every iteration, whatever the count; the epilogue reads (numTiles - 1) & 1 either way.',
       },
     ],
@@ -178,19 +178,19 @@ export const questionsWrap: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Into loadTile: add b to the X tile as it is loaded.',
+        label: 'Into loadTile: add b to each element of the X tile as it arrives in shared memory.',
         why: 'The bias is added once per output. Adding it to an input element changes every product that element enters.',
       },
       {
-        label: 'Into mm: add b[col] at every step of the inner loop.',
+        label: 'Into mm: add b[col] to each accumulator at every step of the inner loop over k.',
         why: 'That adds the bias at every step along the inner dimension: K times instead of once.',
       },
       {
-        label: 'Into writeTile: each thread adds b[col] to its accumulators and applies GELU in registers just before the store.',
+        label: 'Into writeTile: add b[col] and apply GELU in registers before the store.',
         correct: true,
       },
       {
-        label: 'Nowhere: fusing needs the vendor library.',
+        label: 'Nowhere in M3: fusing an epilogue needs a library such as cuBLASLt.',
         why: 'Your kernel holds every output in registers until writeTile. That is the easiest place in any GEMM to fuse, yours included.',
       },
     ],
@@ -218,19 +218,19 @@ export const questionsWrap: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Faster: four times the warps hide four times the latency.',
+        label: 'Faster: four blocks per SM give four times the warps, and four times the latency is hidden.',
         why: 'Latency hiding helps when the units wait. Here the pipe is already busy, and NVIDIA’s triage guide calls extra warps counter-productive in that case.',
       },
       {
-        label: 'No better, probably worse: the arithmetic units are already busy, and smaller tiles mean more loads per multiply-add.',
+        label: 'No better, probably worse: the units are already busy, and smaller tiles reuse each loaded value less.',
         correct: true,
       },
       {
-        label: 'Faster, because each block then needs less shared memory.',
+        label: 'Faster, because each block then needs less shared memory, so more of them fit.',
         why: 'Shared memory was never the limit (section 15.7). Per output, smaller tiles load more, not less.',
       },
       {
-        label: 'No change: occupancy never matters for a compute-bound kernel.',
+        label: 'No change: in a compute-bound kernel, occupancy has no effect on speed.',
         why: 'Too strong. The proposal changes more than occupancy: it changes how much each loaded value is reused.',
       },
     ],
@@ -457,8 +457,9 @@ export function Wrap() {
         and cluster-level tiles of the hierarchy (pp. 352, 359–360). Explained but not built: warp specialisation (p.
         368), which needs producer and consumer synchronisation the book does not show; asynchronous copies (p. 369),
         which only CUDA documents in a usable form and the emulators do not model; tensor cores and their interfaces
-        (pp. 368–369), which differ by vendor and return with lower precision in module X2; and cuDNN, named only
-        (chapter 19 lowers convolution to GEMM).
+        (pp. 368–369), which differ by vendor (section{' '}
+        <a href={href('x2', 'X2.5')}>X2.5</a> names their integer forms; no lab uses them); and cuDNN, named only (section <a href={href('ch19', '19.3')}>19.3</a> lowers convolution to GEMM,
+        and <a href={href('ch19', '19.4')}>19.4</a> is about cuDNN).
       </p>
 
       <h2>The project so far</h2>

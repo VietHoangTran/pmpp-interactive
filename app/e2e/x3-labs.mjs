@@ -110,7 +110,10 @@ const h2 = await page.$$eval('.prose h2', (hs) => hs.map((h) => h.textContent.tr
 const wantLabs = ["Lab X3.1: the Llama pieces the course has not built, and a port review", "Lab X3.2: milestone M10, a Llama-style model end to end on the course's kernels"];
 check('the two labs appear in order', wantLabs.every((t, i, a) => h2.indexOf(t) >= 0 && (i === 0 || h2.indexOf(t) > h2.indexOf(a[i - 1]))), JSON.stringify(h2));
 check('lab X3.2 states the milestone with the project conventions', text0.includes('completes milestone M10') && text0.includes('row-major float32 with the batch first'));
-check('M10 says plainly it runs without M9, and why', text0.includes('M10 runs float32 weights without M9') && text0.includes('launchQLinear'));
+check('M10 says how it runs with M9: the adapter, what it binds, and that your interface is unchanged',
+  text0.includes('M10 also runs with M9') && text0.includes('launchQLinear') && text0.includes('provided/m9_linear') &&
+  text0.includes('without changing your interface') && !text0.includes('without M9'));
+check('the M10 test list names the M9 check', text0.includes('M9 in M10.') && text0.includes('same quantised weights'));
 check('the real-checkpoint path is labelled unverified', text0.includes('the README describes the work, unverified'));
 check('the no-download rule is stated', text0.includes('Nothing is downloaded by CMake, the script, the driver or the tests'));
 check('nothing on the page says it is being written', !/being written/i.test(text0));
@@ -138,7 +141,7 @@ await shot('status', 'table[data-table="solution-status"]');
   const sol = labStatus(run, l.id, 'solution');
   const race = await page.$eval(`[data-race="${l.num}"]`, (e) => ({ s: e.dataset.raceStatus, w: e.dataset.raceWork, text: e.textContent })).catch(() => null);
   check(`race line of lab ${l.num} reads the reports: solution ${run ? sol : 'no run'}`, race && race.s === sol && race.w === labStatus(run, l.id, 'work') &&
-    (!run ? race.text.includes('No run on the race backend') : sol === 'pass' ? race.text.includes('emulator-checked on this flavour') : sol === 'none' ? race.text.includes('no run on the race backend yet') : race.text.includes('unverified there')), JSON.stringify(race));
+    (!run ? race.text.includes('No run on the race backend') : sol === 'pass' ? race.text.includes('is emulator-checked: all') : sol === 'none' ? race.text.includes('has no run on the race backend on this machine') : race.text.includes('is unverified: failed on this machine')), JSON.stringify(race));
   check('lab X3.2 has no race line', (await page.$('[data-race="X3.2"]')) === null);
 }
 
@@ -322,11 +325,19 @@ for (const l of LABS) {
   check(`lab ${l.num}: the three solution files exist in the repository`, Object.values(files).every((t) => t !== 'MISSING' && t.length > 100));
   const tabs = await page.$$eval('figure.code .tabs button', (b) => b.map((x) => x.textContent));
   check(`lab ${l.num}: tabs are CUDA, Metal kernel, Metal host`, tabs.join('|') === 'CUDA|Metal kernel|Metal host', tabs.join('|'));
+  // The same rules as LabKit's solutionTabStatus: what passed, then what failed ("unverified on
+  // the emulator: failed on this machine"), then the CUDA-family backends with no run.
   const st = (b) => labStatus(reports[b], l.id, 'solution');
-  const got = [st('cuda') === 'pass' ? 'verified on CUDA' : '', st('hip') === 'pass' ? 'verified on HIP' : '', st('emu') === 'pass' ? 'emulator-checked' : ''].filter(Boolean);
-  const lacking = ['cuda', 'hip'].filter((b) => st(b) !== 'pass').map((b) => NAME[b]);
-  const cuStatus = got.length ? got.join(', ') + (lacking.length ? `; unverified on ${lacking.join(' and ')}` : '') : 'unverified (no run on this machine)';
-  const metalStatus = st('metal') === 'pass' ? 'verified on Metal' : st('metal') === 'fail' ? 'unverified (failed on this machine)' : 'unverified (no run on this machine)';
+  const WHERE = { emu: 'the emulator', cuda: 'CUDA', hip: 'HIP' };
+  const fam = ['cuda', 'hip', 'emu'];
+  const got = fam.filter((b) => st(b) === 'pass').map((b) => (b === 'emu' ? 'emulator-checked' : `verified on ${NAME[b]}`));
+  const failed = fam.filter((b) => st(b) === 'fail').map((b) => WHERE[b]);
+  const lacking = ['cuda', 'hip'].filter((b) => st(b) === 'none').map((b) => NAME[b]);
+  const cuStatus = !got.length && !failed.length
+    ? 'unverified: no run on this machine'
+    : [got.join(', '), failed.length ? `unverified on ${failed.join(' and ')}: failed on this machine` : '', lacking.length ? `unverified on ${lacking.join(' and ')}` : '']
+        .filter(Boolean).join('; ');
+  const metalStatus = st('metal') === 'pass' ? 'verified on Metal' : st('metal') === 'fail' ? 'unverified: failed on this machine' : 'unverified: no run on this machine';
   const order = [['kernel.cu', cuStatus], ['kernel.metal', metalStatus], ['launch.mm', metalStatus]];
   for (let i = 0; i < 3; i++) {
     await page.evaluate((i) => [...document.querySelectorAll('figure.code .tabs button')][i].click(), i);

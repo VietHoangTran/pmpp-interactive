@@ -1,1 +1,1 @@
-The bars compare DRAM traffic per output. All hits is the ideal. Then the model's 2 runs, and all misses, where no block reuses another's lines. The book speaks of a significant probability of hits. Your GPU decides which bar you get, and a profiler or lab 7.2 will tell you.
+The bars compare DRAM traffic per output. All hits is the ideal. Then the model's 2 runs, and all misses, where no block reuses another's lines. The book speaks of a significant probability of hits. Your GPU decides which bar you get. A profiler shows its hit rate. Lab 7.2 measures what it costs you.

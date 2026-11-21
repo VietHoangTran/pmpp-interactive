@@ -452,7 +452,7 @@ export function Labs() {
       <Today checked="2026-11-20 (notes/today/ch12-facts.md B1; ch05-facts B5; infra-facts B3)">
         <p>
           Every HIP <code>_sync</code> function requires a 64-bit mask, and <code>__ballot_sync</code> returns{' '}
-          <code>unsigned long long</code>. <code>warpSize</code> is 64 on gfx9 and 32 on later AMD parts.
+          <code>unsigned long long</code>. <code>warpSize</code> is 64 on gfx9 and 32 on gfx10 and above.
         </p>
       </Today>
       <VerificationStatus />
@@ -485,9 +485,12 @@ export function Labs() {
           argument type into a compile error, as llama.cpp does. The lane comes from <code>warpSize</code>.
         </li>
         <li>
-          Under HIP the atomics are the legacy <code>atomicAdd</code>, relaxed and valid on shared and global memory:{' '}
-          <code>&lt;cuda/atomic&gt;</code> comes from libhipcxx there, which the course's HIP build links only where
-          ROCm provides it, so the lab does not rely on it. Not built with ROCm here.
+          Under HIP the atomics are the legacy <code>atomicAdd</code>, relaxed and valid on shared and global memory.{' '}
+          <code>&lt;cuda/atomic&gt;</code> comes from libhipcxx there. The course's HIP build links{' '}
+          <code>libhipcxx::libhipcxx</code> when CMake finds it (it ships with ROCm 10.1 and later, infra-facts B2).
+          Without it, code that includes <code>&lt;cuda/atomic&gt;</code> does not build. With it, no ROCm machine has
+          built this course's code yet (unverified). So the lab uses the legacy call, which HIP documents for shared
+          and global memory (B1) and which needs no extra library. Not built with ROCm here.
         </li>
       </ul>
       <p>
@@ -852,8 +855,9 @@ export function Labs() {
         missing={missing('12.4')}
         reading={
           <>
-            At batch 1 both versions use a tiny part of the GPU: one thread, or one block. Section 10.10's point applies
-            here too (<a href={href('ch10', '10.10')}>section 10.10</a>). The ratio at 64 rows is in the detail above;
+            At batch 1 both versions use a tiny part of the GPU: one thread, or one block.{' '}
+            <a href={href('ch10', '10.10')}>Section 10.10</a>'s point applies here too. The ratio at 64 rows is in the
+            detail above;
             compare how the block kernel's time grows from 1 row to 64 in the table.
           </>
         }
@@ -894,10 +898,12 @@ export function Labs() {
       <p>
         Milestone M5 of the through-line project is sampling on the GPU: top-k and top-p, with repetition penalties.
         Lab 9.3 gave it token counts; lab 12.4 gives it the candidate list, stable (column, logit) pairs and a count per
-        row. Module X1 composes it with lab 10.3's row max (milestone M4): the min-p threshold is the max plus ln p,
-        which needs no softmax. A top-k threshold comes from a selection (chapter 14 and module X1); ties at it are all
-        kept, in column order, so to keep exactly k drop the surplus threshold-valued pairs from the end, which keeps the
-        lowest columns, llama.cpp's tie rule. The lab's README works through all three.
+        row. Module X1 composes it with lab 10.3's row max (milestone M4) in{' '}
+        <a href={href('x1', 'X1.6')}>section X1.6</a>: the min-p threshold is the max plus ln p, which needs no
+        softmax. A top-k threshold comes from a selection (<a href={href('x1', 'X1.4')}>section X1.4</a>, a radix
+        select measured against chapter 14's sort); ties at it are all kept, in column order, so to keep exactly k drop
+        the surplus threshold-valued pairs from the end, which keeps the lowest columns, llama.cpp's tie rule. The lab's
+        README works through all three.
       </p>
       <Beyond>
         <p>

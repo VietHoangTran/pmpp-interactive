@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
-import { Bench, Beyond, Simplification, Source, Today, type Tier } from '../../components/notes';
+import { Bench, Beyond, NoteGroup, Simplification, Source, Today, type Tier } from '../../components/notes';
 import { benchRows, fmt, num, realBackends, useReports, type BenchRow } from '../../lib/reports';
 import { href } from '../../lib/router';
 import { SEGMENT_MODELS, type SegmentModelId } from '../../sim/coalesce';
@@ -21,7 +21,6 @@ import {
 } from '../../sim/coarsescan';
 import { functionSource } from '../../sim/toolchain';
 import { CoarsePhasesScene } from './CoarsePhasesScene';
-import { NoteGroup } from './NoteGroup';
 
 const STATUS = {
   printed: 'front-end-checked; emulator-checked (N a multiple of the block segment); unverified on CUDA hardware; as printed',
@@ -461,10 +460,16 @@ export const questionsS116: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Fewer threads per block: smaller blocks finish sooner.', why: 'The number of blocks, and so of block sums to stitch together, stays the same.' },
-      { label: 'The longer segment: it divides the number of blocks, and so the number of block sums to stitch together, by the factor.', correct: true },
+      {
+        label: 'Fewer threads per block: smaller blocks finish sooner, so their sums arrive earlier.',
+        why: 'The number of blocks, and so of block sums to stitch together, stays the same.',
+      },
+      { label: 'The longer segment: it divides the number of blocks by the factor.', correct: true },
       { label: 'Neither: the inter-block step depends only on N.', why: 'It depends on how many blocks N is split into.' },
-      { label: 'Both equally: either way each thread does F elements.', why: 'Per thread, yes. Per grid, only one of them changes how many blocks there are.' },
+      {
+        label: 'Both equally: either way each thread does F elements, so the grid does the same work.',
+        why: 'Per thread, yes. Per grid, only one of them changes how many blocks there are.',
+      },
     ],
     explain: (
       <p>

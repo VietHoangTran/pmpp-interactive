@@ -168,7 +168,7 @@ function RaceLine({ lab: l }: { lab: Lab }) {
         <>
           On the race backend of this machine, the reference solution{' '}
           {s === 'pass'
-            ? `passed all ${n} tests with no race reported: emulator-checked under both flavours.`
+            ? `passed all ${n} tests with no race reported: emulator-checked on the race backend.`
             : s === 'fail'
               ? 'failed: unverified there.'
               : 'has no run yet.'}{' '}
@@ -308,9 +308,9 @@ export function Labs() {
       </p>
       <p>
         On HIP, <code>&lt;cuda/atomic&gt;</code> comes from libhipcxx, part of ROCm from 10.1. The course's HIP build
-        links only <code>hip::host</code> today (<code>labs/cmake/Backends.cmake</code>), so all three labs may fail to
-        find the header there until the shared build file links libhipcxx. Nobody has tried: there is no ROCm machine
-        behind this course, and the HIP column below can only be filled by yours.
+        links <code>libhipcxx::libhipcxx</code> when CMake finds it (<code>labs/cmake/Backends.cmake</code>); when it
+        does not, <code>doctor</code> says so and all three labs will not build there. Nobody has tried: there is no ROCm
+        machine behind this course, so this is unverified, and the HIP column below can only be filled by yours.
       </p>
       <Today checked="2026-11-20 (notes/today/infra-facts.md B2; ch09-facts.md B1)">
         <p>
@@ -328,7 +328,7 @@ export function Labs() {
         them they have three independent defects, the same three in the CUDA and the Metal version. Everything compiles.
         Find and fix all three.
       </p>
-      <Source section="9.2" pages="203–213" figs="Figs. 9.6, 9.9; the defects are ours" />
+      <Source section="9.2–9.4" pages="203–213" figs="Figs. 9.6, 9.9; the defects are ours" />
       <LabFiles
         lab={l1}
         files={[
@@ -449,7 +449,7 @@ export function Labs() {
         per thread, so that consecutive equal pixels of one thread cost one atomic. The book's coarsening factor is a
         compile-time macro; here it is a run-time argument, so that one build can be measured at several factors.
       </p>
-      <Source section="9.4" pages="211–219" figs="Figs. 9.10, 9.14, 9.15" />
+      <Source section="9.4–9.6" pages="211–219" figs="Figs. 9.10, 9.14, 9.15" />
       <LabFiles
         lab={l2}
         files={[
@@ -592,7 +592,7 @@ export function Labs() {
         counts, <code>appendTokens</code> adds one new token per row (a decode step), and <code>applyPenalties</code>{' '}
         subtracts <code>count × frequencyPenalty + (count &gt; 0) × presencePenalty</code> from every logit.
       </p>
-      <Source section="9.2" pages="203–217" figs="Figs. 9.6, 9.9, 9.14" />
+      <Source section="9.2–9.5" pages="203–217" figs="Figs. 9.6, 9.9, 9.14" />
       <p>
         Before you open <code>work/</code>, answer the six design questions the lab's README opens with: which of the
         chapter's privatisations still applies when one private copy is hundreds of KiB? Section{' '}
@@ -719,8 +719,8 @@ export function Labs() {
         Lab 9.3 is its counting piece: per-request token counts over <code>[batch × vocab]</code>, kept up to date one
         decode step at a time, and the frequency and presence penalties applied to the logits. Chapters 11, 12 and 14
         add the cumulative sum, the compaction and the sort that top-p and top-k need, and module X1 puts them together
-        with this lab, including the sign-aware repetition penalty, which is left out here until its exact form is
-        checked against llama.cpp's source.
+        with this lab in its lab X1.3. The sign-aware repetition penalty is left out here; section{' '}
+        <a href={href('x1', 'X1.3')}>X1.3, Penalties from token counts</a>, adds it.
       </p>
       <Beyond>
         <p>

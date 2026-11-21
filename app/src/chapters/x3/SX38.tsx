@@ -417,10 +417,10 @@ export const questionsSX38: Record<string, Question> = {
     id: 'x3/X3.8/q-negative-vocab',
     prompt: <>A llama2.c header's vocab_size is negative. What does the loader do differently?</>,
     options: [
-      { label: 'The classifier is not the embedding: a separate vocab × dim block follows the two skipped RoPE tables.', correct: true },
-      { label: 'The file is version 1 or later; run.c refuses it.', why: 'Later versions are a different header. The sign is run.c’s own flag inside version 0.' },
-      { label: 'The tokens are stored in reverse order.', why: 'Nothing in run.c reverses anything. The sign carries one bit of information.' },
-      { label: 'The weights are float16 instead of float32.', why: 'Version 0 is float32 throughout; run.c maps the floats directly.' },
+      { label: 'The LM head is not the embedding: its own vocab × dim block follows the skipped RoPE tables.', correct: true },
+      { label: 'The file is version 1 or later, with a different header, and run.c refuses to load it.', why: 'Later versions are a different header. The sign is run.c’s own flag inside version 0.' },
+      { label: 'The token strings are stored in reverse order, so the loader must read them back to front.', why: 'Nothing in run.c reverses anything. The sign carries one bit of information.' },
+      { label: 'The weights are stored as float16 instead of float32, so the loader converts each one.', why: 'Version 0 is float32 throughout; run.c maps the floats directly.' },
     ],
     explain: (
       <p>
@@ -457,7 +457,7 @@ export const questionsSX38: Record<string, Question> = {
     prompt: <>A BF16 tensor stores the 16 bits 0x3F80. What float32 bit pattern do you write, and is the conversion exact?</>,
     options: [
       { label: `${hex32(bf16ToF32Bits(0x3f80))}, which is ${bf16ToF32(0x3f80)}.0; exact, because bf16 is the top half of a float32.`, correct: true },
-      { label: '0x00003F80; exact.', why: 'That puts the bits in the bottom half: the result is a tiny subnormal, not 1.0.' },
+      { label: '0x00003F80: the 16 bits as they are; exact.', why: 'That puts the bits in the bottom half: the result is a tiny subnormal, not 1.0.' },
       { label: '0x3F800000, but it must be rounded, so it is only approximately 1.0.', why: 'Widening adds sixteen zero mantissa bits. Nothing is lost, so nothing is rounded.' },
       { label: 'It depends on the exponent bias, which bf16 and float32 do not share.', why: 'They share it: bf16 has float32’s 8-bit exponent.' },
     ],
@@ -480,12 +480,12 @@ export const questionsSX38: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'No. At position 0 every rotation angle is 0 whatever the base, so the first token cannot reveal it; later positions rotate by different angles and the tokens drift.',
+        label: 'No. At position 0 every angle is 0 whatever the base, so the first token cannot show it; later tokens drift.',
         correct: true,
       },
-      { label: 'Yes: RoPE angles are small, so a factor of 10 in the base changes little.', why: 'Low-frequency pairs change by a lot: the base sets how fast every pair after the first rotates.' },
+      { label: 'Yes: RoPE angles are small for most pairs, so a factor of 10 in the base barely changes any attention score.', why: 'Low-frequency pairs change by a lot: the base sets how fast every pair after the first rotates.' },
       { label: 'Yes, as long as epsilon is right: RMSNorm absorbs the difference.', why: 'RMSNorm rescales a vector; it cannot undo a rotation of Q against K.' },
-      { label: 'No, and the first token should already differ; a match means the base is not used.', why: 'At position 0, pos × frequency is 0 for every pair and every base.' },
+      { label: 'No, and the first token should already differ; a match means the kernel never reads the RoPE base.', why: 'At position 0, pos × frequency is 0 for every pair and every base.' },
     ],
     explain: (
       <p>
@@ -503,9 +503,9 @@ export const questionsSX38: Record<string, Question> = {
     prompt: <>Which of the three small checkpoints could lab 20.4's decode kernel serve by changing only HEAD_DIM?</>,
     options: [
       { label: 'SmolLM2-135M: head size 64 = 2 × 32, so 2 values per lane.', correct: true },
-      { label: 'stories15M: head size 48.', why: '48 is not a multiple of 32. HEAD_DIM / 32 rounds down to 1, so each lane takes one dimension and 16 of the 48 are never read.' },
-      { label: 'stories260K: head size 8.', why: 'Fewer dimensions than lanes: HEAD_DIM / 32 is 0.' },
-      { label: 'All three: HEAD_DIM is just a constant.', why: 'The kernel also divides the head over 32 lanes, which constrains the constant.' },
+      { label: 'stories15M: head size 48, a multiple of 16.', why: '48 is not a multiple of 32. HEAD_DIM / 32 rounds down to 1, so each lane takes one dimension and 16 of the 48 are never read.' },
+      { label: 'stories260K: head size 8, one value for each of 8 lanes.', why: 'Fewer dimensions than lanes: HEAD_DIM / 32 is 0.' },
+      { label: 'All three: HEAD_DIM is a compile-time constant, and any value builds.', why: 'The kernel also divides the head over 32 lanes, which constrains the constant.' },
     ],
     explain: (
       <p>
@@ -522,11 +522,11 @@ export const questionsSX38: Record<string, Question> = {
     prompt: <>llama.cpp loads GGUF. Why does M10's real-checkpoint path not start there?</>,
     options: [
       {
-        label: 'GGUF has typed metadata, 32-byte default alignment and usually quantised tensors (M9’s subject); llama2.c .bin and safetensors need far less parsing.',
+        label: 'GGUF adds typed metadata, aligned data and usually quantised types (M9’s subject); .bin and safetensors need far less.',
         correct: true,
       },
-      { label: 'GGUF is undocumented.', why: 'It has a written spec, ggml/docs/gguf.md, version 3.' },
-      { label: 'GGUF files are big-endian.', why: 'The spec says models are little-endian by default.' },
+      { label: 'GGUF is undocumented: llama.cpp’s loader source is the only description of the layout.', why: 'It has a written spec, ggml/docs/gguf.md, version 3.' },
+      { label: 'GGUF files are big-endian, so every value would need a byte swap on the course’s hosts.', why: 'The spec says models are little-endian by default.' },
       { label: 'GGUF cannot hold a Llama-architecture model.', why: 'It is the format llama.cpp runs Llama models from.' },
     ],
     explain: (
@@ -544,12 +544,12 @@ export const questionsSX38: Record<string, Question> = {
     prompt: <>You convert SmolLM2-135M to a .bin with llama2.c's export.py. What goes wrong?</>,
     options: [
       {
-        label: 'permute_reverse reshapes k_proj (192 × 576) as if it had n_heads × head_size = 576 rows, so it fails or mis-permutes; the K permutation must use the KV head count, as llama.cpp’s does.',
+        label: 'permute_reverse reshapes k_proj (192 × 576) as if it had 576 rows, so it fails or mis-permutes; K needs the KV head count.',
         correct: true,
       },
-      { label: 'Nothing: export.py reads config.json and handles any Llama.', why: 'Its permute uses n_heads and dim by default, also for K.' },
-      { label: 'It writes bf16 values into a float32 file.', why: 'That is not the failure the source shows; the shape of K is.' },
-      { label: 'It drops the tied embedding.', why: 'A missing lm_head is the shared-classifier case the format already has.' },
+      { label: 'Nothing: export.py reads config.json and so handles any Llama checkpoint, grouped-query or not.', why: 'Its permute uses n_heads and dim by default, also for K.' },
+      { label: 'It writes the bf16 values unchanged into a file that run.c reads as float32.', why: 'That is not the failure the source shows; the shape of K is.' },
+      { label: 'It drops the tied embedding, so run.c finds no classifier in the file.', why: 'A missing lm_head is the shared-classifier case the format already has.' },
     ],
     explain: (
       <p>
@@ -704,7 +704,7 @@ export function SX38() {
       <p>
         <b>GGUF is not the place to start.</b> It is what llama.cpp loads, and its spec is clear, but it brings typed metadata, tensor data
         aligned to 32 bytes unless the file says otherwise, and, in most published files, quantised tensor types. Those are M9's subject;
-        M10 runs FP32.
+        M10 runs FP32, and Q8_0 or Q4_0 through M9's layer only for weights its own driver quantised: no GGUF loader is built.
       </p>
       <Today checked="2026-11-20 (notes/today/x3-facts.md D5)">
         <p>

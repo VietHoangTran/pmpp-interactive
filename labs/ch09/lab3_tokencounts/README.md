@@ -43,7 +43,8 @@ Three kernels, each with a launcher. Row-major, batch first, int32 ids, uint32 c
   frequency and presence penalty (D4). With both penalties 0 the logits must not change.
 
 The sign-aware repetition penalty (divide a positive logit, multiply a negative one) is not
-here. Its exact form is not in the facts file yet; module X1 adds it.
+here. Module X1 adds it, in section X1.3 "Penalties from token counts" and its lab X1.3
+(`notes/today/x1-facts.md` D2, D9).
 
 ## Files
 

@@ -89,12 +89,12 @@ export const questionsS84: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Both need at least one 4-byte load and one 4-byte store per output, but the stencil does 13 operations per output and the filter 54.',
+        label: 'The same 8 compulsory bytes per output, but 13 operations for the stencil against 54 for the filter.',
         correct: true,
       },
-      { label: 'The stencil has a bigger halo.', why: 'Both reach one point out in every direction: the same radius, so the same halo.' },
-      { label: 'A stencil cannot use shared memory.', why: 'It can, and page 8.4 builds the kernel that does. The ideal assumes perfect reuse, whatever memory provides it.' },
-      { label: 'Stencils are computed in double precision.', why: 'The book makes the comparison at 4 bytes per value for both (p. 190).' },
+      { label: 'The stencil\'s halo is deeper, so more of every tile is loaded and never computed.', why: 'Both reach one point out in every direction: the same radius, so the same halo.' },
+      { label: 'A stencil gets no reuse from shared memory, so each of its 7 reads goes to global memory.', why: 'It does reuse loaded values, and this page builds a kernel that shares them. The ideal assumes perfect reuse, whatever memory provides it.' },
+      { label: 'Stencils are computed in double precision, which doubles the bytes per output.', why: 'The book makes the comparison at 4 bytes per value for both (p. 190).' },
     ],
     explain: (
       <p>
@@ -194,12 +194,12 @@ export const questionsS84: Record<string, Question> = {
         label: `The ratio halves to ${r2(cubeAI(8, 1, 8))} FLOP/B and the tile needs ${count(sharedBytesCube(8, 8))} B of shared memory, twice as much.`,
         correct: true,
       },
-      { label: 'Nothing in FLOP/B: the operations and the element counts are the same.', why: 'The counts are the same; the bytes per element are not, and the ratio is per byte.' },
+      { label: 'Nothing in FLOP/B: the operations and the element counts are the same; only the tile\'s shared memory doubles.', why: 'The counts are the same; the bytes per element are not, and the ratio is per byte.' },
       {
         label: 'The ratio halves, so the kernel becomes compute-bound.',
         why: 'Fewer operations per byte push a kernel towards the memory-bound side, not away from it. If double ever made this kernel compute-bound on some part, the cause would be a slow FP64 unit, not the lower ratio.',
       },
-      { label: 'The tile has to shrink to t = 4 to fit.', why: '4,096 B is well within what a block may use.' },
+      { label: 'The 8-byte tile no longer fits in shared memory, so the side has to shrink to t = 4.', why: '4,096 B is well within what a block may use.' },
     ],
     explain: (
       <p>
@@ -237,15 +237,15 @@ export const questionsS84: Record<string, Question> = {
     prompt: <>Run Fig. 8.8 with 32 × 8 × 4 blocks, as the book suggests. Is each warp's load now perfectly coalesced, and what happens to FLOP/B?</>,
     options: [
       {
-        label: `No: a row of 32 floats starting at 30·blockIdx.x − 1 spans five segments (80%). The output tile is 30 × 6 × 2 = ${count(FLAT_OUT)} points for ${count(FLAT_IN)} loads, a smaller share of the block than the cube's ${CUBE_OUT} of ${CUBE_IN}, so FLOP/B falls to ${r2(boxAI(box(32, 8, 4), 1))}.`,
+        label: `No: each row starts on an odd index and spans five segments (80%). FLOP/B falls to ${r2(boxAI(box(32, 8, 4), 1))}: ${count(FLAT_OUT)} outputs for ${count(FLAT_IN)} loads, against the cube's ${CUBE_OUT} of ${CUBE_IN}.`,
         correct: true,
       },
       {
-        label: 'Yes, 100%, and FLOP/B rises because the block has more threads.',
+        label: 'Yes, 100%: each warp now reads one row of 32 floats, a single aligned 128-byte run, and FLOP/B rises because the block has twice the threads of the cube.',
         why: `The −1 offset makes every row start on an odd index. And a flat block turns a smaller share of its ${count(FLAT_IN)} loads into outputs (${pct(FLAT_OUT / FLAT_IN, 0)}) than the cube does with ${CUBE_IN} (${pct(CUBE_OUT / CUBE_IN, 0)}).`,
       },
-      { label: 'Yes, 100%; FLOP/B is unchanged.', why: 'Count the segments from an odd start: 128 bytes from an unaligned start touch five 32-byte segments.' },
-      { label: `No, still 50%; FLOP/B rises to ${r2(cubeAI(10))}.`, why: 'One row per warp is the improvement; and that FLOP/B belongs to the 10 × 10 × 10 cube.' },
+      { label: 'Yes, 100%; FLOP/B is unchanged, since each thread still loads one element of the tile.', why: 'Count the segments from an odd start: 128 bytes from an unaligned start touch five 32-byte segments. And FLOP/B falls: the flat block turns a smaller share of its loads into outputs.' },
+      { label: `No, still 50%, as for the cube; FLOP/B rises to ${r2(cubeAI(10))}.`, why: 'One row per warp is the improvement; and that FLOP/B belongs to the 10 × 10 × 10 cube.' },
     ],
     explain: (
       <p>
@@ -1201,6 +1201,9 @@ export function S84() {
         bytes per output (one load, one store) stay the same while the work shrinks. Pick the dimension and the order and
         compare.
       </p>
+      <Simplification>
+        <p>Ideal ratios only: perfect reuse, 4-byte values, no kernel, no caches, no timing.</p>
+      </Simplification>
       <Beyond>
         <p>
           The closed forms are ours: a p-point stencil does 2p − 1 operations per output, so its ideal is (2p − 1)/8

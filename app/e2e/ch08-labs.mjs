@@ -93,12 +93,12 @@ check('the race flavour is offered for lab 8.1, with its grid sizes', text0.incl
   const sol = labStatus(run, LAB.id, 'solution');
   const race = await page.$eval('[data-race-status]', (e) => ({ s: e.dataset.raceStatus, text: e.textContent }));
   check(`the race line reads the reports: solution ${run ? sol : 'no run'}`, race.s === sol &&
-    (!run ? race.text.includes('No run on the race backend') : sol === 'pass' ? race.text.includes('emulator-checked on this flavour') : sol === 'none' ? race.text.includes('no run on the race backend yet') : race.text.includes('unverified there')), JSON.stringify(race));
+    (!run ? race.text.includes('No run on the race backend') : sol === 'pass' ? race.text.includes('emulator-checked') : sol === 'none' ? race.text.includes('no run on the race backend yet') : race.text.includes('unverified')), JSON.stringify(race));
 }
-check('the launch-bounds gap is ours and in the prose; the vendor note says HIP "may spill"', await page.evaluate(() => {
+check('the launch-bounds advice is in the prose; the vendor note says HIP "may spill"', await page.evaluate(() => {
   const notes = [...document.querySelectorAll('.prose > aside.note')].map((a) => a.textContent);
   const paras = [...document.querySelectorAll('.prose > p')].map((p) => p.textContent);
-  return paras.some((p) => p.includes('our own tooling')) && notes.some((n) => n.includes('may spill')) && !notes.some((n) => n.includes('do not support it'));
+  return paras.some((p) => p.includes('accepts it and ignores it')) && notes.some((n) => n.includes('may spill')) && !notes.some((n) => n.includes('do not support it'));
 }));
 
 // ---- status table of the reference solution, cell by cell against the reports

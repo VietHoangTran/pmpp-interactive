@@ -227,9 +227,9 @@ export const questionsWrap: Record<string, Question> = {
     ),
     options: [
       { label: 'G[i] − G[s − 1], with G[−1] taken as 0.', correct: true },
-      { label: 'G[i] − G[s].', why: 'G[s] already includes the sequence\'s first element, so this drops it.' },
+      { label: 'G[i] − G[s], the total up to the sequence start.', why: 'G[s] already includes the sequence\'s first element, so this drops it.' },
       { label: 'G[i] − x[s].', why: 'That removes the first element of the sequence and keeps everything before it.' },
-      { label: 'G[e] − G[i].', why: 'That is the mass after position i within the sequence, a suffix, not a prefix.' },
+      { label: 'G[e] − G[i], the part of the sequence up to i.', why: 'That is the mass after position i within the sequence, a suffix, not a prefix.' },
     ],
     explain: (
       <>
@@ -480,6 +480,16 @@ export function Wrap() {
           blocks of 1,024 (18,434), since a block holds at most 1,024 threads.
         </li>
         <li>
+          The chapter never says what <code>__shfl_up_sync</code> returns to the lanes below the stride; the code simply
+          does not use it. All three vendors document that those lanes get their own value back, which is why the test{' '}
+          <code>laneIdx() &gt;= stride</code> is required (<a href={href('ch11', '11.4')}>11.4</a>; ch11-facts A3).
+        </li>
+        <li>
+          The summary (p. 285) says the dynamic block index prevents deadlocks; the body (p. 277) only says that earlier
+          blocks must be scheduled before later ones, and never names the deadlock that{' '}
+          <a href={href('ch11', '11.9')}>11.9</a>'s simulator shows.
+        </li>
+        <li>
           Iterations are counted from 1 in the prose of §11.2 and from 0 in Figs. 11.2 and 11.4. The course says which it
           means each time.
         </li>
@@ -522,7 +532,7 @@ export function Wrap() {
 
       <h2>The project so far</h2>
       <p>
-        Lab 11.6's top-p keep mask is the first part of milestone M5 of the through-line project: the cumulative mass
+        Lab 11.6's top-p keep mask is the top-p piece of milestone M5 of the through-line project: the cumulative mass
         before each token of a sorted row, the keep decision with its stated tie rule, and the count of kept tokens.{' '}
         <span data-m5={m5.join(',') || 'none'}>
           {backends.length === 0

@@ -7,6 +7,7 @@ import {
   LabResults,
   LabsIntro,
   LabsPage,
+  RaceStatus,
   ReferenceSolution,
   RunningLabs,
   VerificationStatus,
@@ -19,7 +20,7 @@ import {
   useLabs,
   type BenchSet,
 } from '../../components/LabKit';
-import { benchRows, fmt, labStatus, num, realBackends, type BenchRow, type Reports, type RunResult } from '../../lib/reports';
+import { benchRows, fmt, labStatus, num, realBackends, type BenchRow, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
 
 // The page is built from components/LabKit.tsx; what is here is chapter 13's own content.
@@ -80,42 +81,6 @@ const MISSING = (
 // ---------------------------------------------------------------- results table
 const kernelName = (r: BenchRow): string =>
   r.name === 'basic' ? 'basic, searches global memory' : r.name === 'tiled' ? 'tiled, through shared memory' : r.name;
-
-/** One line on lab 13.1 on the race backend, which the status table does not show. */
-function RaceStatus() {
-  const { reports, loading } = useLabs();
-  const run = reports.race;
-  const line = (variant: 'solution' | 'work') => {
-    const rs = (run?.results.filter((x) => x.lab === l1.id && x.variant === variant) ?? []) as (RunResult & { tsan?: unknown[] })[];
-    const tests = rs.flatMap((x) => x.tests);
-    const reportsFound = rs.reduce((n, x) => n + (Array.isArray(x.tsan) ? x.tsan.length : 0), 0);
-    return { s: labStatus(run, l1.id, variant), tests, passed: tests.filter((t) => t.pass).length, reportsFound };
-  };
-  const sol = line('solution');
-  const mine = line('work');
-  return (
-    <p data-race-status={loading ? 'loading' : sol.s} data-race-work={loading ? 'loading' : mine.s}>
-      {loading ? (
-        'Reading reports.'
-      ) : !run ? (
-        'No run on the race backend on this machine yet.'
-      ) : (
-        <>
-          {sol.s === 'none'
-            ? 'On this machine the reference solution has no run on the race backend yet.'
-            : sol.s === 'pass'
-              ? `On this machine the reference solution passed all ${sol.tests.length} tests on the race backend with ${sol.reportsFound ? `${sol.reportsFound} ThreadSanitizer report(s)` : 'no race reported'}: emulator-checked on this flavour.`
-              : `On this machine the reference solution failed on the race backend (${sol.passed} of ${sol.tests.length} tests): unverified there.`}{' '}
-          {mine.s === 'none'
-            ? 'Your own kernel has no recorded run there, or is still the untouched starter.'
-            : mine.s === 'pass'
-              ? `Your own kernel passed all ${mine.tests.length} tests there with ${mine.reportsFound ? `${mine.reportsFound} ThreadSanitizer report(s): read them` : 'no race reported'}.`
-              : `Your own kernel passed ${mine.passed} of ${mine.tests.length} tests there, with ${mine.reportsFound} ThreadSanitizer report(s) in the run.`}
-        </>
-      )}
-    </p>
-  );
-}
 
 /** The rows a backend's comparison uses: the reader's own where they passed, else the reference's. */
 function preferredRows(reports: Reports, b: string, lab: string) {
@@ -235,8 +200,9 @@ export function Labs() {
       <p>
         A <code>total</code> below m + n is ours, not the book's. It is the merge of two top-k lists, where only the
         first k outputs are wanted: a thread whose first output is at or past <code>total</code> has nothing to do. That
-        is how llama.cpp's Metal backend combines per-block top-k lists, and a later sampling module of this course can
-        reuse it.
+        is how llama.cpp's Metal backend combines per-block top-k lists. Module X1 takes another route to top-k, a radix
+        select (<a href={href('x1', 'X1.4')}>X1.4, "Top-k is a selection, not a sort"</a>), so nothing there depends on
+        this mode.
       </p>
       <Beyond>
         <p>
@@ -315,7 +281,7 @@ export function Labs() {
         against the searches' and merges' reads of it. A clean run is evidence, not proof: it sees only the
         schedules that happened.
       </p>
-      <RaceStatus />
+      <RaceStatus lab={l1} />
       <p>
         Do not return early from <code>mergeTiledKernel</code>. Every thread must reach the barrier, including a thread
         of the last block that owns no outputs: it may still have elements to load. Clamp its output range to the

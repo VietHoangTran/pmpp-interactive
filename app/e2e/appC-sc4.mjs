@@ -68,7 +68,7 @@ await page.waitForSelector(B);
 
 // ---- questions first, as the page asks
 check('q-4gib: 4 is correct', (await answer('A byte address is 32 bits wide', 4)).includes('Correct.'));
-check('q-why-special: the 48-bit host address is the reason', (await choose('needed a special allocation', 'A host virtual address uses up to 48 bits')).includes('Correct.'));
+check('q-why-special: the 48-bit host address is the reason', (await choose('needed a special allocation', 'A 48-bit host virtual address')).includes('Correct.'));
 check('q-fermi-tib: 1 TiB is correct', (await answer("Fermi's unified address space was 40 bits wide", 1)).includes('Correct.'));
 check('q-int-index: 8 GiB is correct, and it links to chapter 3 §3.4', (await answer('About how many GiB can the array hold', 8)).includes('Correct.') && (await page.$('.q a[href="#/ch03/3.4"]')) !== null);
 

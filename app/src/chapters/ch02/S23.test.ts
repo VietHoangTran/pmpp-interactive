@@ -91,6 +91,6 @@ describe('the narration of "Three parts, two memories"', () => {
     expect(script(6)).toContain(`${end.bytesMoved / N} bytes for every element`);
     const shared = run(program('metal', 'buffers'));
     expect([shared.bytesMoved, shared.frees]).toEqual([0, 0]);
-    expect(script(6)).toMatch(/Nothing crosses\. Nothing is freed\./);
+    expect(script(6)).toMatch(/Nothing crosses, and there is no free call\./);
   });
 });

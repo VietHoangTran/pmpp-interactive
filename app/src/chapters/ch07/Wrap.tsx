@@ -227,7 +227,7 @@ export const questionsWrap: Record<string, Question> = {
         why: 'The qualifier is not a hint: kernels cannot write F_c, and NVIDIA serves it through the constant cache. The question is how much DRAM traffic there was to remove.',
       },
       {
-        label: 'Ordinary caches already held the filter for the basic kernel, so little DRAM traffic was left to remove.',
+        label: 'Ordinary caches already held the filter for the basic kernel, leaving little DRAM traffic to remove.',
         correct: true,
       },
       {
@@ -305,7 +305,7 @@ export function Wrap() {
       <p>
         The book closes by pointing ahead. Stencils, the subject of chapter 8, are convolutions with a special shape,
         and chapter 8 also takes on the limit that the block size puts on the tile. Convolutional layers, and the way
-        libraries turn a convolution into a matrix multiplication, are chapter 19.
+        libraries turn a convolution into a matrix multiplication, are <a href={href('ch19', '19.3')}>chapter 19</a>.
       </p>
       <Aside>
         <p>
@@ -432,7 +432,14 @@ export function Wrap() {
           p. 159 says Gaussian filters can sharpen edges. In the tools you use a Gaussian filter is a blur (torchvision
           documents <code>GaussianBlur</code> as one), and this course calls it smoothing.
         </li>
-        <li>p. 161 calls the inner product for y[3] the calculation &ldquo;for x[3]&rdquo;.</li>
+        <li>
+          Fig. 7.1 draws x[1] with a thin coloured border unlike the other cells; it looks like a drawing artifact with
+          no meaning.
+        </li>
+        <li>
+          p. 161 calls the inner product for y[3] the calculation &ldquo;for x[3]&rdquo;, and a full stop is missing
+          before &ldquo;Fig. 7.2&rdquo;.
+        </li>
         <li>
           p. 163 names the filter M in the term-by-term expansion of P[2][2], where the figure calls it f, and prints the
           third row&rsquo;s second term as N<sub>2,1</sub>·M<sub>1,1</sub> where the pattern needs M<sub>2,1</sub>. The

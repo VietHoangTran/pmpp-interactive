@@ -2,7 +2,8 @@ import { useState, type ReactNode } from 'react';
 import { Ask, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
 import { Aside, Bench, Beyond, Simplification, Source, Today, type Tier } from '../../components/notes';
-import { labStatus, useReports } from '../../lib/reports';
+import { solutionTabStatus } from '../../components/LabKit';
+import { useReports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import {
   ANSWERS,
@@ -404,15 +405,10 @@ function pickFunctions(src: string | null, names: readonly string[]): string | n
     .join('\n\n');
 }
 
+// The same words as the labs page (LabKit's solutionTabStatus), from this machine's runs.
 function useLabStatus(lab: string) {
   const { reports } = useReports();
-  const st = (b: string) => labStatus(reports[b], lab, 'solution');
-  const lacking = ['cuda', 'hip'].filter((b) => st(b) !== 'pass').map((b) => (b === 'cuda' ? 'CUDA' : 'HIP'));
-  const got = [st('cuda') === 'pass' ? 'verified on CUDA' : '', st('hip') === 'pass' ? 'verified on HIP' : '', st('emu') === 'pass' ? 'emulator-checked' : ''].filter(Boolean);
-  return {
-    cu: (got.length ? got.join(', ') + '; ' : '') + (lacking.length ? `unverified on ${lacking.join(' and ')}` : ''),
-    metal: st('metal') === 'pass' ? 'verified on Metal' : 'unverified: no passing Metal run on this machine',
-  };
+  return { cu: solutionTabStatus(reports, lab, 'kernel.cu'), metal: solutionTabStatus(reports, lab, 'kernel.metal') };
 }
 
 function HelperListing() {
@@ -422,7 +418,7 @@ function HelperListing() {
   const cuText = pickFunctions(cu, HELPER_CU);
   const metalText = pickFunctions(metal, HELPER_METAL);
   if (!cuText || !metalText)
-    return <p className="muted">The helper is shown from <code>labs/{HELPER_LAB}/solution/</code> once that lab is in place.</p>;
+    return <p className="muted">Loading the helper from <code>labs/{HELPER_LAB}/solution/</code>.</p>;
   return (
     <Code
       tabs={[
@@ -446,8 +442,8 @@ function PipelineListing() {
   const mm = useLabFile(LAB + '/solution/launch.mm');
   const { reports } = useReports();
   const f = mm ? functionSource(mm, 'makeVecAddPipeline') : null;
-  if (!f) return <p className="muted">The Metal host code is loaded from <code>labs/{LAB}/solution/launch.mm</code> once that lab is in place.</p>;
-  const status = labStatus(reports.metal, LAB, 'solution') === 'pass' ? 'verified on Metal' : 'unverified: no passing Metal run on this machine';
+  if (!f) return <p className="muted">Loading the Metal host code from <code>labs/{LAB}/solution/launch.mm</code>.</p>;
+  const status = solutionTabStatus(reports, LAB, 'launch.mm');
   return (
     <Code
       tabs={[{ label: 'Metal host', code: f.text, status }]}
@@ -511,12 +507,12 @@ export const questionsS27: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'The first launch always runs the kernel twice: once to measure it and once for the result.', why: 'Nothing of the kind is documented.' },
+      { label: 'The first launch runs the kernel twice: once to measure it and once for the result.', why: 'Nothing of the kind is documented.' },
       {
-        label: 'The first call into the runtime pays for start-up work: on CUDA, lazy initialisation and a context, with device code compiled just in time if needed; on Metal, creating the pipeline state.',
+        label: 'The first call into the runtime pays for start-up work: on CUDA, lazy initialisation, a context and any JIT compilation; on Metal, creating the pipeline state.',
         correct: true,
       },
-      { label: 'The first copy to the device is always slower than later copies.', why: 'The question compares launches, and no such rule is in the facts checked for this course.' },
+      { label: 'The first copy to the device is slower than later copies, and the launch waits for it.', why: 'The start-up cost is paid by whichever runtime call comes first. If that is a copy, the copy absorbs it, and the launch after it gets faster, not slower.' },
       { label: 'The compiler optimises the kernel a second time after watching the first run.', why: 'Nothing of the kind is documented for any of the three backends.' },
     ],
     explain: (
@@ -541,7 +537,7 @@ export const questionsS27: Record<string, Question> = {
     ),
     options: [
       { label: 'It works. Small functions are inlined into the kernel.', why: 'Inlining happens after the compiler has accepted the call, and it does not accept this one.' },
-      { label: 'A compile error.', correct: true },
+      { label: 'A compile error, at the call in the kernel.', correct: true },
       { label: 'It compiles, and each call launches a new grid.', why: 'Only calling a kernel launches a grid.' },
       { label: 'A link error when the program runs.', why: 'The call is rejected when the file is compiled.' },
     ],
@@ -586,13 +582,13 @@ export const questionsS27: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'The same two qualifiers, spelled [[host]] and [[device]].', why: 'Metal Shading Language has no such attributes.' },
+      { label: 'The same two qualifiers, spelled as the attributes [[host]] and [[device]] on one definition.', why: 'Metal Shading Language has no such attributes.' },
       {
-        label: 'No documented way to compile one function for both sides. Write it in the .metal file and again in host code, and share plain constants and structs through a header.',
+        label: 'No documented way to build one function for both. Write it twice; share constants and structs in a header.',
         correct: true,
       },
       { label: 'Mark the function kernel, so that the host can call it as well.', why: 'A kernel function cannot be called like a function by anyone. The host can only dispatch it as a grid, and other functions in the .metal file cannot call it at all.' },
-      { label: 'Call the host function from the kernel. Memory is shared on Apple silicon.', why: 'Shared memory is about data. Kernel code cannot call into the host program.' },
+      { label: 'Call the host function from the kernel: on Apple silicon the CPU and the GPU share memory, so the code is reachable.', why: 'Shared memory is about data. Kernel code cannot call into the host program.' },
     ],
     explain: (
       <p>

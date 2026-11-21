@@ -101,8 +101,19 @@ const shown = () => page.$eval('.code pre', (e) => e.textContent.replace(/\n$/, 
 check('the CUDA tab is the file on disk, with the vector kernel', (await shown()) === disk('kernel.cu') && (await shown()).includes('((const float4*)x)[i]'));
 check('the float4 lines are highlighted', (await page.$$('.code .ln.hl')).length >= 4);
 const reports = await (await fetch(BASE + '/api/reports')).json();
-const wantCu = (passes(reports, 'emu') ? 'emulator-checked' : 'unverified: no passing emulator run on this machine') + '; ' + (passes(reports, 'cuda') ? 'verified on CUDA' : 'unverified on CUDA hardware');
-const wantMetal = passes(reports, 'metal') ? 'verified on Metal' : 'unverified: no passing Metal run on this machine';
+// The same words as the labs page (components/LabKit.tsx solutionTabStatus).
+const ran = (b) => (reports[b]?.results ?? []).some((x) => x.lab === LAB && x.variant === 'solution' && x.tests.length);
+const st = (b) => (!ran(b) ? 'none' : passes(reports, b) ? 'pass' : 'fail');
+const NAMES = { cuda: 'CUDA', hip: 'HIP', emu: 'the emulator' };
+const fam = ['cuda', 'hip', 'emu'];
+const passed = fam.filter((b) => st(b) === 'pass').map((b) => (b === 'emu' ? 'emulator-checked' : `verified on ${NAMES[b]}`));
+const failed = fam.filter((b) => st(b) === 'fail').map((b) => NAMES[b]);
+const noRun = ['cuda', 'hip'].filter((b) => st(b) === 'none').map((b) => NAMES[b]);
+const and = (xs) => (xs.length < 3 ? xs.join(' and ') : xs.slice(0, -1).join(', ') + ' and ' + xs.at(-1));
+const wantCu = !passed.length && !failed.length
+  ? 'unverified: no run on this machine'
+  : [passed.join(', '), failed.length ? `unverified on ${and(failed)}: failed on this machine` : '', noRun.length ? `unverified on ${noRun.join(' and ')}` : ''].filter(Boolean).join('; ');
+const wantMetal = st('metal') === 'pass' ? 'verified on Metal' : `unverified: ${st('metal') === 'fail' ? 'failed on this machine' : 'no run on this machine'}`;
 check('the CUDA status is read from the reports, in the project vocabulary', (await statusOf()) === wantCu, `${await statusOf()} vs ${wantCu}`);
 await tab('Metal kernel');
 check('the Metal tab declares float4 buffers instead of casting', (await shown()) === disk('kernel.metal') && (await shown()).includes('device const float4* x4'));
@@ -172,10 +183,10 @@ if (out) await (await page.$(P)).screenshot({ path: out + '-planner.png' });
 // ---- questions
 check('q-tail accepts 250', (await answerNumber('handles the partial last chunk', 250)).includes('Correct.'));
 check('q-instr accepts 75', (await answerNumber('percent fewer load instructions', 75)).includes('Correct.'));
-check('q-when: the streaming kernel near its bandwidth', (await answerChoice('help least', 'A simple streaming kernel')).includes('Correct.'));
-check('q-align: no', (await answerChoice('a valid access', 'No: x + 1')).includes('Correct.'));
+check('q-when: the streaming kernel near its bandwidth', (await answerChoice('help least', 'A streaming kernel at full occupancy')).includes('Correct.'));
+check('q-align: no', (await answerChoice('a valid access', 'No: a float4 access needs')).includes('Correct.'));
 check('q-align explains a wrong pick', (await answerChoice('a valid access', 'Yes: cudaMalloc')).includes('the address you read at is what has to be'));
-check('q-metal-index: a wrong pick explains itself', (await answerChoice('Before crediting the 16-byte loads', 'Nothing: wider loads')).includes('differ in a second way'));
+check('q-metal-index: a wrong pick explains itself', (await answerChoice('Before crediting the 16-byte loads', 'Nothing: the float4 kernel')).includes('differ in a second way'));
 const qmi = await answerChoice('Before crediting the 16-byte loads', 'Whether the uint index held the baseline back');
 check('q-metal-index: re-measure with int indexing, with Apple\'s uint quote', qmi.includes('Correct.') && qmi.includes('wrapping characteristics of uint'), qmi);
 check('q-int4 accepts 32', (await answerNumber('4-bit quantised weights', 32)).includes('Correct.'));

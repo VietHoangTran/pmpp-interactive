@@ -455,7 +455,7 @@ export const questionsSA5: Record<string, Question> = {
     prompt: <>An MXFP4 block holds one weight of 100 and 31 weights near 0.3. Under the OCP scale rule, what do the 0.3s decode to?</>,
     options: [
       { label: '0: divided by the scale, 0.3 is under half the smallest step.', correct: true },
-      { label: 'About 0.3, since each element keeps an exponent of its own.', why: 'An element has 2 exponent bits; the range comes from the one shared scale.' },
+      { label: 'About 0.3, since each E2M1 element keeps an exponent of its own.', why: 'An element has 2 exponent bits; the range comes from the one shared scale.' },
       { label: '8: E2M1\'s smallest step, 0.5, times the block scale of 16.', why: '0.3 / 16 ≈ 0.019 is far closer to 0 than to 0.5.' },
       { label: '96: they clamp to the largest value times the scale.', why: 'Only elements above the largest value clamp; these are tiny.' },
     ],
@@ -490,7 +490,7 @@ export const questionsSA5: Record<string, Question> = {
     prompt: <>OCP E4M3 bytes are handed, unconverted, to code that reads them as CDNA3's FNUZ E4M3. What happens?</>,
     options: [
       { label: 'Finite values halve, 0x80 turns into NaN, and the OCP NaN byte becomes ±240.', correct: true },
-      { label: 'Nothing changes: both formats have 1 sign, 4 exponent and 3 mantissa bits.', why: 'Same field widths, different bias and different special values.' },
+      { label: 'Nothing changes: both formats have 1 sign bit, 4 exponent bits and 3 mantissa bits.', why: 'Same field widths, different bias and different special values.' },
       { label: 'Finite values double, because the two exponent biases differ by one.', why: 'FNUZ has bias 8, one more than OCP: the same bits mean a smaller value.' },
       { label: 'Only values above 240 change: they saturate to 240, the FNUZ maximum.', why: 'The bias differs, so every non-zero value changes.' },
     ],
@@ -798,9 +798,10 @@ export function SA5() {
       <h2>Where this goes next</h2>
       <p>
         Integer quantisation, int8 or 4-bit codes with a scale and a zero point, is not in the book at all, and neither is
-        a kernel that computes with any of these formats. Module <a href={href('x2')}>X2</a> builds both on this page: a
-        quantised GEMM whose inner loop decodes blocks like the one above, and milestone M9, which measures the decode
-        speed-up the first explorer predicts.
+        a kernel that computes with any narrow format. Module <a href={href('x2')}>X2</a> builds integer ones: quantised
+        GEMVs whose inner loops decode blocks of codes that share a scale, on llama.cpp's Q8_0 and Q4_0 layouts, and
+        milestone M9, the quantised decode step, which measures how much of the byte ratio behind the first explorer's
+        ceilings turns into speed. It has no FP8 or MX kernel.
       </p>
     </>
   );

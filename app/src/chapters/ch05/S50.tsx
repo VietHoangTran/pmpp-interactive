@@ -3,10 +3,13 @@ import { Aside, Source } from '../../components/notes';
 import { Code, MATMUL_TIERS } from '../../components/Code';
 import { href } from '../../lib/router';
 
-const NAIVE = `__global__ void MatrixMulKernel(float* M, float* N, float* P, int Width) {
+// The kernel of the book's Fig. 3.11 as the labs use it: labs/ch05/shared/naive_matmul.cu
+// (snippets.test.ts keeps the two identical). It differs from the page only by `const`
+// on the inputs and the kernel's name.
+const NAIVE = `__global__ void naiveMatmulKernel(const float* M, const float* N, float* P, int Width) {
     int row = blockIdx.y * blockDim.y + threadIdx.y;
     int col = blockIdx.x * blockDim.x + threadIdx.x;
-    if ((row < Width) && (col < Width)) {
+    if (row < Width && col < Width) {
         float Pvalue = 0;
         for (int k = 0; k < Width; ++k) {
             Pvalue += M[row * Width + k] * N[k * Width + col];
@@ -15,7 +18,7 @@ const NAIVE = `__global__ void MatrixMulKernel(float* M, float* N, float* P, int
     }
 }`;
 
-// Prerequisite questions drawn from chapters 2 to 4 (from the notes for those chapters).
+// Prerequisite questions drawn from chapters 3 and 4 (from the notes for those chapters).
 export const questions50: Record<string, Question> = {
   'ch05/start/q-rowmajor': {
     kind: 'numeric',
@@ -48,14 +51,23 @@ export const questions50: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'All 256.', why: 'This block covers columns 32 to 47, and the matrix stops at column 39.' },
       {
-        label: 'The 128 threads with threadIdx.x from 0 to 7, for every threadIdx.y.',
+        label: 'All 256: every thread of a launched block runs the kernel body.',
+        why: 'Every thread runs the body, but only those whose column exists pass the bounds test. This block covers columns 32 to 47, and the matrix stops at column 39.',
+      },
+      {
+        label: 'The 128 with threadIdx.x from 0 to 7.',
         correct: true,
         why: 'Columns 32 to 39 exist; rows 0 to 15 all exist.',
       },
-      { label: 'The 128 threads with threadIdx.y from 0 to 7.', why: 'x maps to columns here, y to rows.' },
-      { label: 'None: the grid must be an exact multiple of the matrix.', why: 'The bounds test exists for exactly this case.' },
+      {
+        label: 'The 128 with threadIdx.y from 0 to 7: the matrix ends 8 rows into this block.',
+        why: 'x maps to columns here, y to rows. This block has blockIdx.y = 0, so its rows 0 to 15 all exist.',
+      },
+      {
+        label: 'The 64 with threadIdx.x and threadIdx.y both from 0 to 7.',
+        why: 'That is the corner block, x 2 and y 2. This block sits in the top row of the grid, where every row exists.',
+      },
     ],
     explain: (
       <p>
@@ -77,7 +89,7 @@ export const questions50: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'No thread of the block proceeds past the call until every thread of the block has reached it.',
+        label: 'No thread of its block passes it until all threads of that block reach it.',
         correct: true,
       },
       {
@@ -85,12 +97,12 @@ export const questions50: Record<string, Question> = {
         why: 'The scope is one block. Blocks cannot wait for each other this way, which is what lets them run in any order.',
       },
       {
-        label: 'The threads of a warp execute the following statements one at a time.',
+        label: 'The threads of the block then execute the statements after it one at a time, like a lock.',
         why: 'It is a barrier, not a lock: after it, threads run concurrently again.',
       },
       {
-        label: 'Pending writes to global memory are flushed.',
-        why: 'It is about where threads are in the code, not about global memory.',
+        label: 'Every global-memory write made before it becomes visible to every thread of the grid.',
+        why: 'Its scope is one block. Threads of other blocks are not ordered by it, so it promises them nothing.',
       },
     ],
     explain: (
@@ -171,14 +183,14 @@ export function S50() {
       </p>
       <Source section="3.4" pages="61" figs="Fig. 3.11" />
       <Code
-        tabs={[{ label: 'CUDA', code: NAIVE, tiers: MATMUL_TIERS }]}
+        tabs={[{ label: 'CUDA', code: NAIVE, tiers: MATMUL_TIERS, status: 'front-end-checked (labs/ch05/shared/naive_matmul.cu)' }]}
         highlight={[7]}
-        caption="The naive kernel, as in the book's Fig. 3.11. Line 7 is the whole story of this chapter: two loads from global memory for one multiply and one add."
+        caption="The naive kernel of the book's Fig. 3.11, in the form the labs use as their baseline (the book names it MatrixMulKernel and leaves out const). Line 7 is the whole story of this chapter: two loads from global memory for one multiply and one add."
       />
 
       <h2>Before you start</h2>
       <p>
-        Four questions on what this chapter assumes from chapters 2 to 4. They are worth getting wrong now rather than
+        Four questions on what this chapter assumes from chapters 3 and 4. They are worth getting wrong now rather than
         later; each one comes back in <a href={href('review')}>review</a>.
       </p>
       <Ask q={questions50['ch05/start/q-rowmajor']} label="From chapter 3" />

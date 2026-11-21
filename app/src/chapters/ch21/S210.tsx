@@ -45,19 +45,19 @@ export const questionsS210: Record<string, Question> = {
       {
         label: (
           <>
-            No. Atomics on one address complete in no fixed order, and float addition is not associative, so each run
-            rounds differently. Both are correct to rounding; neither is reproducible.
+            No. Same-address atomics land in no fixed order and float addition is not associative, so each run rounds
+            differently.
           </>
         ),
         correct: true,
       },
       {
-        label: 'Yes. Some updates are being lost, so the atomic is not doing its job.',
+        label: 'Yes. Some updates are being lost: when two lanes of a warp hit one address in the same instruction, the hardware keeps only one value.',
         why: 'Not losing updates is exactly what an atomic guarantees. A lost update drops a whole contribution, and the sum would then miss the reference, not just the other run.',
       },
       {
-        label: 'Yes. Float atomics on a GPU are approximate.',
-        why: 'Nothing that exotic is needed to explain it. Ordinary rounded additions, done in a different order, already give a different result.',
+        label: 'Yes. A correct kernel run twice on the same inputs gives the same bits, so any difference means a race somewhere.',
+        why: 'Same bits is reproducibility, not correctness. Both runs match the reference; ordinary rounded additions, done in a different order, already give different last digits.',
       },
       {
         label: 'No, and it cannot happen: the GPU applies atomics in thread-index order, so the difference must come from the host.',
@@ -93,22 +93,22 @@ export const questionsS210: Record<string, Question> = {
       {
         label: (
           <>
-            A is served once for the whole warp, as fast as a register when it hits the cache. B is serialised: one
-            access per distinct address, so one per lane.
+            A: one access for the whole warp, which can be as fast as a register. B: one access per distinct address,
+            so one per lane.
           </>
         ),
         correct: true,
       },
       {
-        label: 'Both are broadcast, because the data is read-only.',
+        label: 'Both are broadcast to the warp in one access, because constant data is read-only and needs no coherence traffic.',
         why: 'Being read-only is what lets the cache be small and cheap. The cost is still one access per distinct address in the warp.',
       },
       {
-        label: 'B is faster, because its lanes spread their reads over different banks.',
+        label: 'B is faster: like shared memory, the constant cache has banks, and 32 distinct addresses spread over them with no conflict.',
         why: 'That is the rule for shared memory. The constant cache serves distinct addresses one after another.',
       },
       {
-        label: 'Both cost the same once the table is in the cache.',
+        label: 'A and B: one cache access per warp each once the table is in the cache; only a miss makes B dearer.',
         why: 'Even when every read hits, distinct addresses in one warp are served one at a time.',
       },
     ],
@@ -138,19 +138,19 @@ export const questionsS210: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Each thread keeps more values live in registers, so fewer warps fit on an SM and less memory latency is hidden.',
+        label: 'Each thread keeps more values live in registers, so fewer warps fit on an SM to hide memory latency.',
         correct: true,
       },
       {
-        label: 'Each output now needs more arithmetic than before.',
+        label: 'Each output now needs more arithmetic than before, because the thread must also compute the offsets of its four outputs.',
         why: 'Coarsening removes repeated work. Per output, the thread does the same work or less.',
       },
       {
-        label: 'The four outputs of a thread need a barrier between them.',
+        label: 'The four outputs of a thread need a barrier between them, so the thread waits for its warp at every output.',
         why: 'One thread computes all four in sequence. There is no other thread to wait for.',
       },
       {
-        label: 'Too few blocks are left to keep every SM busy.',
+        label: 'Too few blocks are left to keep every SM busy, since a quarter of the threads means a quarter of the blocks.',
         why: "That is the book's second pitfall, too much coarsening, and it bites when the problem is small. This one fills the device many times over.",
       },
     ],
@@ -206,19 +206,19 @@ export const questionsS210: Record<string, Question> = {
     options: [
       {
         label:
-          'The body once, with the 8 passing lanes active and the other 24 masked off. It takes the warp about as long as if all 32 had passed.',
+          'The warp runs the body once with 8 lanes active and 24 masked off, taking about as long as if all 32 passed.',
         correct: true,
       },
       {
-        label: 'The body 8 times, once for each passing lane.',
+        label: 'The body 8 times, once for each passing lane, so it costs a quarter of what 32 passing lanes would.',
         why: 'A warp runs one instruction for all its active lanes at once. The passes are per path, not per lane.',
       },
       {
-        label: 'Nothing: a warp skips a branch that most of its lanes do not take.',
+        label: 'Nothing: a warp skips a branch that most of its lanes do not take, and the 8 passing lanes keep their old sums.',
         why: 'A warp skips a path only when none of its lanes take it. One lane is enough for the whole warp to run the body.',
       },
       {
-        label: 'The body once, in about a quarter of the time, because only a quarter of the lanes are active.',
+        label: 'The body once, in about a quarter of the time: only 8 of the 32 lanes are active.',
         why: 'The masked lanes still occupy their slots for the whole pass. The book counts that as one of the two costs of divergence.',
       },
     ],

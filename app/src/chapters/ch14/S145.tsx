@@ -488,13 +488,12 @@ export const questionsS145: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'It is enough: the last entry of an exclusive scan is always the total.', why: 'It misses the last key\'s own bit. The book\'s keys end with 0000, which hides that.' },
+      { label: 'It is enough: the last entry of an exclusive scan of N bits holds their sum, the number of ones.', why: 'It misses the last key\'s own bit. The book\'s keys end with 0000, which hides that.' },
       {
-        label:
-          'An exclusive scan of N entries ends with the ones before the last key, which is the total only when the last key\'s bit is 0. Scan N + 1 entries with a zero at the end, or add the last bit.',
+        label: 'Its last entry counts the ones before the last key, without that key\'s own bit. Scan N + 1 entries, the last a zero.',
         correct: true,
       },
-      { label: 'Use an inclusive scan everywhere instead.', why: 'Then every one gets one more than its "ones before" and lands a slot too far: the stepper\'s inclusive variant shows it.' },
+      { label: 'Use an inclusive scan everywhere instead: its last entry is the total, and the formulas stay as they are.', why: 'Then every one gets one more than its "ones before" and lands a slot too far: the stepper\'s inclusive variant shows it.' },
     ],
     explain: (
       <p>
@@ -532,12 +531,11 @@ export const questionsS145: Record<string, Question> = {
     prompt: <>Why is lab 14.1's pass three launches instead of Fig. 14.7's one kernel?</>,
     options: [
       {
-        label:
-          'The scan needs every block to have written its bits before any block reads the result, and an ordinary launch guarantees neither that all blocks are resident nor any order between them. Separate launches give that order on every backend.',
+        label: 'Every block must write its bits before any block reads the scan, and only a launch boundary orders blocks everywhere.',
         correct: true,
       },
-      { label: 'Kernels cannot call other functions.', why: 'They can call device functions. The problem is waiting for other blocks.' },
-      { label: 'The scan needs more shared memory than one kernel may use.', why: 'The scan can live in global memory. What one kernel cannot do is wait for the whole grid.' },
+      { label: 'Kernels cannot call other functions, so the scan has to be a kernel of its own, launched from the host between the other two.', why: 'They can call device functions. The problem is waiting for other blocks.' },
+      { label: 'The scan needs more shared memory than one kernel may use, so it must run as launches of its own.', why: 'The scan can live in global memory. What one kernel cannot do is wait for the whole grid.' },
     ],
     explain: (
       <p>

@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
 import { Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
-import { benchRows, fmt, labStatus, realBackends, useReports, type Reports } from '../../lib/reports';
+import { solutionTabStatus } from '../../components/LabKit';
+import { benchRows, fmt, realBackends, useReports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import {
   BISECT_PASSES,
@@ -38,17 +39,6 @@ const showLogit = (v: number) => {
   return String(v);
 };
 const loaded = (t: string | null) => (t && !t.startsWith('// could not load') ? t : null);
-
-/** A lab's reference-solution status in the course's vocabulary, from this machine's reports. */
-function solutionStatus(reports: Reports, lab: string): { cu: string; metal: string } {
-  const st = (b: string) => labStatus(reports[b], lab, 'solution');
-  const got = [st('cuda') === 'pass' ? 'verified on CUDA' : '', st('hip') === 'pass' ? 'verified on HIP' : '', st('emu') === 'pass' ? 'emulator-checked' : ''].filter(Boolean);
-  const lacking = [st('cuda') === 'pass' ? '' : 'CUDA', st('hip') === 'pass' ? '' : 'HIP'].filter(Boolean);
-  return {
-    cu: got.length ? got.join(', ') + (lacking.length ? `; unverified on ${lacking.join(' and ')}` : '') : 'unverified (no run on this machine)',
-    metal: st('metal') === 'pass' ? 'verified on Metal' : 'unverified (no run on this machine)',
-  };
-}
 
 /** Hex of a ballot: lane 0 is bit 0, the rightmost digit. */
 function ballotHex(lanes: boolean[]): string {
@@ -621,9 +611,9 @@ export const questionsSX14: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'transformers 3 (both 5s survive); M5 exactly 2, tokens 0 and 1', correct: true },
-      { label: 'Both keep 2', why: 'transformers removes only tokens strictly below the k-th value, so a tie with it survives.' },
-      { label: 'Both keep 3', why: "M5's select has a tie budget: it keeps exactly k, cutting ties by column." },
+      { label: 'transformers 3, as both 5s tie the k-th value; M5 exactly 2, tokens 0 and 1', correct: true },
+      { label: 'Both keep 2: top-k means exactly k tokens, and both cut the tie by column order', why: 'transformers removes only tokens strictly below the k-th value, so a tie with it survives.' },
+      { label: 'Both keep 3: the two 5s tie with the k-th value, and both keep a tie at the cut', why: "M5's select has a tie budget: it keeps exactly k, cutting ties by column." },
     ],
     explain: (
       <p>
@@ -641,8 +631,8 @@ export const questionsSX14: Record<string, Question> = {
     prompt: <>With k = 1 and M5's tie rule, is top-k the same as greedy argmax?</>,
     options: [
       { label: "Yes: the one survivor is the largest logit, lowest column on a tie, which is lab 10.3's argmax rule", correct: true },
-      { label: 'No: top-k with k = 1 still samples among tied tokens', why: 'The tie budget is 1, so only the lowest tied column survives; there is nothing left to sample among.' },
-      { label: 'Only if the temperature is 1', why: 'Temperature scales every logit by the same positive factor and does not change which one is largest.' },
+      { label: 'No: with k = 1, top-k still samples among the tokens tied for the largest logit', why: 'The tie budget is 1, so only the lowest tied column survives; there is nothing left to sample among.' },
+      { label: 'Only if the temperature is 1, since temperature changes which logit is largest', why: 'Temperature scales every logit by the same positive factor and does not change which one is largest.' },
     ],
     explain: (
       <p>
@@ -675,9 +665,9 @@ export const questionsSX14: Record<string, Question> = {
     id: 'x1/X1.4/q-batch1',
     prompt: <>At batch 1, what limits every one-block-per-row top-k, select or sort alike?</>,
     options: [
-      { label: 'One block runs on one multiprocessor, so the rest of the device idles; splitting a row across blocks fixes it, at the price of a cross-block step', correct: true },
+      { label: 'One block uses one multiprocessor, and the rest of the device idles', correct: true },
       { label: "The size of shared memory", why: 'A 256-bin histogram is 1 kB; shared memory is not what runs out.' },
-      { label: 'The number of histogram bins', why: 'More bins would mean fewer passes, but still one block.' },
+      { label: 'The number of histogram bins: 256 bins mean four passes over every row', why: 'More bins would mean fewer passes, but still one block.' },
     ],
     explain: (
       <p>
@@ -693,7 +683,7 @@ export const questionsSX14: Record<string, Question> = {
 // ---------------------------------------------------------------- the section
 export function SX14() {
   const { reports } = useReports();
-  const st = solutionStatus(reports, LAB_X11);
+  const st = { cu: solutionTabStatus(reports, LAB_X11, 'kernel.cu'), metal: solutionTabStatus(reports, LAB_X11, 'kernel.metal') };
   const cu = loaded(useLabFile('x1/lab1_topk/solution/kernel.cu'));
   const metal = loaded(useLabFile('x1/lab1_topk/solution/kernel.metal'));
   return (
@@ -758,6 +748,12 @@ export function SX14() {
         and decide nothing, and all the work happens in pass 4. Load "peaked" with k = 3: the three keys of the top bin are
         exactly the three needed, and the select stops after one pass.
       </p>
+      <Simplification>
+        <p>
+          The animation below runs the same model on its own row: 64 keys, k = 12, one block of 16 threads in one warp. No
+          timing, no caches.
+        </p>
+      </Simplification>
       <RadixSelectScene />
 
       <h2>Writing the answer</h2>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { Ask, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
-import { Aside, Bench, Beyond, Simplification, Source, Today, type Tier } from '../../components/notes';
+import { Aside, Bench, Beyond, NoteGroup, Simplification, Source, Today, type Tier } from '../../components/notes';
 import { href } from '../../lib/router';
 import { functionSource } from '../../sim/toolchain';
 import {
@@ -22,7 +22,6 @@ import {
   type PortTarget,
   type WarpScanTrace,
 } from '../../sim/warpscan';
-import { NoteGroup } from './NoteGroup';
 
 // What has been checked for each listing shown here, in the course's fixed vocabulary.
 const STATUS = {
@@ -629,11 +628,8 @@ export const questionsS114: Record<string, Question> = {
       </>
     ),
     options: [
-      {
-        label: 'Each shuffle hands it back its own value, which it adds: it doubles five times and ends at 32 times its input.',
-        correct: true,
-      },
-      { label: 'Nothing: a lane with no source lane receives 0, so it adds 0.', why: 'Then the test would be cosmetic. NVIDIA, AMD and Apple all document the opposite: the lane gets its own value back.' },
+      { label: 'It adds its own value back at every stride and ends at 32 times its input.', correct: true },
+      { label: 'Nothing: a lane with no source lane receives 0, so it adds 0 at every stride.', why: 'Then the test would be cosmetic. NVIDIA, AMD and Apple all document the opposite: the lane gets its own value back.' },
       { label: 'Its result is undefined, because it reads a lane that does not exist.', why: 'The case is defined: "the lower delta lanes will remain unchanged".' },
       { label: 'Lane 0 is fine; only the lanes at the top of the warp go wrong.', why: 'Step it with no test: the red cells are at the bottom of the warp.' },
     ],
@@ -696,18 +692,19 @@ export const questionsS114: Record<string, Question> = {
     id: 'ch11/11.4/q-hip-mask',
     prompt: <>Fig. 11.8 fails to compile under HIP. Why, and what is the smallest fix that keeps one source for both vendors?</>,
     options: [
+      { label: 'HIP requires a 64-bit mask; give the mask a type per vendor.', correct: true },
       {
-        label: 'Every HIP _sync intrinsic static_asserts a 64-bit mask, so the 32-bit literal is rejected. Give the mask its own type: unsigned on CUDA, unsigned long long on HIP.',
-        correct: true,
+        label: 'HIP has no __shfl_up_sync; rewrite the loop with the maskless __shfl_up.',
+        why: 'HIP has it, with the same name and a 64-bit mask parameter.',
       },
-      { label: 'HIP has no __shfl_up_sync; it must be rewritten with __shfl_up.', why: 'HIP has it, with the same name and a 64-bit mask parameter.' },
-      { label: 'Only on 64-wide wavefronts, where lanes 32 to 63 are missing from the mask. Write 0xffffffffffffffff.', why: 'The check is on the type and applies on every target, wave32 included. And the 64-bit literal would not compile for CUDA, whose mask is an unsigned.' },
-      { label: 'The loop bound WARP_SIZE is wrong on AMD.', why: 'That makes results wrong or half-reach on 64-wide wavefronts. It is not a compile error.' },
+      { label: 'Only on 64-wide wavefronts, where lanes 32 to 63 are missing from the mask: write 0xffffffffffffffff.', why: 'The check is on the type and applies on every target, wave32 included. On CUDA the literal does not fail; it is silently truncated to 32 bits with only a warning, so one literal cannot serve both vendors cleanly.' },
+      { label: 'The loop bound WARP_SIZE is 32, which is wrong for 64-wide wavefronts.', why: 'Used everywhere, 32 makes a 64-wide wavefront scan as two halves, each right. And a bound is never a compile error.' },
     ],
     explain: (
       <p>
         HIP's header puts <code>static_assert(... sizeof(MaskT) == 8, "The mask must be a 64-bit integer. ...")</code> on every{' '}
-        <code>_sync</code> function. A type chosen per vendor keeps one file: lab 10.1 and lab 11.1 call it{' '}
+        <code>_sync</code> function, so the 32-bit literal is rejected on every target. A type chosen per vendor, unsigned on
+        CUDA and unsigned long long on HIP, keeps one file: lab 10.1 and lab 11.1 call it{' '}
         <code>lane_mask_t</code>; llama.cpp calls it <code>ggml_cuda_thread_mask_t</code>.
       </p>
     ),
@@ -748,12 +745,15 @@ export const questionsS114: Record<string, Question> = {
       </>
     ),
     options: [
+      { label: 'Stage 2 can scan only 16 of the 64 totals, so later SIMD-groups add unscanned ones.', correct: true },
       {
-        label: 'There are 64 SIMD-group totals, but one SIMD-group can scan only 16, so threads in SIMD-groups 17 and later add unscanned totals.',
-        correct: true,
+        label: 'Nothing: each SIMD-group scan adapts to the width it reads from the pipeline.',
+        why: 'Each SIMD-group scan does. Stage 2 asks one SIMD-group to cover every total.',
       },
-      { label: 'Nothing: the SIMD-group scan adapts to the width.', why: 'Each SIMD-group scan does. Stage 2 asks one SIMD-group to cover every total.' },
-      { label: 'The kernel fails to compile.', why: 'The width is only known when it runs; the compiler cannot object.' },
+      {
+        label: 'It fails to compile: 1,024 threads need SIMD-groups of 32, and the compiler knows the width.',
+        why: 'The width is only known when it runs; the compiler cannot object.',
+      },
       { label: 'Only the last SIMD-group is wrong.', why: 'Every SIMD-group from 17 on adds a total that stage 2 never scanned.' },
     ],
     explain: (

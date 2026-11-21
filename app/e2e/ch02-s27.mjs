@@ -203,7 +203,7 @@ await shot('follow-metal-source', F);
 
 // ---------------------------------------------------------------- q-first-call
 q = await question('the first launch of a kernel takes far longer');
-await pick(q, 'The first launch always runs the kernel twice');
+await pick(q, 'The first launch runs the kernel twice');
 check('q-first-call: "runs the kernel twice" is refused', (await qText(q)).includes('Not quite.'));
 await pick(q, 'The first call into the runtime pays for start-up work');
 t = await qText(q);
@@ -245,7 +245,7 @@ check('Start again clears every cell', (await text(`${W} [data-out="score"]`)) =
 q = await question('which is declared with no qualifier');
 await pick(q, 'It works.');
 check('q-plain-helper: "small functions are inlined" is refused', (await qText(q)).includes('Not quite.') && (await qText(q)).includes('Inlining happens after'));
-await pick(q, 'A compile error.');
+await pick(q, 'A compile error, at the call');
 check('q-plain-helper: a compile error, explained by the model\'s rule', (await qText(q)).includes('Correct.') && (await qText(q)).includes(plain.why));
 q = await question('writes every helper twice');
 await pick(q, 'Put __host__ and __device__ on one definition.');
@@ -259,6 +259,28 @@ const passed = (backend, labId) => {
   const rs = (reports[backend]?.results ?? []).filter((x) => x.lab === labId && x.variant === 'solution' && x.tests.length);
   return rs.length > 0 && rs.every((x) => x.built && x.test_rc === 0 && x.tests.every((tt) => tt.pass));
 };
+// The tab status of LabKit's solutionTabStatus, from this machine's runs: Metal tabs say
+// "verified on Metal" | "unverified: failed on this machine" | "unverified: no run on this machine";
+// a kernel.cu tab lists what passed (CUDA, HIP, then the emulator), then what failed, then the
+// CUDA-family backends with no run.
+const labState = (backend, labId) => {
+  const rs = (reports[backend]?.results ?? []).filter((x) => x.lab === labId && x.variant === 'solution' && x.tests.length);
+  if (!rs.length) return 'none';
+  return rs.every((x) => x.built && x.test_rc === 0 && x.tests.every((t) => t.pass)) ? 'pass' : 'fail';
+};
+const tabStatus = (labId, file) => {
+  const st = (b) => labState(b, labId);
+  if (file !== 'kernel.cu') return st('metal') === 'pass' ? 'verified on Metal' : `unverified: ${st('metal') === 'fail' ? 'failed on this machine' : 'no run on this machine'}`;
+  const NAMES = { cuda: 'CUDA', hip: 'HIP' };
+  const WHERE = { cuda: 'CUDA', hip: 'HIP', emu: 'the emulator' };
+  const and = (xs) => (xs.length < 3 ? xs.join(' and ') : xs.slice(0, -1).join(', ') + ' and ' + xs.at(-1));
+  const fam = ['cuda', 'hip', 'emu'];
+  const ok = fam.filter((b) => st(b) === 'pass').map((b) => (b === 'emu' ? 'emulator-checked' : `verified on ${NAMES[b]}`));
+  const bad = fam.filter((b) => st(b) === 'fail').map((b) => WHERE[b]);
+  const none = ['cuda', 'hip'].filter((b) => st(b) === 'none').map((b) => NAMES[b]);
+  if (!ok.length && !bad.length) return 'unverified: no run on this machine';
+  return [ok.join(', '), bad.length ? `unverified on ${and(bad)}: failed on this machine` : '', none.length ? `unverified on ${none.join(' and ')}` : ''].filter(Boolean).join('; ');
+};
 const join = (src, names) => names.map((n) => functionSource(src, n)).sort((a, b) => a.firstLine - b.firstLine).map((f) => f.text).join('\n\n');
 const figure = (tabs) => page.evaluateHandle((tabs) => [...document.querySelectorAll('figure.code')].find((f) => [...f.querySelectorAll('.tabs button')].map((b) => b.textContent).join('|') === tabs), tabs);
 const lines = (fig) => fig.evaluate((f) => [...f.querySelectorAll('pre .ln')].map((l) => l.textContent.replace(/\n$/, '')));
@@ -268,19 +290,19 @@ const L3 = 'ch02/lab3_elementwise';
 check('the shared helper is shown with a CUDA and HIP tab and a Metal tab', !!(await helper.evaluate((f) => !!f)));
 check('CUDA and HIP tab: scaleShift, scaleShiftOnHost and scaleShiftKernel from lab 2.3\'s kernel.cu',
   same(await lines(helper), join(lab(L3 + '/solution/kernel.cu'), ['scaleShift', 'scaleShiftOnHost', 'scaleShiftKernel']).split('\n')));
-const wantCu = (passed('emu', L3) ? 'emulator-checked; ' : '') + 'unverified on CUDA and HIP';
+const wantCu = tabStatus(L3, 'kernel.cu');
 check('its status follows this machine\'s runs, in the fixed vocabulary', (await status(helper)) === wantCu, `${await status(helper)} / ${wantCu}`);
 await helper.evaluate((f) => [...f.querySelectorAll('.tabs button')].find((b) => b.textContent === 'Metal').click());
 await pause(100);
 const metalLines = await lines(helper);
 check('Metal tab: scale_shift written again, and the kernel that calls it', same(metalLines, join(lab(L3 + '/solution/kernel.metal'), ['scale_shift', 'scale_shift_k']).split('\n')) && metalLines.some((l) => l.includes('static inline float scale_shift(')));
-check('the Metal status is "verified on Metal" only with a passing run here', (await status(helper)) === (passed('metal', L3) ? 'verified on Metal' : 'unverified: no passing Metal run on this machine'), await status(helper));
+check('the Metal status is "verified on Metal" only with a passing run here', (await status(helper)) === tabStatus(L3, 'kernel.metal'), await status(helper));
 const pipe = await figure('Metal host');
 const mk = functionSource(lab('ch02/lab1_vecadd/solution/launch.mm'), 'makeVecAddPipeline');
 const pipeLines = await pipe.evaluate((f) => [...f.querySelectorAll('pre .ln')].map((l) => [Number(l.dataset.n), l.textContent.replace(/\n$/, '')]));
 check('makeVecAddPipeline is shown from lab 2.1\'s launch.mm with the file\'s line numbers',
   same(pipeLines.map((x) => x[1]), mk.text.split('\n')) && pipeLines[0][0] === mk.firstLine && pipeLines.at(-1)[0] === mk.lastLine, JSON.stringify(pipeLines.slice(0, 2)));
-check('its status is "verified on Metal" only with a passing run here', (await status(pipe)) === (passed('metal', 'ch02/lab1_vecadd') ? 'verified on Metal' : 'unverified: no passing Metal run on this machine'));
+check('its status is "verified on Metal" only with a passing run here', (await status(pipe)) === tabStatus('ch02/lab1_vecadd', 'launch.mm'));
 
 // ---------------------------------------------------------------- the Metal call table and q-metal-helper
 const mcells = await page.$$eval('table[data-table="metal-calls"] td[data-metal]', (cs) => cs.map((c) => [c.dataset.metal, c.dataset.result]));
@@ -292,7 +314,7 @@ check('in it, the host dispatches a kernel and a kernel can call a plain MSL fun
 q = await question('You port both to');
 await pick(q, 'Mark the function kernel');
 check('q-metal-helper: "mark it kernel" is refused', (await qText(q)).includes('Not quite.'));
-await pick(q, 'No documented way to compile one function for both sides.');
+await pick(q, 'No documented way to build one function for both.');
 t = await qText(q);
 check('q-metal-helper: write it twice, share constants and structs through a header', t.includes('Correct.') && t.includes('one plain header'), t);
 

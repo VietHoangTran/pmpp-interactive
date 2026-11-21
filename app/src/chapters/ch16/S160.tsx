@@ -28,11 +28,11 @@ export const questionsS160: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'It is inherently sequential: one cell at a time.',
+        label: 'It is inherently sequential: each cell needs the cell just before it, so one cell at a time.',
         why: 'Many cells need nothing from each other. Look at two cells whose row plus column is the same.',
       },
       {
-        label: 'Each row can be computed in parallel once the row above is done.',
+        label: 'Each row can be computed in parallel once the row above is done: 1,000 steps of 1,000 cells each.',
         why: 'Each cell also needs its left neighbour, which is in the same row. A row is a chain.',
       },
       {
@@ -40,7 +40,7 @@ export const questionsS160: Record<string, Question> = {
         correct: true,
       },
       {
-        label: 'Every cell is independent once the two sequences are known.',
+        label: 'Every cell is independent once the two sequences are known, so all of them can run in one step.',
         why: 'A cell needs the results of three other cells, not only the two tokens it compares.',
       },
     ],
@@ -83,7 +83,7 @@ export const questionsS160: Record<string, Question> = {
         why: 'A launch returns before the kernel runs. That is why the host must wait before it reads results, but the next launch does not need the host to wait.',
       },
       {
-        label: 'Only if the kernel uses atomics.',
+        label: 'Only if the kernel uses atomics, whose updates may still be in flight when the next launch starts.',
         why: 'Atomics order accesses within a kernel. The order between launches comes from the stream.',
       },
     ],
@@ -112,19 +112,19 @@ export const questionsS160: Record<string, Question> = {
     options: [
       {
         label:
-          'On CUDA, where the barrier waits only for threads that have not exited. HIP does not say, and Metal says so for Apple silicon only, so portable code keeps every thread to the barrier.',
+          'On CUDA, whose barrier waits only for threads that have not exited. HIP does not say; Metal says so for Apple silicon only.',
         correct: true,
       },
       {
-        label: 'On every backend: a thread that has returned cannot be waited for.',
+        label: 'On every backend: a thread that has returned cannot be waited for, so each barrier counts only the threads still running.',
         why: 'That is CUDA\'s documented rule. AMD\'s HIP documentation does not state it, and Apple states it for Apple silicon only.',
       },
       {
-        label: 'Nowhere: a barrier after an early return always deadlocks.',
+        label: 'Nowhere: the barrier still counts every thread the block was launched with, so the threads that remain wait for ever.',
         why: 'On CUDA it is documented to work: the barrier waits for "all non-exited threads".',
       },
       {
-        label: 'Only if the threads that return make up whole warps.',
+        label: 'Only if the threads that return make up whole warps, so that each warp reaches the barrier with all its lanes or none.',
         why: 'CUDA\'s rule counts exited threads one by one ("all non-exited threads"); it says nothing about whole warps.',
       },
     ],
@@ -205,11 +205,11 @@ export const questionsS160: Record<string, Question> = {
     options: [
       { label: 'So that a block only ever waits for a block that has already started.', correct: true },
       {
-        label: 'To make the flag update atomic.',
+        label: 'To make the flag update atomic, so that a waiting block never reads a half-written flag.',
         why: 'The flag is its own atomic. The counter decides which block waits for which.',
       },
       {
-        label: 'Because blockIdx.x is not unique when many blocks run at once.',
+        label: 'Because blockIdx.x is not unique when more blocks are launched than can run at once.',
         why: 'It is unique. What nothing promises is the order in which blocks start.',
       },
       {

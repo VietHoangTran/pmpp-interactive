@@ -307,15 +307,15 @@ export const questionsSC5: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Kernels on GPU 0 may load from GPU 1, and kernels on GPU 1 may load from GPU 0.',
+        label: 'Kernels on GPU 0 may load from GPU 1, and kernels on GPU 1 may load from GPU 0: peer access is symmetric.',
         why: 'The grant runs one way only. The reverse needs its own call, made on GPU 1.',
       },
       {
-        label: "Kernels on GPU 0 may load from GPU 1's memory. The reverse needs its own call, made with GPU 1 current.",
+        label: "GPU 0's kernels may load from GPU 1's memory; the reverse needs its own call with GPU 1 current.",
         correct: true,
       },
       {
-        label: "Only kernels on GPU 1 may load from GPU 0's memory: the argument names the GPU being given access.",
+        label: "Kernels on GPU 1 may load from GPU 0's memory: the argument names the GPU being given access.",
         why: 'The argument names the peer whose memory becomes reachable. The device being given access is the current one, GPU 0.',
       },
       {
@@ -341,13 +341,13 @@ export const questionsSC5: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Yes: one call per ordered pair, 240 in all.', why: 'Each GPU would need 15 peers, and the limit without NVSwitch is eight.' },
-      { label: 'Yes, if each pair is enabled in both directions.', why: 'Both directions are needed for two-way loads, but that does not lift the limit of eight peers per device.' },
+      { label: 'Yes: one call per ordered pair, 240 calls in all, each made with the loading GPU current.', why: 'Each GPU would need 15 peers, and the limit without NVSwitch is eight.' },
+      { label: 'Yes, if each pair is enabled in both directions, with two calls per pair.', why: 'Both directions are needed for two-way loads, but that does not lift the limit of eight peers per device.' },
       {
-        label: 'No. Each GPU would need 15 peers, and a device supports at most eight without NVSwitch. Use NVSwitch, grant access per allocation through virtual memory management, or copy.',
+        label: 'No. Each GPU would need 15 peers, and without NVSwitch a device supports at most eight. Use NVSwitch, VMM grants or copies.',
         correct: true,
       },
-      { label: 'Only on Windows.', why: 'The guide states the limit for every system without NVSwitch, whatever the operating system. The one platform rule it documents is of another kind: no PCIe peer-to-peer on bare-metal Linux with the IOMMU on.' },
+      { label: 'Yes on Windows, where the driver lifts the peer limit; not on Linux.', why: 'The guide states the limit for every system without NVSwitch, whatever the operating system. The one platform rule it documents is of another kind: no PCIe peer-to-peer on bare-metal Linux with the IOMMU on.' },
     ],
     explain: (
       <p>
@@ -369,15 +369,15 @@ export const questionsSC5: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'The staging copy of the halo, and the host-side copy set-up and synchronisation.',
+        label: "The staging copy and the host's copy set-up and synchronisation.",
         correct: true,
       },
       {
-        label: 'All synchronisation between the GPUs.',
+        label: "All synchronisation between the GPUs, since each kernel reads its neighbour's rows when it needs them.",
         why: 'A GPU must still not read its neighbour\'s rows before the neighbour has written them. Some ordering between the devices remains.',
       },
       {
-        label: 'The traffic over the interconnect.',
+        label: 'The traffic over the interconnect, because the kernel loads the halo instead of copying it.',
         why: 'The halo still crosses the link; each peer load goes over it. What disappears is the extra copy and the host\'s part in it.',
       },
     ],
@@ -403,7 +403,7 @@ export const questionsSC5: Record<string, Question> = {
     options: [
       {
         label:
-          'It has no Metal counterpart to port to. Peer groups are deprecated on Apple silicon as "Not applicable on Apple Silicon", so the Metal build is designed without a GPU-to-GPU split.',
+          'No Metal counterpart: peer groups are deprecated, "Not applicable on Apple Silicon". Design the Metal build without a GPU-to-GPU split.',
         correct: true,
       },
       {
@@ -411,11 +411,11 @@ export const questionsSC5: Record<string, Question> = {
         why: 'Metal has no such call on Apple silicon. Nothing grants one GPU access to another GPU\'s buffer there.',
       },
       {
-        label: 'Bind the other GPU\'s buffer through newRemoteBufferViewForDevice and read it in the kernel.',
+        label: "Bind the other GPU's buffer through newRemoteBufferViewForDevice, which gives a view of a peer's buffer, and read that view in the kernel.",
         why: 'That method made a view for blit copies between GPUs in a peer group, on Intel Macs. It never served kernel loads, and it is deprecated.',
       },
       {
-        label: 'Keep the design: on one physical memory every buffer is visible to every GPU.',
+        label: 'Keep the design: on one physical memory every buffer is visible to every GPU, so the peer pointer just works.',
         why: 'One memory is the CPU and the GPU sharing DRAM. It says nothing about a second GPU, and Metal documents no peers on Apple silicon.',
       },
     ],
@@ -441,7 +441,8 @@ export function SC5() {
       </p>
       <Source section="C.5" pages="626" />
       <p>
-        That replaces something clumsy. Take the halo exchange of chapter 23's stencil, where each GPU owns half a grid
+        That replaces something clumsy. Take the halo exchange of chapter 23's stencil (
+        <a href={href('ch23', '23.4')}>section 23.4</a> here), where each GPU owns half a grid
         and needs a few boundary rows of the other half before its next step. Without direct access, the host has to
         trigger device-to-device copies: wait for both GPUs, set up a copy each way into a spare buffer, then launch the
         next step. The book names the costs: extra memory to hold the copied rows, and the host's synchronisation and

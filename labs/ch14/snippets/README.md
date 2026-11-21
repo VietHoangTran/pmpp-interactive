@@ -35,8 +35,8 @@ quiet steps in a row. What the test checks:
 
 ## `s144_floatkey.cu`
 
-The transform of section 14.4, on the float's bits as an `unsigned int` (the emulator has no
-`__float_as_uint`, and on Metal a float-side zero test may be rewritten). The test compares every
+The transform of section 14.4, on the float's bits as an `unsigned int` (that needs no bit-cast
+intrinsic on any backend, and on Metal a float-side zero test may be rewritten). The test compares every
 key with `src/sim/floatkey.ts`, bit for bit, over E1's values (`notes/today/ch14-facts.md`), two
 NaNs and 600 other bit patterns, and checks the descending order and tie order of a stable sort
 on those keys.
@@ -56,8 +56,11 @@ the corrected copy, one added `__syncthreads()` at the end of the loop body, and
 that this is the only difference. On the emulator, which runs one thread at a time between
 barriers, the kernel as shown leaves 64, 129 and 256 keys unsorted (but every value present) in all
 three thread orders, and the corrected copy sorts them, and all 256 lists of eight 0s and 1s, in
-all three. There is no race-flavour check. Tried on 2026-11-20, the race flavour reported nothing
-for the kernel as shown: it marks every `__syncthreads()` of a block with one shared
-ThreadSanitizer token, so a thread that leaves a barrier late can inherit the ordering of threads
-that already reached the next one, which hides races between two barriers. Until that changes, a
-clean race run of a kernel like this one is not evidence.
+all three. There is no race-flavour test. Tried on 2026-11-20, the race flavour reported nothing
+for the kernel as shown: it then marked every `__syncthreads()` of a block with one shared
+ThreadSanitizer token, which hid races between two barriers. It now alternates two tokens per
+barrier. Tried again by hand on 2026-11-21 (nondeterministic, and not part of the test), it reported
+data races in the kernel as shown on the compare and both stores (lines 20, 22 and 23); which lines
+appear, and whether values are lost in the 256-key case, varies from run to run. It reported
+nothing for the corrected copy. A clean race run is still evidence,
+not proof.

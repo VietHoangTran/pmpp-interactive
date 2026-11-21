@@ -471,10 +471,10 @@ export const questionsS144: Record<string, Question> = {
     id: 'ch14/14.4/q-msb',
     prompt: <>Run the same four stable 1-bit passes from the most significant bit down (bit 3, then 2, 1, 0). What is the result in order by?</>,
     options: [
-      { label: 'By the key: the order of the passes does not matter.', why: 'Each stable pass makes its digit the most important one so far. The last pass wins.' },
-      { label: 'By nothing in particular: the result is random.', why: 'It is fully determined, and sorted, just by the wrong key.' },
+      { label: 'By the key: every pass is stable, so the order of the passes makes no difference.', why: 'Each stable pass makes its digit the most important one so far. The last pass wins.' },
+      { label: 'By nothing in particular: without the low bits first, the result is random.', why: 'It is fully determined, and sorted, just by the wrong key.' },
       {
-        label: 'By the bit-reversed key: the last pass, on bit 0, becomes the primary key, then bit 1 among equals, and so on.',
+        label: 'By the bit-reversed key: bit 0, read by the last pass, becomes the primary key.',
         correct: true,
       },
     ],
@@ -498,12 +498,12 @@ export const questionsS144: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'They come out in the right order.', why: 'Their keys become 0x3F800000 and 0x40000000: −2.0 has the larger key.' },
+      { label: 'They come out in the right order: with the sign bit flipped, both read as keys ordered by magnitude.', why: 'Their keys become 0x3F800000 and 0x40000000: −2.0 has the larger key.' },
       {
-        label: '−2.0 still lands above −1.0: the magnitude bits of a negative value must be inverted too, so invert all its bits.',
+        label: '−2.0 still lands above −1.0: a negative\'s magnitude bits must be inverted too.',
         correct: true,
       },
-      { label: 'Both land above every positive value.', why: 'Flipping the sign bit fixed that part: negatives now start with 0.' },
+      { label: 'Both land above every positive value, because their exponent bits are larger.', why: 'Flipping the sign bit fixed that part: negatives now start with 0.' },
     ],
     explain: (
       <p>
@@ -524,9 +524,9 @@ export const questionsS144: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Token 7: reversing the list reverses the order of ties.', correct: true },
-      { label: 'Token 3: a stable sort keeps ties in input order.', why: 'It did, until the reversal turned the whole list round, ties included.' },
-      { label: 'Either, it depends on the run.', why: 'Both steps are deterministic.' },
+      { label: 'Token 7: reversing the whole list reverses the order of the ties too.', correct: true },
+      { label: 'Token 3: the stable ascending sort put token 3 first, and a reversal keeps the order of ties.', why: 'It did, until the reversal turned the whole list round, ties included.' },
+      { label: 'Either: as with any order among equal keys, it depends on the run.', why: 'Both steps are deterministic.' },
     ],
     explain: (
       <p>
@@ -547,10 +547,10 @@ export const questionsS144: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: '−0.0 (token 2): equal values keep their input order.', why: 'They are equal as floats, but their keys differ without the step.' },
-      { label: 'It depends on the GPU.', why: 'The transform is integer arithmetic; it gives the same keys everywhere.' },
+      { label: '−0.0 (token 2): equal values keep their input order in a stable sort.', why: 'They are equal as floats, but their keys differ without the step.' },
+      { label: 'It depends on the GPU\'s float compare, which may or may not treat the two zeros as equal.', why: 'The transform is integer arithmetic; it gives the same keys everywhere.' },
       {
-        label: '+0.0 (token 9), whatever the token ids: its key is larger (0x80000000 against 0x7FFFFFFF).',
+        label: '+0.0 (token 9): its key, 0x80000000, is above −0.0\'s 0x7FFFFFFF.',
         correct: true,
       },
     ],
@@ -768,7 +768,7 @@ export function S144() {
           <tr>
             <td>The labs</td>
             <td>read the float buffer through an unsigned view on every backend</td>
-            <td>The course's CPU emulator has no <code>__float_as_uint</code>.</td>
+            <td>It needs no bit-cast intrinsic at all, and on Metal it keeps every test on the integer side.</td>
           </tr>
         </tbody>
       </table>

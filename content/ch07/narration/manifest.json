@@ -84,10 +84,11 @@
   },
   "halo-from-cache-5": {
    "file": "halo-from-cache-5.mp3",
-   "sha256": "30434fe6937909f6955a1205fd270ff9fed19f8881d9f47559e17ceb2b34c9ba",
-   "duration": 19.44,
-   "bytes": 329384,
-   "generated": "2026-11-20",
+   "sha256": "5f05928e363862fa7d77ffbab72c5fa8a14eca08851550c9b6c5381baf150c3d",
+   "duration": 21.36,
+   "bytes": 359895,
+   "generated": "2026-11-21",
+   "model": "eleven_v4",
    "take": 1
   },
   "load-wait-compute-1": {

@@ -293,7 +293,7 @@ export const questionsS115: Record<string, Question> = {
     prompt: <>On some device a Kogge-Stone scan finishes sooner than the loop. Is its extra work then free?</>,
     options: [
       { label: 'Yes: once it is faster, only the time counts.', why: 'Time is one of two costs the book names.' },
-      { label: 'No: every extra addition still costs energy, which matters on power-limited devices such as phones.', correct: true },
+      { label: 'No: each extra addition still costs energy, which matters on phones.', correct: true },
       { label: 'Yes, as long as the extra additions run on units that would otherwise idle.', why: 'Executing an addition costs energy whichever unit runs it; idle units are not what makes it free.' },
     ],
     explain: (
@@ -311,10 +311,7 @@ export const questionsS115: Record<string, Question> = {
     prompt: <>Why does the book say Kogge-Stone's real resource use is closer to N·log₂N than to N·log₂N − (N − 1)?</>,
     options: [
       { label: 'The formula forgets the additions of the first step.', why: 'The first step, stride 1, is in the sum: N − 1 additions.' },
-      {
-        label: 'Threads that stop adding are still part of warps that keep executing, so their lanes are occupied anyway.',
-        correct: true,
-      },
+      { label: 'Idle threads still occupy lanes of warps that keep executing.', correct: true },
       { label: 'Each addition needs two shared-memory reads, which doubles the work.', why: 'The count is of additions, not of memory accesses.' },
     ],
     explain: (
@@ -334,7 +331,7 @@ export function S115() {
   return (
     <>
       <p>
-        Sections 11.2 to 11.4 made Kogge-Stone fast by giving it a short span and then cutting its synchronization. This
+        Sections 11.2 to 11.4 made Kogge-Stone fast by giving it a short span and then cutting its synchronisation. This
         section counts what it costs in additions, and finds the conditions under which that cost makes the parallel scan
         slower than the six-line loop it replaces.
       </p>

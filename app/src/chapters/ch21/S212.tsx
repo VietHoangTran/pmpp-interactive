@@ -178,12 +178,12 @@ export const questionsS212: Record<string, Question> = {
     prompt: <>Every thread of the gather kernel reads every atom of the chunk. Why does it need no atomic operation?</>,
     options: [
       {
-        label: 'Reads of shared data never conflict; only several writes to one location do, and each gather thread writes one point that no other thread writes.',
+        label: 'Shared reads cannot race; only writes to one location can, and each gather thread is the only writer of its point.',
         correct: true,
       },
-      { label: 'Because the atoms sit in constant memory, which kernels cannot write, so nothing about them can race.', why: 'That protects the atoms. The question is about the grid, which every launch updates.' },
+      { label: 'Because the atoms sit in constant memory, which no kernel can write, so neither the reads nor the grid updates can race.', why: 'That protects the atoms. The question is about the grid, which every launch updates.' },
       { label: 'Because the host launches the kernel once per chunk, so the updates of different threads never overlap in time.', why: 'One launch per chunk orders the chunks. Inside one launch the threads still run together.' },
-      { label: 'Because a += on a float in global memory is a single indivisible instruction on current GPUs.', why: 'It is a load, an add and a store. Two threads can interleave between them.' },
+      { label: 'Because a += on a float in global memory is a single indivisible read-modify-write instruction on current GPUs.', why: 'It is a load, an add and a store. Two threads can interleave between them.' },
     ],
     explain: (
       <p>
@@ -206,12 +206,12 @@ export const questionsS212: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Hoisting needed the atom loop outermost, which makes threads share outputs and forces atomics; recomputing y costs a few instructions, and coarsening wins most of the reuse back inside one thread.',
+        label: 'Hoisting puts the atom loop outermost, so threads would share outputs and need atomics. Recomputing y is cheap, and coarsening wins most of it back inside one thread.',
         correct: true,
       },
-      { label: 'Arithmetic on a GPU is free compared with memory traffic, so redundant work of any amount costs nothing at all.', why: 'Not free: the book calls this a trade-off between the amount of calculation and the degree of parallelism.' },
-      { label: 'Recomputing y is needed for correctness: with y hoisted the kernel would add the atoms in the wrong order.', why: 'Both loop orders give the same sums (up to float rounding); the interchange is legal because the iterations are independent.' },
-      { label: 'It is never actually recomputed: the compiler notices the repetition and hoists y out of the threads again.', why: 'A compiler hoists within one thread. Other threads are other executions of the code.' },
+      { label: 'Arithmetic on a GPU is free compared with memory traffic, so redundant work of any amount costs nothing and need not be recovered.', why: 'Not free: the book calls this a trade-off between the amount of calculation and the degree of parallelism.' },
+      { label: 'Recomputing y is needed for correctness: a kernel that computed y once would add each point\'s atoms in another order, and so its sums would differ from Fig. 21.4.', why: 'Another order changes only the float rounding, which this chapter counts as correct, so correctness does not depend on it. The loop interchange is legal because the iterations are independent.' },
+      { label: 'It is not really recomputed: the compiler spots the repetition across the threads and computes y once per block instead.', why: 'A compiler hoists within one thread. Other threads are other executions of the code.' },
     ],
     explain: (
       <p>
@@ -233,18 +233,20 @@ export const questionsS212: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'The CUDA path sorts the indices and sums each token\'s rows with one writer in a fixed order; the MPS kernel adds into the gradient with float atomics.',
+        label: 'On CUDA each token\'s rows get one writer (after a sort, for many indices); MPS adds them to the gradient with float atomics.',
         correct: true,
       },
-      { label: 'Metal has no float atomics at all, so the MPS backend cannot run this backward pass in any mode.', why: 'It has them (atomic_float, Apple7 and later), and the MPS kernel uses them; that is why it is not deterministic.' },
-      { label: 'CUDA guarantees the order of atomic additions to one address, so its atomic path is always deterministic.', why: 'NVIDIA documents that order as undefined. PyTorch skips its fused atomic path in deterministic mode for that reason.' },
-      { label: 'The MPS backend computes the gradient in half precision, and half-precision sums cannot be made repeatable.', why: 'Precision is not the issue; the order of the additions is.' },
+      { label: 'Metal has no float atomics, so the MPS backend falls back to a CPU kernel, which deterministic mode does not allow.', why: 'It has them (atomic_float, Apple7 and later), and the MPS kernel uses them; that is why it is not deterministic.' },
+      { label: 'CUDA guarantees the order of atomic additions to one address, so its atomic path is deterministic; Metal makes no such promise.', why: 'NVIDIA documents that order as undefined. PyTorch skips its fused atomic path in deterministic mode for that reason.' },
+      { label: 'The MPS backend accumulates the gradient in half precision, and half-precision sums cannot be made repeatable on any GPU.', why: 'Precision is not the issue; the order of the additions is.' },
     ],
     explain: (
       <>
         <p>
-          One framework, two choices. On CUDA and ROCm, PyTorch sorts the indices, which bins the rows by token id, and
-          sums each bin with one writer; it takes a fused atomic path only when that helps and deterministic mode is off.
+          One framework, two choices. On CUDA and ROCm, with more than 3,072 indices PyTorch sorts them, which bins the
+          rows by token id, and sums each bin with one writer; with fewer, each block owns a range of feature columns and
+          a leader warp merges duplicate tokens, again deterministically. It takes a fused atomic path only when that
+          helps and deterministic mode is off.
           On MPS it scatters with float atomics. The order in which atomics land is undefined and float addition is not
           associative, so the bits can change from run to run. Deterministic mode asks for the gather.
         </p>
@@ -266,10 +268,10 @@ export const questionsS212: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'One division and one square root per point per atom, with the dx² term, one addition inside the root and the accumulate.', correct: true },
+      { label: 'Each point still does its own division, square root, dx², one addition inside the root and accumulate.', correct: true },
       { label: 'The subtraction that forms dy, which every one of the eight points of the row still needs to compute.', why: 'dy is the same for the whole row; the coarsened thread computes it once per atom, not eight times.' },
-      { label: 'The multiplication dy·dy, because each of the eight points still squares its own copy of dy.', why: 'It is folded into dysqdzsq once per atom.' },
-      { label: 'The loop branch, because each of the eight points still runs its own loop over the atoms.', why: 'One thread runs one loop: one branch per atom instead of eight.' },
+      { label: 'The multiplication dy·dy: each of the eight points still squares its own copy of dy before taking the root.', why: 'It is folded into dysqdzsq once per atom.' },
+      { label: 'The loop branch, because each of the eight points still runs its own loop over the atoms of the chunk.', why: 'One thread runs one loop: one branch per atom instead of eight.' },
     ],
     explain: (
       <>
@@ -304,9 +306,9 @@ export const questionsS212: Record<string, Question> = {
     ),
     options: [
       { label: 'Points 0 to 34: most of them (3 to 31) four times with a plain +=, and points 35 to 127 never.', correct: true },
-      { label: 'Points 0 to 127, each exactly once, four adjacent points per thread.', why: 'That is the intended ownership, and it needs threadIdx.x multiplied by 4.' },
-      { label: 'Points 0 to 31, each once: one point per thread, as in Fig. 21.6.', why: 'Each thread writes four points, i to i+3.' },
-      { label: 'Points 0 to 127, each four times, so atomics would fix it.', why: 'Thread 31 starts at 31 and stops at 34; nothing reaches beyond.' },
+      { label: 'Points 0 to 127, each once: thread t owns 4t to 4t + 3, four adjacent points per thread.', why: 'That is the intended ownership, and it needs threadIdx.x multiplied by 4.' },
+      { label: 'Points 0 to 31, each once: one point per thread, as in Fig. 21.6, since i has the same form.', why: 'Each thread writes four points, i to i+3.' },
+      { label: 'Points 0 to 127, each four times with a plain +=, so atomics would make it right.', why: 'Thread 31 starts at 31 and stops at 34; nothing reaches beyond.' },
     ],
     explain: (
       <p>
@@ -330,12 +332,12 @@ export const questionsS212: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'A block now spans 2,048 x positions, so half of every thread\'s 16 points fall past the row: 16 accumulators in registers for 8 points of work, and one block per row.',
+        label: 'A block spans 2,048 x positions, so half of each thread\'s 16 points fall past the row: 16 accumulators for 8 points of work.',
         correct: true,
       },
-      { label: 'Nothing: coarsening only ever removes work, so a larger factor is always at least as fast as a smaller one.', why: 'It removes redundant loads, not idle slots; the extra points past the row are pure cost.' },
-      { label: 'The writes stop being coalesced, because each thread\'s points are now further apart in memory.', why: 'In Fig. 21.10 the stride is still blockDim.x, so each write statement of a warp stays one contiguous run. Lost coalescing is a real cost of more work per thread, but it comes from adjacent ownership, which Fig. 21.10 avoids.' },
-      { label: 'The kernel now needs atomics, because a thread\'s 16 points overlap the points of the next block.', why: 'Each point still has exactly one owner; the next block starts after this block\'s stretch.' },
+      { label: 'Nothing: coarsening removes redundant loads, so a larger factor is at least as fast as a smaller one on a slice this wide.', why: 'It removes redundant loads, not idle slots; the extra points past the row are pure cost.' },
+      { label: 'The writes stop being coalesced, because each thread\'s 16 points now lie further apart and a statement spreads out.', why: 'In Fig. 21.10 the stride is still blockDim.x, so each write statement of a warp stays one contiguous run. Lost coalescing is a real cost of more work per thread, but it comes from adjacent ownership, which Fig. 21.10 avoids.' },
+      { label: 'The kernel now needs atomics, because a thread\'s 16 points reach into the stretch the next block owns.', why: 'Each point still has exactly one owner; the next block starts after this block\'s stretch.' },
     ],
     explain: (
       <>
@@ -359,12 +361,12 @@ export const questionsS212: Record<string, Question> = {
     prompt: <>On an AMD Instinct GPU a wavefront has 64 lanes. Is Fig. 21.10's stride still right there?</>,
     options: [
       {
-        label: 'Yes: the stride is blockDim.x, not the warp width. With blockDim.x of 64 or more each statement of a wavefront is one run of 256 bytes.',
+        label: 'Yes. The stride is blockDim.x, not the warp width, and at blockDim.x of 64 or more a statement is one 256-byte run.',
         correct: true,
       },
-      { label: 'No: on AMD the stride has to be 64, the wavefront width, instead of blockDim.x.', why: 'blockDim.x already is the stride, and it is chosen as a multiple of the wavefront width.' },
-      { label: 'No: AMD coalesces per half wavefront, so the stride has to be 32 floats instead.', why: 'Half-warps are a 2007 NVIDIA unit. AMD documents grouping a wavefront\'s addresses into cache lines.' },
-      { label: 'It does not matter: AMD GPUs do not coalesce memory accesses, so every pattern costs the same.', why: 'AMD documents exactly that grouping, into 64- or 128-byte lines.' },
+      { label: 'No: on AMD the stride has to be 64, the wavefront width, instead of blockDim.x, or the lanes of a wavefront overlap.', why: 'blockDim.x already is the stride, and it is chosen as a multiple of the wavefront width.' },
+      { label: 'No: AMD coalesces per half wavefront of 32 lanes, so the stride has to be 32 floats, whatever blockDim.x is.', why: 'Half-warps are a 2007 NVIDIA unit. AMD documents grouping a wavefront\'s addresses into cache lines.' },
+      { label: 'It does not matter: AMD GPUs do not coalesce global accesses, so every write pattern costs the same number of lines.', why: 'AMD documents exactly that grouping, into 64- or 128-byte lines.' },
     ],
     explain: (
       <p>
@@ -387,9 +389,9 @@ export const questionsS212: Record<string, Question> = {
     ),
     options: [
       { label: 'Every row must start on a 16-byte boundary: grid.x a multiple of 4, or rows allocated with a pitch.', correct: true },
-      { label: 'Nothing: any float buffer can be read and written as float4, whatever the address.', why: 'A 16-byte access needs a 16-byte-aligned address; NVIDIA\'s guidance says so.' },
-      { label: 'blockDim.x must be a multiple of 4, so that every thread gets a whole float4.', why: 'Alignment is about addresses, not about how many threads a block has.' },
-      { label: 'The block must first stage its outputs in shared memory, and store them from there.', why: 'Not needed: each thread already owns four adjacent floats in registers.' },
+      { label: 'Nothing: any float buffer can be accessed as float4 at any address; a misaligned one is only slower.', why: 'A 16-byte access needs a 16-byte-aligned address; NVIDIA\'s guidance says so.' },
+      { label: 'blockDim.x must be a multiple of 4, so that every thread of the block gets a whole float4.', why: 'Alignment is about addresses, not about how many threads a block has.' },
+      { label: 'The block must first stage its outputs in shared memory and store them from there as one tile.', why: 'Not needed: each thread already owns four adjacent floats in registers.' },
     ],
     explain: (
       <p>
@@ -433,6 +435,12 @@ function AfterPrinted() {
         stretch. That is the ownership the text describes (p. 521), and it is the version lab 21.1 provides as its baseline.
         Switch the explorer to "coarsened, adjacent": every point has one writer and the sums match.
       </p>
+      <Simplification>
+        <p>
+          The same model as the scatter and gather explorer above: a 2D slice, warps of 32 lanes, writes counted, not
+          timed. The operation table counts the listings' arithmetic, not compiled instructions.
+        </p>
+      </Simplification>
       <Code
         tabs={[{ label: 'Fig. 21.8, corrected', code: ADJACENT, tiers: TIERS, status: STATUS }]}
         caption={
@@ -527,6 +535,12 @@ export function S212() {
           <code>device atomic_float*</code> (Apple7 and later) and documents no cost.
         </p>
       </Today>
+      <Simplification>
+        <p>
+          The animation: one row of six points and four atoms, with groups of four and six threads standing in for a
+          warp. The two queue orders are picked to show the effect; on a GPU the order is undefined. No time.
+        </p>
+      </Simplification>
 
       <h2>Gather: one thread per point</h2>
       <p>

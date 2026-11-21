@@ -147,7 +147,7 @@ check(`milestones M6 (${m6.join(',') || 'none'}) and M7 (${m7.join(',') || 'none
 
 // ---- links
 const links = await page.$$eval('.prose a[href^="#/"]', (as) => [...new Set(as.map((a) => a.getAttribute('href')))]);
-const known = new Set(['#/ch20/start', '#/ch20/20.1', '#/ch20/20.3', '#/ch20/20.4', '#/ch20/20.5', '#/ch20/20.6', '#/ch20/20.7', '#/ch20/labs', '#/ch21', '#/ch22', '#/x1']);
+const known = new Set(['#/ch20/start', '#/ch20/20.1', '#/ch20/20.3', '#/ch20/20.4', '#/ch20/20.5', '#/ch20/20.6', '#/ch20/20.7', '#/ch20/labs', '#/ch21', '#/ch22', '#/x1', '#/ch18/18.6', '#/x2/X2.7', '#/x3/X3.7']);
 check(`every link goes to a known route (${links.length})`, links.every((l) => known.has(l)), links.filter((l) => !known.has(l)).join(', '));
 for (const target of ['ch21', 'ch22', 'x1']) {
   await goto(page, target);

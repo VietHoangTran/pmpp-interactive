@@ -9,6 +9,7 @@ import {
   LabsIntro,
   LabsPage,
   ReferenceSolution,
+  RaceStatus,
   RunningLabs,
   VerificationStatus,
   benchRow,
@@ -20,9 +21,8 @@ import {
   rawCol,
   useLabs,
   type BenchSet,
-  type Lab,
 } from '../../components/LabKit';
-import { fmt, labStatus, num, type BenchRow, type Reports, type RunResult } from '../../lib/reports';
+import { fmt, num, type BenchRow, type Reports, type RunResult } from '../../lib/reports';
 import { href } from '../../lib/router';
 
 // The page is built from components/LabKit.tsx; what is here is module X1's own content.
@@ -301,43 +301,6 @@ function DigestTable() {
   );
 }
 
-// ---------------------------------------------------------------- the race backend, per lab
-/** One line on a lab's runs on the race backend, which the status table does not show. */
-function RaceLine({ lab }: { lab: Lab }) {
-  const { reports, loading } = useLabs();
-  const run = reports.race;
-  const line = (variant: 'solution' | 'work') => {
-    const rs = (run?.results.filter((x) => x.lab === lab.id && x.variant === variant) ?? []) as (RunResult & { tsan?: unknown[] })[];
-    const tests = rs.flatMap((x) => x.tests);
-    const found = rs.reduce((k, x) => k + (Array.isArray(x.tsan) ? x.tsan.length : 0), 0);
-    return { s: labStatus(run, lab.id, variant), tests, passed: tests.filter((t) => t.pass).length, found };
-  };
-  const sol = line('solution');
-  const mine = line('work');
-  return (
-    <p data-race={lab.num} data-race-status={loading ? 'loading' : sol.s} data-race-work={loading ? 'loading' : mine.s}>
-      {loading ? (
-        'Reading reports.'
-      ) : !run ? (
-        'No run on the race backend on this machine yet.'
-      ) : (
-        <>
-          {sol.s === 'none'
-            ? `On this machine the reference solution of lab ${lab.num} has no run on the race backend yet.`
-            : sol.s === 'pass'
-              ? `On this machine the reference solution of lab ${lab.num} passed all ${sol.tests.length} tests on the race backend with ${sol.found ? `${sol.found} ThreadSanitizer report(s)` : 'no race reported'}: emulator-checked on this flavour.`
-              : `On this machine the reference solution of lab ${lab.num} failed on the race backend (${sol.passed} of ${sol.tests.length} tests): unverified there.`}{' '}
-          {mine.s === 'none'
-            ? 'Your own kernels have no recorded run there, or are still the untouched starter.'
-            : mine.s === 'pass'
-              ? `Your own kernels passed all ${mine.tests.length} tests there with ${mine.found ? `${mine.found} ThreadSanitizer report(s): read them` : 'no race reported'}.`
-              : `Your own kernels passed ${mine.passed} of ${mine.tests.length} tests there, with ${mine.found} ThreadSanitizer report(s) in the run.`}
-        </>
-      )}
-    </p>
-  );
-}
-
 /** Lab X1.4's prediction: how many of the three defects the emulator reports. Not measured from the reports. */
 function HuntReveal({ committed }: { committed: number }): ReactNode {
   // The count and the reason come at once; which defect is which waits until the reader says
@@ -475,7 +438,7 @@ export function Labs() {
         output are untouched. The emulators run smaller shapes; the README lists them. Lab 14.3's sort, the baseline, is
         tested too.
       </p>
-      <RaceLine lab={l1} />
+      <RaceStatus lab={l1} />
 
       <h3>Before you benchmark</h3>
       <p>
@@ -578,7 +541,7 @@ export function Labs() {
           measured differences, not bounds.
         </p>
       </Today>
-      <RaceLine lab={l2} />
+      <RaceStatus lab={l2} />
 
       <h3>Before you benchmark</h3>
       <p>
@@ -666,12 +629,18 @@ export function Labs() {
           <a href={href('x1', 'X1.8')}>X1.8</a>).
         </li>
       </ul>
-      <Today checked="2026-11-20 (notes/today/x1-facts.md A4, A5, D1, D2, E2)">
+      <Today checked="2026-11-20 (notes/today/x1-facts.md A4, A5, B3, D1, D2, E2)">
         <p>
-          Random123's three 10-round known-answer vectors; <code>__umulhi</code> exists on CUDA, but the course's emulator and
-          front-end stub lack it. llama.cpp's default chain and repetition rule. A 24-bit conversion never returns 1.0.
+          Random123's three 10-round known-answer vectors; <code>__umulhi</code> exists on CUDA and HIP, and the lab uses
+          the 64-bit product, which needs no intrinsic on any backend. llama.cpp's default chain and repetition rule. A
+          24-bit conversion never returns 1.0.
         </p>
       </Today>
+      <p>
+        This course's emulator and front-end stub declare <code>__umulhi</code> too (see{' '}
+        <code>labs/common/include/pmpp/emu/emu_device.h</code> and <code>pmpp/check/cuda_stub.h</code>), so either form
+        builds wherever a <code>.cu</code> file does.
+      </p>
       <p>
         The chain is llama.cpp's default restricted to the stages M5 builds: copy the logits into the workspace,
         repetition, then lab 9.3's frequency and presence pass; if the temperature is 0 or below, lab 10.3's argmax and
@@ -718,7 +687,7 @@ export function Labs() {
           MSL: "Either round ties to even or round toward zero rounding mode may be supported", and fast math by default.
         </p>
       </Today>
-      <RaceLine lab={l3} />
+      <RaceStatus lab={l3} />
       <h3>Same seed, same tokens, across backends</h3>
       <p>
         A digest is a hash of the decisive draws of one fixed case at llama.cpp's defaults, rows of 1,000. On a GPU the
@@ -726,8 +695,8 @@ export function Labs() {
         different token once in a few hundred draws would change it. The emulators run one thread at a time, far too slowly
         for 1,024 draws, so they run only the core, the first 2 rows by 2 seeds by 2 steps, 8 draws; GPUs hash that core separately
         too, so every backend can be compared on it. Equal digests mean equal tokens on those draws, and the table gives the
-        count beside each. It reads them from this machine's runs; bring a <code>reports/verify-*.md</code> run from a CUDA
-        or ROCm machine and its digests join them.
+        count beside each. It reads them from this machine's runs (<code>reports/runs/</code>); on a CUDA or ROCm machine
+        the same run prints its <code>tokens_digest</code> and <code>core_digest</code>, to compare with these by hand.
       </p>
       <DigestTable />
 
@@ -801,7 +770,8 @@ export function Labs() {
         token id per row out, the same token for the same (seed, stream, step) on every backend for every decisive draw.
         It follows the project's conventions so later milestones can call it: row-major float32 with the batch first, raw
         device pointers and explicit sizes, a <code>launch</code> host function beside the kernels, the CPU reference in{' '}
-        <code>main.cpp</code>. M7's single-token decode path and M10 call it.
+        <code>main.cpp</code>. Milestone M10 (lab X3.2) calls it on a GPU, after M7's decode step, when this lab's solution is
+        present.
       </p>
       <ReferenceSolution lab={l3} tiers={TIERS_3} />
 
@@ -871,7 +841,7 @@ export function Labs() {
         The tests are lab X1.2's part B at smaller sizes, with rows longer than one chunk of 1,024 on every backend on
         purpose; on a GPU every batch runs ten times on fresh outputs. There is no benchmark.
       </p>
-      <RaceLine lab={l4} />
+      <RaceStatus lab={l4} />
       <LabResults
         lab={l4}
         noBench="This lab has no benchmark. The result is the line above: every test passing on the emulator, the race backend and a device. As shipped, the kernel is meant to fail."

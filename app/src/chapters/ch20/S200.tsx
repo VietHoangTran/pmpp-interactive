@@ -66,7 +66,7 @@ export const questionsS200: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Only lane 0 has the sum; broadcast it from lane 0 first.',
+        label: 'Lane 0 alone holds the sum; the other lanes need it broadcast.',
         correct: true,
       },
       {
@@ -110,7 +110,7 @@ export const questionsS200: Record<string, Question> = {
         correct: true,
       },
       {
-        label: 'So that the max is already in scratch[0] when the other threads go to read it.',
+        label: 'So that the max is in scratch[0] before the other threads read it.',
         why: 'That read-after-write is guarded by the barrier inside blockReduceMax, before its return.',
       },
       {
@@ -211,7 +211,7 @@ export const questionsS200: Record<string, Question> = {
         label: '64; an upper-half lane asking for lane 5 gets the lower half\'s lane 5.',
         correct: true,
       },
-      { label: '32: HIP reports a warp size of 32 on every AMD GPU, so the kernel runs unchanged.', why: 'HIP reports the hardware width: 64 on gfx9, 32 on gfx10 and later.' },
+      { label: '32: HIP reports 32 on AMD GPUs too, so the kernel runs unchanged.', why: 'HIP reports the hardware width: 64 on gfx9, 32 on gfx10 and later.' },
       { label: '64; the compiler splits each wavefront in two, so nothing breaks.', why: 'Nothing splits it. The default width is the whole 64-lane wavefront.' },
       { label: '64; nothing breaks, because shuffle source lanes wrap at 32.', why: 'They wrap at the width argument, which defaults to warpSize, 64.' },
     ],

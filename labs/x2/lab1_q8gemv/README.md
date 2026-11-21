@@ -139,8 +139,9 @@ void encodeGemvQ8_0(id<MTLComputeCommandEncoder> enc, id<MTLComputePipelineState
     integer dot product (D3).
   - llama.cpp's Metal path stays in float, like this lab (D4).
 - **FP16 scales.** CUDA and HIP would use `__half2float`, from two different headers (the
-  table in x2-facts). The emulators and the front-end stub do not model `__half`. So the
-  `.cu` keeps the bits in `uint16_t` and decodes them with `halfBitsToFloat`. Metal has
+  table in x2-facts). So the `.cu` keeps the bits in `uint16_t` and decodes them with
+  `halfBitsToFloat`, which needs neither header. (The emulators and the front-end stub now
+  model `__half` too; this lab does not rely on it.) Metal has
   `half` built in.
 - **Alignment.** `char4` has size 4 and alignment 4 on CUDA (A5) and on Metal (infra-facts
   C9). That is why the codes live in their own array. Lab X2.2 reads llama.cpp's real

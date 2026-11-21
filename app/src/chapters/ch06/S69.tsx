@@ -37,16 +37,16 @@ export const questionsS69: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'At most about 10% faster, and probably no change: the resource relieved is not the bottleneck.',
+        label: 'Little or no change: the resource it relieves is not the bottleneck.',
         correct: true,
       },
       {
-        label: 'A large gain: unrolling always helps.',
+        label: 'A large gain: fewer branches and more independent instructions mean fewer stalls.',
         why: 'It removes branches and exposes independent instructions. Neither is what this kernel waits on.',
       },
       {
-        label: 'A slowdown: unrolling always costs registers.',
-        why: 'It can cost registers, but "always slower" is no more true than "always faster". Here the likely effect is none.',
+        label: 'A slowdown: the unrolled loops need more registers and so lose occupancy.',
+        why: 'It can cost registers, but nothing here says the kernel is short of registers or of occupancy. The likely effect is none.',
       },
     ],
     explain: (
@@ -90,11 +90,11 @@ export const questionsS69: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'The duration. The change may have removed work, which lowers utilisation while the kernel gets faster.',
+        label: 'The duration: the change may have removed work, lowering utilisation too.',
         correct: true,
       },
       {
-        label: 'The percentage: it is the hardware’s own view.',
+        label: 'The percentage: it is the hardware’s own count of how busy the memory was.',
         why: 'It measures how busy a unit was, not how much work was needed. Fewer bytes moved at the same rate shows up as a lower percentage.',
       },
       { label: 'Neither: the two contradict each other, so the measurement is broken.', why: 'They measure different things and need not move together.' },
@@ -115,10 +115,10 @@ export const questionsS69: Record<string, Question> = {
     options: [
       {
         label:
-          'Yes. The regime belongs to the pair (kernel, device): the kernel fixes the intensity, the device fixes where the threshold is. The bottleneck, and the right optimisation, have to be found again per device.',
+          'Yes. The kernel fixes the intensity and the device fixes the threshold, so the bottleneck, and the right optimisation, have to be found again per device.',
         correct: true,
       },
-      { label: 'No: intensity is a property of the kernel alone.', why: 'Intensity is. Whether it is above or below the threshold depends on the device’s ratio of compute to bandwidth.' },
+      { label: 'No: intensity is a property of the kernel alone, so its regime is the same on every device.', why: 'Intensity is. Whether it is above or below the threshold depends on the device’s ratio of compute to bandwidth.' },
       { label: 'Only if the profiler is wrong on one of them.', why: 'Nothing is wrong: the two devices have different thresholds.' },
     ],
     explain: (

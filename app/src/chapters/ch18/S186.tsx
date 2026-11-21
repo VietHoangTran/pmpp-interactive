@@ -94,7 +94,7 @@ export const questionsS186: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'It is a plain store to a counter other threads are updating with fetch_add at the same time: a data race, undefined behaviour in the memory model the book cites on pp. 433–434. Store through the atomic_ref, or clamp after the barrier.',
+        label: 'It races with other threads\' fetch_add on the same counter: a data race, undefined under the memory model of pp. 433–434.',
         correct: true,
       },
       {
@@ -102,11 +102,11 @@ export const questionsS186: Record<string, Question> = {
         why: 'Only a thread at or past capacity stores, and it stores the capacity. Every interleaving ends at min(N, capacity), which is the right number. The defect is the race itself.',
       },
       {
-        label: 'It is slower than an atomic store.',
-        why: 'Speed is not the issue; a plain store is no slower. The issue is that it is undefined behaviour.',
+        label: 'It is slower than an atomic store, because the plain store forces the counter out of shared memory.',
+        why: 'Speed is not the issue; a plain store is no slower, and the counter stays in shared memory. The issue is that it is undefined behaviour.',
       },
       {
-        label: 'Nothing: the store is benign because every thread writes the same value.',
+        label: 'Nothing needs to change: the store is benign, because every thread that reaches it writes the same capacity.',
         why: 'The book itself says idempotent races still violate the memory model (pp. 433–434), and here the store also races with read-modify-writes, not only with stores of the same value.',
       },
     ],
@@ -127,16 +127,16 @@ export const questionsS186: Record<string, Question> = {
     prompt: <>Two runs of Fig. 18.15 on the same graph produce different public frontiers. What can differ between them?</>,
     options: [
       {
-        label: 'The order of the blocks\' ranges, the order inside a range, and where overflow entries land. Never which vertices are there, nor how many.',
+        label: 'Where each block\'s range sits, the order inside it, and where overflow entries land; not the set of vertices or its size.',
         correct: true,
       },
       {
-        label: 'Nothing should differ; a difference means a bug.',
+        label: 'Nothing should differ: the blocks reserve their ranges in block order, so a difference means a bug.',
         why: 'Atomics on one address are served in no fixed order, so blocks reserve in whatever order they arrive. An unstable filter is allowed to come out in any order.',
       },
       {
-        label: 'The count, because overflow depends on timing.',
-        why: 'Which entries overflow depends on timing; how many vertices are appended does not. The compare-and-swap appends each new vertex exactly once.',
+        label: 'The count: which entries overflow depends on timing, so a vertex can be appended twice, once through its private queue and once straight to the public frontier.',
+        why: 'Which entries overflow depends on timing; how many vertices are appended does not. Each new vertex takes one path, private or public, and the compare-and-swap appends it exactly once.',
       },
     ],
     explain: (
@@ -159,15 +159,15 @@ export const questionsS186: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Each thread copies at most one entry, so private entries at index blockDim.x and above are never copied. With capacity no larger than the block there are none.',
+        label: 'One entry per thread: entries from index blockDim.x up are never copied, and capacity 64 has none.',
         correct: true,
       },
       {
-        label: 'Capacity 256 overflows shared memory.',
-        why: '256 words is 1 KB; the failure is lost entries, not a launch error.',
+        label: 'Capacity 256 overflows the shared memory of a block, so the launch fails or the private queue wraps around.',
+        why: '256 words is 1 KB; the failure is lost entries, not a launch error or a wrap.',
       },
       {
-        label: 'The stores are no longer coalesced.',
+        label: 'The commit is no longer coalesced: with 256 entries, neighbouring threads write addresses far apart.',
         why: 'They are still consecutive. The problem is correctness: slots reserved for entries 128 to 255 are never written.',
       },
     ],
@@ -194,11 +194,11 @@ export const questionsS186: Record<string, Question> = {
         correct: true,
       },
       {
-        label: 'It launches, and the first grid.sync() deadlocks.',
+        label: 'It launches, and the first grid.sync() deadlocks: the extra block waits for a slot that never frees.',
         why: 'That is the risk the book describes (p. 445), but the cooperative API checks the grid against the same product before launching anything.',
       },
       {
-        label: 'CUDA refuses it; HIP launches it and deadlocks.',
+        label: 'CUDA refuses it with cudaErrorCooperativeLaunchTooLarge; HIP launches it and deadlocks.',
         why: 'HIP\'s runtime compares the grid with its own occupancy-based limit and returns hipErrorCooperativeLaunchTooLarge (our reading of its source).',
       },
     ],
@@ -216,19 +216,19 @@ export const questionsS186: Record<string, Question> = {
     prompt: <>Remove the second <code>grid.sync()</code> of the frontier swap. What can go wrong?</>,
     options: [
       {
-        label: 'Grid thread 0 may zero the counter before another thread has read it. That thread reads 0, leaves the level loop, and the others wait at the next grid.sync() for ever.',
+        label: 'Thread 0 may reset the counter before another thread reads it: that thread reads 0, leaves the loop, and the rest hang at the next grid.sync().',
         correct: true,
       },
       {
-        label: 'Appends of the next level may be counted before the reset and lost.',
+        label: 'Appends of the next level may reach the counter before thread 0 resets it, so the reset wipes them out and those vertices are never expanded at all.',
         why: 'That is what the third barrier prevents.',
       },
       {
-        label: 'A thread may read the count before every append is in.',
+        label: 'A thread may read the counter before every block has finished appending, and get a partial count.',
         why: 'That is the first barrier\'s job.',
       },
       {
-        label: 'Nothing: the second barrier only exists for performance.',
+        label: 'Nothing: every thread already holds the count, so the second barrier only orders work for speed.',
         why: 'Each of the three guards a different ordering. Untick it in the stepper, in order.',
       },
     ],
@@ -256,11 +256,11 @@ export const questionsS186: Record<string, Question> = {
         correct: true,
       },
       {
-        label: 'Two: one before the read and one after it.',
+        label: 'Two: one after the appends, before reading counter[L], and one after the read, before the next appends.',
         why: 'The barrier after the read protected the reset. With no reset there is nothing for it to protect.',
       },
       {
-        label: 'None: each level has its own counter, so nothing conflicts.',
+        label: 'None: each level has its own counter, so no read can meet a write.',
         why: 'A thread must still not read counter[L] before every thread has appended to it.',
       },
     ],
@@ -310,19 +310,19 @@ export const questionsS186: Record<string, Question> = {
     prompt: <>You port the single-launch BFS to Metal. Which plan works?</>,
     options: [
       {
-        label: 'One dispatch per level on a plain (serial) compute encoder of an MTLCommandQueue, which runs them in order and tracks the hazards; size each dispatch from a GPU-written count with an indirect dispatch.',
+        label: 'One dispatch per level on a serial compute encoder of an MTLCommandQueue, which orders them and tracks hazards, each sized by an indirect dispatch from a GPU-written count.',
         correct: true,
       },
       {
-        label: 'One dispatch with a threadgroup barrier at the end of each level.',
+        label: 'One dispatch, with a threadgroup barrier at the end of each level so every thread sees the new frontier.',
         why: 'A threadgroup barrier synchronises one threadgroup, not the grid. Metal has no grid-wide barrier.',
       },
       {
-        label: 'One dispatch sized from the occupancy query, spinning on a device atomic between levels.',
+        label: 'One dispatch sized from the occupancy query, every threadgroup spinning on a device atomic between levels.',
         why: 'Metal has no occupancy query and documents no forward progress between threadgroups, so a spin barrier may never be released.',
       },
       {
-        label: 'One dispatch per level on a concurrent encoder, with no barriers.',
+        label: 'One dispatch per level on a concurrent encoder, with no barriers between them, so the levels can overlap.',
         why: 'On a concurrent encoder the dispatches may overlap, and you are responsible for ordering them, with memoryBarrier(scope:).',
       },
     ],
@@ -347,15 +347,15 @@ export const questionsS186: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Three threads run 25,000 times longer than the rest and hold up the grid. Give each hub a block, or spread the hubs\' edges over many threads, one per edge.',
+        label: 'Three threads work 25,000 times longer than the rest; give each hub a block, or a thread per edge.',
         correct: true,
       },
       {
-        label: 'Nothing: the 10,000 small vertices keep the device busy while the hubs finish.',
+        label: 'Nothing: the 10,000 small vertices keep the device busy while the three hub threads work through their lists.',
         why: 'The level ends when its slowest thread ends. The small vertices finish almost at once, and then three threads work alone.',
       },
       {
-        label: 'Make the private queue larger so the hubs\' discoveries fit.',
+        label: 'The hubs\' 150,000 edges overflow the private queues; make each queue large enough to hold all they find.',
         why: 'The overflow path handles that already. The problem is the time one thread spends walking 50,000 edges.',
       },
     ],

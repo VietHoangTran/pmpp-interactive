@@ -480,7 +480,7 @@ export const questionsS109: Record<string, Question> = {
     ),
     options: [
       { label: 'The sum: the second launch overwrites the first.', why: 'Nothing in the kernel writes the total; every block only adds to it.' },
-      { label: 'Twice the sum.', correct: true },
+      { label: 'Twice the sum: each launch adds onto what is there.', correct: true },
       { label: 'Undefined: two launches race on the same buffer.', why: 'Launches on one stream run one after the other; the second starts from what the first left.' },
       { label: 'The sum, because fetch_add with relaxed order starts from 0.', why: 'An atomic add starts from whatever is in memory.' },
     ],
@@ -504,9 +504,9 @@ export const questionsS109: Record<string, Question> = {
     ),
     options: [
       { label: <><code>atomicMax(output, partialMax)</code> on a <code>float*</code>.</>, why: 'That overload exists on HIP only. CUDA\'s legacy atomicMax takes integer types.' },
-      { label: <><code>cuda::atomic_ref&lt;float&gt;::fetch_max</code>, and <code>atomic_fetch_max_explicit</code> on Metal.</>, why: 'Current CCCL accepts float for fetch_max, but the first toolkit that does is not documented; Metal lists atomic max for integer types only.' },
-      { label: 'Write each block\'s maximum to an array, then reduce the array in a second, single-block pass.', correct: true },
-      { label: <>Use <code>fetch_add</code> on the negated values.</>, why: 'A sum of negated values is not a maximum.' },
+      { label: <><code>cuda::atomic_ref&lt;float&gt;::fetch_max</code> on CUDA, and <code>atomic_fetch_max_explicit</code> on an <code>atomic_float</code> on Metal.</>, why: 'Current CCCL accepts float for fetch_max, but the first toolkit that does is not documented; Metal lists atomic max for integer types only.' },
+      { label: 'Each block writes its maximum to an array; a second, single-block pass reduces it.', correct: true },
+      { label: <>Use <code>fetch_add</code> on the negated values, then negate the total at the end.</>, why: 'A sum of negated values is minus the sum, not a maximum.' },
     ],
     explain: (
       <p>
@@ -529,9 +529,9 @@ export const questionsS109: Record<string, Question> = {
     ),
     options: [
       { label: 'The atomic commit with memory_order_relaxed.', why: 'The commit order follows the order blocks finish, which can change between runs.' },
-      { label: <>The atomic commit with <code>memory_order_seq_cst</code>.</>, why: 'A memory order constrains how other memory operations are seen around the atomic. It does not choose which block adds first.' },
+      { label: <>The atomic commit with <code>memory_order_seq_cst</code>, which puts all the adds in one total order.</>, why: 'A memory order constrains how other memory operations are seen around the atomic. It does not choose which block adds first, so the total order can differ from run to run.' },
       { label: 'Per-block partials, then a second pass in a fixed order.', correct: true },
-      { label: 'Either, as long as the data are float32.', why: 'Rounding after each addition is what makes the order visible.' },
+      { label: 'Either, as long as every block reduces its segment with the same tree on every run.', why: 'The block trees are fixed already. What varies is the order in which the block sums meet, and float rounding makes that order visible.' },
     ],
     explain: (
       <p>
@@ -558,10 +558,10 @@ export const questionsS109: Record<string, Question> = {
         why: 'Read as unsigned, a negative float has its sign bit set, so it compares above every positive one, and more negative values compare larger.',
       },
       {
-        label: 'An order-preserving transform of the float bits in the high half (flip the sign bit of non-negative values, all bits of negative ones), and a value that is larger for a lower index in the low half, such as 0xFFFFFFFF − index.',
+        label: 'Float bits made order-preserving as unsigned in the high half; 0xFFFFFFFF − index in the low half.',
         correct: true,
       },
-      { label: 'The index in the high half and the float in the low half.', why: 'Then the largest index wins, whatever the values.' },
+      { label: 'The index in the high half, so that ties are settled first, and the float bits in the low half.', why: 'Then the largest index wins, whatever the values.' },
       {
         label: 'An order-preserving float transform in the high half and the plain index in the low half.',
         why: 'Values right; ties wrong: on equal values the larger key has the larger index.',
@@ -570,7 +570,8 @@ export const questionsS109: Record<string, Question> = {
     explain: (
       <p>
         The atomic compares keys as unsigned integers, so the high half must order like the floats, and the low half must
-        break ties the way you want. With the transform, larger floats give larger unsigned values; storing{' '}
+        break ties the way you want. The transform flips the sign bit of a non-negative float and every bit of a
+        negative one; then larger floats give larger unsigned values. Storing{' '}
         <code>0xFFFFFFFF − index</code> makes the lower index win. The packing is our technique, not a vendor recipe. On
         Metal a 64-bit atomic max needs the Apple9 family (Apple8 on macOS) and returns nothing; elsewhere the portable route
         is again two passes.

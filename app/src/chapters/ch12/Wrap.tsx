@@ -36,12 +36,12 @@ export const questionsWrap: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Nowhere: every kept column is written once, and so is every kept logit.',
+        label: 'Nowhere: each counter hands out every slot exactly once, so every kept column and every kept logit is written exactly once.',
         why: 'Each array on its own is a correct unstable filter. The pairs are the problem: slot k of one array and slot k of the other come from two different counters.',
       },
       {
         label:
-          'Wherever another thread can take a slot between one thread\'s two atomics: on a GPU, or on the race emulator, which runs threads at the same time. Never on emu.',
+          'Wherever another thread can take a slot between one thread\'s two atomics: on a GPU or the race emulator, never on emu.',
         correct: true,
       },
       {
@@ -92,7 +92,7 @@ export const questionsWrap: Record<string, Question> = {
         why: 'That orders one block\'s reads before its own writes. Its slots can still land in a later block\'s tile, which may not have been read yet.',
       },
       {
-        label: 'No: a thread can be handed a slot above its own index, where a key nobody has read yet may still live.',
+        label: 'No: a thread can be handed a slot above its own index, where an unread key may still live.',
         correct: true,
       },
       {
@@ -158,7 +158,7 @@ export const questionsWrap: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Last block to first: each block waits for the block after it, which has read its keys and knows how many kept keys come after.',
+        label: 'Last block to first: each block waits for the one after it, which has read its keys and knows how many kept keys follow.',
         correct: true,
       },
       {
@@ -478,8 +478,9 @@ export function Wrap() {
       <p>
         Lab 12.4's candidate compaction is a piece of milestone M5 of the through-line project, sampling on the GPU:
         stable (column, logit) pairs and a count for every row of <code>[batch × vocab]</code> logits, the step between a
-        threshold and a draw. Lab 9.3 gave M5 its token counts; module X1 adds lab 10.3's row max for the min-p
-        threshold, chapter 14's sort for top-k and top-p, and the draw itself.{' '}
+        threshold and a draw. Lab 9.3 gave M5 its token counts, lab 10.3 its row max and softmax, and lab 11.6 its
+        top-p keep mask; lab 14.3 sorts the candidates; module X1 adds a radix top-k (lab X1.1), min-p and the fused
+        filters (lab X1.2), and the draw, in lab X1.3's batched sampler.{' '}
         <span data-m5={m5.join(',') || 'none'}>
           {backends.length === 0
             ? 'No lab results are recorded on this machine yet.'

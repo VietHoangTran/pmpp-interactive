@@ -2,6 +2,7 @@
 //   GET/PUT /api/progress        progress/progress.json (yours; sync it between machines)
 //   GET     /api/reports         latest lab results per backend, from reports/runs/*.json
 //   GET     /api/lab-file        a lab source file, for display
+//   GET     /api/race-labs       ids of the labs built for the race emulator (RACE in pmpp_add_lab)
 //   GET     /content/...         narration scripts, audio and manifests
 import http from 'node:http';
 import fs from 'node:fs';
@@ -75,6 +76,20 @@ async function api(req, res, url) {
       /* no runs yet */
     }
     return send(res, 200, out);
+  }
+  if (url.pathname === '/api/race-labs' && req.method === 'GET') {
+    // A lab opts in to the race backend in its CMakeLists.txt: pmpp_add_lab(<id> ... RACE).
+    const labs = path.join(REPO, 'labs');
+    const out = [];
+    for (const ch of await fsp.readdir(labs, { withFileTypes: true }).catch(() => [])) {
+      if (!ch.isDirectory()) continue;
+      for (const lab of await fsp.readdir(path.join(labs, ch.name), { withFileTypes: true }).catch(() => [])) {
+        if (!lab.isDirectory()) continue;
+        const text = await fsp.readFile(path.join(labs, ch.name, lab.name, 'CMakeLists.txt'), 'utf8').catch(() => '');
+        for (const m of text.matchAll(/\bpmpp_add_lab\(\s*([^\s)]+)([^)]*)\)/g)) if (/\bRACE\b/.test(m[2])) out.push(m[1]);
+      }
+    }
+    return send(res, 200, out.sort());
   }
   if (url.pathname === '/api/lab-file' && req.method === 'GET') {
     const rel = url.searchParams.get('path') || '';

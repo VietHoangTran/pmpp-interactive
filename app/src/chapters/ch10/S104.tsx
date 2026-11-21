@@ -770,7 +770,15 @@ export function S104() {
         ends in the last element. Start from Fig. 10.8's parts, which are selected below, and change them until the total
         lands in the last element with no conflict. The loop and the barrier stay as they are.
       </p>
-      <Source section="10.12" pages="249" figs="exercise 3 and its figure" />
+      <NoteGroup>
+        <Source section="10.12" pages="249" figs="exercise 3 and its figure" />
+        <Simplification>
+          <p>
+            Each iteration is applied as if every active thread read before any wrote, and a value read in the same
+            iteration that another thread writes is flagged as a conflict rather than raced. One block, no warps, no timing.
+          </p>
+        </Simplification>
+      </NoteGroup>
       <MirrorIt />
       <Ask q={questionsS104['ch10/10.4/q-ex3']} />
       <Ask q={questionsS104['ch10/10.4/q-ex6b']} label="Work it out, then check it in Mirror it" />

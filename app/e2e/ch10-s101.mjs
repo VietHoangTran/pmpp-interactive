@@ -166,7 +166,7 @@ t = await choose('infinities are undefined', 'first element');
 check('q-finite-identity: the first element is wrong for a thread with no element', t.includes('Not quite.') && t.includes('has nothing to start from'));
 t = await choose('infinities are undefined', '-FLT_MAX');
 check('q-finite-identity: −FLT_MAX', t.includes('Correct.') && t.includes('ch10-facts.md C3'));
-t = await choose('std::accumulate', 'std::reduce, because');
+t = await choose('std::accumulate', 'std::reduce: it may');
 check('q-reduce-order: std::reduce may regroup', t.includes('Correct.') && t.includes('non-deterministic'));
 
 // ---- notes

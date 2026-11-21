@@ -148,7 +148,7 @@ check('exercises 2 and 4 point at their labs as well', rows[1].links.includes('#
 
 // ---- errata
 const errata = await page.$$eval('ul[data-list="errata"] > li', (lis) => lis.map((li) => li.textContent));
-check(`the errata list has ${errata.length} items, covering the notes' list`, errata.length === 13, String(errata.length));
+check(`the errata list has ${errata.length} items, covering the notes' list`, errata.length === 15, String(errata.length));
 for (const [name, frag] of [
   ['the shift, pp. 140–141', '(i << 5) + i'],
   ['"second" barrier, p. 147', '“second” barrier'],
@@ -184,7 +184,7 @@ check('the next chapter is named and linked', text0.includes('Chapter 7 opens Pa
 
 // ---- links
 const links = await page.$$eval('.prose a[href^="#/"]', (as) => [...new Set(as.map((a) => a.getAttribute('href')))]);
-const known = new Set(['#/ch06/6.1', '#/ch06/6.2', '#/ch06/6.3', '#/ch06/6.4', '#/ch06/6.6', '#/ch06/6.7', '#/ch06/labs', '#/ch07/start']);
+const known = new Set(['#/ch06/6.1', '#/ch06/6.2', '#/ch06/6.3', '#/ch06/6.4', '#/ch06/6.6', '#/ch06/6.7', '#/ch06/labs', '#/ch15/labs', '#/ch07/start']);
 check(`links go to routes that exist (${links.join(', ')})`, links.length >= 6 && links.every((l) => known.has(l)), links.join(', '));
 await page.evaluate(() => [...document.querySelectorAll('.prose a')].find((a) => a.getAttribute('href') === '#/ch06/labs').click());
 await page.waitForFunction(() => document.querySelector('.page h1')?.textContent.includes('Labs'), { timeout: 10000 });

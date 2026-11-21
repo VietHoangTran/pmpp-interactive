@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code } from '../../components/Code';
-import { Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
+import { Bench, Beyond, NoteGroup, Simplification, Source, Today } from '../../components/notes';
 import { href } from '../../lib/router';
 import {
   CALLS,
@@ -528,13 +528,13 @@ export const questionsSC9: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'cudaDeviceSynchronize after the map.', why: 'Nothing here is asynchronous. The mapping is in place; the device just may not use it.' },
-      { label: 'A second cuMemMap.', why: 'The memory is already behind the addresses. Mapping it again changes nothing about who may use it.' },
+      { label: 'cudaDeviceSynchronize after the map, so that the mapping is in place before the kernel.', why: 'Nothing here is asynchronous. The mapping is in place; the device just may not use it.' },
+      { label: 'A second cuMemMap, this time from GPU 0, the device that will read.', why: 'The memory is already behind the addresses. Mapping it again changes nothing about who may use it.' },
       {
-        label: 'cuMemSetAccess, granting GPU 0 read and write access to that range.',
+        label: 'cuMemSetAccess, granting GPU 0 access to the range.',
         correct: true,
       },
-      { label: 'cudaDeviceEnablePeerAccess.', why: 'That is for loads into another GPU\'s ordinary allocations, and the memory here is on GPU 0 itself.' },
+      { label: 'cudaDeviceEnablePeerAccess for GPU 0, so that its kernels may load from the mapping.', why: 'That is for loads into another GPU\'s ordinary allocations, and the memory here is on GPU 0 itself.' },
     ],
     explain: (
       <p>
@@ -576,12 +576,12 @@ export const questionsSC9: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Yes, after every growth.', why: 'That is the copying strategy, where the data moves to a new allocation.' },
+      { label: "Yes: each growth maps memory at new addresses, so the buffer's base moves and kernels must be given the new one.", why: 'That is the copying strategy, where the data moves to a new allocation.' },
       {
-        label: 'No. The base address does not change; only more of the range now has memory behind it.',
+        label: 'No: the base address stays; more of the range just has memory behind it.',
         correct: true,
       },
-      { label: 'Only when the new chunk is on another GPU.', why: 'The address is still inside the same reserved range. One pointer can span chunks on different devices, which is the book\'s example.' },
+      { label: 'Yes when the new chunk is on another GPU, whose memory has addresses of its own.', why: 'The address is still inside the same reserved range. One pointer can span chunks on different devices, which is the book\'s example.' },
     ],
     explain: (
       <p>
@@ -601,13 +601,13 @@ export const questionsSC9: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Nothing changes: peer access covers every allocation on the peer.', why: 'Memory mapped with cuMemMap is not ordinary device memory.' },
-      { label: 'expandable_segments turns peer access on by itself.', why: 'The comment says the opposite kind of thing: the runtime peer call does not reach this memory.' },
+      { label: 'Nothing changes: one cudaDeviceEnablePeerAccess call covers every allocation on the peer, memory mapped with cuMemMap included.', why: 'Memory mapped with cuMemMap is not ordinary device memory.' },
+      { label: 'expandable_segments turns peer access on by itself for every GPU it reserves memory on.', why: 'The comment says the opposite kind of thing: the runtime peer call does not reach this memory.' },
       {
-        label: 'cudaDeviceEnablePeerAccess does not work for memory allocated with cuMemMap; a peer must be granted access through VMM, with cuMemSetAccess.',
+        label: 'cudaDeviceEnablePeerAccess does not reach memory allocated with cuMemMap; grant the peer access with cuMemSetAccess.',
         correct: true,
       },
-      { label: 'Peer loads are faster with VMM memory.', why: 'The comment is about whether access works at all, not speed.' },
+      { label: 'Peer loads are faster with VMM memory, because its large mapped chunks suit the link.', why: 'The comment is about whether access works at all, not speed.' },
     ],
     explain: (
       <p>
@@ -686,14 +686,25 @@ export function SC9() {
         when generation starts. With ordinary allocations, growth means a new, larger buffer and a copy. With a reserved
         range, it means mapping one more chunk after the last.
       </p>
-      <Today checked="2026-11-20 against NVIDIA's VMM post and guide §4.18 (appC-facts.md, A15)">
-        <p>NVIDIA compares the growth to realloc or std::vector, without moving data, and says NCCL and NVSHMEM use VMM.</p>
-      </Today>
+      <NoteGroup>
+        <Today checked="2026-11-20 against NVIDIA's VMM post and guide §4.18 (appC-facts.md, A15)">
+          <p>NVIDIA compares the growth to realloc or std::vector, without moving data, and says NCCL and NVSHMEM use VMM.</p>
+        </Today>
+        <Simplification>
+          <p>The animation: one sequence of 32 tokens, 4 to a chunk, on one device, with nothing timed.</p>
+        </Simplification>
+      </NoteGroup>
       <GrowBufferScene />
       <p>
         The explorer runs all three strategies on a real cache size: the book's Llama 2 7B example, 512 KiB of keys and
         values per token at 16 bits, so 4096 tokens hold 2 GiB. Commit to a number before you open it.
       </p>
+      <Simplification>
+        <p>
+          One sequence on one device. Allocation and mapping are not timed, and there are no other allocations to
+          fragment memory. Addresses for the copying strategies come from an allocator that never reuses a freed hole.
+        </p>
+      </Simplification>
       <Predict
         id="appC/C.9/p-double-copy"
         prompt={
@@ -721,12 +732,6 @@ export function SC9() {
           );
         }}
       </Predict>
-      <Simplification>
-        <p>
-          One sequence on one device. Allocation and mapping are not timed, and there are no other allocations to
-          fragment memory. Addresses for the copying strategies come from an allocator that never reuses a freed hole.
-        </p>
-      </Simplification>
       <GrowKV />
       <Ask q={questionsSC9['appC/C.9/q-copied']} />
       <Ask q={questionsSC9['appC/C.9/q-pointer']} />

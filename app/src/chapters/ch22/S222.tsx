@@ -870,11 +870,11 @@ export const questionsS222: Record<string, Question> = {
     prompt: <>The book's merge is output-centric, and atomics are not the reason. What is?</>,
     options: [
       {
-        label: 'Every output receives exactly one input, so neither version needs atomics; cutting the output gives every thread the same number of elements, while cutting one input would leave threads merging very different amounts.',
+        label: 'Load balance: cutting the output gives every thread the same number of elements; cutting one input does not.',
         correct: true,
       },
-      { label: 'Output-centric avoids atomics on the output array.', why: 'An input-centric merge writes each output once too: every element has exactly one destination.' },
-      { label: 'An input-centric thread could not find its inputs without searching.', why: 'Both versions search; the book\'s point is how much work each thread ends up with.' },
+      { label: 'Output-centric avoids the atomics an input-centric merge would need wherever two inputs land in the same output.', why: 'An input-centric merge writes each output once too: every element has exactly one destination.' },
+      { label: 'An input-centric thread could not find where its inputs go without a search, while an output-centric one knows its range.', why: 'Both versions search; the book\'s point is how much work each thread ends up with.' },
     ],
     explain: (
       <p>
@@ -895,8 +895,8 @@ export const questionsS222: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Every writer writes the same value, the next level, so the update is idempotent: whichever write lands last, the result is the same.', correct: true },
-      { label: 'CUDA serialises plain stores to one address.', why: 'Which thread\'s plain store survives is undefined (ch09-facts A3). It does not matter here only because they all store the same value.' },
+      { label: 'Every writer stores the same value, the next level, so the update is idempotent.', correct: true },
+      { label: 'CUDA serialises plain stores to one address, so concurrent writers take turns and none of them is lost.', why: 'Which thread\'s plain store survives is undefined (ch09-facts A3). It does not matter here only because they all store the same value.' },
       { label: 'A level is written only once per kernel launch.', why: 'Several threads in one launch can reach the same unvisited neighbour and write it.' },
     ],
     explain: (
@@ -917,9 +917,9 @@ export const questionsS222: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'With CSR one thread gets half the work while the others finish early; COO spreads the non-zeros evenly over threads, and the atomics are the price of that balance.', correct: true },
-      { label: 'COO uses less memory than CSR.', why: 'Memory is not the trade-off the book describes; it is balance and parallelism against atomics.' },
-      { label: 'Atomics are faster than register sums.', why: 'Nothing documents that, and the book says the opposite (p. 533).' },
+      { label: 'CSR gives one thread half the work; COO spreads the non-zeros evenly over threads and pays atomics for that balance.', correct: true },
+      { label: 'COO uses less memory than CSR for a matrix this skewed, so its threads move fewer bytes per non-zero.', why: 'COO stores a row index for every non-zero, so it is not the smaller format. And memory is not the trade-off the book describes; it is balance and parallelism against atomics.' },
+      { label: 'Each atomic addition costs less than the register addition it replaces, so COO does less arithmetic work per non-zero than CSR.', why: 'Nothing documents that, and the book says the opposite (p. 533).' },
     ],
     explain: (
       <p>
@@ -940,11 +940,11 @@ export const questionsS222: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'No. Two threads can read the same out[o], each add, and each write back, losing one update. emu never interrupts a thread between synchronisation points, so it cannot show this; the race backend reports the += line. Fix it with atomicAdd, or use the gather form.',
+        label: 'No. Two threads can each read out[o], add and write back, losing an update; emu never interrupts a thread there, but race reports the += line.',
         correct: true,
       },
-      { label: 'Yes: emu runs three thread orders, so it would have caught a race.', why: 'Each emulated thread runs to its next synchronisation point before the next one starts, so a += is never interrupted (labs/README.md).' },
-      { label: 'Yes: the outputs are floats, and float additions cannot conflict.', why: 'The type does not matter: a read, add and write from two threads to one address can lose an update whatever is stored there.' },
+      { label: 'Yes: emu runs the threads in three different orders and compares every output with a CPU reference, so any lost update would have shown up.', why: 'Each emulated thread runs to its next synchronisation point before the next one starts, so a += is never interrupted (labs/README.md).' },
+      { label: 'Yes: the outputs are floats, and a float += compiles to a single store, so two threads’ additions cannot conflict.', why: 'A += is a load, an add and a store for any type, and two threads doing that to one address can lose an update whatever is stored there.' },
     ],
     explain: (
       <p>
@@ -965,9 +965,9 @@ export const questionsS222: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'HIP compiles float atomicAdd safely by default, possibly as a compare-and-swap loop, unless the code is built with -munsafe-fp-atomics.', correct: true },
-      { label: 'HIP has no float atomicAdd, so the call falls back to a lock.', why: 'HIP has it, with the same spelling (infra-facts B1).' },
-      { label: 'AMD GPUs serialise all atomics device-wide.', why: 'Nothing documents that. Atomics on one address serialise on every backend; AMD documents its global atomics in the L2 (ch09-facts B2).' },
+      { label: 'HIP compiles float atomicAdd safely by default, possibly as a CAS loop, unless built with -munsafe-fp-atomics.', correct: true },
+      { label: 'HIP has no float atomicAdd, so the call falls back to a lock around a plain read, add and write.', why: 'HIP has it, with the same spelling (infra-facts B1).' },
+      { label: 'AMD GPUs serialise every atomic device-wide, whatever its address, so contention costs more than on NVIDIA.', why: 'Nothing documents that. Atomics on one address serialise on every backend; AMD documents its global atomics in the L2 (ch09-facts B2).' },
     ],
     explain: (
       <p>
@@ -990,17 +990,18 @@ export const questionsS222: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Restructure it: a gather with one owner per output (a reduction), or map the floats to order-preserving unsigned keys and use atomic max on atomic_uint. MSL documents only add and sub for atomic_float, and CUDA rejects atomicMax on float too, so the HIP version was never portable.',
+        label: 'Restructure it: a gather with one owner per output, or order-preserving unsigned keys with atomic max on atomic_uint. Of the fetch-and-modify operations, MSL documents only add and sub for atomic_float.',
         correct: true,
       },
-      { label: 'Call atomic_fetch_max_explicit on an atomic_float.', why: 'MSL lists max and min for atomic_int and atomic_uint; for atomic_float it documents add and sub only (infra-facts C1).' },
-      { label: 'Metal has no atomics, so a scatter cannot be ported.', why: 'Metal has atomic_int, atomic_uint and atomic_float, and fetch-and-add works on all three (infra-facts C1).' },
+      { label: 'Call atomic_fetch_max_explicit on a device atomic_float*, MSL’s counterpart of HIP’s float atomicMax.', why: 'MSL lists max and min for atomic_int and atomic_uint; for atomic_float it documents add and sub only (infra-facts C1).' },
+      { label: 'Metal has no atomics at all, so a scatter cannot be ported; keep the kernel on CUDA and HIP.', why: 'Metal has atomic_int, atomic_uint and atomic_float, and fetch-and-add works on all three (infra-facts C1).' },
     ],
     explain: (
       <p>
         HIP accepts <code>atomicMax(float*, float)</code>; CUDA's legacy <code>atomicMax</code> takes integer types only
         and its guide's recipe for a float is a compare-and-swap loop (infra-facts A1, B1). The order-preserving key is the
-        transform section 14.4 uses to sort logits; applying it to an atomic max is ours.
+        transform section 14.4 uses to sort logits; applying it to an atomic max is ours. A third route, also ours, is a
+        compare-exchange loop on a device <code>atomic_float</code>, which MSL documents (infra-facts C1).
       </p>
     ),
     source: 'notes/today/infra-facts.md A1, B1, C1 and its backend table, checked 2026-11-20',
@@ -1016,9 +1017,9 @@ export const questionsS222: Record<string, Question> = {
     ),
     options: [
       { label: 'Others that depend on the application.', correct: true },
-      { label: 'The parallelism exposed.', why: 'S changes the parallelism, not which bits come out.' },
-      { label: 'How easily a thread finds its inputs.', why: 'Every warp finds its chunk directly.' },
-      { label: 'Load balance.', why: 'Equal chunks are balanced. The variation comes from the order in which the atomic adds land.' },
+      { label: 'The amount of parallelism the decomposition exposes.', why: 'S changes the parallelism, not which bits come out.' },
+      { label: 'How easily a thread identifies the inputs that feed its outputs.', why: 'Every warp finds its chunk directly.' },
+      { label: 'The load balance the decomposition induces.', why: 'Equal chunks are balanced. The variation comes from the order in which the atomic adds land.' },
     ],
     explain: (
       <p>

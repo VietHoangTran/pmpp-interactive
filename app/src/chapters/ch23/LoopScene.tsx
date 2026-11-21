@@ -3,7 +3,7 @@ import { Scene, type Beat } from '../../components/Scene';
 import { DEFAULTS, simulate, type Lane, type LoopResult, type Seg, type Version } from '../../sim/haloloop';
 
 // The timeline drawing shared by the narrated scene "One iteration with three streams" and the
-// explorer "Who waits" in section 23.4. Everything it draws comes from src/sim/haloloop.ts.
+// explorer "Who waits" on page 23.3–23.5 (id 23.4). Everything it draws comes from src/sim/haloloop.ts.
 // The scene's five beats (content/ch23/narration/loop-N.txt) draw the model at DEFAULTS: four
 // on Fig. 23.14, and one that sets its totals beside the NCCL and NVSHMEM loops'. The chapter is
 // condensed, so those two loops get no beat of their own.

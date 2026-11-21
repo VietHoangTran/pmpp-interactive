@@ -532,7 +532,7 @@ export const questionsS123: Record<string, Question> = {
         why: 'If that lane passes, it does the same atomic with the same count and broadcasts the same start. Only the leader changes.',
       },
       {
-        label: 'Always: __ffs just picks another lane.',
+        label: 'Always: __ffs just picks a different leader, and any lane of the warp can do the atomic for the others.',
         why: 'If that lane does not pass, no lane does the atomic, and the shuffle reads a lane outside the mask, which is undefined. With only lane 31 passing, the leader would be 32, a lane the warp does not have.',
       },
       { label: 'Exactly when the lane just above the lowest passing lane also passes.', correct: true },
@@ -560,12 +560,12 @@ export const questionsS123: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Wrong output whenever a passing lane is in 32 to 63: the 32-bit mask, __popc, __ffs and 1 << lane all ignore the upper half, and a warp whose passing lanes are all above 31 gets leader -1.',
+        label: 'Wrong output whenever a passing lane is in 32 to 63: the mask, __popc, __ffs and 1 << lane all stay 32-bit.',
         correct: true,
       },
-      { label: 'Correct: the shuffle was the only problem.', why: 'The mask itself was cut to 32 bits on line 07, before the shuffle ever sees it.' },
+      { label: 'Correct: the shuffle was the only call that depended on the width, and its mask is now 64 bits.', why: 'The mask itself was cut to 32 bits on line 07, before the shuffle ever sees it.' },
       { label: 'Still a compile error.', why: 'A 64-bit mask satisfies the static_assert, and nothing else is checked at compile time.' },
-      { label: 'Correct on 64-wide devices only.', why: 'The other way round: on 32-wide wavefronts the narrow mask loses nothing.' },
+      { label: 'Correct on 64-wide devices only, where the 64-bit shuffle mask matches the wavefront.', why: 'The other way round: on 32-wide wavefronts the narrow mask loses nothing.' },
     ],
     explain: (
       <p>
@@ -586,8 +586,8 @@ export const questionsS123: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Lanes 4 and 5 are lost.', why: 'They run the same code a moment later with their own mask, leader and atomic.' },
-      { label: 'It deadlocks in the shuffle.', why: 'Lanes may call a _sync intrinsic concurrently with different masks as long as the masks are disjoint (A4).' },
+      { label: 'Lanes 4 and 5 are lost: only the first group\'s leader does an atomic, and the warp\'s range is already used.', why: 'They run the same code a moment later with their own mask, leader and atomic.' },
+      { label: 'It deadlocks in the shuffle: lanes 1 and 2 wait there for lanes 4 and 5, which arrive later.', why: 'Lanes may call a _sync intrinsic concurrently with different masks as long as the masks are disjoint (A4).' },
       { label: 'It reserves four slots twice.', why: 'Each snapshot counts only its own lanes: 2 and 2.' },
       { label: 'Two atomics, each reserving a contiguous range, and all four keys stored correctly.', correct: true },
     ],
@@ -634,12 +634,12 @@ export const questionsS123: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'It is only slower.', why: 'NVIDIA classes a mask that names a lane which does not call as invalid, not slow.' },
+      { label: 'It is only slower: the shuffle waits for the lanes that skipped the branch, then hands every lane the leader\'s j.', why: 'NVIDIA classes a mask that names a lane which does not call as invalid, not slow.' },
       {
-        label: 'Lanes that failed cond have their bit set but never call the shuffle; every non-exited lane named in the mask must call it with the same mask, so the call is invalid (a hang or undefined behaviour).',
+        label: 'Lanes that failed cond have their bit set but never reach the shuffle; every non-exited lane in the mask must call it with the same mask, so the call is invalid.',
         correct: true,
       },
-      { label: 'The lanes that failed receive 0.', why: 'They never reach the call. The problem is the lanes that are waiting for them.' },
+      { label: 'The lanes that failed receive 0, which is harmless because they never store anything.', why: 'They never reach the call. The problem is the lanes that are waiting for them.' },
     ],
     explain: (
       <p>
@@ -679,6 +679,12 @@ export function S123() {
         The scene runs both kernels on an eight-lane toy warp: four atomics queueing at one counter, twice, and then
         the same warp with one vote and one atomic.
       </p>
+      <Simplification>
+        <p>
+          A toy warp of eight lanes, one step at a time. The two orders in which the atomics are served are seeded
+          draws, not a model of any hardware, and nothing is timed.
+        </p>
+      </Simplification>
       <OneVoteScene />
 
       <h2>Fig. 12.3, step by step</h2>

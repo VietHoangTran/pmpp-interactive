@@ -36,7 +36,7 @@ export const questionsSX30: Record<string, Question> = {
     ),
     options: [
       { label: 'In ggml-cuda/softmax.cu: ggml-hip holds build files that compile ../ggml-cuda/*.cu as HIP.', correct: true },
-      { label: 'In a hipified copy of softmax.cu that the build writes into ggml-hip.', why: 'That is PyTorch’s approach. llama.cpp renames CUDA identifiers with #defines in vendors/hip.h and compiles the CUDA file itself.' },
+      { label: 'In a hipified copy of softmax.cu that the build writes into ggml-hip when you configure it for AMD.', why: 'That is PyTorch’s approach. llama.cpp renames CUDA identifiers with #defines in vendors/hip.h and compiles the CUDA file itself.' },
       { label: 'In ggml-hip/softmax.hip, a port kept beside the CUDA one.', why: 'There is no such file: ggml-hip contains only CMakeLists.txt.' },
       { label: 'Nowhere: llama.cpp runs softmax on the CPU when the GPU is AMD.', why: 'The HIP backend accepts softmax; it is the CUDA kernel compiled for AMD.' },
     ],
@@ -54,9 +54,9 @@ export const questionsSX30: Record<string, Question> = {
     id: 'x3/start/q-pinned',
     prompt: <>Why does every link in this module point at a commit hash rather than at <code>master</code> or <code>main</code>?</>,
     options: [
-      { label: 'The excerpts and line numbers were read at that commit, and master moves: a master link can show different code tomorrow.', correct: true },
-      { label: 'The projects’ licences require a link to a fixed version.', why: 'None of the licence texts read says so. The reason is accuracy, not licensing.' },
-      { label: 'GitHub does not serve line anchors on branch links.', why: 'It does. They just point at whatever the branch holds today.' },
+      { label: 'The excerpts and line numbers were read at that commit, and master may hold other code tomorrow.', correct: true },
+      { label: 'The projects’ licences require any quotation of their source to link to a fixed, released version.', why: 'None of the licence texts read says so. The reason is accuracy, not licensing.' },
+      { label: 'GitHub does not serve line anchors such as #L120 on branch links, only on commit permalinks.', why: 'It does. They just point at whatever the branch holds today.' },
       { label: 'Master is private for these projects; only commits are public.', why: 'All three default branches are public.' },
     ],
     explain: (
@@ -317,16 +317,18 @@ export function SX30() {
 
       <h2>The milestone</h2>
       <p>
-        Milestone M10 composes your milestones M0 to M8 into one Llama-style decode step, adds the pieces the course has not
-        built (RMSNorm, RoPE, the SiLU-gated feed-forward), and runs it on a small model that the lab generates in the
+        Milestone M10 composes the earlier milestones into one Llama-style decode step, through their labs' reference
+        solutions: M0, M2, M4, M7 and M8 always, M3 and M5 when their labs' solutions are present (M1's naive GEMM and M6's
+        prefill kernel are not used). It adds the pieces the course has not built (RMSNorm, RoPE, the SiLU-gated
+        feed-forward), and runs the step on a small model that the lab generates in the
         repository from a fixed seed, checked against a CPU reference. The build downloads nothing. Pointing the same pipeline
         at a real checkpoint you download yourself is described in the lab’s README and in section{' '}
         <a href={href('x3', 'X3.8')}>X3.8</a>.
       </p>
       <p>
-        M10 runs float32 weights. Module X2's quantised layer (M9, lab X2.4) now exists, but its launch function takes a
-        quantised matrix descriptor rather than the float weights M10’s linear-layer slot expects, so M10 does not switch it
-        in yet. The <a href={href('x3', 'labs')}>labs page</a> says what would have to meet.
+        M10 runs float32 weights, and also module X2’s quantised layer (M9, lab X2.4). M9’s launch function takes a
+        quantised matrix descriptor rather than the float weights M10’s linear-layer slot expects, so a provided adapter
+        joins the two without changing your step. The <a href={href('x3', 'labs')}>labs page</a> says how.
       </p>
       <Beyond title="Project note">
         <p>

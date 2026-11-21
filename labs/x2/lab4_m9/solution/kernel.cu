@@ -28,8 +28,8 @@
 
 const int threadsPerBlock = 256;   // the embedding's blocks, as M0 uses
 
-// FP16 bits to float, exact. The emulators model no __half (appA-facts E2), so the bits are
-// converted by hand, as qref::halfToFloat does on the CPU; the result is the same float.
+// FP16 bits to float, exact. cuda_fp16.h and hip_fp16.h differ, and the emulators' __half is
+// not relied on (appA-facts E2), so the bits are converted by hand, as qref::halfToFloat does on the CPU; the result is the same float.
 static __device__ float halfToFloat(uint16_t h) {
     const unsigned sign = (unsigned)(h & 0x8000u) << 16;
     const unsigned e = (h >> 10) & 0x1Fu, m = h & 0x3FFu;

@@ -208,9 +208,9 @@ check('q-two-phases: coalescing is wrong, with the reason', (await choose('no lo
 check('q-two-phases: the overlap of phases is right', (await choose('no longer do for you', 'Overlap one block')).includes('Correct.'));
 const lb = await choose('__launch_bounds__(256)', 'Without it HIP compiles');
 check('q-launch-bounds: right, with AMD quoted and labelled not in the book', lb.includes('Correct.') && lb.includes('unconstrained compilation') && lb.includes('not in the book'));
-const mlx = await choose("MLX's Metal GEMM", 'It is a quarter');
+const mlx = await choose("MLX's Metal GEMM", 'Its register file is about a quarter');
 check('q-mlx: reading hardware off a library choice is wrong', mlx.includes('Not quite.') && mlx.includes("library's choice"));
-check('q-mlx: nothing documented is right', (await choose("MLX's Metal GEMM", 'Nothing documented')).includes('Correct.'));
+check('q-mlx: nothing documented is right', (await choose("MLX's Metal GEMM", 'Nothing: Apple documents')).includes('Correct.'));
 check('answers went to the (intercepted) progress API', puts >= 1, String(puts));
 
 // ---- the page's own claims

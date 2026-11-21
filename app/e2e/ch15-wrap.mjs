@@ -107,13 +107,13 @@ check(`q-bk16: 20 is wrong, with the model's ${deg(20)}-way conflict`, v && v.in
 v = await answerChoice('You double bK to 16', '17.');
 check(`q-bk16: 17 is correct (model: ${deg(17) === 1 ? 'conflict-free' : deg(17) + '-way'})`, v && v.includes('Correct.') && deg(17) === 1 && v.includes('conflict-free'), v);
 const allOk = SCHEDULES.every((s) => [1, 2, 3, 4, 5, 6].every((n) => run({ threads: 4, tiles: n, variant: 'load-first' }, s).correct));
-v = await answerChoice('two calls in the loop swapped', 'a fast thread can now overwrite');
+v = await answerChoice('two calls in the loop swapped', 'a fast thread\'s loads now come');
 check('q-load-first: "overwrites the buffer mm reads" is wrong, with its reason', v && v.includes('Not quite.') && v.includes('different buffers'), v);
-v = await answerChoice('two calls in the loop swapped', 'Yes: the loads write the buffer');
+v = await answerChoice('two calls in the loop swapped', 'Yes: the loads fill the buffer');
 check(`q-load-first: correct, and the model agrees (${allOk ? 'no wrong sum' : 'a wrong sum'})`, v && v.includes('Correct.') && allOk && v.includes('finds no wrong sum'), v);
 v = await answerChoice('y = gelu(x Wᵀ + b)', 'Into writeTile');
 check('q-epilogue: writeTile is correct, with a link to 15.9', v && v.includes('Correct.') && v.includes('15.9'), v);
-v = await answerChoice('4 × 4 thread tiles', 'Faster: four times the warps');
+v = await answerChoice('4 × 4 thread tiles', 'Faster: four blocks per SM');
 check('q-triage: more warps is wrong, citing the busy pipe', v && v.includes('Not quite.') && v.includes('counter-productive'), v);
 v = await answerChoice('4 × 4 thread tiles', 'No better, probably worse');
 check(`q-triage: correct, with ${intensity(128, 128)} -> ${intensity(64, 64)} FLOP/B and 0.25 -> 0.5 reads`, v && v.includes('Correct.') && v.includes(`from ${intensity(128, 128)} to ${intensity(64, 64)} FLOP/B`) && v.includes('from 0.25 to 0.5'), v);
@@ -142,7 +142,7 @@ check(`milestone M3 status is read from the reports (${pass.join(',') || 'none'}
 
 // ---- links
 const links = await page.$$eval('.prose a[href^="#/"]', (as) => [...new Set(as.map((a) => a.getAttribute('href')))]);
-const known = new Set(['#/ch15/15.2', '#/ch15/15.3', '#/ch15/15.5', '#/ch15/15.6', '#/ch15/15.7', '#/ch15/15.8', '#/ch15/15.9', '#/ch15/labs', '#/ch16', '#/ch20']);
+const known = new Set(['#/ch15/15.2', '#/ch15/15.3', '#/ch15/15.5', '#/ch15/15.6', '#/ch15/15.7', '#/ch15/15.8', '#/ch15/15.9', '#/ch15/labs', '#/ch16', '#/ch19/19.3', '#/ch19/19.4', '#/ch20', '#/x2/X2.5']);
 check(`every link goes to a known route (${links.length})`, links.every((l) => known.has(l)), links.filter((l) => !known.has(l)).join(', '));
 for (const target of ['ch16', 'ch20']) {
   await goto(page, target);

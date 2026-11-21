@@ -50,7 +50,7 @@ check('opens with why: no convolution in a decoder block, patch embeddings and a
 check('names the lasting idea and its source (p. 464, Chellapilla)', text0.includes('p. 464') && text0.includes('Chellapilla') && text0.includes('one heavily tuned GEMM routine'));
 check('says plainly that the promised optimisations come down to the GEMM formulation', text0.includes('The one optimisation the chapter develops is the GEMM formulation'));
 check('the bridge names PyTorch\'s slow path as §19.3, labelled as not in the book', text0.includes('slow CUDA path of its own') && text0.includes('section 19.3 nearly line for line') && text0.includes('Not in the book'));
-check('the porting sentence is there', text0.includes('compile for HIP unchanged') && text0.includes('threadgroup_barrier'));
+check('the porting sentence is there, with the HIP limits', text0.includes('set up to build for HIP unchanged through') && text0.includes('not been compiled or run on AMD hardware') && text0.includes('cooperative groups') && text0.includes('threadgroup_barrier'));
 const today = norm(await page.$$eval('.prose > .note.today', (ns) => ns.map((n) => n.textContent).join(' ')));
 check('a Today note on llama.cpp\'s patch embedding and Whisper encoder, dated', today.includes('ggml_conv_2d') && today.includes('conv1d') && today.includes('Checked 2026-11-20'), today);
 const misplaced = await page.$$eval('.prose > .note', (ns) => ns.filter((n) => n.previousElementSibling?.tagName !== 'P').map((n) => n.textContent.slice(0, 60)));
@@ -104,9 +104,9 @@ check('q-index4d: a wrong index is marked wrong, the answer shown, and the expla
 v = await answerNumber('flat index of', idx);
 check(`q-index4d: ${idx} (from the model) is correct and points at 19.2 and 19.3`, v.text.includes('Correct.') && v.links.includes('#/ch19/19.2') && v.links.includes('#/ch19/19.3'), JSON.stringify(v));
 
-v = await answerChoice('how many times is each element of', 'Once.');
+v = await answerChoice('how many times is each element of', 'Once: after the first block');
 check('q-reuse: "once" is wrong, with its reason, and links ch. 5 §5.3 and ch. 15 §15.2', v.ok && v.text.includes('Not quite.') && v.text.includes('That is the ideal') && v.links.includes('#/ch05/5.3') && v.links.includes('#/ch15/15.2'), JSON.stringify(v));
-v = await answerChoice('how many times is each element of', 'once by every block in its row');
+v = await answerChoice('how many times is each element of', 'once by each block in its row');
 check(`q-reuse: ceil(l/T) is correct, with LeNet C1's ${phases(784, 16)} fetches`, v.ok && v.text.includes('Correct.') && v.text.includes(`fetched ${phases(784, 16)} times`), JSON.stringify(v));
 
 v = await answerNumber('How many times does its phase loop run', printedPhases(25, 16));
@@ -119,9 +119,9 @@ check('q-convratio: 0.5 (the constant-memory figure) is wrong, and the explanati
 v = await answerNumber('FLOP does its inner loop do', basicIntensity(4));
 check(`q-convratio: ${basicIntensity(4)} FLOP/B is correct and ties to 19.2`, v.text.includes('Correct.') && v.links.includes('#/ch19/19.2'), JSON.stringify(v));
 
-v = await answerChoice('flip the filter', 'PyTorch flips it; the book does not.');
+v = await answerChoice('flip the filter', 'PyTorch flips it, as signal processing does');
 check('q-xcorr: "PyTorch flips" is wrong, with its reason, and links ch. 7 §7.1', v.ok && v.text.includes('Not quite.') && v.text.includes('cross-correlation') && v.links.includes('#/ch07/7.1'), JSON.stringify(v));
-v = await answerChoice('flip the filter', 'Neither does.');
+v = await answerChoice('flip the filter', 'Neither does:');
 check('q-xcorr: "neither" is correct and points to 19.4', v.ok && v.text.includes('Correct.') && v.links.includes('#/ch19/19.4'), JSON.stringify(v));
 await pause(600);
 check('answers were saved through PUT /api/progress (intercepted)', puts > 0, String(puts));

@@ -538,11 +538,11 @@ export const questionsS223: Record<string, Question> = {
         correct: true,
       },
       {
-        label: 'Always: kernels on different streams run side by side.',
+        label: 'Whenever they are on different streams: kernels on separate streams run side by side.',
         why: 'Different streams make overlap possible, not certain. A kernel that fills the device leaves nothing for the others.',
       },
       {
-        label: 'Only when the kernels share inputs, so the caches stay warm.',
+        label: 'When the kernels share inputs, so that each one finds its data warm in the caches.',
         why: 'Shared data is not the condition. Independent kernels that each use a small part of the device are.',
       },
     ],
@@ -593,7 +593,7 @@ export const questionsS223: Record<string, Question> = {
         why: 'Those flags exist precisely so that the stream does not synchronise with the default stream.',
       },
       {
-        label: 'A Metal compute encoder made with dispatch type concurrent, with no barrier between the dispatches.',
+        label: 'A Metal compute encoder made with dispatch type concurrent, with no barrier encoded between the dispatches.',
         why: "That is Metal's documented way to let dispatches overlap; you add barriers only where one reads another's output.",
       },
     ],
@@ -625,7 +625,7 @@ export const questionsS223: Record<string, Question> = {
         correct: true,
       },
       {
-        label: 'A and B on two different command queues, which the GPU runs at the same time.',
+        label: 'A and B on two different command queues, which the GPU runs at the same time, with C committed after both.',
         why: 'Apple documents ordering within a queue. It does not document that two queues run at the same time.',
       },
       {
@@ -658,12 +658,12 @@ export const questionsS223: Record<string, Question> = {
         correct: true,
       },
       {
-        label: 'A graph lets each kernel use less memory, which matters most at small batch.',
+        label: 'A graph lets each kernel keep less memory resident between launches, which matters most at small batch.',
         why: 'A graph changes how work is submitted, not what a kernel stores. PyTorch names CPU overhead as the main gain.',
       },
       {
-        label: 'Small batches cannot use streams, so a graph is their only way to overlap.',
-        why: 'Streams work at any batch size. The graph removes per-launch host cost; it is not about overlap.',
+        label: 'Small batches cannot fill the device through streams, so a graph is their way to overlap kernels.',
+        why: 'Streams can overlap small kernels at any batch size, and overlap is not what PyTorch cites: it names overhead, which a graph pays once for the whole sequence of launches.',
       },
     ],
     explain: (
@@ -895,7 +895,7 @@ export function S223() {
             <td><b>CUDA</b></td>
             <td>
               Launch them on non-default streams. <code>concurrentKernels</code> in <code>cudaDeviceProp</code> says whether
-              the device can.
+              the device can; <code>python3 labs/pmpp.py doctor</code> prints it.
             </td>
             <td>
               Up to 128 resident grids per device, for every compute capability the guide lists (7.5 to 12.x). Overlap

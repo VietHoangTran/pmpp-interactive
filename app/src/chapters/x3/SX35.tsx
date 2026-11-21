@@ -57,12 +57,12 @@ export const questionsSX35: Record<string, Question> = {
     prompt: <>Compare MLX's <code>kernel_sdpav</code> lines with lab 20.4's decode kernel. Which statement is right?</>,
     options: [
       {
-        label: "The same online softmax over the keys with a warp-level score sum; MLX works in base 2 with the scale folded into log2 e, and sums with cg::reduce instead of a butterfly.",
+        label: "The same online softmax over the keys; MLX works in base 2 with log2 e folded into the scale, and sums with cg::reduce.",
         correct: true,
       },
-      { label: 'MLX computes all the scores first and then one softmax, so it needs no running maximum.', why: 'factor = exp2f(max_score − new_max) is the rescale of a running maximum: the online update.' },
+      { label: 'MLX computes all the scores for the cached keys first, then one softmax over them, so it needs no running maximum at all.', why: 'factor = exp2f(max_score − new_max) is the rescale of a running maximum: the online update.' },
       { label: 'MLX uses base 2 because exp2f is exact.', why: 'exp2f is not exact either; base 2 is a different spelling of the same function, not a more accurate one.' },
-      { label: 'Lab 20.4 has no online softmax; it writes the scores to global memory.', why: "Lab 20.4 keeps m, D and the un-normalised output in registers, updated one key at a time." },
+      { label: 'Lab 20.4 has no online softmax: it writes every score to global memory and normalises them in a second kernel.', why: "Lab 20.4 keeps m, D and the un-normalised output in registers, updated one key at a time." },
     ],
     explain: (
       <p>
@@ -85,11 +85,11 @@ export const questionsSX35: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Nothing in exact arithmetic: 2 to the power x · log2 e is e to the x, and the maximum and the rescale factor are in the same units. Only the rounding differs.',
+        label: 'Nothing in exact arithmetic: 2^(x · log2 e) = e^x, and the maximum is in the same units; only rounding differs.',
         correct: true,
       },
-      { label: 'The normaliser comes out multiplied by log2 e, so it must be divided by log2 e at the end.', why: 'Each term 2^(x log2 e − m₂) equals e^(x − m), so their sum is the same D. Nothing needs undoing.' },
-      { label: 'The softmax becomes a softmax in base 2, which is sharper.', why: 'A base-2 softmax of the unscaled scores would be different; folding log2 e into the scale makes it the same function.' },
+      { label: 'The normaliser comes out multiplied by log2 e, so the kernel must divide it by log2 e before it normalises the output.', why: 'Each term 2^(x log2 e − m₂) equals e^(x − m), so their sum is the same D. Nothing needs undoing.' },
+      { label: 'The softmax becomes a base-2 softmax, which is sharper: the largest score takes more of the weight.', why: 'A base-2 softmax of the unscaled scores would be different; folding log2 e into the scale makes it the same function.' },
       { label: 'It can overflow sooner, because powers of 2 grow faster.', why: '2^y grows more slowly than e^y for the same y; and the maximum is subtracted first anyway.' },
     ],
     explain: (
@@ -108,10 +108,10 @@ export const questionsSX35: Record<string, Question> = {
     id: 'x3/X3.5/q-decode-100',
     prompt: <>MLX on CUDA, one new query, no mask, 100 cached keys. Which kernel?</>,
     options: [
-      { label: "MLX's own sdpa_vector kernel. At 300 keys it would be cuDNN, if supports_sdpa_cudnn accepts the shapes.", correct: true },
-      { label: "cuDNN's SDPA: MLX always uses cuDNN on CUDA.", why: 'For one query MLX keeps its own kernel below 256 keys: "for small sequence the overhead would kill the advantage."' },
-      { label: 'A tiled prefill kernel, because the cache is short.', why: 'One query is a decode step, whatever the cache length.' },
-      { label: 'The math path, composed from matmul and softmax.', why: 'That is a PyTorch route; MLX has its own vector kernels.' },
+      { label: "MLX's own vector kernel; cuDNN takes over only for a longer cache.", correct: true },
+      { label: "cuDNN's SDPA: MLX's CUDA backend sends every attention call to cuDNN whenever the shapes are supported.", why: 'For one query MLX keeps its own kernel below 256 keys: "for small sequence the overhead would kill the advantage."' },
+      { label: 'A tiled prefill kernel, because a cache of only 100 keys fits in a single tile.', why: 'One query is a decode step, whatever the cache length.' },
+      { label: 'The math path, composed from a matmul, a softmax and a second matmul.', why: 'That is a PyTorch route; MLX has its own vector kernels.' },
     ],
     explain: (
       <p>
@@ -134,12 +134,12 @@ export const questionsSX35: Record<string, Question> = {
     ),
     options: [
       {
-        label: "In the Dao-AILab flash-attention submodule at third_party/flash-attention (.gitmodules lines 115 to 117); flash_api.cpp calls run_mha_fwd_ from it.",
+        label: "In the flash-attention submodule at third_party/flash-attention; flash_api.cpp calls run_mha_fwd_ from it.",
         correct: true,
       },
-      { label: 'In cuDNN: PyTorch calls the library for flash attention.', why: 'cuDNN attention is a separate backend in the priority order; flash is FlashAttention-2.' },
+      { label: 'In cuDNN: PyTorch’s flash backend is a thin wrapper that calls the library’s fused attention for supported shapes.', why: 'cuDNN attention is a separate backend in the priority order; flash is FlashAttention-2.' },
       { label: 'It is generated at build time by torchgen, like the add kernel.', why: 'torchgen writes the ufunc kernels. flash_api.cpp includes <flash.h> from a submodule.' },
-      { label: 'In static_switch.h, as templates.', why: 'That header switches between template instantiations; the kernels it instantiates are in the submodule.' },
+      { label: 'In static_switch.h: the kernels are templates there, instantiated per head size and causality.', why: 'That header switches between template instantiations; the kernels it instantiates are in the submodule.' },
     ],
     explain: (
       <p>
@@ -163,8 +163,8 @@ export const questionsSX35: Record<string, Question> = {
     options: [
       { label: 'The 2-pass kernel: there are fewer K/V heads than query heads, and n_keys is at least 4096.', correct: true },
       { label: "The 1-pass kernel: the 2-pass one is only for 'd' or 's' devices.", why: 'That is one of two conditions joined by ||. The other is GQA with at least 4096 keys.' },
-      { label: 'Steel attention, because 5000 keys is long.', why: 'Steel is chosen by the number of queries, more than 8, not by the number of keys.' },
-      { label: 'cuDNN.', why: 'MLX uses cuDNN only on its CUDA backend.' },
+      { label: 'Steel attention, the tiled kernel, because a cache of 5000 keys is long.', why: 'Steel is chosen by the number of queries, more than 8, not by the number of keys.' },
+      { label: 'cuDNN, as for any cache this long.', why: 'MLX uses cuDNN only on its CUDA backend.' },
     ],
     explain: (
       <p>
@@ -186,10 +186,10 @@ export const questionsSX35: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Math is tried next, before cuDNN. With cuDNN preferred, cuDNN moves to the front and is tried before flash.', correct: true },
+      { label: 'Math, before cuDNN. With cuDNN preferred, cuDNN moves to the front, ahead of flash.', correct: true },
       { label: 'cuDNN: a vendor library is the fallback after the fused kernels, so preferring it changes nothing here.', why: 'In the default order math comes before cuDNN. cuDNN is tried earlier only when it is preferred.' },
-      { label: 'Neither: PyTorch benchmarks the remaining backends and picks the fastest.', why: 'select_sdp_backend walks a fixed list and takes the first backend whose use_<backend> check passes.' },
-      { label: 'Math, and preferring cuDNN changes nothing: math always comes before any library.', why: 'A preference for cuDNN replaces the order with one that starts with cuDNN, so it is tried first of all.' },
+      { label: 'Neither: PyTorch benchmarks the remaining backends on the first call and caches the fastest.', why: 'select_sdp_backend walks a fixed list and takes the first backend whose use_<backend> check passes.' },
+      { label: 'Math, and preferring cuDNN changes nothing here: math always comes before any vendor library.', why: 'A preference for cuDNN replaces the order with one that starts with cuDNN, so it is tried first of all.' },
     ],
     explain: (
       <p>
@@ -388,7 +388,7 @@ export function SX35() {
       <Beyond title="Ours, not the book's">
         <p>
           The dispatch rules are our reading of each project's source at the commits in {FACTS}. Two things were not
-          verified: which cuDNN version MLX needs, and what <code>supports_sdpa_cudnn</code> checks beyond the lines read.
+          checked: which cuDNN version MLX needs, and what <code>supports_sdpa_cudnn</code> checks beyond the lines read.
         </p>
       </Beyond>
 

@@ -28,23 +28,23 @@ export const questionsS68: Record<string, Question> = {
     id: 'ch06/6.8/q-tiling-occ',
     prompt: (
       <>
-        A tiled matmul&rsquo;s occupancy is already limited by its shared-memory use, and the profiler shows it rarely
-        waits on global memory. Someone has each block of T × T threads compute a 2T × 2T tile of the output, four
+        A tiled matmul&rsquo;s speed is limited by occupancy, its occupancy is already limited by its shared-memory
+        use, and the profiler shows it rarely waits on global memory. Someone has each block of T × T threads compute a 2T × 2T tile of the output, four
         results per thread, to cut global traffic further. Each block now keeps tiles of M and N twice the size: twice
         the shared memory per block, the same threads, half the global traffic. What do you expect?
       </>
     ),
     options: [
       {
-        label: 'Slower: it spends more of the resource that limits the kernel to relieve one that does not.',
+        label: 'Slower: it spends more of what limits the kernel to relieve what does not.',
         correct: true,
       },
       {
-        label: 'Faster: tiling always cuts global traffic, and less traffic is always better.',
+        label: 'Faster: halving the global traffic frees bandwidth for every resident block.',
         why: 'Less traffic helps only if traffic was the limit. Here it was not, and the extra shared memory removes resident blocks.',
       },
       {
-        label: 'No change: the traffic falls but nothing else moves.',
+        label: 'No change: the traffic falls, but the kernel was not waiting on global memory.',
         why: 'Something else does move: twice the shared memory per block at the same thread count leaves room for about half as many blocks per SM, so occupancy falls further.',
       },
     ],
@@ -81,9 +81,9 @@ export const questionsS68: Record<string, Question> = {
           'Coalescing: remap threads to data, change the layout (transpose, structure of arrays), or stage through shared memory (corner turning).',
         correct: true,
       },
-      { label: 'Occupancy tuning: more warps.', why: 'More warps put more of the same wasteful requests in flight. Each request still fetches 32 sectors for 128 useful bytes.' },
-      { label: 'Padding against bank conflicts.', why: 'Bank conflicts are a shared-memory problem. Sectors per request is about global loads.' },
-      { label: 'Loop unrolling.', why: 'Unrolling changes how many instructions run, not which addresses each one touches.' },
+      { label: 'Occupancy tuning: more warps, so that more requests are in flight.', why: 'More warps put more of the same wasteful requests in flight. Each request still fetches 32 sectors for 128 useful bytes.' },
+      { label: 'Padding against bank conflicts, so lanes stop sharing a bank.', why: 'Bank conflicts are a shared-memory problem. Sectors per request is about global loads.' },
+      { label: 'Loop unrolling, so fewer instructions make the same requests.', why: 'Unrolling changes how many instructions run, not which addresses each one touches.' },
     ],
     explain: (
       <p>
@@ -103,17 +103,19 @@ export const questionsS68: Record<string, Question> = {
     options: [
       {
         label:
-          'The overhead it removes depends on the kernel: redundant loads in stencil and matmul, private copies in histogram, synchronisation and divergence in reduction and scan, poor coalescing in filter and sorting.',
+          'The overhead it removes depends on the kernel: redundant loads in matmul, private copies in histogram, synchronisation in reduction, poor coalescing in sorting.',
         correct: true,
       },
-      { label: 'It has no benefit to memory.', why: 'In matmul its benefit is entirely about memory: fewer redundant tile loads.' },
-      { label: 'It is too new to classify.', why: 'It is used throughout Parts 2 and 3; the reason is that its effect changes from kernel to kernel.' },
+      { label: 'It has no benefit to memory, only to the compute cores.', why: 'In matmul its benefit is entirely about memory: fewer redundant tile loads.' },
+      { label: 'It is too new to classify: the book introduces it only in this chapter.', why: 'It is used throughout Parts 2 and 3; the reason is that its effect changes from kernel to kernel.' },
     ],
     explain: (
       <p>
         Every other row is filed under its primary intent (p. 149). Coarsening has none of its own: it serialises some
         of the parallel work, and what that buys you is whatever overhead the parallel version was paying. That is
-        also why it can buy nothing (pitfall 1 on p. 142).
+        also why it can buy nothing (pitfall 1 on p. 142). The book&rsquo;s full list: redundant loads in stencil and
+        matmul, private copies in histogram, synchronisation and divergence in reduction and scan, poor coalescing in
+        filter and sorting.
       </p>
     ),
     source: 'ch. 6 §6.8, pp. 149, 152–153',
@@ -124,11 +126,11 @@ export const questionsS68: Record<string, Question> = {
     prompt: <>What do warp-level primitives let a block avoid?</>,
     options: [
       {
-        label: 'Some block-wide barriers, and the round trip through shared memory for data exchanged inside a warp.',
+        label: 'Some block-wide barriers, and the shared-memory round trip within a warp.',
         correct: true,
       },
-      { label: 'All global memory traffic.', why: 'The data still comes from and goes to global memory. What changes is how threads of a warp share it.' },
-      { label: 'Control divergence.', why: 'They do not change which path threads take; that is the divergence row.' },
+      { label: 'All global memory traffic, since values stay in registers from start to finish.', why: 'The data still comes from and goes to global memory. What changes is how threads of a warp share it.' },
+      { label: 'Control divergence, since all lanes of a warp then take the same path.', why: 'They do not change which path threads take; that is the divergence row.' },
     ],
     explain: (
       <p>
@@ -147,11 +149,11 @@ export const questionsS68: Record<string, Question> = {
     options: [
       {
         label:
-          'Each instruction puts more bytes in flight, which covers DRAM latency when there are not enough warps to do it.',
+          'Each instruction puts more bytes in flight, covering DRAM latency when warps are few.',
         correct: true,
       },
-      { label: 'Vector loads move fewer bytes.', why: 'The bytes are the same. Only the number of instructions that ask for them falls.' },
-      { label: 'Vector loads avoid bank conflicts.', why: 'Banks belong to shared memory; this row is about global loads.' },
+      { label: 'Vector loads move fewer bytes in total, which leaves more of the bus free for other accesses.', why: 'The bytes are the same. Only the number of instructions that ask for them falls.' },
+      { label: 'Vector loads avoid bank conflicts, so more accesses proceed at once.', why: 'Banks belong to shared memory; this row is about global loads.' },
     ],
     explain: (
       <p>

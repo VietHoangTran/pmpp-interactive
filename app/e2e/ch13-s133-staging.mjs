@@ -209,16 +209,24 @@ const metal = slice(await file('ch13/lab1_merge/solution/kernel.metal'), /^\/\/ 
 const fig = await page.evaluateHandle(() => [...document.querySelectorAll('figure.code')].find((f) => f.textContent.includes('Part (b) of lab 13.1')));
 const tabsOf = () => fig.evaluate((f) => [...f.querySelectorAll('.tabs button')].map((b) => b.textContent));
 check('the lab listing has CUDA and Metal tabs', (await tabsOf()).join('|') === 'CUDA|Metal', (await tabsOf()).join('|'));
-const pass = (b) => {
+// The same words as LabKit's solutionTabStatus (and the labs page's solution tabs).
+const solSt = (b) => {
   const rs = (reports[b]?.results ?? []).filter((x) => x.lab === 'ch13/lab1_merge' && x.variant === 'solution' && x.tests.length);
-  return rs.length > 0 && rs.every((x) => x.built && x.test_rc === 0 && x.tests.every((t) => t.pass));
+  return !rs.length ? 'none' : rs.every((x) => x.built && x.test_rc === 0 && x.tests.every((t) => t.pass)) ? 'pass' : 'fail';
 };
 const cuStatus = (() => {
-  const parts = [pass('emu') ? "emulator-checked (lab 13.1's tests)" : '', pass('cuda') ? 'verified on CUDA' : '', pass('hip') ? 'verified on HIP' : ''].filter(Boolean);
-  const lacking = ['cuda', 'hip'].filter((b) => !pass(b)).map((b) => b.toUpperCase());
-  return parts.length ? parts.join(', ') + (lacking.length ? `; unverified on ${lacking.join(' and ')}` : '') : 'unverified (no run on this machine)';
+  const NAME = { cuda: 'CUDA', hip: 'HIP' };
+  const WHERE = { cuda: 'CUDA', hip: 'HIP', emu: 'the emulator' };
+  const fam = ['cuda', 'hip', 'emu'];
+  const passed = fam.filter((b) => solSt(b) === 'pass').map((b) => (b === 'emu' ? 'emulator-checked' : `verified on ${NAME[b]}`));
+  const failed = fam.filter((b) => solSt(b) === 'fail').map((b) => WHERE[b]);
+  const none = ['cuda', 'hip'].filter((b) => solSt(b) === 'none').map((b) => NAME[b]);
+  const and = (xs) => (xs.length < 3 ? xs.join(' and ') : xs.slice(0, -1).join(', ') + ' and ' + xs.at(-1));
+  if (!passed.length && !failed.length) return 'unverified: no run on this machine';
+  return [passed.join(', '), failed.length ? `unverified on ${and(failed)}: failed on this machine` : '', none.length ? `unverified on ${none.join(' and ')}` : '']
+    .filter(Boolean).join('; ');
 })();
-const metalStatus = pass('metal') ? "verified on Metal (lab 13.1's tests)" : 'unverified: no passing Metal run of lab 13.1 recorded here';
+const metalStatus = solSt('metal') === 'pass' ? 'verified on Metal' : `unverified: ${solSt('metal') === 'fail' ? 'failed on this machine' : 'no run on this machine'}`;
 for (const [i, want, status, what] of [[0, cu, cuStatus, 'kernel.cu from "Part (b)" to "Provided"'], [1, metal, metalStatus, 'kernel.metal from "Part (b), step 1" to "Provided"']]) {
   await fig.evaluate((f, i) => f.querySelectorAll('.tabs button')[i].click(), i);
   await pause(120);

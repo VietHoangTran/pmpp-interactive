@@ -81,7 +81,7 @@ const kernel = start >= 0 ? file.slice(start).trim() : 'MISSING';
 check('the listing is centreRows from labs/ch10/snippets/wrap_centre.cu, line for line', file !== 'MISSING' && shownCode === kernel, shownCode.slice(0, 80));
 check('the listing is labelled as not a lab file, front-end-checked and wrong on purpose',
   (await page.$eval('figure.code .tabs', (e) => e.textContent)).includes('not a lab file') &&
-  (await page.$eval('figure.code .tabs .status', (e) => e.textContent)) === 'front-end-checked; wrong on purpose');
+  (await page.$eval('figure.code .tabs .status', (e) => e.textContent)) === 'front-end-checked; wrong on purpose (behaviour emulator-checked)');
 check('the buffers are coloured as global memory, the array as shared memory, the sums as registers',
   (await page.$$('figure.code .v-global')).length >= 4 && (await page.$$('figure.code .v-shared')).length >= 2 && (await page.$$('figure.code .v-reg')).length >= 6);
 await shot('code', 'figure.code');
@@ -142,7 +142,7 @@ check('exercises 4 and 5 point at the labs as well', rows[3].links.includes('#/c
 
 // ---- errata
 const errata = await page.$$eval('ul[data-list="errata"] > li', (lis) => lis.map((li) => li.textContent));
-check(`the errata list has ${errata.length} items, covering the notes' list and the facts file`, errata.length === 13, String(errata.length));
+check(`the errata list has ${errata.length} items, covering the notes' list and the facts file`, errata.length === 14, String(errata.length));
 for (const [name, frag] of [
   ['Fig. 10.10 output parameter', 'has no output parameter'],
   ['partialSums_s for small blocks', 'right only for 1,024 threads'],
@@ -157,9 +157,13 @@ for (const [name, frag] of [
   ['figure and line references', 'lines 17–19'],
   ['"more control divergence"', 'more control divergence'],
   ['dead CCCL links', 'nvidia.github.io/cccl/unstable/'],
+  ['the underived 36', '12 warp-iterations of 3 accesses'],
+  ['coalescing credited to chapter 5', 'credits coalescing to chapter 5'],
+  ['BLOCK_DIM against blockDim.x', 'which must agree'],
+  ['the shuffle source past the warp', 'past the warp or not in the mask'],
 ]) check(`errata include ${name}`, errata.some((e) => e.includes(frag)));
 check('readings of the PDF are marked as ours', text0.includes('our readings of one PDF'));
-check('the wrap names what of the book is left out on purpose, with pages', ['World Cup', '(pp. 226–227)', 'p. 221', 'Thrust and CUB', 'chapter 12', '§20.5'].every((s) => text0.includes(s)));
+check('the wrap names what of the book is left out on purpose, with pages', ['World Cup', '(pp. 226–227)', 'p. 221', 'Thrust and CUB', 'chapter 12', '20.5'].every((s) => text0.includes(s)));
 
 // ---- project status, computed from the reports
 const labStatus = (run, id, variant) => {
@@ -178,7 +182,7 @@ check('the next chapter is named and linked', text0.includes('Chapter 11 keeps t
 
 // ---- links
 const links = await page.$$eval('.prose a[href^="#/"]', (as) => [...new Set(as.map((a) => a.getAttribute('href')))]);
-const known = new Set(['#/ch10/start', '#/ch10/10.2', '#/ch10/10.3', '#/ch10/10.4', '#/ch10/10.7', '#/ch10/10.8', '#/ch10/10.9', '#/ch10/10.10', '#/ch10/labs', '#/ch11']);
+const known = new Set(['#/ch10/start', '#/ch10/10.2', '#/ch10/10.3', '#/ch10/10.4', '#/ch10/10.5', '#/ch10/10.6', '#/ch10/10.7', '#/ch10/10.8', '#/ch10/10.9', '#/ch10/10.10', '#/ch10/labs', '#/ch06/6.1', '#/ch12/12.3', '#/ch20/20.5', '#/ch11']);
 check(`links go to routes that exist (${links.join(', ')})`, links.length >= 6 && links.every((l) => known.has(l)), links.join(', '));
 await page.evaluate(() => [...document.querySelectorAll('.prose a')].find((a) => a.getAttribute('href') === '#/ch10/labs').click());
 await page.waitForFunction(() => document.querySelector('.page h1')?.textContent.includes('Labs'), { timeout: 10000 });

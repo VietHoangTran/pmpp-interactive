@@ -259,7 +259,7 @@ export const questionsS122: Record<string, Question> = {
     prompt: <>Fig. 12.2 runs twice on the same input. What is guaranteed to be identical between the two runs?</>,
     options: [
       {
-        label: 'Everything: the input is the same.',
+        label: 'Everything: the input is the same, and the atomics are served in the order the threads were launched.',
         why: 'The order in which atomics on one address are performed is not fixed (ch09-facts A3), so the slots go out in a different order.',
       },
       { label: 'The final counter and the set of keys in output[0, count); not their order.', correct: true },
@@ -422,8 +422,11 @@ export function S122() {
       <h2>The same kernel on HIP and Metal</h2>
       <p>
         Switch tabs in the listing. On HIP, the CUDA spelling of <code>cuda::atomic_ref</code> exists through AMD's
-        libhipcxx; the lab uses the legacy <code>atomicAdd</code> there instead, which is relaxed and device-scoped
-        like the book's call, because the course's HIP build links libhipcxx only where ROCm provides it. On Metal,
+        libhipcxx. The course's HIP build links <code>libhipcxx::libhipcxx</code> when CMake finds it (it ships with
+        ROCm 10.1 and later, infra-facts B2). Without it, code that includes <code>&lt;cuda/atomic&gt;</code> does not
+        build. With it, no ROCm machine has built this course's code yet (unverified). So the lab uses the legacy{' '}
+        <code>atomicAdd</code> on HIP, which HIP documents for shared and global memory (B1), relaxed and
+        device-scoped like the book's call, and which needs no extra library. On Metal,
         the counter must be declared with an atomic type, <code>device atomic_uint*</code>, and the call is{' '}
         <code>atomic_fetch_add_explicit(counter, 1, memory_order_relaxed)</code>; it returns the old value, as on CUDA.
       </p>

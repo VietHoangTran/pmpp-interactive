@@ -1,5 +1,6 @@
 // Runs ../launch_checked.cu and asserts what section 3.1 says about it. On a CUDA device
-// the same file checks the documented behaviour instead of the emulator's.
+// the same file checks the same documented limits; only the dynamic-shared-memory check is
+// emulator-only. Not for HIP: AMD documents z up to 1024, so (1, 1, 128) is a valid block there.
 #include <vector>
 #include "check.h"
 
@@ -23,28 +24,22 @@ int main() {
     expect(untouched, "the rejected launch left the buffer untouched");
     expect(cudaGetLastError() == cudaSuccess, "cudaGetLastError reset the error state");
 
-    // 128 threads, but z is over NVIDIA's documented cap of 64.
+    // 128 threads, but z is over NVIDIA's documented cap of 64. The emulator enforces the
+    // per-dimension caps too, so the expectation is the same on both.
     cudaError_t e = launchOneBlock(out_d, 128, dim3(1, 1, 128));
     cudaDeviceSynchronize();
-#if defined(PMPP_EMU)
-    expect(e == cudaSuccess, "the emulator runs a (1, 1, 128) block");
-    cudaMemcpy(host.data(), out_d, n * sizeof(float), cudaMemcpyDeviceToHost);
-    bool ones = true;
-    for (int i = 0; i < 128; ++i) ones = ones && host[i] == 1.0f;
-    expect(ones, "and its 128 threads wrote their elements");
-#else
     expect(e == cudaErrorInvalidConfiguration, "a (1, 1, 128) block is rejected: z is over 64");
-#endif
 
     e = launchOneBlock(out_d, n, dim3(0, 1, 1));
     expect(e == cudaErrorInvalidConfiguration, "a block with a zero dimension is rejected");
 
-#if defined(PMPP_EMU)
-    // The emulator reports grid caps but does not enforce them.
+    // 65,536 blocks along y is one over the documented grid cap.
     fillOnes<<<dim3(1, 65536, 1), dim3(1, 1, 1)>>>(out_d, 1);
-    expect(cudaGetLastError() == cudaSuccess, "the emulator runs a grid of 65,536 blocks along y");
+    expect(cudaGetLastError() == cudaErrorInvalidConfiguration, "a grid of 65,536 blocks along y is rejected");
     cudaDeviceSynchronize();
-    // It does enforce its own limit on dynamic shared memory per block.
+
+#if defined(PMPP_EMU)
+    // The emulator's own limit on dynamic shared memory per block.
     fillOnes<<<1, 32, 1 << 20>>>(out_d, 32);
     expect(cudaGetLastError() == cudaErrorInvalidConfiguration, "the emulator rejects 1 MiB of dynamic shared memory");
 #endif

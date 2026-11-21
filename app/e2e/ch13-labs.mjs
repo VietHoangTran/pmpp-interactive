@@ -119,7 +119,10 @@ await shot('status', 'table[data-table="solution-status"]');
   const sol = labStatus(run, LAB.id, 'solution');
   const race = await page.$eval('[data-race-status]', (e) => ({ s: e.dataset.raceStatus, text: e.textContent }));
   check(`the race line reads the reports: solution ${run ? sol : 'no run'}`, race.s === sol &&
-    (!run ? race.text.includes('No run on the race backend') : sol === 'pass' ? race.text.includes('emulator-checked on this flavour') : sol === 'none' ? race.text.includes('no run on the race backend yet') : race.text.includes('unverified there')), JSON.stringify(race));
+    (!run ? race.text.includes('No run on the race backend')
+      : sol === 'pass' ? race.text.includes(labStatus(reports.emu, LAB.id, 'solution') === 'pass' ? 'emulator-checked under both flavours' : 'emulator-checked on this flavour')
+      : sol === 'none' ? race.text.includes('no run on the race backend yet')
+      : race.text.includes('unverified: failed on this machine')), JSON.stringify(race));
 }
 
 // ---- status of the reader's own work
@@ -239,10 +242,15 @@ check('the three solution files exist in the repository', Object.values(files).e
 const tabs = await page.$$eval('figure.code .tabs button', (b) => b.map((x) => x.textContent));
 check('tabs are CUDA, Metal kernel, Metal host', tabs.join('|') === 'CUDA|Metal kernel|Metal host', tabs.join('|'));
 const st = (b) => labStatus(reports[b], LAB.id, 'solution');
-const got = [st('cuda') === 'pass' ? 'verified on CUDA' : '', st('hip') === 'pass' ? 'verified on HIP' : '', st('emu') === 'pass' ? 'emulator-checked' : ''].filter(Boolean);
-const lacking = ['cuda', 'hip'].filter((b) => st(b) !== 'pass').map((b) => NAME[b]);
-const cuStatus = got.length ? got.join(', ') + (lacking.length ? `; unverified on ${lacking.join(' and ')}` : '') : 'unverified (no run on this machine)';
-const metalStatus = st('metal') === 'pass' ? 'verified on Metal' : st('metal') === 'fail' ? 'unverified (failed on this machine)' : 'unverified (no run on this machine)';
+// The same words as LabKit's solutionTabStatus.
+const fam = ['cuda', 'hip', 'emu'];
+const passedB = fam.filter((b) => st(b) === 'pass').map((b) => (b === 'emu' ? 'emulator-checked' : `verified on ${NAME[b]}`));
+const failedB = fam.filter((b) => st(b) === 'fail').map((b) => (b === 'emu' ? 'the emulator' : NAME[b]));
+const noneB = ['cuda', 'hip'].filter((b) => st(b) === 'none').map((b) => NAME[b]);
+const and = (xs) => (xs.length < 3 ? xs.join(' and ') : xs.slice(0, -1).join(', ') + ' and ' + xs.at(-1));
+const cuStatus = !passedB.length && !failedB.length ? 'unverified: no run on this machine'
+  : [passedB.join(', '), failedB.length ? `unverified on ${and(failedB)}: failed on this machine` : '', noneB.length ? `unverified on ${noneB.join(' and ')}` : ''].filter(Boolean).join('; ');
+const metalStatus = st('metal') === 'pass' ? 'verified on Metal' : `unverified: ${st('metal') === 'fail' ? 'failed on this machine' : 'no run on this machine'}`;
 const order = [['kernel.cu', cuStatus], ['kernel.metal', metalStatus], ['launch.mm', metalStatus]];
 for (let i = 0; i < 3; i++) {
   await page.evaluate((i) => [...document.querySelectorAll('figure.code .tabs button')][i].click(), i);

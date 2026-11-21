@@ -76,7 +76,7 @@ export const questionsWrap: Record<string, Question> = {
     options: [
       { label: 'Yes: shared memory is faster than global memory, so any kernel gains from using it.',
         why: 'The data still has to come from global memory once. Copying it to shared memory first adds work unless something reuses it.' },
-      { label: 'No: each element is read by exactly one thread, exactly once, so there is no repeated fetch to remove.', correct: true },
+      { label: 'No: each element is read by one thread, once, so no fetch repeats.', correct: true },
       { label: 'Yes, but only if the tile is at least as wide as a warp.', why: 'Tile size does not create reuse that the computation does not have.' },
     ],
     explain: (
@@ -99,16 +99,16 @@ export const questionsWrap: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'About 16× faster, as the model says.', why: 'The model\'s 16× is a reduction in requested traffic. Much of that traffic was evidently not reaching global memory in the first place.' },
-      { label: 'Noticeably less than 16×: caches were already serving most of the repeated reads that tiling removes.', correct: true },
-      { label: 'No change at all.', why: 'Tiling still removes work (and can also improve access patterns), so some gain is likely; it is just not the model\'s factor.' },
+      { label: 'About 16× faster: the model\'s traffic reduction at T = 16 still applies in full.', why: 'The model\'s 16× is a reduction in requested traffic. Much of that traffic was evidently not reaching global memory in the first place.' },
+      { label: 'Well under 16×: caches were already absorbing much of the repeated traffic.', correct: true },
+      { label: 'No gain at all, since the naive kernel already runs above its ceiling.', why: 'Tiling still removes work (and can also improve access patterns), so some gain is likely; it is just not the model\'s factor.' },
     ],
     explain: (
       <p>
         A naive kernel running far above its model ceiling is telling you its effective ratio is already much higher
         than 0.25, because on-chip caches absorb repeated reads. Tiling makes that reuse explicit and reliable, but it
-        can only save traffic that was really happening. On the machine this course was built on, the gain at T = 16
-        was under 2×. Predict, then measure.
+        can only save traffic that was really happening. Predict, then measure: lab 5.2 shows what tiling gains on
+        your device.
       </p>
     ),
     source: 'ch. 5 §5.1, p. 97 (caches raise the real ratio); measurements from lab 5.1 and 5.2',
@@ -123,8 +123,8 @@ export const questionsWrap: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'A larger tile width.', why: 'Each weight is used once per token; there is no repeated fetch for a tile to share.' },
-      { label: 'More threads per block.', why: 'That changes how the work is divided, not how many bytes each operation needs.' },
+      { label: 'A larger tile width, so each loaded weight serves more threads.', why: 'Each weight is used once per token; there is no repeated fetch for a tile to share.' },
+      { label: 'More threads per block, so more weights are in flight at once.', why: 'That changes how the work is divided, not how many bytes each operation needs.' },
       { label: 'Storing the weights in 8 bits instead of 32.', correct: true },
       { label: 'Adding a second barrier.', why: 'Barriers are about correctness, not traffic.' },
     ],
@@ -181,7 +181,16 @@ export function Wrap() {
         These draw on the whole chapter and on situations the sections did not show.
         {asked ? ` So far in this chapter you have answered ${right} of ${asked} questions correctly, counting your latest answer to each.` : ''}
       </p>
-      <Code tabs={[{ label: 'CUDA (not a lab file: for this question only)', code: TRANSPOSE, tiers: { A: 'global', tile: 'shared', idx: 'reg' } }]} />
+      <Code
+        tabs={[
+          {
+            label: 'CUDA (not a lab file: for this question only)',
+            code: TRANSPOSE,
+            tiers: { A: 'global', tile: 'shared', idx: 'reg' },
+            status: 'front-end-checked (labs/ch05/snippets/transpose_tiles_defect.cu)',
+          },
+        ]}
+      />
       <Ask q={questionsWrap['ch05/wrap/q-transpose']} label="Find the defect" />
       <Ask q={questionsWrap['ch05/wrap/q-flopb']} />
       <Ask q={questionsWrap['ch05/wrap/q-notile']} />
@@ -219,9 +228,12 @@ export function Wrap() {
       <ul>
         <li>p. 97 gives the example device's threshold as "25.1 FLOP/B or 20.0 FLOP/B". Everywhere else it is 20.0, which is what the two peaks divide to.</li>
         <li>Fig. 5.8 numbers the phases 0 and 1; the text beside it calls them 1 and 2. The code counts from 0, and so does this course.</li>
+        <li>pp. 106–107 say the reduction is "by a factor of N if the tiles are N × N". Here N is the tile width, not the matrix N named a line earlier.</li>
         <li>Fig. 5.14 (dynamically sized shared memory) has several errors as printed; <a href={href('ch05', '5.6')}>section 5.6</a> goes through them and lab 5.5 has a corrected, tested version.</li>
         <li>p. 113 says thread (1,0) of block (1,1) must load M[2][1] although it owns no output. By the book's own (row, column) naming that thread would load M[3][0]; the thread that loads M[2][1] is (0,1). The point it illustrates stands.</li>
         <li>p. 116 describes <code>sharedMemPerBlock</code> as the shared memory of an SM. The CUDA documentation defines it per block.</li>
+        <li>Exercise 10's text says <code>BLOCK_WIDTH</code> where its code says <code>BLOCK_SIZE</code>; they mean the same thing.</li>
+        <li>Exercise 11's listing has a typesetting artefact in line 18, and <code>foo</code> takes <code>int*</code> where <code>foo_kernel</code> takes <code>float*</code>.</li>
         <li>Exercise 12 states shared-memory use "per SM" for a kernel; per block is almost certainly meant.</li>
       </ul>
       <Aside>
@@ -242,7 +254,7 @@ export function Wrap() {
       <p>
         Chapter 6 picks up a detail this chapter stepped around. The naive kernel reads M along memory and N across it.
         Those two patterns do not cost the same, and the reason, how a warp's memory requests are merged or not, is the
-        next large lever after tiling.
+        next large lever after tiling: <a href={href('ch06', '6.1')}>section 6.1, Global memory access coalescing</a>.
       </p>
     </>
   );

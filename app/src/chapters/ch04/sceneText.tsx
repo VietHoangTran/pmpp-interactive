@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 // The chapter's three narrated animations draw on a 720-unit-wide canvas. Below the
 // app's narrow breakpoint (52rem) that canvas is scaled to well under half size, and
@@ -6,31 +6,8 @@ import { useEffect, useState, type ReactNode } from 'react';
 // therefore drops that text from the drawing and shows it as HTML under it instead.
 // The numbers are the same values the drawing would show; nothing is computed here.
 
-const NARROW = '(max-width: 52rem)';
-
-/** True below the app's narrow breakpoint. */
-export function useNarrow(): boolean {
-  const [narrow, setNarrow] = useState(() => {
-    try {
-      return window.matchMedia(NARROW).matches;
-    } catch {
-      return false;
-    }
-  });
-  useEffect(() => {
-    let m: MediaQueryList;
-    try {
-      m = window.matchMedia(NARROW);
-    } catch {
-      return;
-    }
-    const on = () => setNarrow(m.matches);
-    on();
-    m.addEventListener('change', on);
-    return () => m.removeEventListener('change', on);
-  }, []);
-  return narrow;
-}
+/** True below the app's narrow breakpoint (the shared hook, lib/narrow.ts). */
+export { useNarrow } from '../../lib/narrow';
 
 /** A scene's headline, counters and note, as text under the drawing. */
 export function SceneReadout({ headline, items = [], notes = [] }: {

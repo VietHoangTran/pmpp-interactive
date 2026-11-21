@@ -298,7 +298,7 @@ check('q-steps accepts 19', await answer('And in how many steps', 19));
 check('q-needs accepts 11', await answer('From which position does it receive', 11));
 check('q-warp: idle lanes are occupied anyway', await choice('why does the book keep Kogge-Stone', 'the lanes Brent-Kung leaves idle are occupied anyway'));
 check('q-ex7 rejects "fewer steps"', !(await choice('Why is one barrier per iteration enough', 'Brent-Kung has fewer steps')));
-check('q-ex7: disjoint reads and writes', await choice('Why is one barrier per iteration enough', 'no position written by one thread is read by another'));
+check('q-ex7: disjoint reads and writes', await choice('Why is one barrier per iteration enough', 'no thread reads a position another thread writes'));
 
 check('no console or page errors', errors.length === 0, errors.join(' | '));
 await browser.close();

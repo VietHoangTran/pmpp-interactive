@@ -152,7 +152,7 @@ const answer = async (needle, pickCorrect) => {
   return q.evaluate((e) => e.querySelector('.verdict')?.textContent ?? '');
 };
 check('q-linear: the right mapping is accepted', (await answer('Which mapping onto the', true)).includes('Correct.'));
-check('q-qkt: Q is not the weight-like operand', (await answer('Which operand is stored like', false)).includes('Not quite.'));
+check('q-qkt: Q is not the weight-like operand', (await answer('Which operand plays the role of', false)).includes('Not quite.'));
 check('q-rowmajor-trick: the transpose explanation is accepted', (await answer('leave', true)).includes('Correct.'));
 
 if (out) await page.screenshot({ path: out + '-end.png', fullPage: false });

@@ -114,7 +114,7 @@ const MERGE_TIERS: Record<string, Tier> = {
   i: 'reg', j: 'reg', k: 'reg', i_low: 'reg', j_low: 'reg', delta: 'reg', active: 'reg',
   tid: 'reg', elementsPerThread: 'reg', k_curr: 'reg', k_next: 'reg', i_curr: 'reg', i_next: 'reg', j_curr: 'reg', j_next: 'reg',
 };
-const SNIPPET_STATUS = 'emulator-checked and front-end-checked; unverified on CUDA hardware';
+const SNIPPET_STATUS = 'emulator-checked and front-end-checked; unverified on CUDA and HIP';
 
 // ---------------------------------------------------------------- small helpers
 
@@ -896,8 +896,8 @@ const own: Record<string, Question> = {
     options: [
       { label: '7 lands after 9. The first test fires, A[3] = 9 > B[0] = 7: i is too high.', correct: true },
       { label: 'Nothing goes wrong: any split with i + j = k gives a sorted C.', why: 'i + j = k only fixes how many elements thread 0 takes, not which ones.' },
-      { label: "C comes out sorted but unstable: B's 7 now follows A's 7.", why: 'Here a key is out of order, not just a tie: 9 is written before 7.' },
-      { label: 'The second test fires, B[j−1] ≥ A[i]: j is too high.', why: 'With j = 0 the second test\'s bounds check j > 0 is false, so it does not even read anything.' },
+      { label: 'C stays sorted, but the tie between the two 7s now goes to B.', why: "Here a key is out of order, not just a tie: 9 is written before B's 7, and A's 7 still comes first." },
+      { label: '10 lands before 8. The second test fires, B[j−1] ≥ A[i]: j is too high.', why: 'That is the other wrong guess, i = 2 and j = 2. Here j = 0, so the second test\'s bounds check j > 0 is false and it reads nothing.' },
     ],
     explain: (
       <p>
@@ -941,8 +941,8 @@ const own: Record<string, Question> = {
     ),
     options: [
       { label: 'Nothing: either tie rule gives a valid split, and the test passed.', why: 'Each is valid alone. The co-rank and merge_sequential must use the same one.' },
-      { label: 'The output is no longer sorted wherever a tie falls on a cut.', why: 'The swapped search still finds a valid cut, just the one that sends ties to B; keys stay in order.' },
-      { label: 'The search can now read one element past the end of A or B.', why: 'The bounds tests are unchanged and still come first.' },
+      { label: 'The output is no longer sorted wherever a tie falls on a cut between threads.', why: 'The swapped search still finds a valid cut, just the one that sends ties to B; keys stay in order.' },
+      { label: 'With >= in the first test, the search can read A[m] or B[n], past the end.', why: 'The bounds tests are unchanged and still come first, so j < n and i < m are checked before any read.' },
       { label: 'At the cuts, ties now go to B: the keys are sorted, but the merge is unstable.', correct: true },
     ],
     explain: (
@@ -1076,7 +1076,8 @@ export function S133() {
         </p>
       </Today>
       <p>
-        Chapter 22 gives this choice a name: an output-centric decomposition. Atomics are not the reason for it here, since
+        <a href={href('ch22', '22.2')}>Chapter 22, §22.2 "Problem decomposition"</a>, gives this choice a name: an
+        output-centric decomposition. Atomics are not the reason for it here, since
         every output comes from exactly one input either way. Load balance is: every thread gets the same number of
         outputs whatever the data, and only the input slices vary. Cut the inputs instead, and threads could end up merging
         very different numbers of elements.
@@ -1307,15 +1308,19 @@ export function S133() {
 
       <h2>On HIP and Metal</h2>
       <p>
-        This chapter's kernels use threads, shared memory and barriers only, so by the documentation the one{' '}
-        <code>.cu</code> file builds for HIP through <code>pmpp/vendors/hip.h</code> unchanged, with one caveat: integer{' '}
-        <code>min</code>. That path has not been compiled for AMD hardware here yet. Metal changes more, and mostly about
-        pointers.
+        One <code>.cu</code> file serving CUDA and HIP through <code>pmpp/vendors/hip.h</code> works, by the
+        documentation, for threads, blocks, shared memory, barriers, legacy atomics and runtime calls. It does not
+        extend to warp <code>_sync</code> intrinsics (HIP wants a 64-bit lane mask), cooperative groups and
+        half-precision headers (different include paths), CUB functors, tensor-core intrinsics or <code>__dp4a</code>.
+        This chapter's kernels use only threads, shared memory and barriers, so they stay on the side that carries over,
+        with one caveat of their own: integer <code>min</code>. That path has not been compiled for AMD hardware here
+        yet. Metal changes more, and mostly about pointers.
       </p>
       <Beyond>
         <p>
-          The book uses CUDA only. Everything in this table comes from notes/today/ch13-facts.md ("Where the backends really
-          differ") and the files it cites; none of it has been run on AMD hardware.
+          The book uses CUDA only. What carries over to HIP is notes/today/infra-facts.md's "Where the backends really
+          differ"; everything in this table comes from notes/today/ch13-facts.md's table of the same name and the files it
+          cites. None of it has been run on AMD hardware.
         </p>
       </Beyond>
       <table className="data wide" style={{ maxWidth: '58rem' }}>

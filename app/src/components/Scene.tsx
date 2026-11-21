@@ -27,7 +27,22 @@ interface Manifest {
 const stripTags = (s: string) => s.replace(/\[[^\]]*\]\s*/g, '').trim();
 const estimate = (script: string) => Math.max(4, stripTags(script).split(/\s+/).length / 2.6 + 1);
 
-export function Scene({ chapter, title, beats }: { chapter: string; title: string; beats: Beat[] }) {
+export function Scene({
+  chapter,
+  title,
+  beats,
+  narrow = false,
+}: {
+  chapter: string;
+  title: string;
+  beats: Beat[];
+  /**
+   * The drawing is laid out for the current (narrow) screen, so the player must not give it a
+   * minimum width and a sideways scroll below 640 px. The same as data-layout="narrow" on the
+   * beat's svg; use this when the drawing is not an svg or when it switches layout with useNarrow().
+   */
+  narrow?: boolean;
+}) {
   const base = `/content/${chapter}/narration/`;
   const [manifest, setManifest] = useState<Manifest | null>(null);
   const [scripts, setScripts] = useState<Record<string, string>>({});
@@ -149,7 +164,9 @@ export function Scene({ chapter, title, beats }: { chapter: string; title: strin
         </span>
       </header>
       <div className="body">
-        <div className="stage">{beat.draw(p)}</div>
+        <div className="stage" data-layout={narrow ? 'narrow' : undefined}>
+          {beat.draw(p)}
+        </div>
         {captions || !hasAudio ? (
           <p className="caption" aria-live="polite">{stripTags(script) || '…'}</p>
         ) : null}

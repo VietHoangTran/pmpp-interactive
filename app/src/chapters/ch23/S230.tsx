@@ -64,7 +64,7 @@ export const questionsS230: Record<string, Question> = {
         even have started (p. 556). The host is free to queue more work, and section{' '}
         <a href={href('ch23', '23.3')}>23.3</a> is built on that: a copy or another kernel can be queued while this one
         runs. To time a kernel, wait for it inside the timed region, as <code>t2</code> does, or record events around it
-        (page <a href={href('ch23', '23.4')}>23.4</a>). Taught in <a href={href('ch02', '2.6')}>ch. 2 §2.6</a>.
+        and read the time between them (page <a href={href('ch23', '23.4')}>23.3–23.5</a> uses events only for ordering). Taught in <a href={href('ch02', '2.6')}>ch. 2 §2.6</a>.
       </p>
     ),
     source: 'ch. 23 §23.3, p. 556; notes/today/ch02-facts.md A5',
@@ -167,7 +167,7 @@ export const questionsS230: Record<string, Question> = {
         correct: true,
       },
       {
-        label: 'Pinned memory is faster to read, and a kernel cannot afford slow reads from host memory at all.',
+        label: 'Pinned memory is faster to read, and a kernel cannot afford slow reads from the host.',
         why: 'Speed is not the reason. Zero-copy reads are slow whatever you do, limited by the interconnect (p. 625).',
       },
       {
@@ -1017,7 +1017,7 @@ export function S230() {
       <h2>The book&rsquo;s first loop, in words</h2>
       <p>
         Section 23.2 builds the multi-GPU version with MPI, one process per GPU. Leave the MPI calls for page{' '}
-        <a href={href('ch23', '23.4')}>23.4</a>; the shape of the loop is what matters here. Every iteration, each GPU:
+        <a href={href('ch23', '23.4')}>23.3–23.5</a>; the shape of the loop is what matters here. Every iteration, each GPU:
       </p>
       <ol>
         <li>zeroes the norm on the device;</li>

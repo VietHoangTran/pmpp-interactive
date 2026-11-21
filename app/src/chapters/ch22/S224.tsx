@@ -1,6 +1,7 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Bench, Beyond, Simplification, Source } from '../../components/notes';
+import { useNarrow } from '../../lib/narrow';
 import { href } from '../../lib/router';
 import {
   COULOMB,
@@ -29,23 +30,6 @@ const sci = (v: number) => {
   return `${Number(m.toFixed(1))} × 10${String(e).replace(/\d/g, (c) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[+c])}`;
 };
 
-/**
- * True while the viewport is at most 600 px wide. The plots then use a narrower drawing so
- * that their labels stay legible on a phone. (Chapter 10 has the same helper; a shared one
- * would belong in src/lib.)
- */
-function useNarrow(px = 600): boolean {
-  const query = `(max-width: ${px}px)`;
-  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.matchMedia(query).matches);
-  useEffect(() => {
-    const m = window.matchMedia(query);
-    const on = () => setNarrow(m.matches);
-    on();
-    m.addEventListener('change', on);
-    return () => m.removeEventListener('change', on);
-  }, [query]);
-  return narrow;
-}
 
 // ---------------------------------------------------------------- the explorer
 const PRESET_LABEL: Record<Preset, string> = {
@@ -90,7 +74,7 @@ const SPEEDS = [1, 2, 3, 5, 10, 20, 30, 50, 100, 200, 300, 500, 1000];
 
 function CostPlot({ preset, x, S, cross }: { preset: Preset; x: number; S: number; cross: number | null }) {
   const c = curves(preset);
-  const narrow = useNarrow();
+  const narrow = useNarrow(600); // a narrower drawing on a phone keeps the labels legible
   const W = narrow ? 400 : 640;
   const H = narrow ? 300 : 330;
   const pad = { l: narrow ? 48 : 64, r: 12, t: 16, b: 44 };
@@ -397,7 +381,7 @@ export const questionsS224: Record<string, Question> = {
         correct: true,
       },
       {
-        label: 'Arithmetic: appending each new key and value to the cache costs about as much as the recomputation it replaces.',
+        label: 'Arithmetic: appending each new key and value to the cache costs about as much as recomputing the prefix it replaces.',
         why: 'An append copies one row of K and one of V per layer. The recomputation it replaces is about T times the whole cached step.',
       },
       {

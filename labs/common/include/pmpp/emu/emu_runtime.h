@@ -76,6 +76,12 @@ enum class Schedule { Forward, Reverse, Shuffle };
 // of any GPU.
 struct Limits {
   static constexpr unsigned maxThreadsPerBlock = 1024;
+  // Per-dimension limits: CUDA's own, the same for every compute capability the CUDA
+  // Programming Guide 13.5 lists (Table 33, "Device and Streaming Multiprocessor (SM)
+  // Information per Compute Capability", read 2026-11-21; infra-facts E6): a block at most
+  // 1024 x 1024 x 64 (and 1024 threads in all), a grid at most (2^31 - 1) x 65535 x 65535.
+  static constexpr unsigned maxBlockDim[3] = {1024, 1024, 64};
+  static constexpr unsigned maxGridDim[3] = {2147483647u, 65535, 65535};
   static constexpr size_t sharedMemPerBlock = 48 * 1024;        // dynamic shared memory per block
   static constexpr size_t sharedMemPerBlockOptin = 96 * 1024;   // after cudaFuncSetAttribute(MaxDynamicSharedMemorySize)
   // cudaLaunchCooperativeKernel keeps every block alive at once, one OS thread
@@ -580,6 +586,20 @@ inline cudaError_t launch_impl(dim3 grid, dim3 block, size_t sharedBytes, bool c
         fmt("invalid launch configuration: grid %ux%ux%u, block %ux%ux%u (%llu threads, emulator limit %u), "
             "%zu bytes dynamic shared memory (limit %zu)", grid.x, grid.y, grid.z, block.x, block.y, block.z,
             (unsigned long long)T64, Limits::maxThreadsPerBlock, sharedBytes, shLimit));
+  {
+    const unsigned b[3] = {block.x, block.y, block.z}, gr[3] = {grid.x, grid.y, grid.z};
+    for (int a = 0; a < 3; ++a) {
+      if (b[a] > Limits::maxBlockDim[a] || gr[a] > Limits::maxGridDim[a])
+        return launch_error(cudaErrorInvalidConfiguration,
+            fmt("invalid launch configuration: grid %ux%ux%u, block %ux%ux%u. The %s's %c dimension is %u; CUDA "
+                "allows at most %u (blocks %ux%ux%u, grids %ux%ux%u: CUDA Programming Guide, Table 33)",
+                grid.x, grid.y, grid.z, block.x, block.y, block.z, b[a] > Limits::maxBlockDim[a] ? "block" : "grid",
+                "xyz"[a], b[a] > Limits::maxBlockDim[a] ? b[a] : gr[a],
+                b[a] > Limits::maxBlockDim[a] ? Limits::maxBlockDim[a] : Limits::maxGridDim[a],
+                Limits::maxBlockDim[0], Limits::maxBlockDim[1], Limits::maxBlockDim[2],
+                Limits::maxGridDim[0], Limits::maxGridDim[1], Limits::maxGridDim[2]));
+    }
+  }
   const unsigned T = unsigned(T64);
   uint64_t W = 1;
   if (cooperative) {

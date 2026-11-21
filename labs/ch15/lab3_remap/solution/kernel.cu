@@ -35,8 +35,8 @@
 //   cudaMalloc (aligned to at least 256 bytes, ch06-facts.md A3), sub-tile columns are
 //   multiples of 4, so every row's address is aligned when N is a multiple of 4. When it
 //   is not, or when the row's four columns do not all lie inside C, the stores are
-//   scalar. On HIP, C comes from hipMalloc, and no facts file documents its alignment:
-//   that the same rule holds there is unverified.
+//   scalar. On HIP, C comes from hipMalloc, whose alignment AMD's memory reference does
+//   not state (ch15-facts B8): that the same rule holds there is unverified.
 #include <cstdio>
 
 #define bM 128          // block-level output tile: bM x bN

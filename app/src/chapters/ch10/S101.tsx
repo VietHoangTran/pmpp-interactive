@@ -277,10 +277,10 @@ export const questionsS101: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: '0.0f', why: 'Wrong on any row that is all negative.' },
-      { label: '-INFINITY', why: 'Exactly the value the compiler may assume never occurs in fast mode.' },
+      { label: '0.0f, as for the sum that follows the max', why: 'Wrong on any row that is all negative.' },
+      { label: '-INFINITY, the identity the book gives for max', why: 'Exactly the value the compiler may assume never occurs in fast mode.' },
       { label: '-FLT_MAX, the most negative finite float', correct: true },
-      { label: 'The thread\'s first element', why: 'Fine for one loop over a non-empty list. A thread or lane that has no element has nothing to start from.' },
+      { label: 'The thread\'s first element (footnote 1)', why: 'Fine for one loop over a non-empty list. A thread or lane that has no element has nothing to start from.' },
     ],
     explain: (
       <p>
@@ -302,13 +302,13 @@ export const questionsS101: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'std::accumulate, because it uses a hidden accumulator type.', why: 'It folds left to right in one fixed order: the loop of Fig. 10.2.' },
+      { label: 'std::accumulate, because its accumulator takes the type of the initial value.', why: 'That type is fixed when the code is compiled, and the fold runs left to right in one fixed order: the loop of Fig. 10.2.' },
       {
-        label: 'std::reduce, because it may regroup and reorder the elements, and float addition is not associative.',
+        label: 'std::reduce: it may regroup and reorder the elements, and float addition is not associative.',
         correct: true,
       },
-      { label: 'Neither: both add the same numbers.', why: 'The same numbers in a different grouping round differently.' },
-      { label: 'Both, because float addition is not deterministic.', why: 'Each addition is deterministic. Only the grouping can change.' },
+      { label: 'Neither: both add exactly the same numbers, so they must agree.', why: 'The same numbers in a different grouping round differently.' },
+      { label: 'Both, because float addition rounds differently from one run to the next.', why: 'Each addition is deterministic. Only the grouping can change.' },
     ],
     explain: (
       <p>

@@ -147,7 +147,7 @@ check('the listing has CUDA and Metal tabs', tabs.includes('CUDA') && tabs.inclu
 const code = await page.$eval('figure.code pre', (e) => e.textContent);
 check("the CUDA tab is lab 10.3's softmaxRowsKernel and its launcher", code.includes('__global__ void softmaxRowsKernel') && code.includes('void launchSoftmaxRows'));
 check('the scale lines are marked', (await page.$$eval('figure.code .ln.hl', (e) => e.filter((x) => x.textContent.includes('scale')).length)) >= 3);
-check('the CUDA tab states its status in the course vocabulary', (await page.$eval('figure.code .status', (e) => e.textContent)).includes('front-end-checked'));
+check('the CUDA tab states its status in the course vocabulary', /emulator-checked|unverified|verified on/.test(await page.$eval('figure.code .status', (e) => e.textContent)));
 
 // ---------------------------------------------------------------- the Predict and the questions
 const qHandle = (text) => page.evaluateHandle((t) => [...document.querySelectorAll('.q')].find((e) => e.querySelector('.prompt')?.textContent.includes(t)), text);

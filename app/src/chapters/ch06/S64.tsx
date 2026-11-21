@@ -457,14 +457,14 @@ export const questionsS64: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: <>33 × <code>i</code>.</>, why: 'Two slips: >> divides by a power of two, and + binds more tightly than a shift.' },
-      { label: <><code>i &gt;&gt; (5 + i)</code>: a right shift by 5 + i bits. The intended form is <code>(i &lt;&lt; 5) + i</code>.</>, correct: true },
-      { label: <><code>i / 32 + i</code>.</>, why: 'That would need parentheses: in C, + binds more tightly than >>.' },
+      { label: <>33 × <code>i</code>, as intended: a shift by 5, then an add.</>, why: 'Two slips: >> divides by a power of two, and + binds more tightly than a shift.' },
+      { label: <><code>i &gt;&gt; (5 + i)</code>, a right shift by 5 + i bits.</>, correct: true },
+      { label: <><code>i / 32 + i</code>: a right shift by 5 bits, then an add of i.</>, why: 'That would need parentheses: in C, + binds more tightly than >>.' },
     ],
     explain: (
       <p>
         Multiplying by 32 is a left shift by 5, <code>i &lt;&lt; 5</code>; the book prints the shift the wrong way round,
-        and the second expression also needs parentheses. The book's point stands: 32 columns cost one shift, 33 cost a
+        and the second expression also needs parentheses. The intended form is <code>(i &lt;&lt; 5) + i</code>. The book's point stands: 32 columns cost one shift, 33 cost a
         shift and an add.
       </p>
     ),
@@ -475,14 +475,20 @@ export const questionsS64: Record<string, Question> = {
     id: 'ch06/6.4/q-broadcast',
     prompt: <>Every lane of a warp reads the same word of shared memory. Which statement is right?</>,
     options: [
-      { label: 'It is a 32-way conflict everywhere.', why: 'NVIDIA documents a broadcast for this case, and AMD says it is handled efficiently.' },
-      { label: 'It is free on every GPU.', why: 'Apple documents no banks, and its tuning advice is to remove many-thread reads of one location.' },
+      { label: 'A 32-way conflict on every GPU: one bank serves the 32 lanes one at a time.', why: 'NVIDIA documents a broadcast for this case, and AMD says it is handled efficiently. A conflict needs different words in one bank.' },
+      { label: 'Free on every GPU: the one word is read once and handed to every lane.', why: 'Apple documents no banks, and its tuning advice is to remove many-thread reads of one location.' },
       {
-        label: 'NVIDIA and AMD broadcast it without a conflict; Apple advises removing such accesses from threadgroup reads, so the same code is not known to be free on Metal.',
+        label: 'Free on NVIDIA and AMD; not known to be free on Metal.',
         correct: true,
       },
     ],
-    explain: <p>A conflict is lanes on different words of one bank. Lanes on the same word are a different case, and vendors treat it differently.</p>,
+    explain: (
+      <p>
+        A conflict is lanes on different words of one bank. Lanes on the same word are a different case, and vendors
+        treat it differently: NVIDIA and AMD broadcast it, while Apple advises removing such accesses from threadgroup
+        reads.
+      </p>
+    ),
     source: 'notes/today/ch06-facts.md A12, C2; infra-facts.md A10, B10',
   },
   'ch06/6.4/q-amd': {
@@ -495,12 +501,12 @@ export const questionsS64: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Yes, pad by one column.', why: 'Padding changes nothing for a unit stride: the two lanes are still 32 words apart.' },
+      { label: 'Yes, pad by one column, as for the corner-turned tile of section 6.4.', why: 'Padding changes nothing for a unit stride: the two lanes are still 32 words apart.' },
       {
         label: 'Not on that basis: AMD serves 16 lanes per cycle in any case, so NVIDIA\'s conflict count does not apply. Measure, with the LDS bank-conflict rate or lab 6.3.',
         correct: true,
       },
-      { label: 'Yes, pad to 65.', why: 'That is a guess at a cost nobody documented. Measure first.' },
+      { label: 'Yes, pad rows to 65 words to suit the 64-lane wavefront.', why: 'That is a guess at a cost nobody documented. Measure first.' },
     ],
     explain: (
       <p>

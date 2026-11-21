@@ -1026,7 +1026,7 @@ function HaloListing() {
     <Code
       tabs={[
         { label: 'CUDA', code: cu, tiers: CONV_TIERS, status: cuStatus },
-        { label: 'Metal kernel', code: metal, tiers: CONV_TIERS, status: onMetal ? 'verified on Metal' : 'unverified' },
+        { label: 'Metal kernel', code: metal, tiers: CONV_TIERS, status: onMetal ? 'verified on Metal' : 'unverified: no passing Metal run on this machine' },
       ]}
       caption={
         <>
@@ -1249,6 +1249,12 @@ export function S75() {
         Before the code, watch one block at the sizes of the book&apos;s Fig. 7.13: an 8 × 8 block, a 3 × 3 filter and
         a 6 × 6 output tile, over the corner of a 10 × 10 image.
       </p>
+      <Simplification>
+        <p>
+          The animation runs the stepper&rsquo;s model with the threads in index order, one operation at a time: no
+          warps, no timing, no caches. Its closing tally counts the bytes the block asks for, as the book does.
+        </p>
+      </Simplification>
       <LoadWaitComputeScene />
 
       <h2>The kernel</h2>

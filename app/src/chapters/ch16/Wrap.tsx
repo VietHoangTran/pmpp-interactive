@@ -67,7 +67,7 @@ export const questionsWrap: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'One, after the writes, so that the next time step reads them.',
+        label: 'One, after the writes, so that the next time step reads the values this step wrote.',
         why: 'Thread i − 1 reads A[i] in the same step in which thread i overwrites it. Something must hold that write back until the read is done.',
       },
       { label: 'Two: one between every thread\'s reads and its write, and one after the writes.', correct: true },
@@ -105,19 +105,19 @@ export const questionsWrap: Record<string, Question> = {
     options: [
       {
         label:
-          'No: every block of step t needs the results of every block of step t − 1, so it waits for all four either way. Flags, like a grid barrier, could save the launches, not the wait.',
+          'No: each block of step t needs all four blocks of step t − 1, so it waits for all of them either way. Flags save launches, not the wait.',
         correct: true,
       },
       {
-        label: 'Yes: with flags a block always waits only for what it needs.',
-        why: 'True, and here what it needs is everything the previous step produced.',
+        label: 'Yes: with flags a block waits only for the blocks it reads, so it starts once its own block of step t − 1 is done.',
+        why: 'It does wait only for the blocks it reads, but here it reads every state, so every block of step t − 1.',
       },
       {
-        label: 'Yes, as long as blocks take their work from an atomic counter.',
+        label: 'Yes, as long as blocks take their work from an atomic counter in step order, so each waits only on blocks that have already started.',
         why: 'The counter makes waiting safe on CUDA. It does not shrink what a block waits for.',
       },
       {
-        label: 'No, because Viterbi has no dependency between time steps.',
+        label: 'No, because Viterbi has no dependency between time steps once the emission scores are known.',
         why: 'It does: each state at step t reads every state at step t − 1.',
       },
     ],
@@ -144,19 +144,19 @@ export const questionsWrap: Record<string, Question> = {
     options: [
       {
         label:
-          'No: no score reads another score, so every cell can run at once. The triangle is the shape of the work, a question of load balance, not of synchronisation.',
+          'No: no score reads another score, so every cell can run at once. The triangle makes the work uneven, not ordered.',
         correct: true,
       },
       {
-        label: 'Yes: row i needs the rows above it, so the rows are the fronts.',
+        label: 'Yes: row i needs the rows above it, so the rows are the fronts, with a barrier after each one.',
         why: 'Row i needs keys 0 to i, which the layer below produced. It needs no result of another row.',
       },
       {
-        label: 'Yes, and shearing the triangle would make every step full width.',
+        label: 'Yes, and shearing the triangle, as §16.7 shears tiles, would make every step full width.',
         why: 'Shearing fills steps that dependencies force. Here there are no forced steps, only blocks with more cells than others.',
       },
       {
-        label: 'Only during decoding, when the triangle grows by one row per token.',
+        label: 'Only during decoding, when the triangle grows by one row per token and each new row reads the scores of the row before it.',
         why: 'Decoding is sequential, but the dependency runs through the whole model, from one token\'s output to the next token\'s input. Inside one layer\'s score matrix no cell reads another.',
       },
     ],
@@ -298,7 +298,8 @@ export function Wrap() {
               <td>Cooperative groups instead of a relaunch</td>
               <td>
                 "Who waits for whom" in <a href={href('ch16', '16.3')}>16.3</a>: the grid barrier, what it saves and does
-                not, and its form on each backend (none on Metal); the API is chapter 18's, §18.7; not built
+                not, and its form on each backend (none on Metal); the API is the book's §18.7, worked on page{' '}
+                <a href={href('ch18', '18.6')}>18.6, "Private queues and one launch for every level"</a>; not built
               </td>
             </tr>
             <tr>
@@ -450,7 +451,8 @@ export function Wrap() {
               ? `Your own version passes on ${passing.map(where).join(' and ')} on this machine.`
               : 'Your own version has not passed on this machine yet.'}
         </span>{' '}
-        See the <a href={href('ch16', 'labs')}>lab</a>. The next milestone, attention, comes with chapter 20.
+        See the <a href={href('ch16', 'labs')}>lab</a>. The next milestone, M6 attention, comes with{' '}
+        <a href={href('ch20', 'start')}>chapter 20</a>.
       </p>
       <p>
         Chapter 17 turns from dependencies to irregular data. A sparse matrix–vector product has no wavefronts at all, but

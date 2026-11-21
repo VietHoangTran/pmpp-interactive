@@ -109,18 +109,18 @@ check(`tree launches: ${model.tree.launches} is right, against the grid's ${mode
 q = await question('repetition-penalty kernel');
 check('exchange: wrong answer "not atomic" explained', (await pickText(q, 'is not atomic on device memory')) && (await qText(q)).includes('Not quite.') && (await qText(q)).includes('atomic read-modify-write'));
 check('exchange: wrong answer "both get UNVISITED" explained', (await pickText(q, 'could both get UNVISITED back')) && (await qText(q)).includes('Only the first sees UNVISITED'));
-check('exchange: wrong answer "only faster" explained with a back edge', (await pickText(q, 'compare-and-swap is only faster')) && (await qText(q)).includes('7 → 0'));
+check('exchange: wrong answer "only faster" explained with a back edge', (await pickText(q, 'compare-and-swap is chosen only because it is faster')) && (await qText(q)).includes('7 → 0'));
 check('exchange: the right answer is the unconditional write', (await pickText(q, 'An exchange always writes')) && (await qText(q)).includes('Correct.') && (await qText(q)).includes('the condition and the write in one step'));
 
 q = await question('top-p sampler');
 check('sampler: "drops a token" is wrong', (await pickText(q, 'drops a token now and then')) && (await qText(q)).includes('Not quite.') && (await qText(q)).includes('same tokens in different orders'));
 check('sampler: "twice" is wrong', (await pickText(q, 'public list twice')) && (await qText(q)).includes('committed once'));
 check('sampler: "seq_cst" is wrong', (await pickText(q, 'memory_order_seq_cst')) && (await qText(q)).includes('which thread reaches the counter first'));
-check('sampler: the order of the list is the cause; sort or a stable filter fixes it', (await pickText(q, 'The list order depends on which block')) && (await qText(q)).includes('Correct.') && (await qText(q)).includes('stable filter') && (await qText(q)).includes('Fig. 18.16'));
+check('sampler: the order of the list is the cause; sort or a stable filter fixes it', (await pickText(q, 'The list order depends on the schedule')) && (await qText(q)).includes('Correct.') && (await qText(q)).includes('stable filter') && (await qText(q)).includes('Fig. 18.16'));
 
 q = await question('commit after every frontier element');
 check('stride barrier: "only threads still in the loop" is wrong', (await pickText(q, 'waits only for the threads still inside')) && (await qText(q)).includes('Not quite.'));
-check('stride barrier: "block barriers cannot deadlock" is wrong', (await pickText(q, 'Only grid barriers can deadlock')) && (await qText(q)).includes('Fig. 4.4'));
+check('stride barrier: "block barriers cannot deadlock" is wrong', (await pickText(q, 'Only the grid barrier can deadlock')) && (await qText(q)).includes('Fig. 4.4'));
 check('stride barrier: "only coalescing" is wrong', (await pickText(q, 'lose coalescing')) && (await qText(q)).includes('Correctness goes first'));
 check('stride barrier: different trip counts reach the barrier a different number of times', (await pickText(q, 'different numbers of trips')) && (await qText(q)).includes('Correct.') && (await qText(q)).includes('chapter 4'));
 

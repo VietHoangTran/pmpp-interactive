@@ -210,8 +210,8 @@ export const questionsS105: Record<string, Question> = {
     prompt: <>In the simple kernel's first iteration, what fraction of the bytes delivered for a warp's own-element reads does the warp use?</>,
     options: [
       { label: 'All of them.', why: 'The 32 elements the warp reads are 2 apart, so they span 64 floats.' },
-      { label: 'One half.', correct: true },
-      { label: 'One quarter.', why: 'That is the second iteration, when the active lanes\' elements are 4 apart.' },
+      { label: 'Half of them.', correct: true },
+      { label: 'A quarter of them.', why: 'That is the second iteration, when the active lanes\' elements are 4 apart.' },
       { label: 'One in 32.', why: 'That comes later, once one lane per warp is active.' },
     ],
     explain: (
@@ -273,11 +273,16 @@ export function S105() {
       <p>
         The simple kernel has a second problem, and it comes from the same choice of who owns what. In every iteration each
         active thread makes two reads of global memory (its own element, and the partner one stride away) and one write
-        (its own element). Section 6.1 said what makes those cheap: the lanes of a warp reading neighbouring elements in
+        (its own element). Chapter 6 said what makes those cheap: the lanes of a warp reading neighbouring elements in
         the same instruction, so that the hardware combines them (<a href={href('ch06', '6.1')}>section 6.1</a>). Here
         neighbouring threads own elements 2 apart.
       </p>
-      <Source section="10.5" pages="234–235" />
+      <NoteGroup>
+        <Source section="10.5" pages="234–235" />
+        <Aside>
+          <p>On p. 234 the book credits coalescing to chapter 5; this edition teaches it in chapter 6.</p>
+        </Aside>
+      </NoteGroup>
       <p>
         So in the first iteration a warp's reads span twice as many pieces of memory as a coalesced read would, and half the
         data that arrives is not used. In the second iteration the active lanes' elements are 4 apart: four times the
@@ -349,14 +354,14 @@ export function S105() {
             On p. 235, "the kernel in Fig. 10.7" (twice) means the kernel of Fig. 10.8; Fig. 10.7 is its diagram.
           </p>
         </Aside>
+        <Today checked="2026-11-20 (notes/today/infra-facts.md C13)">
+          <p>
+            Apple documents no cache size, cache-line size or memory bandwidth figure for its GPUs, only that buffer reads
+            go through a cache of limited size. On a Mac, the difference between these kernels is something to measure.
+          </p>
+        </Today>
       </NoteGroup>
       <Ask q={questionsS105['ch10/10.5/q-req-2048']} label="Work it out" />
-      <Today checked="2026-11-20 (notes/today/infra-facts.md C13)">
-        <p>
-          Apple documents no cache size, cache-line size or memory bandwidth figure for its GPUs, only that buffer reads go
-          through a cache of limited size. On a Mac, the difference between these kernels is something to measure.
-        </p>
-      </Today>
 
       <h2>The same rule in a softmax</h2>
       <p>

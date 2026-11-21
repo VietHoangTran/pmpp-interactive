@@ -116,7 +116,7 @@ export const questionsWrap: Record<string, Question> = {
         why: 'Output map m of a subsampling layer reads input map m only. There is nothing to share across maps.',
       },
       {
-        label: 'Nothing: every input value is read by exactly one thread, once, so the kernel already moves the least data it can.',
+        label: 'Nothing: each input value is read by one thread, once, which is already the minimum.',
         correct: true,
       },
       {
@@ -150,15 +150,15 @@ export const questionsWrap: Record<string, Question> = {
         why: 'The reads are not the problem. Look at which elements of dX two different threads write.',
       },
       {
-        label: 'Yes, as long as each block holds one whole output map.',
-        why: 'Threads of one map still collide: the patches of neighbouring output pixels overlap whenever K > 1.',
+        label: 'Yes, as long as each block holds one whole output map, so no two blocks meet.',
+        why: 'Threads of one map still collide whenever K > 1, because neighbouring output pixels have overlapping patches, and blocks for different maps m also add into the same dX elements.',
       },
       {
-        label: 'No: it needs a __syncthreads() before the loops.',
+        label: 'No: it needs a __syncthreads() before the loops, so all reads of dY finish first.',
         why: 'The colliding threads are also in different blocks (different m), and a barrier would not make two read-add-writes of one element atomic anyway.',
       },
       {
-        label: 'No: threads with overlapping patches, and threads of different output maps, add into the same dX element without atomics, so updates are lost.',
+        label: 'No: overlapping patches, and different output maps, add into one dX element without atomics.',
         correct: true,
       },
     ],
@@ -192,7 +192,7 @@ export const questionsWrap: Record<string, Question> = {
         why: 'That is the dense layer, where every output map reads all 256 input maps. Here each reads one.',
       },
       {
-        label: `${shape(DEPTHWISE.per)}: one row, a matrix-vector product, so each B element is used once and the GEMM form buys almost nothing.`,
+        label: `${shape(DEPTHWISE.per)}: a matrix-vector product per channel, so each B element is used once.`,
         correct: true,
       },
       {
@@ -410,7 +410,9 @@ export function Wrap() {
         </li>
         <li>
           Fig. 19.7 (p. 462) has no bounds check, and its signature lacks the H, W and M that its indices need once they
-          are linearised.
+          are linearised. Fig. 19.5 (p. 461) also leaves <code>W_grid</code>, <code>H_grid</code> and <code>T</code> untyped, and
+          Fig. 19.6 (p. 462) labels T as <code>W_grid * H_grid</code> where the code has <code>H_grid * W_grid</code> (the same
+          value).
         </li>
         <li>
           Fig. 19.11 (p. 471) truncates the phase count, so C·K·K = 25 runs one phase and drops 9 terms of every output;
@@ -428,7 +430,9 @@ export function Wrap() {
         </li>
         <li>
           Eq. 19.1 writes each term as patch · filter and Eq. 19.2 as filter · patch, and the sentence after Eq. 19.3
-          names its operands in the opposite order to the equation. The value, 14, is the same either way.
+          names its operands in the opposite order to the equation. The value, 14, is the same either way. On p. 464,
+          &ldquo;the expression for generating the Y0,0,0&rdquo; drops the n subscript used a line earlier, and
+          &ldquo;the layout of C matrices&rdquo; means arrays in the C language, not a matrix named C.
         </li>
         <li>
           p. 458 says the filter bank is the array parameter <code>W</code>; Fig. 19.3 calls it F, and W is the width. It
@@ -450,8 +454,10 @@ export function Wrap() {
         <li>
           p. 472 says cuDNN needs its data in device memory &ldquo;as we discussed earlier in this chapter&rdquo;; we found
           no such discussion. p. 473 gives the output size only as <code>P = f(H; R; u; pad_h)</code>; section{' '}
-          <a href={href('ch19', '19.4')}>19.4</a> gives cuDNN&rsquo;s formula. The same page groups Winograd under the
-          matrix-multiplication algorithms.
+          <a href={href('ch19', '19.4')}>19.4</a> gives cuDNN&rsquo;s formula. The same page gives padding&rsquo;s purpose
+          as memory alignment or vectorised execution, where cuDNN documents <code>pad_h</code> and <code>pad_w</code> as
+          zero rows and columns around the input (19.4 again), and groups Winograd under the matrix-multiplication
+          algorithms.
         </li>
         <li>
           p. 460 opens by comparing &ldquo;training&rdquo; a network with matrix multiplication, before a section about

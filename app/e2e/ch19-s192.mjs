@@ -142,7 +142,7 @@ await pause(80);
 await press(LOOPS, 'Check');
 check('all seven right after fixing c', (await data(LOOPS + ' [data-out="loops"]')).text === 'all 7 right');
 check('the feedback names the read-modify-write on Y[n, m, h, w]', (await data(LOOPS + ' [data-out="loops-why"]')).text.includes('Y[n, m, h, w]'));
-let r = await answerChoice('What can Y[i] hold when all six are done', 'Always the full sum');
+let r = await answerChoice('What can Y[i] hold when all six are done', 'The full sum; just the order');
 check('q-loops: "always the full sum" is marked wrong, with the reason', r.found && r.text.includes('Not quite.') && r.text.includes('two threads can load the same old value'), r.text.slice(0, 200));
 r = await answerChoice('What can Y[i] hold when all six are done', 'The full sum, or the sum of only some');
 check('q-loops: a lost update is the answer', r.found && r.text.includes('Correct.'));
@@ -260,7 +260,7 @@ k = await fig();
 check('the Metal host tab dispatches whole threadgroups', k.code.includes('dispatchThreadgroups') && k.code.includes('encodeConvDirect'));
 r = await answerChoice('computes which (n, m, h, w)', '(1, 3, 25, 5)');
 check('q-mapping: (1, 3, 25, 5) is correct', r.found && r.text.includes('Correct.'));
-r = await answerChoice('tests on 64 × 64 outputs all pass', 'With a square grid of tiles');
+r = await answerChoice('tests on 64 × 64 outputs all pass', 'On a square grid of tiles');
 check('q-swap: the square tile grid is the reason', r.found && r.text.includes('Correct.') && r.text.includes('Tile columns 2 and 3'));
 let n = await answerNumber('each with its own F weight', 0.25);
 check('q-ratio: 0.25, the one-map ratio worked in the text, is not the answer', !n.includes('Correct.'));
@@ -331,7 +331,7 @@ await pause(1500);
 const pos = await page.$eval(SC + ' input[type=range]', (e) => Number(e.value));
 check('Play runs the animation on its clock', pos > 30, String(pos));
 await press(SC, 'Pause');
-r = await answerChoice('keep one input tile in shared memory', 'Each block computes one output map');
+r = await answerChoice('keep one input tile in shared memory', 'Each block serves one output map');
 check('q-reuse: one map per block, shared memory per block', r.found && r.text.includes('Correct.'));
 
 // ---- one warp's reads

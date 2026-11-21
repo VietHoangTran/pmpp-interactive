@@ -102,7 +102,7 @@ const status = await page.$$eval('.code', (cs) => cs
   .filter((c) => [...c.querySelectorAll('.tabs button')].some((b) => ['co_rank', 'merge_basic_kernel'].includes(b.textContent)))
   .map((c) => c.querySelector('.tabs .status')?.textContent ?? ''));
 check('listings carry the verification status in the fixed vocabulary',
-  status.length === 3 && status.every((s) => s === 'emulator-checked and front-end-checked; unverified on CUDA hardware'), status.join('|'));
+  status.length === 3 && status.every((s) => s === 'emulator-checked and front-end-checked; unverified on CUDA and HIP'), status.join('|'));
 check('the printed line 03 is quoted', (await text('.page')).includes('int elementsPerThread = ceil((m+n)/(blockDim.x*gridDim.x));'));
 
 // ---- co-rank explorer: the book's trace for k = 3 (Figs. 13.6 to 13.8)

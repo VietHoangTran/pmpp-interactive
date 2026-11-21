@@ -459,8 +459,8 @@ export const questionsS102: Record<string, Question> = {
     prompt: <>Can a parallel tree compute x0 − x1 − x2 − … − x7, with the answer the left-to-right loop gives?</>,
     options: [
       { label: 'No. Subtraction is not associative, so no tree can compute it.', why: 'Change the operator, not the tree: the same quantity is a sum.' },
-      { label: 'Yes, after rewriting it as x0 + (−x1) + … + (−x7) and summing that with any tree.', correct: true },
-      { label: 'Yes, any tree of subtractions gives the same answer.', why: "Try it in the builder: on Fig. 10.3(b)'s leaves the neighbours tree gives −2 and the loop −36." },
+      { label: 'Yes, after rewriting it as x0 + (−x1) + … + (−x7) and summing with any tree.', correct: true },
+      { label: 'Yes, any tree of subtractions gives the same answer, as long as the leaves stay in order.', why: "Try it in the builder: on Fig. 10.3(b)'s leaves the neighbours tree gives −2 and the loop −36." },
     ],
     explain: (
       <p>
@@ -475,9 +475,9 @@ export const questionsS102: Record<string, Question> = {
     id: 'ch10/10.2/q-commute',
     prompt: <>Which order needs a commutative operator, not merely an associative one?</>,
     options: [
-      { label: 'neighbours: ((x0 x1)(x2 x3))((x4 x5)(x6 x7))', why: 'The leaves stay in their original sequence. Only the parentheses moved.' },
+      { label: 'neighbours: ((x0 x1)(x2 x3))((x4 x5)(x6 x7)), adjacent leaves paired first', why: 'The leaves stay in their original sequence. Only the parentheses moved.' },
       { label: 'halves: x0 with x4, x1 with x5, then pairs of those', correct: true },
-      { label: 'the loop', why: 'The loop is the reference order: it neither regroups nor reorders.' },
+      { label: 'the loop, one element at a time', why: 'The loop is the reference order: it neither regroups nor reorders.' },
     ],
     explain: (
       <p>
@@ -553,7 +553,7 @@ export function S102() {
         <Simplification>
           <p>
             The builder uses exact integer arithmetic, so only the order can change a result. Every operation takes one
-            step; nothing models threads, memory or time.
+            step; nothing models threads, memory or how long a step takes.
           </p>
         </Simplification>
       </NoteGroup>
@@ -562,6 +562,12 @@ export function S102() {
         The animation runs the loop and the tree on the book's eight values and then looks at what changes when there
         are many more of them.
       </p>
+      <Simplification>
+        <p>
+          One adder per operation and one step per level. The float sums round to float32 after every addition, with no
+          fused operations. Nothing models threads, memory or how long a step takes.
+        </p>
+      </Simplification>
       <TreeFoldScene />
 
       <h2>Same work, shorter span</h2>

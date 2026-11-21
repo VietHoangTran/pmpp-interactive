@@ -600,7 +600,7 @@ export const questionsS62: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'One.', correct: true },
+      { label: 'One, the same one for every row.', correct: true },
       { label: 'All 32: interleaving spreads every array over every channel.', why: 'It spreads consecutive addresses. These are 8192 bytes apart.' },
       { label: 'Eight.', why: 'Work out the distance between two consecutive reads in bytes, and divide by 256.' },
       { label: 'It depends on the warp width.', why: 'The channel depends only on the address; which warp issues the read does not change it.' },

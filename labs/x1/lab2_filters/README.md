@@ -257,7 +257,7 @@ buffers; read the 64-row shapes for bandwidth.
 
 ## Portability
 
-- HIP: the typed lane mask and `warpSize` let `kernel.cu` build through `pmpp/vendors/hip.h`;
+- HIP: the typed lane mask and `warpSize` are there so that `kernel.cu` can build through `pmpp/vendors/hip.h`;
   with 64-wide warps a block of 256 has 4 warps. Not compiled or run on AMD hardware here:
   unverified.
 - Metal: `launch.mm` reads the SIMD-group width from the pipeline (`threadExecutionWidth`)

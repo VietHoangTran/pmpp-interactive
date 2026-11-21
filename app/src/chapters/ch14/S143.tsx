@@ -380,6 +380,12 @@ export function S143() {
         with its <code>A[i] &lt;= B[j]</code> test.
       </p>
       <Source section="13.1" pages="304–305" />
+      <Simplification>
+        <p>
+          The panel runs each merge as a sequential merge, one at a time. A parallel merge that splits by co-rank gives
+          the same output for the same tie rule; the panel shows the result, not the schedule.
+        </p>
+      </Simplification>
       <SixteenKeys />
       <Ask q={questionsS143['ch14/14.3/q-stable']} />
 

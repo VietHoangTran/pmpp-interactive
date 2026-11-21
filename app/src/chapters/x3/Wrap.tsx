@@ -44,7 +44,7 @@ export const questionsWrap: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'At batch 16 the products run on another kernel that adds in another order, and one step’s margin was below that difference.',
+        label: 'At batch 16 another kernel runs the products, adding in another order, and one step’s margin was below that difference.',
         correct: true,
       },
       {
@@ -162,6 +162,7 @@ const M10: { num: string; chapter: string; title: string; dir: string; need: 're
   { num: '20.5', chapter: 'ch20', title: 'M7: grouped-query decode attention', dir: 'ch20/lab5_gqa_decode', need: 'if present' },
   { num: '22.1', chapter: 'ch22', title: 'The gather GEMV', dir: 'ch22/lab1_gemv', need: 'if present' },
   { num: 'X1.3', chapter: 'x1', title: 'M5: the sampler', dir: 'x1/lab3_sampler', need: 'if present' },
+  { num: 'X2.4', chapter: 'x2', title: 'M9: the quantised linear layer, in the M9 checks', dir: 'x2/lab4_m9', need: 'if present' },
   { num: 'X3.2', chapter: 'x3', title: 'M10: the step that composes them', dir: 'x3/lab2_tinyllama', need: 'yours' },
 ];
 const where = (b: string) => (b === 'emu' ? 'the emulator' : b === 'metal' ? 'Metal' : b.toUpperCase());
@@ -351,13 +352,16 @@ export function Wrap() {
         </tbody>
       </table>
       <p>
-        M10 runs in float32. Module X2's M9 exists, but its launch function takes a quantised matrix descriptor, not the
-        float weights M10's linear-layer slot expects, so the two do not meet yet: an adapter between them is the next
-        piece of the project.
+        M10 runs in float32, and with M9's quantised layer in its linear-layer slot. M9's launch function takes a quantised
+        matrix descriptor, not the float weights the slot expects, so a provided adapter binds each of the model's float
+        weight buffers to its quantised copy. Your step does not change, and its Q8_0 and Q4_0 tokens are checked against
+        the CPU reference on the same quantised weights.
       </p>
       <p>
-        This is the last module in this course's order. What remains is the book's closing chapter,{' '}
-        <a href={href('ch24', 'start')}>chapter 24</a> (pp. 577–580), whose summary page helps you pick the module that serves your next goal.
+        This is the last module in this course's order. Only the condensed chapters come after it (8, 13, 16 to 18, 21,
+        23 and 24; section <a href={href('ch01', '1.7')}>1.7</a> shows the whole order). To choose what to revisit, the
+        summary page of <a href={href('ch24', 'wrap')}>chapter 24</a>, the book's closing chapter (pp. 577–580), lists
+        each module with the goals it serves.
       </p>
     </>
   );

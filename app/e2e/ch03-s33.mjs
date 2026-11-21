@@ -343,9 +343,21 @@ if (labThere) {
     const rs = (reports[b]?.results ?? []).filter((x) => x.lab === 'ch03/lab2_blur' && x.variant === 'solution' && x.tests.length);
     return rs.length > 0 && rs.every((x) => x.built && x.test_rc === 0 && x.tests.every((t) => t.pass));
   };
-  const wantMetal = passed('metal') ? 'verified on Metal' : 'unverified: no passing Metal run on this machine';
-  const wantCuda = (passed('emu') ? 'emulator-checked' : 'unverified: no passing emulator run on this machine') + '; ' +
-    (passed('cuda') ? 'verified on CUDA' : 'unverified on CUDA hardware');
+  // The labs page's wording (LabKit's solutionTabStatus).
+  const st = (b) => {
+    const rs = (reports[b]?.results ?? []).filter((x) => x.lab === 'ch03/lab2_blur' && x.variant === 'solution' && x.tests.length);
+    return !rs.length ? 'none' : passed(b) ? 'pass' : 'fail';
+  };
+  const NAME = { cuda: 'CUDA', hip: 'HIP', emu: 'emulator' };
+  const WHERE = { cuda: 'CUDA', hip: 'HIP', emu: 'the emulator' };
+  const and = (xs) => (xs.length < 3 ? xs.join(' and ') : xs.slice(0, -1).join(', ') + ' and ' + xs.at(-1));
+  const fam = ['cuda', 'hip', 'emu'];
+  const ok = fam.filter((b) => st(b) === 'pass').map((b) => (b === 'emu' ? 'emulator-checked' : `verified on ${NAME[b]}`));
+  const bad = fam.filter((b) => st(b) === 'fail').map((b) => WHERE[b]);
+  const none = ['cuda', 'hip'].filter((b) => st(b) === 'none').map((b) => NAME[b]);
+  const wantMetal = st('metal') === 'pass' ? 'verified on Metal' : `unverified: ${st('metal') === 'fail' ? 'failed on this machine' : 'no run on this machine'}`;
+  const wantCuda = !ok.length && !bad.length ? 'unverified: no run on this machine'
+    : [ok.join(', '), bad.length ? `unverified on ${and(bad)}: failed on this machine` : '', none.length ? `unverified on ${none.join(' and ')}` : ''].filter(Boolean).join('; ');
   const fig = '[...document.querySelectorAll("figure.code")].find((f) => f.textContent.includes("Metal host"))';
   const statusMetal = await page.evaluate(`${fig}.querySelector('.tabs .status').textContent`);
   await page.evaluate(`[...${fig}.querySelectorAll('.tabs button')].find((b) => b.textContent === 'CUDA (lab 3.2)').click()`);
@@ -353,7 +365,7 @@ if (labThere) {
   const statusCuda = await page.evaluate(`${fig}.querySelector('.tabs .status').textContent`);
   check(`the lab 3.2 tabs carry statuses computed from the reports ("${wantCuda}" / "${wantMetal}")`,
     statusMetal === wantMetal && statusCuda === wantCuda, `${statusCuda} / ${statusMetal}`);
-} else check('lab 3.2 is not built yet, and the page does not show a broken listing', !tabs.includes('CUDA (lab 3.2)'));
+} else check('lab 3.2 files did not load, and the page does not show a broken listing', !tabs.includes('CUDA (lab 3.2)'));
 
 // ---------------------------------------------------------------- narrow screen
 await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 });

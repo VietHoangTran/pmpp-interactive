@@ -58,12 +58,12 @@ export const questionsS180: Record<string, Question> = {
     options: [
       { label: 'CSC: dstPtrs[6] = 8 to dstPtrs[7] = 11, so src[8..10] = 2, 5, 7.', correct: true },
       {
-        label: 'CSR: srcPtrs[6] = 12 to srcPtrs[7] = 13, so dst[12] = 8.',
+        label: 'CSR: srcPtrs[6] = 12 to srcPtrs[7] = 13, so the slice is dst[12] = 8, the one vertex joined to 6.',
         why: 'That is where 6 points (6 → 8), not who points at 6.',
       },
       {
-        label: 'COO: the entries whose dst is 6 sit next to each other.',
-        why: 'The book\'s COO is sorted by source, so the entries with dst 6 are scattered: you scan all 15 to find them.',
+        label: 'COO: the edges into 6 sit side by side in it, so one run of its src array gives 2, 5 and 7.',
+        why: 'The book\'s COO is sorted by source, so the entries with dst 6 are scattered (entries 5, 11 and 14): you scan all 15 to find them.',
       },
     ],
     explain: (
@@ -134,16 +134,16 @@ export const questionsS180: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'It can hang: the 8 resident blocks wait for blocks that cannot start until a resident block finishes.',
+        label: 'It hangs: the 8 resident blocks wait for blocks that cannot start until a resident block finishes.',
         correct: true,
       },
       {
-        label: 'It finishes, more slowly: the hardware swaps the spinning blocks out to let the others in.',
+        label: 'It may finish, more slowly: the hardware can swap the spinning blocks out to let the others in.',
         why: 'Blocks are admitted as earlier ones finish, not swapped out while they run. Nothing here finishes.',
       },
       {
-        label: 'It finishes at full speed, because spinning costs nothing.',
-        why: 'Speed is not the issue. The 56 blocks that never start cannot set their flags.',
+        label: 'It finishes at full speed: the 8 resident blocks spin while the other 56 run alongside them.',
+        why: 'Only 8 fit at a time, and none of them leaves its spin loop, so the other 56 never start and never set their flags.',
       },
     ],
     explain: (
@@ -167,15 +167,15 @@ export const questionsS180: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'It is not work-efficient. The extra additions cost time when there are fewer execution units than the work needs, and energy always.',
+        label: 'It is not work-efficient: the extra additions cost time once the work exceeds the execution units, and energy always.',
         correct: true,
       },
       {
-        label: 'Nothing: with enough threads, fewer steps always means a faster kernel, whatever the additions.',
+        label: 'Nothing: with enough threads, fewer steps means a faster kernel, whatever the additions.',
         why: 'Only with enough execution units. With few, the extra additions are paid for in time.',
       },
       {
-        label: 'It is not work-efficient, which matters on a CPU with few cores and not on a GPU.',
+        label: 'It is not work-efficient, which costs time on a CPU with a few cores but not on a GPU, where the extra additions run in parallel.',
         why: 'A GPU has many units but not unlimited ones, and every extra operation costs energy.',
       },
     ],
@@ -199,7 +199,7 @@ export const questionsS180: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Each fetch_add returns a different old value, 0, 1, 2 and so on, in whatever order the atomics happen.',
+        label: 'Every fetch_add returns a distinct old value, 0, 1, 2 and so on with no gaps; only who gets which one varies.',
         correct: true,
       },
       {
@@ -235,8 +235,8 @@ export const questionsS180: Record<string, Question> = {
         why: 'Other blocks update the same global counter. A block-scope atomic on an object other blocks touch is a data race.',
       },
       {
-        label: 'Device scope for both: block scope is never correct.',
-        why: 'Device scope is correct for the shared counter but asks for more than it needs; block scope is the right fit there.',
+        label: 'Device scope for both: a shared-memory atomic needs device scope to be seen after the barrier.',
+        why: 'Only the block can see its shared memory, and the barrier orders it. Device scope is correct there but asks for more than it needs; block scope is the right fit.',
       },
     ],
     explain: (
@@ -713,7 +713,8 @@ export function S180() {
       </p>
       <Aside>
         <p>
-          Chapter 17 is condensed too, and covers the formats this page borrows on its page <a href={href('ch17', '17.2')}>17.2</a>.
+          Chapter 17 is condensed too. The formats this page borrows are on its page{' '}
+          <a href={href('ch17', '17.2')}>17.2 Formats decide the kernel</a>.
         </p>
       </Aside>
 

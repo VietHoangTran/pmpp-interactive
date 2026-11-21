@@ -790,12 +790,12 @@ export const questionsS48: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Apple keeps the SIMD-group width secret, so no Metal API returns it at all.', why: 'An API does return it. Look at what kind of object you ask.' },
+      { label: 'Apple treats the SIMD-group width as private, so no public Metal API returns it to a program.', why: 'An API does return it. Look at what kind of object you ask.' },
       {
-        label: 'Metal exposes the width on a compiled pipeline, not on the device, and the report comes before any kernel.',
+        label: 'Metal exposes the width on a compiled pipeline, and the report runs before any kernel is compiled.',
         correct: true,
       },
-      { label: 'The width is always 32 on Apple GPUs, so there is nothing for a report to add.', why: 'Apple documents no value. Some projects assume 32; that is their assumption.' },
+      { label: 'Every Apple GPU has a SIMD-group width of 32, so there is nothing device-specific for a report to add.', why: 'Apple documents no value, and its own sizing example uses 16. The documented way is to ask a compiled pipeline. Some projects assume 32; that is their assumption.' },
       { label: "doctor reads the GPU's description from the operating system, which does not record the width.", why: 'It creates the Metal device and reads its properties. The width is not among them.' },
     ],
     explain: (

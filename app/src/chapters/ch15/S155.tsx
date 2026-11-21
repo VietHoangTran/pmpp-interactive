@@ -394,9 +394,9 @@ export const questionsS155: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: '8 sectors, all bytes used.', why: 'That would need the 32 lanes’ 16-byte pieces to sit end to end. They are 32 bytes apart.' },
-      { label: '16 sectors.', why: 'That is the count after the remap of §15.5, where the pieces of 4 lanes form 64-byte runs.' },
-      { label: '32 sectors, each half written: a quarter of the instructions, but still not coalesced.', correct: true },
+      { label: '8 sectors: a quarter of the scalar store’s 32, since each lane now stores four floats at once.', why: 'Fewer instructions do not mean fewer sectors per instruction. Each lane’s 16 bytes still sit alone, 32 bytes from its neighbour’s, so one instruction still touches 32.' },
+      { label: '16 sectors, every byte written, as in a fully coalesced 512-byte store.', why: 'That is the count after the remap of §15.5, where the pieces of 4 lanes form 64-byte runs.' },
+      { label: '32 sectors, each half written.', correct: true },
     ],
     explain: (
       <p>
@@ -474,9 +474,9 @@ export const questionsS155: Record<string, Question> = {
     id: 'ch15/15.5/q-width-wrong',
     prompt: <>The remapped kernel is compiled for a width of 32 and runs on a GPU with 64-lane wavefronts. What happens?</>,
     options: [
-      { label: 'Wrong results: two threads write the same elements.', why: 'Every element still has exactly one owner: the mapping is a bijection over threadIdx.x whatever constant it was compiled with.' },
-      { label: 'The results are still correct; only the store pattern is no longer the one the layout was designed for.', correct: true },
-      { label: 'It does not compile.', why: 'Nothing in the kernel asks the hardware for its width; it uses the constant it was given.' },
+      { label: 'Wrong results: each 64-lane wavefront holds two 32-lane warps, so pairs of threads compute and write the same elements.', why: 'Every element still has exactly one owner: the mapping is a bijection over threadIdx.x whatever constant it was compiled with.' },
+      { label: 'Correct results; only the store pattern is not the one the layout was designed for.', correct: true },
+      { label: 'It does not compile: the kernel\'s width constant must match the device\'s.', why: 'Nothing in the kernel asks the hardware for its width; it uses the constant it was given.' },
     ],
     explain: (
       <>
@@ -499,9 +499,9 @@ export const questionsS155: Record<string, Question> = {
     id: 'ch15/15.5/q-align',
     prompt: <>C has N = 1001 columns. May the kernel store each sub-tile row with one float4?</>,
     options: [
-      { label: 'Yes: float4 only needs four consecutive floats.', why: 'It needs them at an address that is a multiple of 16 bytes.' },
-      { label: 'Not in general: row r starts at byte 4 × 1001 × r, 16-byte aligned only when r is a multiple of 4. The kernel stores scalars, with bounds checks, unless N % 4 == 0.', correct: true },
-      { label: 'Only for the last block column.', why: 'Alignment depends on the row, not on which block column.' },
+      { label: 'Yes: a float4 store needs only four consecutive floats, and every sub-tile row has four.', why: 'It needs them at an address that is a multiple of 16 bytes.' },
+      { label: 'Not in general: row r starts at byte 4004·r, 16-byte aligned only for r a multiple of 4, so the kernel stores scalars unless N % 4 == 0.', correct: true },
+      { label: 'Only for the last block column, where the sub-tile rows reach the edge of C.', why: 'Alignment depends on the row, not on which block column.' },
     ],
     explain: (
       <p>
@@ -523,9 +523,9 @@ export const questionsS155: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Nothing: it is the same work, done later.', why: 'The results take an extra trip and the threads must wait for each other.' },
-      { label: 'A round trip through shared memory, a barrier, and shared-memory space; in return the mapping can be chosen for the arithmetic alone.', correct: true },
-      { label: 'More registers per thread.', why: 'The accumulators are the same; the epilogue moves them through shared memory, not through more registers.' },
+      { label: 'Nothing extra: the same stores happen later, and the loop\'s last barrier already orders them, so no new barrier is needed.', why: 'The results take an extra trip through shared memory, and the threads must wait at a new barrier before reading back each other\'s outputs.' },
+      { label: 'A trip through shared memory, a barrier and shared-memory space, so the mapping can suit the arithmetic alone.', correct: true },
+      { label: 'More registers per thread, to hold a second copy of the accumulators in the store\'s layout.', why: 'The accumulators are the same; the epilogue moves them through shared memory, not through more registers.' },
     ],
     explain: (
       <p>
@@ -644,6 +644,12 @@ export function S155() {
         The animation puts the steps in order: the bad store, the re-partition one level at a time, the same store
         instruction replayed, and what changes with 64 lanes.
       </p>
+      <Simplification>
+        <p>
+          Drawn from the same model as the lane picker and the visualiser: index arithmetic, and NVIDIA's 32-byte sectors
+          for one store instruction at a time. No caches, no timing.
+        </p>
+      </Simplification>
       <RemapScene />
       <Ask q={questionsS155['ch15/15.5/q-remap-sectors']} label="Work it out" />
 
@@ -716,8 +722,8 @@ export function S155() {
         aligned to at least 256 bytes. So when N is a multiple of 4, every row starts on a 16-byte boundary and every
         sub-tile row can be one float4. When it is not, most rows do not. The kernel decides once: the vector path when{' '}
         <code>N % 4 == 0</code>, bounds-checked scalar stores otherwise. The same <code>.cu</code> on HIP gets C from{' '}
-        <code>hipMalloc</code>, whose alignment none of this course's facts files documents, so there the rule is
-        unverified.
+        <code>hipMalloc</code>, for which AMD's memory reference states no alignment (ch15-facts B8), so there the rule
+        is unverified.
       </p>
       <Beyond>
         <p>

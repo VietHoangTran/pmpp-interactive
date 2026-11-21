@@ -247,7 +247,7 @@ const answer = async (needle, value) => {
   return q.evaluate((e) => e.textContent);
 };
 check('q-top-lanes accepts 20', (await answer('What does lane 20 hold afterwards', 20)).includes('Correct.'));
-check('q-line11 accepts "each lane reads the slot it wrote"', (await answer('is the __syncthreads() on line 11', 'loads only the slot it wrote itself')).includes('Correct.'));
+check('q-line11 accepts "each lane reads the slot it wrote"', (await answer('is the __syncthreads() on line 11', 'loads only the slot it wrote in the last iteration')).includes('Correct.'));
 check('q-wave64 rejects 64 and gives 32', (await answer('What does lane 0 return?', 64)).includes('The answer is 32'));
 check('q-hip-mask: the compile-time answer with a per-vendor mask type is right', (await answer('smallest change that keeps one source', 'At compile time, on every AMD target')).includes('Correct.'));
 check('q-syncwarp: "the right sum, a warp issues one instruction" is wrong and says why', (await answer('An older tutorial finishes a block sum', 'a warp issues one instruction for all its lanes')).includes('names this very pattern'));

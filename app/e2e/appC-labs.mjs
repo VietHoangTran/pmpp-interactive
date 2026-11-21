@@ -1,5 +1,5 @@
 // Browser check for the appendix C labs page: commands (with the lab named by its
-// directory, since the runner does not resolve "C.1"), the status table, the one lab
+// directory; the runner also resolves "C.1"), the status table, the one lab
 // block, its three predictions and one question, the table of what the benchmark
 // reports first, the results table and the reference-solution toggle. Everything
 // expected is computed here from /api/reports and /api/lab-file, so the check holds on
@@ -92,7 +92,7 @@ check('the page title is "Labs"', (await page.$eval('.page h1', (e) => e.textCon
 const text0 = await body();
 for (const c of ['./verify.sh', RUN, `${RUN} --bench`, `${RUN} --backend emu`, `${RUN} --solution`, 'python3 labs/pmpp.py reset appC/lab1 --yes'])
   check(`command shown: ${c}`, text0.includes(c));
-check('the page says why the lab is named appC/lab1 and not C.1', text0.includes('does not yet accept an appendix number such as C.1'));
+check('the page says the runner also accepts C.1', text0.includes('accepts the appendix number') && text0.includes('pmpp.py run C.1'));
 check('the emulator is described with AddressSanitizer and three thread orders', text0.includes('AddressSanitizer') && text0.includes('three fixed thread orders (in order, reversed, shuffled)'));
 check('the page says the lab is not built for the race flavour', text0.includes('This lab is not built for race'));
 check('the CUDA/HIP caveat and how to help are stated', text0.includes('front-end-checked') && text0.includes('has never been compiled') && text0.includes('bring back the report'));

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Ask, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
-import { Bench, Beyond, Simplification, Source, TierLegend, Today } from '../../components/notes';
+import { Bench, Beyond, NoteGroup, Simplification, Source, TierLegend, Today } from '../../components/notes';
 import type { Tier } from '../../components/notes';
 import { useProgress } from '../../lib/progress';
 import { labStatus, useReports } from '../../lib/reports';
@@ -860,7 +860,16 @@ export function S72() {
         image size and the radius; for large images and small filters only a small share of outputs is affected, so the
         book expects the effect to be &ldquo;modest to insignificant&rdquo;.
       </p>
-      <Source section="7.2" pages="166" />
+      <NoteGroup>
+        <Source section="7.2" pages="166" />
+        <Simplification>
+          <p>
+            The animation steps every lane through the taps together, one tap at a time. It shows which lanes sit out a
+            tap, not what that costs: no timing, predication or reconvergence. Its last count uses CUDA&rsquo;s cut into
+            warps of 32.
+          </p>
+        </Simplification>
+      </NoteGroup>
       <OneThreadScene />
       <p>
         One thing the book does not say is that which warps diverge depends on the block shape, because a warp is a run

@@ -174,9 +174,9 @@ let a = await answerChoice('A CPU pays for every context switch', 'stay in on-ch
 check('q-zero: the resident-state answer is right', a.picked && a.text.includes('Correct.'));
 a = await answerChoice('What does latency tolerance let a GPU designer leave out', 'Each thread also finishes sooner');
 check('q-area: a wrong option is marked wrong and says why', a.picked && a.text.includes('Not quite.') && a.text.includes("does not shorten any one thread's wait"), a.text.slice(0, 300));
-a = await answerChoice('What does latency tolerance let a GPU designer leave out', 'A thread that waits on memory still waits just as long');
+a = await answerChoice('What does latency tolerance let a GPU designer leave out', 'A thread that waits still waits just as long');
 check('q-area: then the right one is accepted', a.picked && a.text.includes('Correct.'));
-a = await answerChoice('Why can the first get away with so few warps?', 'compute for many cycles on values already in registers');
+a = await answerChoice('Why can the first get away with so few warps?', 'compute for many cycles on registers');
 check('q-lowocc: the compute-per-load answer is right', a.picked && a.text.includes('Correct.'));
 
 // ---- narrow screen

@@ -189,9 +189,9 @@ const choose = async (t, start) => {
 };
 check('q-dst-one: 17', (await numeric('has bit 1 and 6 ones before it', 17)).includes('Correct.'));
 check('q-dst-zero: 7', (await numeric('now the key at index 13 has bit 0', 7)).includes('Correct.'));
-check('q-total: N + 1 entries', (await choose('Why is a scan of the N bits not enough', 'An exclusive scan of N entries ends')).includes('Correct.'));
+check('q-total: N + 1 entries', (await choose('Why is a scan of the N bits not enough', 'Its last entry counts the ones before the last key')).includes('Correct.'));
 check('q-runs: 2 runs', (await numeric('Into how many contiguous runs', 2)).includes('Correct.'));
-check('q-split: blocks are not resident together or ordered', (await choose("Why is lab 14.1's pass three launches", 'The scan needs every block')).includes('Correct.'));
+check('q-split: blocks are not resident together or ordered', (await choose("Why is lab 14.1's pass three launches", 'Every block must write its bits')).includes('Correct.'));
 
 // ---------------------------------------------------------------- phone width
 await page.setViewport({ width: 390, height: 800, deviceScaleFactor: 1 });

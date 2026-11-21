@@ -91,8 +91,11 @@ your GPU, or none, and why. The labs page asks for one number from that
 If a fix needs an atomic: on CUDA, the book's `cuda::atomic_ref<unsigned int, scope>` and
 `fetch_add(..., cuda::memory_order_relaxed)`, with the scope chosen from the threads that
 share the counter; on HIP, the legacy `atomicAdd` beside it under `#if
-defined(__HIPCC__)`, because `<cuda/atomic>` comes from libhipcxx there, which the course's
-HIP build links only where ROCm provides it (`notes/today/infra-facts.md` B1, B2); on Metal, atomic functions take
+defined(__HIPCC__)`, because `<cuda/atomic>` comes from libhipcxx there. The course's HIP
+build links `libhipcxx::libhipcxx` when CMake finds it (it ships with ROCm 10.1 and later,
+`notes/today/infra-facts.md` B2). Without it, code that includes `<cuda/atomic>` does not
+build. With it, no ROCm machine has built this course's code yet (unverified). The legacy
+call, documented for shared and global memory (B1), needs no extra library. On Metal, atomic functions take
 atomic types only, so the fix changes the parameter to `device atomic_uint*` and uses
 `atomic_fetch_add_explicit` (infra-facts C1). The host still allocates a plain 32-bit counter.
 

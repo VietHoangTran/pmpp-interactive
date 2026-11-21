@@ -389,7 +389,7 @@ export function Wrap() {
             <tr>
               <td>1 (c, d, e)</td>
               <td>Active and divergent warps, SIMD efficiency, loop iterations</td>
-              <td>the ten-number prediction and the warp stepper in <a href={href('ch04', '4.5')}>4.5</a></td>
+              <td>the ten-number prediction and the divergence simulator in <a href={href('ch04', '4.5')}>4.5</a></td>
             </tr>
             <tr>
               <td>2, 3</td>

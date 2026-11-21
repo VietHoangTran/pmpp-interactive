@@ -7,6 +7,7 @@ import {
   LabResults,
   LabsIntro,
   LabsPage,
+  RaceStatus,
   ReferenceSolution,
   RunningLabs,
   VerificationStatus,
@@ -16,11 +17,9 @@ import {
   msCol,
   numCol,
   rawCol,
-  useLabs,
   type BenchSet,
-  type Lab,
 } from '../../components/LabKit';
-import { fmt, labStatus, num, type BenchRow, type Reports, type RunResult } from '../../lib/reports';
+import { fmt, num, type BenchRow, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
 
 // The page is built from components/LabKit.tsx; what is here is chapter 14's own content.
@@ -157,43 +156,6 @@ const wallCol = {
   cell: (r: BenchRow) => (num(r.wall_seconds) != null ? fmt(num(r.wall_seconds)! * 1000) : r.name === 'oddeven' ? fmt(num(r.seconds)! * 1000) : ''),
 };
 
-// ---------------------------------------------------------------- the race backend, per lab
-/** One line on a lab's runs on the race backend, which the status table does not show. */
-function RaceLine({ lab }: { lab: Lab }) {
-  const { reports, loading } = useLabs();
-  const run = reports.race;
-  const line = (variant: 'solution' | 'work') => {
-    const rs = (run?.results.filter((x) => x.lab === lab.id && x.variant === variant) ?? []) as (RunResult & { tsan?: unknown[] })[];
-    const tests = rs.flatMap((x) => x.tests);
-    const found = rs.reduce((n, x) => n + (Array.isArray(x.tsan) ? x.tsan.length : 0), 0);
-    return { s: labStatus(run, lab.id, variant), tests, passed: tests.filter((t) => t.pass).length, found };
-  };
-  const sol = line('solution');
-  const mine = line('work');
-  return (
-    <p data-race={lab.num} data-race-status={loading ? 'loading' : sol.s} data-race-work={loading ? 'loading' : mine.s}>
-      {loading ? (
-        'Reading reports.'
-      ) : !run ? (
-        'No run on the race backend on this machine yet.'
-      ) : (
-        <>
-          {sol.s === 'none'
-            ? `On this machine the reference solution of lab ${lab.num} has no run on the race backend yet.`
-            : sol.s === 'pass'
-              ? `On this machine the reference solution of lab ${lab.num} passed all ${sol.tests.length} tests on the race backend with ${sol.found ? `${sol.found} ThreadSanitizer report(s)` : 'no race reported'}: emulator-checked on this flavour.`
-              : `On this machine the reference solution of lab ${lab.num} failed on the race backend (${sol.passed} of ${sol.tests.length} tests): unverified there.`}{' '}
-          {mine.s === 'none'
-            ? 'Your own kernels have no recorded run there, or are still the untouched starter.'
-            : mine.s === 'pass'
-              ? `Your own kernels passed all ${mine.tests.length} tests there with ${mine.found ? `${mine.found} ThreadSanitizer report(s): read them` : 'no race reported'}.`
-              : `Your own kernels passed ${mine.passed} of ${mine.tests.length} tests there, with ${mine.found} ThreadSanitizer report(s) in the run.`}
-        </>
-      )}
-    </p>
-  );
-}
-
 // ---------------------------------------------------------------- the page
 export function Labs() {
   return (
@@ -232,8 +194,8 @@ export function Labs() {
         right: a flag in lab 14.1, a tile and its scans in lab 14.2, a histogram, a tile and running offsets in lab 14.3.{' '}
         <code>python3 labs/pmpp.py run 14.1 --backend race</code> runs a block's threads at once under ThreadSanitizer,
         which reports two accesses to one location with nothing ordering them, with both source lines. A clean run is
-        evidence, not proof: it sees only the schedules that happened, and it can miss a race between two barriers
-        (lab 14.2's tests say how).
+        evidence, not proof: it sees only the schedules that happened (lab 14.2's tests show what that means for a
+        missing barrier).
       </p>
       <VerificationStatus />
       <p>
@@ -364,7 +326,7 @@ export function Labs() {
         race backend a plain store to the flag is reported as a data race with both source lines; the emulator cannot see
         it, because it never interrupts a thread between synchronisation points.
       </p>
-      <RaceLine lab={l1} />
+      <RaceStatus lab={l1} />
 
       <h3>Before you benchmark</h3>
       <p>
@@ -502,12 +464,13 @@ export function Labs() {
       </p>
       <Beyond>
         <p>
-          Why the race flavour misses it: it shares one ThreadSanitizer token between all of a block's{' '}
-          <code>__syncthreads()</code>, which hides races between two barriers (<code>labs/ch14/snippets/README.md</code>,
-          the wrap kernel).
+          When we planted it, the race flavour shared one ThreadSanitizer token between all of a block's{' '}
+          <code>__syncthreads()</code>, which could hide a race between two barriers. It now alternates two tokens per
+          barrier, and on 2026-11-21 it reported the wrap page's missing barrier on its source lines
+          (<code>labs/ch14/snippets/README.md</code>); the planted defect of this lab has not been run again since.
         </p>
       </Beyond>
-      <RaceLine lab={l2} />
+      <RaceStatus lab={l2} />
 
       <h3>Before you benchmark</h3>
       <p>
@@ -583,8 +546,8 @@ export function Labs() {
         <code>sortedProbs</code> as unsigned views (a cast in CUDA; buffers bound as <code>device const uint*</code> and{' '}
         <code>device uint*</code> in Metal), so the −0.0 test, the sign test and the copy are integer work. On Metal both
         candidate default math modes allow "no signed zeros", so a float-side zero test may be rewritten. On HIP,{' '}
-        <code>__float_as_uint</code> is in the header but not in AMD's math reference, and the course's emulator does not
-        provide it: the unsigned view is the form that works everywhere.
+        <code>__float_as_uint</code> is in the header but not in AMD's math reference. The unsigned view needs no
+        bit-cast intrinsic at all, which makes it the form that works on every backend.
       </p>
       <Today checked="2026-11-20 (notes/today/ch14-facts.md A8, B6, C3)">
         <p>
@@ -653,7 +616,7 @@ export function Labs() {
           documented as not stable, so it is not the reference.
         </p>
       </Today>
-      <RaceLine lab={l3} />
+      <RaceStatus lab={l3} />
 
       <h3>The library route, per backend</h3>
       <p>

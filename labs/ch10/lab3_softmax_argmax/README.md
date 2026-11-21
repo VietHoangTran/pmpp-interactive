@@ -114,8 +114,10 @@ largest value at two columns, an exact tie. For a batch of 4 sequences, each ste
 rows of the current tokens into a `[4 x V]` logits buffer, calls `launchArgmaxRows`, and
 feeds the indices back as the next tokens. After 16 steps the sequences must match the CPU's.
 
-That is greedy decoding end to end for a table, not for a language model. A real checkpoint
-comes at milestone M10; the kernel it will call is this one.
+That is greedy decoding end to end for a table, not for a language model. Milestone M10
+(lab X3.2) runs a small Llama-style model, which a script in the repository writes from a
+fixed seed, and its greedy step calls the reference solution of this lab's
+`launchArgmaxRows`, not your `work/` copy.
 
 ## Before you benchmark
 
@@ -162,4 +164,7 @@ banned tokens). They come back with the mask and softmax kernel of chapter 20.
   checks that 256 threads make whole SIMD-groups with no more groups than lanes, and sizes
   the per-SIMD-group threadgroup memory from it (a multiple of 16 bytes, ch05-facts C8).
 - `kernel.cu` declares `expf` under `PMPP_CUDA_FRONTEND_CHECK`, a macro only the course's
-  CUDA front-end check defines: that check has no CUDA math declarations of its own yet.
+  CUDA front-end check defines. The check's stub now declares `expf` and the other
+  single-precision math functions itself, so that declaration is redundant (and harmless).
+  The comment above it in `kernel.cu` (and in `shared/rowwise_naive.cu`), which says the
+  check declares no CUDA Math API functions, predates that change and is out of date.

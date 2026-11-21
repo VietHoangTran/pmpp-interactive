@@ -300,7 +300,7 @@ export const questionsSC7: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Everything works, malloc pointers included: concurrent access means full support.',
+        label: 'Everything works, malloc and mmap pointers included: concurrent managed access means the top paradigm.',
         why: 'Full support covers managed allocations. Memory from malloc needs PageableMemoryAccess = 1.',
       },
       {
@@ -309,10 +309,10 @@ export const questionsSC7: Record<string, Question> = {
       },
       {
         label:
-          'Full Unified Memory for managed allocations only. The CPU may touch managed memory while kernels run and pages migrate on fault, but a kernel cannot use pointers from malloc.',
+          'Full Unified Memory for managed allocations only: concurrent CPU access and migration on fault, but no malloc pointers in kernels.',
         correct: true,
       },
-      { label: 'Managed memory is not supported.', why: 'Both of these attributes describe how managed memory is supported; neither says it is missing.' },
+      { label: 'Managed memory is not supported, because PageableMemoryAccess = 0 rules it out.', why: 'Both of these attributes describe how managed memory is supported; neither says it is missing.' },
     ],
     explain: (
       <p>
@@ -332,13 +332,13 @@ export const questionsSC7: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'It works: the GPU faults on each node and the page migrates.', why: 'Page faulting on this machine covers managed allocations only. Memory from new is not managed.' },
-      { label: 'It works, more slowly, over the interconnect.', why: 'That would be mapped (zero-copy) memory, which new does not give you either.' },
+      { label: "It works: the GPU faults on each node, and the driver migrates that node's page to GPU memory.", why: 'Page faulting on this machine covers managed allocations only. Memory from new is not managed.' },
+      { label: 'It works, more slowly, because each node is read in place over the interconnect.', why: 'That would be mapped (zero-copy) memory, which new does not give you either.' },
       {
-        label: 'It fails. Pascal\'s page faulting covers managed allocations; system-allocated memory needs HMM or ATS.',
+        label: "It fails: Pascal's faulting covers managed memory; new needs HMM or ATS.",
         correct: true,
       },
-      { label: 'It works only if the list fits in GPU memory.', why: 'Size is not the issue. The GPU has no access to that memory at all.' },
+      { label: 'It works while the whole list fits in GPU memory, and fails once it outgrows it.', why: 'Size is not the issue. The GPU has no access to that memory at all.' },
     ],
     explain: (
       <p>
@@ -354,10 +354,10 @@ export const questionsSC7: Record<string, Question> = {
     id: 'appC/C.7/q-wsl',
     prompt: <>The same program runs under WSL on the same GPU. Which managed-memory behaviour applies?</>,
     options: [
-      { label: 'The same as native Linux on that GPU.', why: 'The paradigm depends on the platform as well as the GPU. NVIDIA lists Windows and WSL among the limited systems.' },
-      { label: 'HMM: WSL runs a Linux kernel.', why: 'NVIDIA lists WSL with Windows, in the limited paradigm.' },
+      { label: 'The same as native Linux on that GPU, since the paradigm is a property of the GPU.', why: 'The paradigm depends on the platform as well as the GPU. NVIDIA lists Windows and WSL among the limited systems.' },
+      { label: 'HMM, or at least full Unified Memory: WSL runs a real Linux kernel, so the Linux rules apply.', why: 'NVIDIA lists WSL with Windows, in the limited paradigm.' },
       {
-        label: 'The limited one: managed memory moves in bulk at launch, the CPU may not touch it while the GPU runs, and there is no oversubscription.',
+        label: 'The limited one: bulk moves at launch, no CPU access while the GPU runs, no oversubscription.',
         correct: true,
       },
       { label: 'No managed memory at all.', why: 'Managed memory works there, with the limited rules.' },

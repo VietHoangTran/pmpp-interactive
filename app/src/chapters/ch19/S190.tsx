@@ -43,18 +43,18 @@ export const questionsS190: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: <>ceil(l / T): once by every block in its row of blocks.</>, correct: true },
+      { label: <>ceil(l / T): once by each block in its row of blocks.</>, correct: true },
       {
-        label: 'Once.',
+        label: 'Once: after the first block loads it, shared memory serves every other block.',
         why: 'That is the ideal. Every block that needs the element loads it into its own shared memory, and blocks do not share.',
       },
       {
-        label: <>ceil(j / T).</>,
-        why: 'That counts the blocks in one column of the output. An element of A is needed along its row of Y.',
+        label: <>ceil(j / T): once by each block in its column of blocks.</>,
+        why: 'That counts the blocks in one column of the output. An element of A is needed along its row of Y, which crosses the columns.',
       },
       {
-        label: 'T times.',
-        why: 'Tiling divides the fetches by T compared with one thread per output. What is left is one fetch per block that needs the element.',
+        label: 'T times: once in each of the T phases of its block.',
+        why: 'A block loads a given element of A in one phase only. Tiling divides the fetches by T compared with one thread per output; what is left is one fetch per block that needs the element.',
       },
     ],
     explain: (
@@ -126,19 +126,19 @@ export const questionsS190: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Neither does. Both compute what frameworks call cross-correlation, so the book’s layer and nn.Conv2d agree term for term.',
+        label: 'Neither does: both compute what frameworks call cross-correlation.',
         correct: true,
       },
       {
-        label: 'PyTorch flips it; the book does not.',
+        label: 'PyTorch flips it, as signal processing does; the book’s formula does not.',
         why: 'PyTorch documents nn.Conv2d as a valid 2D cross-correlation, which has no flip.',
       },
       {
-        label: 'The book flips it; PyTorch does not.',
+        label: 'The book flips it, as signal processing does; PyTorch does not.',
         why: 'Chapter 7’s formula walks the filter and the input in the same direction, so nothing is reversed.',
       },
       {
-        label: 'Both flip it, but only for odd filter sizes.',
+        label: 'Both flip it when the filter size is odd.',
         why: 'Flipping does not depend on the size of the filter, and neither of them flips.',
       },
     ],
@@ -269,9 +269,12 @@ export function S190() {
         </p>
       </Today>
       <p>
-        The chapter&rsquo;s kernels use only threads, blocks, shared memory and barriers. They compile for HIP unchanged,
-        and on Metal they are rewritten in MSL with <code>threadgroup</code> arrays and{' '}
-        <code>threadgroup_barrier</code>.
+        The chapter&rsquo;s kernels use only threads, blocks, shared memory and barriers, and for those one{' '}
+        <code>.cu</code> file is set up to build for HIP unchanged through the course&rsquo;s{' '}
+        <code>pmpp/vendors/hip.h</code> (documented, ch19-facts B1); it has not been compiled or run on AMD hardware here.
+        That would stop being true if they used warp <code>_sync</code> intrinsics, cooperative groups, half-precision
+        headers, CUB functors, matrix-core intrinsics or <code>__dp4a</code> (HIP has none), which they do not. On Metal they are rewritten in MSL with{' '}
+        <code>threadgroup</code> arrays and <code>threadgroup_barrier</code>.
       </p>
       <Beyond>
         <p>The book covers CUDA only. Checked against vendor documentation (ch19-facts B1, C1).</p>

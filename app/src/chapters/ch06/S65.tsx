@@ -447,7 +447,7 @@ export const questionsS65: Record<string, Question> = {
     options: [
       { label: 'Lanes 16 bytes apart: the instruction touches 16 sectors and uses a quarter of each.', correct: true },
       { label: 'Perfectly coalesced, because each thread reads consecutive addresses.', why: 'Coalescing is about the lanes of one instruction, not about one thread over time. In one instruction, neighbouring lanes are four floats apart.' },
-      { label: 'Uncoalesced only on AMD.', why: 'The addresses are the same on every device. NVIDIA documents the 32-byte sector this counts with (A2); AMD groups a wavefront\'s addresses into cache lines (B1).' },
+      { label: 'Coalesced on NVIDIA but not on AMD, whose 64-lane wavefronts span twice as many bytes.', why: 'The addresses are the same on every device. NVIDIA documents the 32-byte sector this counts with (A2); AMD groups a wavefront\'s addresses into cache lines (B1).' },
     ],
     explain: (
       <p>

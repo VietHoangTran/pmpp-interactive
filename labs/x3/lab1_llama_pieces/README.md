@@ -1,4 +1,4 @@
-# Lab X3.1: the Llama pieces the course has not built, and a port review (milestone M10)
+# Lab X3.1: the Llama pieces the course has not built, and a port review (pieces for milestone M10)
 
 Not in the book: module X3 is ours. The reduction is lab 10.3's (the book's two-stage
 reduction, section 10.8, Fig. 10.16, p. 243, with that lab's corrections). What the kernels

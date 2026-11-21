@@ -75,7 +75,7 @@ export const questionsS80: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'The one after the writes.',
+        label: 'The one between the writes and the compute.',
         why: 'Threads still read what other threads wrote. They must not read it before it is there, whatever buffer it is in.',
       },
       { label: 'The one after the compute.', correct: true },
@@ -105,15 +105,14 @@ export const questionsS80: Record<string, Question> = {
       {
         label: (
           <>
-            With only constant indices (<code>acc[0]</code> to <code>acc[3]</code>) the compiler can keep the array in
-            registers.
+            With constant indices, <code>acc[0]</code> to <code>acc[3]</code> can be kept in four registers.
           </>
         ),
         correct: true,
       },
-      { label: 'Unrolling removes a barrier from the loop.', why: 'There is no barrier in this loop; unrolling copies the body, it does not change what synchronises.' },
-      { label: 'Unrolling raises the kernel\'s FLOP/B.', why: 'The same bytes move and the same operations run. Where acc lives changes, not the global traffic.' },
-      { label: 'Unrolling is needed for the loads to coalesce.', why: 'Coalescing depends on which addresses the lanes of a warp touch at once, not on the loop structure inside one thread.' },
+      { label: 'Unrolling removes the barrier the loop needs between one update of acc and the next.', why: 'There is no barrier in this loop; unrolling copies the body, it does not change what synchronises.' },
+      { label: 'Unrolling raises the kernel\'s FLOP/B, because the loop\'s index arithmetic no longer runs.', why: 'Loop-counter arithmetic is integer work, and FLOP/B never counted it. The floating-point operations and the global bytes are unchanged. Where acc lives changes, not the global traffic.' },
+      { label: 'Unrolling is needed for the loads inside the loop to coalesce across the warp.', why: 'Coalescing depends on which addresses the lanes of a warp touch at once, not on the loop structure inside one thread.' },
     ],
     explain: (
       <p>
@@ -217,7 +216,7 @@ export function S80() {
         Along the way it gives a third, smaller thing: the FLOP/B bookkeeping for a tile with a halo in three
         dimensions, where the halo turns out to be most of the tile. The book itself ties the chapter's coarsening to
         matrix multiplication, in chapter 6 (p. 153) and again in chapter 15 (p. 352). That is where you will use it: the
-        coarsened, register-tiled GEMM of chapter 15 is milestone M3.
+        coarsened, register-tiled GEMM of <a href={href('ch15', 'start')}>chapter 15</a> is milestone M3.
       </p>
 
       <h2>The background in two sentences</h2>

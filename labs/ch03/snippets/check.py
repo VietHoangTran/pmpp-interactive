@@ -4,8 +4,8 @@ about them. Every claim a chapter 3 page marks "emulator-checked" for a snippet 
 lab) comes from here, so that anyone can repeat it:
 
   launch_checked.cu    section 3.1: a (32, 32, 2) block is rejected and leaves the buffer
-                       alone; the emulator runs a (1, 1, 128) block and a 65,536-block grid
-                       along y, and rejects a zero dimension
+                       alone; a (1, 1, 128) block, a 65,536-block grid along y and a zero
+                       dimension are rejected too
   scale_rows_defect.cu summary page: column 0 always ends at 1.0; the counts of 1.0 under
                        the three thread orders are the ones the page quotes
   blur_kernel.cu       section 3.3: Fig. 3.8 matches a CPU reference

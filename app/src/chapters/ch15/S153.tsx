@@ -87,7 +87,9 @@ function Listing() {
           The reference solution of lab 15.1, loaded from <code>labs/ch15/lab1_coarse/solution/</code>; the statuses
           come from this machine's reports. Try the <a href={href('ch15', 'labs')}>lab</a> first: you will learn more
           from your own version's mistakes than from reading this one. The same CUDA file is the HIP source, through
-          the course's header; no HIP machine has built it yet.
+          the course's <code>pmpp/vendors/hip.h</code>. That holds for this kernel because it uses only threads,
+          blocks, shared memory and barriers; warp intrinsics would need a 64-bit lane mask on HIP, and matrix
+          instructions different builtins (section 15.9). No HIP machine has built it yet (unverified).
         </>
       }
     />
@@ -624,13 +626,13 @@ export const questionsS153: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'It works the same: 256 threads either way.', why: 'The count is the same; the kernel only ever reads threadIdx.x, which now runs from 0 to 15.' },
+      { label: 'It works the same: 256 threads either way, and the kernel only depends on how many there are.', why: 'The count is the same; the kernel only ever reads threadIdx.x, which now runs from 0 to 15.' },
       {
-        label: 'threadIdx.x runs only from 0 to 15, so ty is always 0: groups of 16 threads duplicate the top row of patches, rows 8 to 127 of the block tile are never written, and loadTile fills only part of each tile.',
+        label: 'Wrong results: threadIdx.x stops at 15, so ty is always 0; only the top row of patches is written, 16 threads to each, and the tiles are only partly loaded.',
         correct: true,
       },
-      { label: 'It fails to launch, because NUM_THREADS_PER_BLOCK is 256 and the block is two-dimensional.', why: 'A 16 × 16 block is a legal launch; nothing checks the shape against the constant.' },
-      { label: 'The results are right but slower, because of duplicated work.', why: 'Most of the tile is never written, and what is written is computed from slots nobody loaded.' },
+      { label: 'It fails to launch: the kernel assumes a one-dimensional block of NUM_THREADS_PER_BLOCK, and the runtime rejects 16 × 16.', why: 'A 16 × 16 block is a legal launch; nothing checks the shape against the constant.' },
+      { label: 'The results are right but slower, because 16 threads compute each patch and write identical values.', why: 'Most of the tile is never written, and what is written is computed from slots nobody loaded.' },
     ],
     explain: (
       <p>
@@ -667,11 +669,11 @@ export const questionsS153: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Only speed. If the compiler then leaves the loop rolled, C_r is indexed by a variable and may be placed in local memory, which costs time, not correctness.',
+        label: 'Only speed: rolled, the loop indexes C_r with a variable, so C_r may be placed in local memory.',
         correct: true,
       },
-      { label: 'The kernel no longer compiles, because a register array needs constant indices.', why: 'Indexing a local array with a variable is ordinary C++. Where the array lives is the compiler\'s decision.' },
-      { label: 'The results become wrong, because C_r is then shared between the threads of a block.', why: 'Local memory is private to each thread, like registers. Only its speed differs.' },
+      { label: 'The kernel no longer compiles: C_r is meant to live in registers, and a register array cannot be indexed by a loop variable.', why: 'Indexing a local array with a variable is ordinary C++. Where the array lives is the compiler\'s decision.' },
+      { label: 'The results become wrong: once C_r leaves the registers it sits in memory the threads of a block share.', why: 'Local memory is private to each thread, like registers. Only its speed differs.' },
       { label: 'Nothing: the pragma is decoration.', why: 'NVIDIA does say small loops with a known trip count are unrolled by default, so this one may well be. But you cannot know without looking.' },
     ],
     explain: (
@@ -696,12 +698,12 @@ export const questionsS153: Record<string, Question> = {
     ),
     options: [
       {
-        label: `${DECODE.big} against ${DECODE.small}. On a GPU with more than ${DECODE.big} SMs some have nothing to do, and every block computes 127 rows of zeros.`,
+        label: `${DECODE.big} against ${DECODE.small}, and each 128 × 128 block computes 127 rows of zeros.`,
         correct: true,
       },
-      { label: `${DECODE.big} against ${DECODE.big}: the grid only depends on N.`, why: 'Both grids are one block tall here, but a 16-wide block tile needs eight times as many blocks across 4096 columns.' },
-      { label: '1 against 16.', why: 'The grid is ceil(N / bN) by ceil(M / bM).' },
-      { label: `${DECODE.small} against 4096.`, why: 'Count block tiles: 4096 / 128 across, 1 down.' },
+      { label: `${DECODE.big} against ${DECODE.big}: the grid depends only on N, and both cover 4096 columns in one row of blocks.`, why: 'Both grids are one block tall here, but a 16-wide block tile needs eight times as many blocks across 4096 columns.' },
+      { label: '1 against 16: M = 1 fits inside one block tile.', why: 'The grid is ceil(N / bN) by ceil(M / bM).' },
+      { label: `${DECODE.small} against 4096: one block per 16 outputs, and one per output.`, why: 'Count block tiles: 4096 / 128 across, 1 down.' },
     ],
     explain: (
       <p>
@@ -967,7 +969,8 @@ export function S153() {
       </Today>
       <Ask q={questionsS153['ch15/15.3/q-decode-blocks']} />
       <p>
-        For HIP the same <code>.cu</code> is the source, through the course's header (no HIP build has run yet). One
+        For HIP the same <code>.cu</code> is the source, through the course's header, which works here because the
+        kernel uses only threads, blocks, shared memory and barriers (no HIP build has run yet: unverified). One
         attribute in it matters more there than on CUDA: <code>__launch_bounds__(256)</code>, which tells the compiler the block will never be larger.
         Section 15.7 explains why a kernel with 64 accumulators per thread wants it.
       </p>

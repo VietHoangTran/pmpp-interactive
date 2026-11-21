@@ -429,7 +429,7 @@ export const questionsSX25: Record<string, Question> = {
     id: 'x2/X2.5/q-metal',
     prompt: <>Metal has no per-thread integer dot product. What do llama.cpp, MLX and PyTorch do in their Metal 4-bit matrix-vector kernels?</>,
     options: [
-      { label: 'Stay in float: masked nibbles times pre-divided activations, offset folded via Σx.', correct: true },
+      { label: 'Stay in float: masked nibbles times pre-divided activations.', correct: true },
       { label: 'Quantise the activations to int8 per block and multiply bytes in a loop.', why: 'None of them quantises the activations on Metal; that is llama.cpp’s CUDA and HIP path.' },
       { label: 'Call Apple\'s tensor API with int4b_format operands for the weights.', why: 'Apple added 4-bit integer operands to its tensor API, but a code search found neither llama.cpp nor MLX using int4b_format.' },
       { label: 'Dequantise each weight to half and accumulate with dot on half4 vectors.', why: 'That would accumulate in half (dot of half4 returns half). llama.cpp converts to float4 before dot.' },
@@ -594,10 +594,12 @@ export function SX25() {
 
       <h2>What each backend offers for a byte dot product</h2>
       <p>
-        Here the portability story of the course gets a new entry. The list of things one <code>.cu</code> file does
-        not do unchanged for HIP already had warp masks, cooperative groups, half-precision headers and matrix
-        intrinsics. Add the per-thread integer dot product: CUDA's <code>__dp4a</code> does not exist under HIP, and
-        the AMD builtins that replace it depend on the GPU generation.
+        Here the portability story of the course gets a new entry. One <code>.cu</code> file builds for HIP unchanged
+        through <code>pmpp/vendors/hip.h</code> for threads, blocks, shared memory, barriers, legacy atomics and
+        runtime calls. The list of what does not already had warp <code>_sync</code> intrinsics (HIP wants a 64-bit
+        lane mask), cooperative groups, half-precision headers, CUB functors and matrix intrinsics. Add the per-thread
+        integer dot product: CUDA's <code>__dp4a</code> does not exist under HIP, and the AMD builtins that replace it
+        depend on the GPU generation.
       </p>
       <Today checked={`${CHECKED}, A2, A3, B1, B2, B4, C1)`}>
         <p>

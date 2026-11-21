@@ -52,8 +52,8 @@ is ours:
   compiles `SIMD_WIDTH` from the pipeline's `threadExecutionWidth` (C1).
 - **float4 paths.** Loads need `in % 4 == 0`, stores `out % 4 == 0`, and pointers that are
   the allocations themselves: 16-byte aligned on CUDA, where `cudaMalloc` aligns to at
-  least 256 bytes (ch06-facts A3); on HIP, `hipMalloc`'s alignment is undocumented in the
-  course's facts, so the float4 paths there are unverified. On Metal they go through buffers declared
+  least 256 bytes (ch06-facts A3); on HIP, AMD's memory reference states no alignment for
+  `hipMalloc` (ch15-facts B8), so the float4 paths there are unverified. On Metal they go through buffers declared
   `device float4*`, Metal's documented route, not a pointer cast (ch06-facts C3).
 - **The 4096 -> 4096 layer** in the benchmark is our choice, a 7B-class hidden size.
 

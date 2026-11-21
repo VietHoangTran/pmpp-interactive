@@ -534,15 +534,15 @@ export const questionsS158: Record<string, Question> = {
     prompt: <>In Fig. 15.12(a), which barriers guard a false dependence?</>,
     options: [
       {
-        label: 'The ones after each compute, before the next load: the next load collides with the current tiles only because it writes the same memory.',
+        label: 'The ones after each compute, before the next load.',
         correct: true,
       },
       {
-        label: 'The ones after each load, before the compute.',
+        label: 'The ones after each load: the compute waits there only because the tile happens to sit in shared memory.',
         why: 'The compute reads elements other threads loaded. That is data flowing from writer to reader, a true dependence, and no amount of memory removes it.',
       },
       { label: 'All of them: each barrier exists only because the tiles are shared.', why: 'Sharing is the point of the tiles. Readers need what writers produce; that part is real.' },
-      { label: 'None: every barrier in a tiled loop protects data.', why: 'The load of pair i + 1 uses nothing compute i produced. It waits only to avoid overwriting.' },
+      { label: 'None: every barrier in a tiled loop protects data that some thread needs.', why: 'The load of pair i + 1 uses nothing compute i produced. It waits only to avoid overwriting.' },
     ],
     explain: (
       <p>
@@ -564,7 +564,7 @@ export const questionsS158: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'They touch different buffers, and the barrier at the end of iteration i means no thread starts iteration i + 1, which loads into the buffer read in iteration i, until every thread has finished reading it.',
+        label: 'They use different buffers, and the barrier ending iteration i keeps every thread from refilling a buffer until all have finished reading it.',
         correct: true,
       },
       {
@@ -572,11 +572,11 @@ export const questionsS158: Record<string, Question> = {
         why: 'A write over a slot that another thread has yet to read is exactly the conflict the false-dependence barrier was for.',
       },
       {
-        label: 'Because all threads of a block execute mm and loadTile in lockstep.',
+        label: 'Because all threads of a block execute mm and loadTile in lockstep, so none can run ahead.',
         why: 'Only a warp might, and the block has eight. The stepper\'s lockstep order shows what that assumption would hide.',
       },
       {
-        label: 'It is not safe; the compiler inserts a barrier there.',
+        label: 'It is not safe on its own; the compiler inserts a barrier where the buffers are shared.',
         why: 'Compilers do not insert barriers. The outcome table shows the loop is correct under every thread order.',
       },
     ],
@@ -644,11 +644,11 @@ export const questionsS158: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'numTiles is 0, so numTiles - 1 wraps to 4,294,967,295: the loop runs, and its loads, whose bounds are computed in unsigned arithmetic too, read far out of bounds.',
+        label: 'numTiles - 1 wraps to 4,294,967,295: the loop runs, and loads with unsigned bounds read far out of bounds.',
         correct: true,
       },
-      { label: 'numTiles is 0, so the loop body never runs and C is all zeros.', why: 'That is what Fig. 15.3\'s loop, tile < numTiles, would do. Subtracting 1 from an unsigned 0 does not give -1.' },
-      { label: 'Division by zero.', why: 'The divisor is bK, which is 8. The dividend is what is 0.' },
+      { label: 'numTiles is 0, so numTiles - 1 is -1 and the loop never runs; only the epilogue\'s mm executes, on a zero-filled tile, and C is all zeros.', why: 'That is what Fig. 15.3\'s loop, tile < numTiles, would do. Subtracting 1 from an unsigned 0 does not give -1.' },
+      { label: 'A division by zero in the tile count, which traps before the loop starts.', why: 'The divisor is bK, which is 8. The dividend is what is 0.' },
     ],
     explain: (
       <p>
@@ -690,7 +690,7 @@ export const questionsS158: Record<string, Question> = {
     prompt: <>On HIP and on Metal, what fills the next buffer while the current one is being used?</>,
     options: [
       {
-        label: 'Ordinary loads into registers and stores to shared memory, by the same threads that compute: this software pipeline. Neither documents a usable asynchronous global-to-shared copy today.',
+        label: 'Ordinary loads and shared-memory stores by the computing threads themselves: this section\'s software pipeline.',
         correct: true,
       },
       {
@@ -702,8 +702,8 @@ export const questionsS158: Record<string, Question> = {
         ),
         why: 'AMD\'s documentation names that intrinsic, but it does not exist in the ROCm 10.2 compiler.',
       },
-      { label: 'The tensor memory accelerator.', why: 'TMA is NVIDIA hardware, compute capability 9.0 and later.' },
-      { label: 'A prefetch into threadgroup memory that Metal performs by itself.', why: 'Apple documents none: the Metal Shading Language specification has no asynchronous copy at all.' },
+      { label: 'The tensor memory accelerator, which AMD and Apple GPUs reach through their own copy interfaces.', why: 'TMA is NVIDIA hardware, compute capability 9.0 and later.' },
+      { label: 'A prefetch into threadgroup memory that Metal schedules by itself when a kernel reads the same device buffer in a loop.', why: 'Apple documents none: the Metal Shading Language specification has no asynchronous copy at all.' },
     ],
     explain: (
       <p>
@@ -721,11 +721,11 @@ export const questionsS158: Record<string, Question> = {
     prompt: <>Why does warp specialisation not depend on the compiler ordering instructions well?</>,
     options: [
       {
-        label: 'Loads and FMAs are issued by different warps, and the warp scheduler interleaves warps as it goes, so the overlap comes from scheduling in hardware.',
+        label: 'Different warps issue the loads and the FMAs, and the hardware interleaves warps.',
         correct: true,
       },
-      { label: 'Because specialised warps need no barriers.', why: 'The compute warps still have to wait for a tile to be complete before reading it.' },
-      { label: 'Because the compiler is not involved in code for specialised warps.', why: 'It compiles their code like any other. What changes is that no single warp\'s instruction order has to contain both kinds of work.' },
+      { label: 'Specialised warps need no barriers, so nothing stops the scheduler from running the loads early.', why: 'The compute warps still have to wait for a tile to be complete before reading it.' },
+      { label: 'The compiler is not involved in code for specialised warps: the hardware generates their instruction order.', why: 'It compiles their code like any other. What changes is that no single warp\'s instruction order has to contain both kinds of work.' },
     ],
     explain: (
       <p>

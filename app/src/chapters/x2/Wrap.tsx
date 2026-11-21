@@ -48,7 +48,7 @@ export const questionsWrap: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'A 4-byte load of the codes is aligned in every block; a 16-byte load only in every fourth block.', correct: true },
+      { label: '4-byte loads in every block; 16-byte loads only in every fourth.', correct: true },
       {
         label: 'Every load is aligned in every block, because 20 is a multiple of 4.',
         why: 'A multiple of 4 is enough for 4-byte loads, not for 16-byte ones: block i\'s codes start at 20i + 4, and 16 divides that only when i is 3, 7, 11, ...',
@@ -96,7 +96,7 @@ export const questionsWrap: Record<string, Question> = {
         why: 'Exact integers in different units still add to nonsense. 3 metres plus 2 feet is not 5 of anything.',
       },
       {
-        label: 'The first block\'s d_w × d_x is in FP16, so the one product loses precision.',
+        label: 'The first block\'s d_w × d_x is formed in FP16, so the rescale loses precision.',
         why: 'Both scales are widened to float before they are multiplied, and one rounding is tiny. The real error is far larger: the other 127 blocks have other scales.',
       },
     ],
@@ -184,7 +184,7 @@ export const questionsWrap: Record<string, Question> = {
         instructions. The quantised format saves memory and load time, and costs a little unpacking per tile.
       </p>
     ),
-    source: 'x2-facts D4 (mul_mm), A6; ch15 §15.6; ours',
+    source: 'x2-facts D4 (mul_mm), A6; ch. 15 and its lab 15.6; ours',
   },
 };
 
@@ -272,7 +272,8 @@ export function Wrap() {
       <h2>The module's exercises</h2>
       <p>
         The book has no exercises for this module, because it has no quantised kernel. The plan's goal for X2 is to write
-        an int8 and a 4-bit-weight GEMV and measure the bandwidth win. Here is where each part of that is worked.
+        an int8 and a 4-bit-weight GEMM and measure the bandwidth win; at decode, where the win is, that product is a
+        GEMV. Here is where each part of that is worked.
       </p>
       <table className="data wide" style={{ maxWidth: '58rem' }} data-table="exercises">
         <thead>
@@ -324,8 +325,10 @@ export function Wrap() {
         <li>
           <b>The integer dot.</b> CUDA has <code>__dp4a</code> from sm_61. HIP has no <code>__dp4a</code>: an undocumented
           header function and builtins that differ by target, the wrong one a compile error. MSL has no integer dot; its{' '}
-          <code>dot</code> of two <code>half4</code> returns <code>half</code>. "One .cu compiles for HIP unchanged" is not
-          true here.
+          <code>dot</code> of two <code>half4</code> returns <code>half</code>. One <code>.cu</code> builds for HIP unchanged
+          for threads, blocks, shared memory, barriers, legacy atomics and runtime calls; a byte dot product joins warp
+          masks, cooperative groups, half-precision headers, CUB functors and matrix intrinsics on the list where it
+          does not.
         </li>
         <li>
           <b>PyTorch's own page.</b> <code>torch.ao.quantization</code> is superseded by torchao, while the 2.15 page still
@@ -399,10 +402,13 @@ export function Wrap() {
         </tbody>
       </table>
       <p>
-        Next in this course's order is module X3, Reading real backends. It finds the kernels behind an op in llama.cpp,
+        Next in this course's order come chapters 7 and 19 and appendix C, then{' '}
+        <a href={href('x3')}>module X3, Reading real backends</a>. X3 finds the kernels behind an op in llama.cpp,
         MLX and PyTorch, including the quantised matrix-vector kernels this module rebuilt. Its milestone M10 is a
-        generated Llama-style model run end to end on the course's kernels and checked token by token. GGUF files made
-        for llama.cpp store their tensors in the block formats you can now read (x2-facts D1).
+        generated Llama-style model run end to end on the course's kernels and checked token by token, and M9 composes with
+        it: a provided adapter puts lab X2.4's <code>launchQLinear</code> in M10's linear-layer slot, so the same Llama step
+        runs with Q8_0 and Q4_0 weights. GGUF files made for llama.cpp store their tensors in the block formats you can now
+        read (x2-facts D1).
       </p>
     </>
   );

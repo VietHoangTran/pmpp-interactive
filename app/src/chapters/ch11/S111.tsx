@@ -493,10 +493,16 @@ export const questionsS111: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'It must drop it, like the CPU.', why: "The GPU's sum may round to just below p, and then it keeps the token." },
-      { label: 'It must keep it.', why: 'It may as well round to p or above.' },
       {
-        label: 'Either: its sum may round to just below or just above p, so a test must accept both inside a band set by the rounding bound.',
+        label: 'It must drop it, like the CPU: both compute the same exact mass.',
+        why: "Neither computes the exact mass: each rounds its own float sum, and the GPU's may land just below p, so it keeps the token.",
+      },
+      {
+        label: 'It must keep it: a tree adds the small values first, so its sum lands lower.',
+        why: 'It may as well round to p or above. The order of the additions does not fix the direction of the rounding.',
+      },
+      {
+        label: 'Either: inside a band set by the rounding bound, a test must accept both.',
         correct: true,
       },
       { label: 'Neither: the kernel is wrong if the sums differ at all.', why: 'Float addition is not associative. Two orders differing in the last bits is expected, not a bug.' },
@@ -521,13 +527,19 @@ export const questionsS111: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'The loop is faster.', why: 'Speed is not the point of a reference.' },
+      { label: 'The loop is faster on the CPU for the row lengths the labs test.', why: 'Speed is not the point of a reference.' },
       {
-        label: 'The standard does not fix the order of std::inclusive_scan, and says its result is non-deterministic for float addition; a reference must be reproducible.',
+        label: "The standard leaves std::inclusive_scan's order open, so float results may vary.",
         correct: true,
       },
-      { label: 'std::inclusive_scan computes an exclusive scan.', why: 'It computes the inclusive scan; std::exclusive_scan is the other one.' },
-      { label: 'std::inclusive_scan does not exist before C++20.', why: 'Both are in <numeric> since C++17.' },
+      {
+        label: 'std::inclusive_scan skips the element at each position: it is really the exclusive scan.',
+        why: 'It computes the inclusive scan; std::exclusive_scan is the other one.',
+      },
+      {
+        label: "std::inclusive_scan arrived only in C++20, newer than the labs' language standard.",
+        why: 'Both are in <numeric> since C++17.',
+      },
     ],
     explain: (
       <p>
@@ -681,11 +693,12 @@ export function S111() {
       <p>
         The sausage picture is also sampling itself. The inclusive scan of the probabilities cuts the interval from 0 to 1
         into one piece per token, as wide as its probability. Draw a uniform random number, find the piece it lands in,
-        and that is the sampled token. Module X1 builds that search.
+        and that is the sampled token. Module X1 builds that search in{' '}
+        <a href={href('x1', 'X1.8')}>X1.8, The draw: inverse CDF over a scan</a>.
       </p>
       <Aside>
         <p>
-          Forward reference: module X1 (sampling kernels) is ours, not the book's, and is still to come in this course.
+          Module X1 (sampling kernels) is ours, not the book's.
         </p>
       </Aside>
 

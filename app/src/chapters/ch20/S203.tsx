@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Ask, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
-import { defineLabs, solutionStatus } from '../../components/LabKit';
-import { Aside, Bench, Beyond, Simplification, Source, TierLegend, Today, type Tier } from '../../components/notes';
-import { useReports, type Reports } from '../../lib/reports';
+import { defineLabs, solutionTabStatus } from '../../components/LabKit';
+import { Bench, Beyond, Simplification, Source, TierLegend, Today, type Tier } from '../../components/notes';
+import { useReports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import { causalSoftmaxProblem } from '../../sim/attnref';
 import {
@@ -75,7 +75,7 @@ export const questionsS203: Record<string, Question> = {
     ),
     options: [
       { label: 'Thread 0 needs every private sum first, each made after that thread\'s line 14.', correct: true },
-      { label: 'The barrier at line 22 comes after the write and holds thread 0 back until all have read.', why: 'Line 22 comes after line 21; it cannot hold back a write that precedes it.' },
+      { label: 'The barrier at line 22 holds thread 0\'s line-21 write back until every thread has read.', why: 'Line 22 comes after line 21; it cannot hold back a write that precedes it.' },
       { label: 'Because max_or_sum is read only once, so a write-after-read is impossible.', why: 'It is read twice per thread (lines 14 and 23) and written twice; the hazard is real in principle.' },
       { label: 'It can happen; the model\'s thread orders just never produce it.', why: 'No order can: the value thread 0 writes does not exist until every thread has contributed.' },
     ],
@@ -521,7 +521,7 @@ function Stepper() {
         </div>
       </div>
       {fn ? (
-        <Code tabs={[{ label: 'softmax_kernel, corrected', code: fn.text, tiers: TIERS, status: 'front-end-checked; unverified on CUDA hardware' }]} highlight={cur ? [cur.line] : []} />
+        <Code tabs={[{ label: 'softmax_kernel, corrected', code: fn.text, tiers: TIERS, status: 'front-end-checked; unverified on CUDA and HIP' }]} highlight={cur ? [cur.line] : []} />
       ) : (
         <p className="muted">{src ? `Could not load labs/${SNIPPET}.` : 'Loading the kernel.'}</p>
       )}
@@ -667,35 +667,27 @@ function Traffic() {
 
 // ---------------------------------------------------------------- lab 20.1's reference solution
 const [LAB1] = defineLabs('ch20', [{ num: '20.1', dir: 'lab1_causal_softmax', name: 'causal softmax' }]);
-function cuStatus(reports: Reports): string {
-  const e = solutionStatus(reports, 'emu', LAB1);
-  const c = solutionStatus(reports, 'cuda', LAB1);
-  const h = solutionStatus(reports, 'hip', LAB1);
-  const dev =
-    c.tone !== 'ok' && h.tone !== 'ok'
-      ? 'unverified on CUDA and HIP hardware'
-      : [c.tone === 'ok' ? c.text : 'unverified on CUDA', h.tone === 'ok' ? h.text : 'unverified on HIP'].join('; ');
-  return `${e.tone === 'ok' ? e.text : 'emulator: ' + e.text}; ${dev}`;
-}
 
 function LabListing() {
   const { reports } = useReports();
   const cu = useLabFile('ch20/lab1_causal_softmax/solution/kernel.cu');
   const metal = useLabFile('ch20/lab1_causal_softmax/solution/kernel.metal');
   const mm = useLabFile('ch20/lab1_causal_softmax/solution/launch.mm');
-  const m = solutionStatus(reports, 'metal', LAB1);
+  const m = solutionTabStatus(reports, LAB1, 'kernel.metal');
   if (!cu || !metal || !mm) return <p className="muted">Loading lab 20.1&rsquo;s reference solution.</p>;
   return (
     <Code
       tabs={[
-        { label: 'CUDA', code: cu, tiers: LAB_TIERS, status: cuStatus(reports) },
-        { label: 'Metal kernel', code: metal, tiers: LAB_TIERS, status: m.tone === 'ok' ? m.text : 'Metal: ' + m.text },
-        { label: 'Metal host', code: mm, tiers: {}, status: m.tone === 'ok' ? m.text : 'Metal: ' + m.text },
+        { label: 'CUDA', code: cu, tiers: LAB_TIERS, status: solutionTabStatus(reports, LAB1, 'kernel.cu') },
+        { label: 'Metal kernel', code: metal, tiers: LAB_TIERS, status: m },
+        { label: 'Metal host', code: mm, tiers: {}, status: m },
       ]}
       caption={
         <>
           The reference solution of lab 20.1, loaded from <code>labs/ch20/lab1_causal_softmax/solution/</code>. Write
-          your own in the lab first. The HIP build compiles the CUDA file unchanged.
+          your own in the lab first. The HIP build is set up to take this file through <code>pmpp/vendors/hip.h</code>,
+          which can work only because its warp code uses a typed lane mask and <code>warpSize</code>, never a{' '}
+          <code>0xffffffff</code> literal or a fixed 32; it has not been compiled or run on AMD hardware (unverified).
         </>
       }
     />
@@ -888,12 +880,12 @@ export function S203() {
         At N = 4096 and d = 128 one head&rsquo;s S is 32 times the size of its Q. Use the explorer to find out what
         that means for a whole layer.
       </p>
-      <Aside>
+      <Simplification>
         <p>
           The counts are ours: the compulsory traffic of each kernel as written, with no cache help. The book makes the
           point in words: separate kernels mean several trips through global memory (pp. 492–493).
         </p>
-      </Aside>
+      </Simplification>
       <Traffic />
       <Ask q={questionsS203['ch20/20.3/q-sp-bytes']} label="Work it out" />
       <p>

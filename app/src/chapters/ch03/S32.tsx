@@ -1143,7 +1143,7 @@ function PixelTester() {
     <Bench
       title="What each version stores"
       task="Try pure red, then white. Which version gets which one wrong, and why?"
-      foot="Sums are computed in single precision, one rounded operation at a time, left to right. The swatches show the input colour and each stored gray."
+      foot="Sums are computed in single precision, one rounded operation at a time, left to right. The swatches show the input colour and each stored grey."
     >
       <div className="row" style={{ marginBottom: '0.8rem', alignItems: 'flex-end' }}>
         {(['r', 'g', 'b'] as const).map((ch, k) => (
@@ -1309,7 +1309,7 @@ export const questionsS32: Record<string, Question> = {
     options: [
       { label: 'The intended luminance, 0.21·r + 0.71·g + 0.07·b, truncated.', why: 'That needs the whole sum inside the parentheses of the cast.' },
       { label: 'The truncated value of 0.71·g + 0.07·b. Red contributes nothing.', correct: true },
-      { label: 'Always 0.', why: 'Only the first product is 0. The other two are computed in float and survive.' },
+      { label: '0 for every pixel, whatever its colour.', why: 'Only the first product is 0. The other two are computed in float and survive.' },
       { label: 'A value that can exceed 255 and wrap around.', why: 'The two remaining weights sum to 0.78, so the value stays below 199.' },
     ],
     explain: (
@@ -1331,9 +1331,9 @@ export const questionsS32: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'It works: one uchar3 is one three-byte pixel.', why: 'In Metal Shading Language uchar3 has size 4 and alignment 4.' },
+      { label: 'It works: one uchar3 is one three-byte pixel, so Pin[i] is pixel i.', why: 'In Metal Shading Language uchar3 has size 4 and alignment 4.' },
       { label: 'Each element is 4 bytes, so from the second pixel on it reads the wrong bytes.', correct: true },
-      { label: 'It does not compile: a buffer cannot hold a vector type.', why: 'Buffers may hold vector types. The trouble is their size.' },
+      { label: 'It does not compile: a device buffer cannot hold a vector type.', why: 'Buffers may hold vector types. The trouble is their size.' },
       { label: 'It reads the right bytes in the order b, g, r.', why: 'Nothing is reordered. The step between elements is wrong.' },
     ],
     explain: (

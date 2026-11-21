@@ -1037,20 +1037,20 @@ export const questionsS52: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Reading shared memory is faster than reading a register.',
+        label: 'Reading shared memory is faster than reading a register, so the arithmetic waits less for operands.',
         why: 'It is the other way round: shared memory needs a load instruction, a register operand does not.',
       },
       {
         label:
-          'A register belongs to one thread, so a value fetched into it serves that thread only. A value in shared memory is fetched once and every thread of the block can read it.',
+          'A register serves only its own thread. A value fetched once into shared memory can be read by every thread of the block.',
         correct: true,
       },
       {
-        label: 'A value held in a register still uses global-memory bandwidth each time it is read.',
+        label: 'A value held in a register still uses global-memory bandwidth each time it is read, as the register is refilled.',
         why: 'A value kept in a register uses none. That is exactly why registers raise the FLOP/B ratio.',
       },
       {
-        label: 'Registers lose their contents whenever the SM switches to another warp.',
+        label: 'Registers lose their contents whenever the SM switches to another warp, so the value is fetched again.',
         why: 'The register file keeps the registers of every scheduled thread. That is what makes the switch free.',
       },
     ],
@@ -1077,7 +1077,7 @@ export const questionsS52: Record<string, Question> = {
     options: [
       {
         label:
-          'They are still needed. Shared storage mode only saves you from allocating the buffer twice.',
+          'They are still needed. Shared storage mode only saves you from allocating the buffer twice, once per processor.',
         why: 'There is one allocation and both processors address it. There is nothing to copy between.',
       },
       {
@@ -1087,11 +1087,11 @@ export const questionsS52: Record<string, Question> = {
       },
       {
         label:
-          'They disappear because CPU and GPU address the same allocation. What remains is ordering: the CPU must not read the output until the GPU work that writes it has completed.',
+          'They disappear: CPU and GPU address the same allocation. What remains is ordering: the CPU must wait until the GPU work that writes the output has completed.',
         correct: true,
       },
       {
-        label: 'They are replaced by a call that tells Metal which byte range the CPU modified.',
+        label: 'They are replaced by a call that tells Metal which byte range of the buffer the CPU modified.',
         why: 'That call belongs to managed storage mode, which Apple has deprecated and which has no effect on Apple silicon.',
       },
     ],
@@ -1138,7 +1138,8 @@ export function S52() {
         are. Every thread of every block can read and write it, and so can the host. It is also the slow one: off-chip
         DRAM, the memory whose bandwidth limited everything in section 5.1. <b>Constant memory</b> is visible to every
         thread too, and the host can read and write it, but kernel code can only read it. In return the device serves
-        it with short latency and high bandwidth. The book leaves the how to chapter 7.
+        it with short latency and high bandwidth. The book leaves the how to chapter 7, in{' '}
+        <a href={href('ch07', '7.4')}>section 7.4, Constant memory and caching</a>.
       </p>
       <Source section="5.2" pages="93, 98" />
       <p>
@@ -1228,7 +1229,9 @@ export function S52() {
       <p>
         Nothing in this chapter or its labs uses it. Every kernel here keeps to the rule the map showed: shared memory
         ends at the block boundary. If you meet clusters later, treat them as a feature to test for on the device in
-        front of you. Whether HIP or Metal offer anything like them is something we have not checked.
+        front of you. HIP's headers declare cluster groups and launch attributes, but which AMD devices support them
+        we have not checked; Metal documents nothing like them (notes/today/infra-facts.md, "Where the backends really
+        differ").
       </p>
       <Today checked="2026-11-20 against the CUDA 13.5 guide (notes/today/ch05-facts.md, A6)">
         <p>
@@ -1319,7 +1322,7 @@ export function S52() {
         <li>
           <b>Arrays.</b> An array in the kernel body looks like a stack variable and behaves like global memory, long
           delays included. The compiler may keep a small one in registers when every access uses a constant index.
-          Chapter 6 comes back to this.
+          Chapter 6 comes back to this in <a href={href('ch06', '6.6')}>section 6.6, Loop unrolling</a>.
         </li>
         <li>
           <b>
@@ -1477,8 +1480,11 @@ export function S52() {
       <p>
         HIP is the easy column. It keeps CUDA's spellings for <code>__shared__</code>, <code>__syncthreads()</code>,{' '}
         <code>__global__</code>, <code>__device__</code>, <code>__constant__</code> and the index built-ins, so the
-        kernels of this chapter are HIP kernels as they stand. One difference to remember: HIP's compiler does not
-        define the built-ins implicitly, so the source has to include <code>hip/hip_runtime.h</code>.
+        kernels of this chapter, which use only threads, blocks, shared and constant memory and barriers, are HIP
+        kernels as they stand. One difference to remember: HIP's compiler does not define the built-ins implicitly, so the source has
+        to include <code>hip/hip_runtime.h</code>. The sameness stops at warp intrinsics, cooperative groups,
+        half-precision headers and matrix-core intrinsics, which later chapters meet one at a time. This course's HIP
+        build is unverified: no HIP machine has compiled it yet.
       </p>
       <p>
         Metal changes the vocabulary, and on Apple silicon it changes the bottom of the memory map. In the map the

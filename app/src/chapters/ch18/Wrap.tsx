@@ -93,19 +93,19 @@ export const questionsWrap: Record<string, Question> = {
     options: [
       {
         label:
-          'An exchange always writes. A thread whose neighbour was labelled at an earlier level would overwrite that level with the current one; the frontier would come out right and the level array wrong. Every writer of the seen flag writes the same 1, so there the write does no harm.',
+          'An exchange always writes: a vertex labelled at an earlier level gets the current level instead. A flag\'s repeated 1 is harmless.',
         correct: true,
       },
       {
-        label: 'An exchange is not atomic on device memory; only compare-and-swap is.',
+        label: 'An exchange is not atomic on device memory: only compare-and-swap is a true read-modify-write there.',
         why: 'atomicExch is an atomic read-modify-write like the others, on CUDA and on HIP, and cuda::atomic_ref has exchange() too.',
       },
       {
-        label: 'Two threads exchanging at the same time could both get UNVISITED back.',
+        label: 'Two threads exchanging at the same moment could both get UNVISITED back, because each reads the old value before the other one writes.',
         why: 'The exchanges on one location happen one after another, and each returns the value the one before it left. Only the first sees UNVISITED, so the frontier would hold each vertex once.',
       },
       {
-        label: 'It would work; compare-and-swap is only faster.',
+        label: 'It would work, with the same frontier and the same levels; compare-and-swap is chosen only because it is faster.',
         why: 'Speed is not the problem. A back edge, such as 7 → 0 in the book\'s graph, would relabel vertex 0 with the current level.',
       },
     ],
@@ -133,7 +133,7 @@ export const questionsWrap: Record<string, Question> = {
     options: [
       {
         label:
-          'The list order depends on which block reserves its range first and on the order of the atomics inside each block, so the same u lands on a different token. Fix the order before the running sum: sort the survivors (by probability, then token id), or build the list with a scan of keep flags, the stable filter.',
+          'The list order depends on the schedule, so the same u lands on another token. Sort the survivors first, or build the list with a stable filter.',
         correct: true,
       },
       {
@@ -145,7 +145,7 @@ export const questionsWrap: Record<string, Question> = {
         why: 'A survivor takes one path: a private slot below the capacity, or the public counter. It is committed once either way.',
       },
       {
-        label: 'Use memory_order_seq_cst on the counters.',
+        label: 'Make both counters memory_order_seq_cst: there is then one total order over all their atomics, the same in every run, and so the same list order.',
         why: 'A memory order constrains what other threads see around each atomic. It does not decide which thread reaches the counter first, and that is what sets the order of the list.',
       },
     ],
@@ -176,19 +176,19 @@ export const questionsWrap: Record<string, Question> = {
     options: [
       {
         label:
-          'Threads of that block make different numbers of trips, so some reach __syncthreads() more often than others. A block barrier must be reached by every thread of the block; this is undefined, and a hang or lost entries are both possible.',
+          'Threads of that block make different numbers of trips, so some reach __syncthreads() more often than others: undefined, in practice a hang or lost entries.',
         correct: true,
       },
       {
-        label: 'Nothing: __syncthreads() waits only for the threads still inside the loop.',
+        label: 'Nothing: __syncthreads() waits only for the threads still inside the loop, and the others go on to the grid barrier.',
         why: 'It waits for every thread of the block. A thread that has left the loop never arrives at that barrier; it goes on to the grid barrier, where the others never arrive.',
       },
       {
-        label: 'Only grid barriers can deadlock; block barriers cannot.',
+        label: 'Only the grid barrier can deadlock here; a block barrier just lets the threads that arrive early wait a little longer.',
         why: 'A block barrier that some threads of the block never reach is undefined behaviour (ch. 4, Fig. 4.4), in practice often a hang.',
       },
       {
-        label: 'The commits lose coalescing but stay correct.',
+        label: 'The commits lose coalescing on the short trip but stay correct, since every entry is still copied once.',
         why: 'Correctness goes first: the barrier is no longer reached by the whole block. Coalescing is beside the point until that is fixed.',
       },
     ],
@@ -491,7 +491,7 @@ export function Wrap() {
         The chapter is condensed in this course, so here is what is not covered and where to find it. The adjacency-matrix
         and degree-distribution background of §18.1 (pp. 425–429) gets a paragraph and the format lens on the start page.
         Maze routing in chip design, §18.2 (pp. 430–431), with its net terminals, blockages and tie-breaking heuristics, is
-        reduced to the wavefront animation on 18.3. Small-world graphs (p. 436) are named only, and the book's switch
+        reduced to a paragraph on the start page and the wavefront animation on 18.3. Small-world graphs (p. 436) are named only, and the book's switch
         point for direction-optimised BFS, which it does not give, is replaced by cuGraph's rule in a note on 18.3; no
         direction-optimised host program is written. The linear-algebra formulation and GraphBLAS (p. 438) get one
         paragraph.

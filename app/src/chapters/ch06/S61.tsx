@@ -808,9 +808,9 @@ export const questionsS61: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Yes: 32 lanes, so 32 transactions, one per lane.', why: 'The lanes share one address. The hardware counts the segments touched, not the lanes.' },
+      { label: 'Yes: 32 lanes issue 32 requests, one per lane, even at a single address.', why: 'The lanes share one address. The hardware counts the segments touched, not the lanes.' },
       { label: 'No: one sector serves the whole warp, which needs only 4 bytes.', correct: true },
-      { label: 'Yes: the addresses are not consecutive.', why: 'They are identical, which is the cheapest case of all: one segment.' },
+      { label: 'Yes: the addresses are not consecutive, so the hardware cannot merge them.', why: 'They are identical, which is the cheapest case of all: one segment.' },
     ],
     explain: (
       <p>
@@ -833,7 +833,7 @@ export const questionsS61: Record<string, Question> = {
     ),
     options: [
       { label: 'Yes: each thread reads consecutive addresses as k advances.', why: 'Coalescing is about the lanes of one instruction, not about one thread over time. At a fixed k the lanes are far apart.' },
-      { label: 'Only when in is a multiple of 32.', why: 'A multiple of 32 keeps rows aligned, but the lanes are still in elements apart.' },
+      { label: 'Only when in is a multiple of 32, so that every row of W starts on a sector boundary.', why: 'A multiple of 32 keeps rows aligned, but the lanes are still in elements apart.' },
       { label: 'No: at every k the lanes are in elements apart. This is Fig. 6.3.', correct: true },
     ],
     explain: (
@@ -879,7 +879,7 @@ export const questionsS61: Record<string, Question> = {
         label: 'It depends on the reading. If each warp\'s load must be one consecutive run, only 32. If what counts is fetched bytes wasted in NVIDIA\'s 32-byte sectors, any multiple of 8 floats with aligned rows wastes nothing, 8 and 16 included.',
         correct: true,
       },
-      { label: 'Only 16.', why: 'Nothing singles out 16: 32 gives one run per warp, and 8 wastes no more bytes than 16.' },
+      { label: 'Only 16: half a warp per tile row, so each warp reads two whole rows.', why: 'Two rows are two runs, so the strict reading wants 32; under the sector reading 8 wastes no more bytes than 16. Nothing singles out 16.' },
     ],
     explain: (
       <>
@@ -906,19 +906,19 @@ export const questionsS61: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Time the mirror image, which reads columns and writes rows: the same bytes with the stride moved to the loads. On NVIDIA, also compare store sectors per request with the ideal.',
+        label: 'Time the mirror image, which reads columns and writes rows: the same bytes with the stride moved to the loads.',
         correct: true,
       },
       {
-        label: 'Nothing: the book says uncoalesced stores hurt more, so fix the stores first.',
+        label: 'Nothing: the book says uncoalesced stores hurt more than loads, so fix the stores first.',
         why: 'The book says they can hurt more (p. 130). NVIDIA ties the extra cost to ECC on GDDR memory and says HBM2 pays much less, so the answer depends on the device.',
       },
       {
-        label: 'Count store instructions against load instructions.',
+        label: 'Count store instructions against load instructions: the side with more of them costs more.',
         why: 'Both kernels issue one load and one store per element. What differs is how many sectors each warp-wide store touches, not how many instructions run.',
       },
       {
-        label: 'Run it on the emulator and look for the strided stores in its report.',
+        label: 'Run it on the emulator and read which strided stores its report flags.',
         why: 'The emulators check correctness. They model no time, caches or coalescing, so cost needs a real device.',
       },
     ],
@@ -939,7 +939,7 @@ export const questionsS61: Record<string, Question> = {
     id: 'ch06/6.1/q-ex1c',
     prompt: <>Exercise 1(c): <code>b[j*blockDim.x*gridDim.x + i]</code> on line 07, for a fixed <code>j</code>. Coalesced?</>,
     options: [
-      { label: 'Uncoalesced, because of the multiplication.', why: 'The product does not involve the lane. Only a coefficient on i spreads the lanes apart.' },
+      { label: 'Uncoalesced, because of the multiplication by blockDim.x·gridDim.x.', why: 'The product does not involve the lane. Only a coefficient on i spreads the lanes apart.' },
       { label: 'Coalesced: the j term is the same for every lane.', correct: true },
       { label: 'Coalescing does not apply.', why: 'b is a pointer into global memory.' },
     ],
@@ -951,9 +951,9 @@ export const questionsS61: Record<string, Question> = {
     id: 'ch06/6.1/q-ex1d',
     prompt: <>Exercise 1(d): <code>c[i*4 + j]</code> on line 07. Coalesced?</>,
     options: [
-      { label: 'Uncoalesced: neighbouring lanes are 4 floats apart, so each instruction uses a quarter of every sector it fetches.', correct: true },
-      { label: 'Coalesced, because j is the same for every lane.', why: 'j is, but i is multiplied by 4.' },
-      { label: 'Coalescing does not apply.', why: 'c is in global memory.' },
+      { label: 'Uncoalesced: neighbouring lanes are 4 floats apart.', correct: true },
+      { label: 'Coalesced, because j is the same for every lane and the loop reads every byte.', why: 'j is, but i is multiplied by 4. Over the loop every byte is read, but coalescing is judged one instruction at a time.' },
+      { label: 'Coalescing does not apply to an index that contains a loop variable.', why: 'c is in global memory; what decides is how the index changes from lane to lane.' },
     ],
     explain: (
       <p>
@@ -969,9 +969,9 @@ export const questionsS61: Record<string, Question> = {
     id: 'ch06/6.1/q-ex1g',
     prompt: <>Exercise 1(g): <code>d[i + 8]</code> on line 10. Coalesced?</>,
     options: [
-      { label: 'Uncoalesced, because of the offset.', why: 'Every lane gets the same offset, so the run stays consecutive.' },
-      { label: 'Coalescing does not apply.', why: 'd is in global memory.' },
-      { label: 'Coalesced. The offset can shift the run across a segment boundary, costing at most one extra segment.', correct: true },
+      { label: 'Uncoalesced, because the offset of 8 misaligns every lane\'s address.', why: 'Every lane gets the same offset, so the run stays consecutive; at worst it straddles one more segment.' },
+      { label: 'Coalescing does not apply: line 10 is a store, not a load.', why: 'd is in global memory, and stores coalesce by the same rule (p. 130).' },
+      { label: 'Coalesced; the offset can shift the run across one more segment.', correct: true },
     ],
     explain: (
       <p>
@@ -1185,16 +1185,16 @@ export function S61() {
         error-correcting memory (ECC) enabled.
       </p>
       <Source pages="130" />
-      <p>
-        Lab 6.1 has two naive transposes that differ only in which side is strided: one reads rows and writes columns,
-        the other reads columns and writes rows. Commit to a number before you run it.
-      </p>
       <Today checked="2026-11-20 (notes/today/ch06-facts.md, A5)">
         <p>
           NVIDIA: with ECC on GDDR memory, scattered accesses, writes especially, add overhead; HBM2&rsquo;s ECC costs
           far less. No source we read describes the read-modify-write, so treat it as unverified.
         </p>
       </Today>
+      <p>
+        Lab 6.1 has two naive transposes that differ only in which side is strided: one reads rows and writes columns,
+        the other reads columns and writes rows. Commit to a number before you run it.
+      </p>
       <Predict
         id="ch06/6.1/p-transpose"
         prompt={

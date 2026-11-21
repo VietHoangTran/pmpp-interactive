@@ -5,6 +5,7 @@ import { useProgress } from '../../lib/progress';
 import { labStatus, useReports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import { functionSource } from '../../sim/toolchain';
+import { STATUS } from './status';
 
 // The kernel for the first question is a snippet of our own, loaded at run time, so there
 // is no copy to drift: labs/ch10/snippets/wrap_centre.cu. Wrap.snippets.test.ts ties its
@@ -45,7 +46,7 @@ export const questionsWrap: Record<string, Question> = {
         why: 'That barrier orders the hand-over of the warp sums. The total is computed after it, in warp 0\'s registers, and nothing hands it back.',
       },
       {
-        label: `Only the columns thread 0 writes: ${threadZeroColumns(CENTRE.block, CENTRE.cols).join(', ')} of each row.`,
+        label: `Only the columns that thread 0 writes: ${threadZeroColumns(CENTRE.block, CENTRE.cols).join(', ')} of each row.`,
         correct: true,
       },
       {
@@ -115,7 +116,7 @@ export const questionsWrap: Record<string, Question> = {
         why: 'Each block\'s 64 loads are 4,096 floats apart, so no two share a memory request, and the tree spends barriers on 64 values.',
       },
       {
-        label: 'One thread per column, each adding its column\'s 64 values in a loop.',
+        label: 'One thread per column, each adding its column\'s 64 values in a loop down the rows.',
         correct: true,
       },
       {
@@ -154,7 +155,7 @@ export const questionsWrap: Record<string, Question> = {
         label: 'All four: the blocks commit in a different order on every run.',
         why: 'A different order changes the result only when the operator rounds or depends on order.',
       },
-      { label: 'Only (1), the float sum.', correct: true },
+      { label: 'Only (1): the float sum rounds after every commit.', correct: true },
       {
         label: '(1) and (2): both are floating point.',
         why: 'A max selects one of its inputs. It never rounds, so any order selects the same one (for finite values).',
@@ -189,7 +190,7 @@ export const questionsWrap: Record<string, Question> = {
         label: 'A max, a sum, then an argmax: three passes over the row.',
         why: 'That computes the probabilities, which greedy decoding never uses.',
       },
-      { label: 'One argmax over the logits.', correct: true },
+      { label: 'A single argmax over the raw logits, with its tie rule.', correct: true },
       {
         label: 'A max over the logits: the largest logit is the token.',
         why: 'The max gives the value; the token is its index. That takes an argmax, a reduction of (value, index) pairs.',
@@ -223,7 +224,7 @@ function CentreKernel() {
         {
           label: 'CUDA (not a lab file: for this question only)',
           code: fn ? fn.text : file ?? `// loading labs/${CENTRE_FILE}`,
-          status: 'front-end-checked; wrong on purpose',
+          status: STATUS.wrong,
           tiers: { x: 'global', y: 'global', row: 'global', out: 'global', partial_s: 'shared', s: 'reg', mean: 'reg', c: 'reg' },
         },
       ]}
@@ -258,7 +259,7 @@ export function Wrap() {
           the last bits.
         </li>
         <li>
-          Start a max at a finite value or at the first element, not at −∞ where a backend may not honour infinities. An
+          Start a max at −FLT_MAX or at the first element, not at −∞ where a backend may not honour infinities. An
           argmax reduces (value, index) pairs, with a tie rule that makes the combine commutative.
         </li>
         <li>
@@ -314,7 +315,7 @@ export function Wrap() {
               <td>1</td>
               <td>Divergent warps in the 5th iteration of the simple kernel, 1,024 values</td>
               <td>
-                a question and the divergence counter in <a href={href('ch10', '10.4')}>10.4</a>
+                a question and the warp map in <a href={href('ch10', '10.4')}>10.4</a>
               </td>
             </tr>
             <tr>
@@ -383,8 +384,15 @@ export function Wrap() {
           AMD warps (<a href={href('ch10', '10.8')}>10.8</a>). The labs guard the read and pad with the identity.
         </li>
         <li>
-          Fig. 10.18 never uses its <code>N</code>, and nothing shows <code>*output</code> being set to 0 before it runs.
+          Fig. 10.18 never uses its <code>N</code>, and nothing shows <code>*output</code> being set to 0 before it runs;
+          the text calls it a few changes from Fig. 10.16, though it also writes the lane and warp helpers out inline.
           Fig. 10.20 has no return type and stops at an ellipsis. Lab 10.1's kernel (c) is the whole thing.
+        </li>
+        <li>
+          Fig. 10.10 mixes the compile-time <code>BLOCK_DIM</code> with the launched <code>blockDim.x</code>, which must
+          agree, and assumes a power-of-two block (<a href={href('ch10', '10.6')}>10.6</a>). Fig. 10.11 does not say what
+          a lane receives when its source lane is past the warp or not in the mask (<a href={href('ch10', '10.7')}>10.7</a>).
+          Both are our readings.
         </li>
         <li>
           Fig. 10.13 passes the literal <code>0xffffffff</code>, which HIP rejects at compile time
@@ -393,7 +401,8 @@ export function Wrap() {
         <li>
           p. 234 calls 384 "almost half of 736", the resources of the simple kernel. p. 231 computes 864, and so does the
           course's count (<a href={href('ch10', '10.4')}>10.4</a>). The same page says the divergent iterations fall from
-          ten to five; for 256 values the count is seven to five.
+          ten to five; for 256 values the count is seven to five. p. 237's 36 requests for the convergent kernel come
+          without a derivation; they match 12 warp-iterations of 3 accesses each (<a href={href('ch10', '10.5')}>10.5</a>).
         </li>
         <li>
           p. 229 says the stride doubles until it exceeds <code>blockIdx.x</code>; the code uses <code>blockDim.x</code>.
@@ -412,7 +421,8 @@ export function Wrap() {
           Figure and line references that point one off: "Fig. 10.7" for the kernel of Fig. 10.8 (p. 235), "Fig. 10.9"
           for the kernel of Fig. 10.10 (p. 237), "line 06" for line 05 of Fig. 10.8 (p. 233), "line 04" for line 05 of
           Fig. 10.10 (p. 236), and "lines 17–19" for lines 15–17 of Fig. 10.14 (p. 241). p. 236 also calls the final write
-          "the final write to input[0]"; the code writes <code>*output</code>.
+          "the final write to input[0]"; the code writes <code>*output</code>. p. 234 credits coalescing to chapter 5;
+          this edition teaches it in chapter 6 (<a href={href('ch06', '6.1')}>6.1</a>).
         </li>
         <li>
           Iterations are numbered from 0 in Figs. 10.6 and 10.7 and from 1 in the text of pp. 230–234. The course says
@@ -439,7 +449,8 @@ export function Wrap() {
         <a href={href('ch10', '10.2')}>10.2</a>. Every kernel here is float32, though p. 221 names other types; half and
         8-bit reductions come back in module X2, and Metal has no <code>double</code>. Thrust and CUB are named, not
         used, and exercise 4's cross-block float max is discussed, not built, because no float atomic max is portable.
-        The warp vote functions of p. 241 are worked in chapter 12. The single-pass softmax is chapter 20's (§20.5).
+        The warp vote functions of p. 241 are worked in chapter 12 (<a href={href('ch12', '12.3')}>12.3</a>). The
+        single-pass (online) softmax is part of chapter 20's flash attention (<a href={href('ch20', '20.5')}>20.5</a>).
       </p>
 
       <h2>The project so far</h2>

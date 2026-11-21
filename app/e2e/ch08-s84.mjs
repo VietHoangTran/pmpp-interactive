@@ -296,7 +296,7 @@ check('q-never-read: 80 is correct', t.includes('Correct.'));
   const qt = await q.evaluate((e) => e.textContent);
   check('q-x32: five segments and 0.85 is correct', qt.includes('Correct.'));
   check('q-x32: the answer says the flat tile is larger (360 against 216) but a smaller share of the loads',
-    qt.includes('30 × 6 × 2 = 360 points for 1,024 loads') && qt.includes("the cube's 216 of 512") && !/output tile shrinks/.test(qt), qt.slice(0, 400));
+    qt.includes('360 outputs for 1,024 loads') && qt.includes("the cube's 216 of 512") && qt.includes("30 × 6 × 2 = 360 points, is larger than the cube's 216") && !/output tile shrinks/.test(qt), qt.slice(0, 400));
 }
 {
   const q = await qHandle('Switch the t = 8 tile from 4-byte to 8-byte values');

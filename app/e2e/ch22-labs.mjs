@@ -125,7 +125,7 @@ await shot('status', 'table[data-table="solution-status"]');
   const sol = labStatus(run, L1.id, 'solution');
   const race = await page.$eval('[data-race-status]', (e) => ({ s: e.dataset.raceStatus, text: e.textContent }));
   check(`the race line reads the reports: solution ${run ? sol : 'no run'}`, race.s === (run ? sol : 'none') &&
-    (!run ? race.text.includes('No run on the race backend') : sol === 'pass' ? race.text.includes('emulator-checked on this flavour') : sol === 'none' ? race.text.includes('no run on the race backend yet') : race.text.includes('unverified there')), JSON.stringify(race));
+    (!run ? race.text.includes('No run on the race backend') : sol === 'pass' ? race.text.includes('emulator-checked') : sol === 'none' ? race.text.includes('no run on the race backend yet') : race.text.includes('unverified')), JSON.stringify(race));
 }
 
 // ---- status of the reader's own work, both labs

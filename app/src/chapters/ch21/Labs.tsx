@@ -312,8 +312,10 @@ export function Labs() {
         </p>
       </Today>
       <p>
-        The same <code>kernel.cu</code> builds for HIP, where <code>cudaMemcpyToSymbol</code> maps to{' '}
-        <code>hipMemcpyToSymbol</code>. The course's HIP build does not pass <code>-munsafe-fp-atomics</code>, so a scatter
+        The same <code>kernel.cu</code> is written to build for HIP unchanged, because it uses only the parts that carry over through{' '}
+        <code>pmpp/vendors/hip.h</code>: threads and blocks, constant memory, a legacy atomic and runtime calls, with{' '}
+        <code>cudaMemcpyToSymbol</code> mapped to <code>hipMemcpyToSymbol</code>. Warp intrinsics, cooperative groups or
+        half-precision headers would not port unchanged. That build is unverified: no HIP machine has built it yet. The course's HIP build does not pass <code>-munsafe-fp-atomics</code>, so a scatter
         measurement on an AMD GPU is of the safe form of the float atomic.
       </p>
       <Today checked="2026-11-20 (notes/today/infra-facts.md B1, B5; ch21-facts B1)">

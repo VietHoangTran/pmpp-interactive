@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
+import { useNarrow } from '../../lib/narrow';
 import { LabsPage, Reveal, benchRow, defineLabs, measure, type BenchSet } from '../../components/LabKit';
 import { Bench, Beyond, Source, Today } from '../../components/notes';
 import { fmt, num, type BenchRow, type Reports } from '../../lib/reports';
@@ -13,15 +14,16 @@ export const questionsS159: Record<string, Question> = {
     id: 'ch15/15.9/q-wgmma',
     prompt: <>Does a kernel built for sm_90a with WGMMA run on a compute capability 10.0 GPU?</>,
     options: [
-      { label: 'No. Code built for an "a" target cannot run on later generations; Blackwell\'s counterpart is tcgen05 with tensor memory.', correct: true },
-      { label: 'Yes: newer GPUs run code built for older ones.', why: 'That is the usual rule, and "a" targets are the exception: PTX for them "cannot be run on later generation devices".' },
-      { label: 'Yes, but more slowly.', why: 'The rule for "a" targets is that such code cannot be run on later generations at all.' },
-      { label: 'Only if it was also built for sm_90.', why: 'An sm_90 build cannot contain WGMMA at all: it "Requires sm_90a".' },
+      { label: 'No: code built for an "a" target cannot run on later generations.', correct: true },
+      { label: 'Yes: newer GPUs run code built for older ones, and 10.0 is newer than 9.0.', why: 'That is the usual rule, and "a" targets are the exception: PTX for them "cannot be run on later generation devices".' },
+      { label: 'Yes, but more slowly, through the warp-level mma path that 10.0 keeps for older code.', why: 'The rule for "a" targets is that such code cannot be run on later generations at all.' },
+      { label: 'Only if it was also built for sm_90, which every sm_90a build includes.', why: 'An sm_90 build cannot contain WGMMA at all: it "Requires sm_90a".' },
     ],
     explain: (
       <p>
-        Architecture-specific targets such as sm_90a "do not follow the onion layer model". A kernel that wants tensor
-        cores on both Hopper and data-centre Blackwell needs two code paths, or a library that has them.
+        Architecture-specific targets such as sm_90a "do not follow the onion layer model". Blackwell&rsquo;s counterpart
+        is tcgen05 with tensor memory. A kernel that wants tensor cores on both Hopper and data-centre Blackwell needs two
+        code paths, or a library that has them.
       </p>
     ),
     source: 'ch15-facts A6 (PTX ISA 9.5)',
@@ -37,12 +39,12 @@ export const questionsS159: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Three: WGMMA in an sm_90a build, tcgen05 with TMEM in an sm_100a (or sm_100f) build, and warp-level mma for 12.x, chosen by compute capability at run time.',
+        label: 'Three: WGMMA in an sm_90a build, tcgen05 with TMEM in an sm_100a build, warp-level mma for 12.x, chosen at run time.',
         correct: true,
       },
       { label: 'One sm_90a build with WGMMA: newer GPUs run code built for older ones.', why: 'That is the usual rule, and "a" targets are its exception: their code "cannot be run on later generation devices".' },
-      { label: 'Two: WGMMA for 9.0, and tcgen05 with TMEM for both Blackwell families.', why: '12.x is Blackwell too, but sm_120 is not among tcgen05\'s targets. It has no TMEM.' },
-      { label: 'One warp-level mma path, since that runs on all three and uses their tensor cores.', why: 'It does run everywhere, which makes it the fallback. But it keeps every operand and the accumulator in registers, so on 9.0 and 10.0 it leaves the larger multiply unused.' },
+      { label: 'Two: WGMMA for 9.0, and tcgen05 with TMEM for both Blackwell families, 10.0 and 12.x.', why: '12.x is Blackwell too, but sm_120 is not among tcgen05\'s targets. It has no TMEM.' },
+      { label: 'One warp-level mma path: it runs on all three and uses their tensor cores, so it covers every GPU.', why: 'It does run everywhere, which makes it the fallback. But it keeps every operand and the accumulator in registers, so on 9.0 and 10.0 it leaves the larger multiply unused.' },
     ],
     explain: (
       <p>
@@ -64,12 +66,12 @@ export const questionsS159: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Check that the build targets compute capability 8.0 or later and look for LDGSTS in the SASS; if it is missing, switch to the __pipeline_memcpy_async primitives, which guarantee it, or to CUTLASS.',
+        label: 'Build for compute capability 8.0 or later and look for LDGSTS in the SASS; if it is missing, use the __pipeline_memcpy_async primitives or CUTLASS.',
         correct: true,
       },
-      { label: 'Nothing: with optimisation on, nvcc fuses the load and the store into LDGSTS.', why: 'The book says so, but no NVIDIA page we read does, and NVIDIA\'s guide says the compiler may emit LDG and STS pairs.' },
-      { label: 'Add a __syncthreads() after each copy.', why: 'A barrier after the wait is needed for correctness (ch06-facts A16), but it does not change which instructions do the copy.' },
-      { label: 'Nothing: the chart counts every shared-memory store as register-file traffic.', why: 'NVIDIA\'s triage guide reads exactly this picture as "the async-copy path is not actually being exercised".' },
+      { label: 'Nothing: with optimisation on, nvcc fuses each vector load and shared store into one LDGSTS by itself.', why: 'The book says so, but no NVIDIA page we read does, and NVIDIA\'s guide says the compiler may emit LDG and STS pairs.' },
+      { label: 'Add a __syncthreads() after each copy, so the copies complete before the shared tile is read.', why: 'A barrier after the wait is needed for correctness (ch06-facts A16), but it does not change which instructions do the copy.' },
+      { label: 'Nothing: the chart draws every shared-memory store through the register file, whatever instruction made it.', why: 'NVIDIA\'s triage guide reads exactly this picture as "the async-copy path is not actually being exercised".' },
     ],
     explain: (
       <p>
@@ -84,14 +86,15 @@ export const questionsS159: Record<string, Question> = {
     id: 'ch15/15.9/q-tma-2d',
     prompt: <>Can <code>cuda::memcpy_async</code> fetch the 128 × 8 tile of A through TMA?</>,
     options: [
-      { label: 'No. It reaches TMA only for 1D bulk copies; a 2D tile needs a tensor map from cuTensorMapEncodeTiled and cuda::ptx::cp_async_bulk_tensor.', correct: true },
-      { label: 'Yes, on compute capability 9.0 and later.', why: 'The hardware is there; the API is not the one the book names. A 128 × 8 tile of a wider matrix is not one contiguous run.' },
-      { label: 'Yes, if the tile is padded to a power of two.', why: 'Padding does not make a strided 2D tile into a 1D contiguous copy.' },
+      { label: 'No: it reaches TMA only for 1D bulk copies; a 2D tile needs a tensor map and cp_async_bulk_tensor.', correct: true },
+      { label: 'Yes, on compute capability 9.0 and later: there cuda::memcpy_async hands any shared-memory tile copy to TMA.', why: 'The hardware is there; the API is not the one the book names. A 128 × 8 tile of a wider matrix is not one contiguous run.' },
+      { label: 'Yes, if the tile is padded to a power of two so that it is one contiguous run.', why: 'Padding does not make a strided 2D tile into a 1D contiguous copy.' },
     ],
     explain: (
       <p>
         The tile's eight floats per row sit K floats apart in global memory. A bulk tensor copy needs a description of
-        that layout, the tensor map, built on the host and passed to the kernel.
+        that layout, the tensor map, built on the host with <code>cuTensorMapEncodeTiled</code> and passed to the
+        kernel, which copies with <code>cuda::ptx::cp_async_bulk_tensor</code>.
       </p>
     ),
     source: 'ch15-facts A8',
@@ -101,10 +104,10 @@ export const questionsS159: Record<string, Question> = {
     id: 'ch15/15.9/q-progression',
     prompt: <>What does the progression from WMMA to WGMMA to TMEM attack?</>,
     options: [
-      { label: 'Register pressure, the limit of section 15.7: the inputs move to shared memory, then the accumulators leave the register file.', correct: true },
-      { label: 'Global-memory bandwidth.', why: 'That is what larger tiles, and TMA, are for. These change where the operands of the multiply live.' },
-      { label: 'Bank conflicts in shared memory.', why: 'Padding (section 15.6) handles those; these interfaces are about registers.' },
-      { label: 'Warp divergence.', why: 'None of the three changes how branches are handled. They change where the operands and results live.' },
+      { label: 'Register pressure, the limit of section 15.7.', correct: true },
+      { label: 'Global-memory bandwidth, by fetching operand tiles in larger pieces.', why: 'That is what larger tiles, and TMA, are for. These change where the operands of the multiply live.' },
+      { label: 'Bank conflicts in shared memory, by reading operands in wider units.', why: 'Padding (section 15.6) handles those; these interfaces are about registers.' },
+      { label: 'Warp divergence, since a whole warp group now issues one instruction.', why: 'None of the three changes how branches are handled. They change where the operands and results live.' },
     ],
     explain: (
       <p>
@@ -128,7 +131,7 @@ export const questionsS159: Record<string, Question> = {
         label: 'That cuBLAS quietly computes in TF32 on its tensor cores.',
         correct: true,
       },
-      { label: 'That cuBLAS picked a kernel tuned for this shape.', why: 'Libraries choose a kernel per shape. That is a live candidate, and a profile of which kernel ran would tell you.' },
+      { label: 'That cuBLAS picked a kernel tuned for this shape.', why: 'Nothing you know rules it out, so it stays a live candidate; a profile of which kernel ran would tell you.' },
       { label: 'That cuBLAS overlaps its tile loads with arithmetic through asynchronous copies.', why: 'Where the hardware has LDGSTS or TMA, a library can use them. A candidate.' },
       { label: 'That cuBLAS tunes tile shapes and pipeline depth beyond the book\'s kernel.', why: 'Also a candidate: the book\'s kernel is one fixed design.' },
     ],
@@ -152,11 +155,11 @@ export const questionsS159: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Two paths chosen per target at compile time: MFMA builtins for CDNA (gfx9), WMMA builtins (__builtin_amdgcn_wmma_*) for RDNA3 (gfx11).',
+        label: 'Two paths chosen per target at compile time: MFMA builtins for CDNA (gfx9), WMMA builtins for RDNA3 (gfx11).',
         correct: true,
       },
-      { label: 'MFMA builtins everywhere: they are AMD\'s matrix instructions.', why: 'MFMA belongs to the CDNA (gfx9) feature sets. RDNA3 has a different family, the WMMA builtins.' },
-      { label: 'A matrix path for CDNA only, and plain FMAs on RDNA3, as the table says.', why: 'The table and the compiler disagree. The compiler\'s gfx11 and gfx12 feature sets include WMMA, and llama.cpp calls those builtins.' },
+      { label: 'MFMA builtins everywhere: they are AMD\'s matrix instructions on every GPU it makes.', why: 'MFMA belongs to the CDNA (gfx9) feature sets. RDNA3 has a different family, the WMMA builtins.' },
+      { label: 'A matrix path for CDNA only and plain FMAs on RDNA3, since the features table lists no Matrix Cores there.', why: 'The table and the compiler disagree. The compiler\'s gfx11 and gfx12 feature sets include WMMA, and llama.cpp calls those builtins.' },
       { label: 'One path written with nvcuda::wmma, compiled through the course\'s HIP header.', why: 'HIP has no nvcuda::wmma. The C++ route on AMD is rocWMMA, spelled differently, so matrix code stays out of the shared .cu.' },
     ],
     explain: <p>Where a vendor&rsquo;s table and its compiler disagree, the compiler decides what your code can use. llama.cpp&rsquo;s <code>mma.cuh</code> makes exactly this split.</p>,
@@ -167,9 +170,9 @@ export const questionsS159: Record<string, Question> = {
     id: 'ch15/15.9/q-handwrite',
     prompt: <>When should you write your own GEMM rather than call the library?</>,
     options: [
-      { label: 'When the library lacks the operation: a quantised weight format expanded into the register strips, a fused epilogue, or shapes it serves badly. Otherwise call it.', correct: true },
-      { label: 'Always, since a hand-written kernel can be specialised to the problem.', why: 'The libraries already carry every optimisation in this chapter and more (tensor cores, TMEM, asynchronous copies).' },
-      { label: 'Never; the techniques are only worth knowing for other kernels.', why: 'The book says programmers rarely write GEMM from scratch, not never: a library cannot run an operation it does not have.' },
+      { label: 'When the library lacks the operation: a quantised format, a fused epilogue, a shape it serves badly.', correct: true },
+      { label: 'For every model you deploy: a kernel specialised to its shapes beats a general library.', why: 'The libraries already carry every optimisation in this chapter and more (tensor cores, TMEM, asynchronous copies).' },
+      { label: 'To learn, not to ship: the vendor libraries cover every operation a model needs, so the techniques pay off in other kernels.', why: 'The book says programmers rarely write GEMM from scratch, not never: a library cannot run an operation it does not have.' },
     ],
     explain: (
       <p>
@@ -288,19 +291,6 @@ function HardwareBench() {
   );
 }
 
-/** True below the width at which the app's own layout switches to one column (52rem). */
-function useNarrow() {
-  const query = '(max-width: 52rem)';
-  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.matchMedia(query).matches);
-  useEffect(() => {
-    const mq = window.matchMedia(query);
-    const on = () => setNarrow(mq.matches);
-    mq.addEventListener('change', on);
-    return () => mq.removeEventListener('change', on);
-  }, []);
-  return narrow;
-}
-
 // ---------------------------------------------------------------- your M3 against the library
 // Lab 15.6 (milestone M3, labs/ch15/lab6_linear) records rows "m2", "m3" and "vendor" with
 // batch, in and out, on the 1024 -> 4096 layer and on a 4096 -> 4096 one; this page reads the
@@ -359,7 +349,7 @@ export function S159() {
         There is a reason to write your own that the book leaves implicit, and it is the one that matters for your work:
         the library does not have the operation. A quantised weight format that has to be expanded into the register
         strips of section 15.4, an epilogue fused into the store, a shape the library serves badly. Otherwise, call the
-        library. Module X2 writes the first kind.
+        library. <a href={href('x2')}>Module X2</a> writes the first kind.
       </p>
       <Beyond>
         <p>When to hand-write is our reading, built on the book's remark that programmers rarely write GEMM from scratch.</p>

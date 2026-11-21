@@ -749,8 +749,9 @@ export function Labs() {
       <p>
         Lab 10.3 is milestone M4 of the through-line project: row-wise max, softmax and argmax over{' '}
         <code>[batch × vocab]</code> logits, and greedy decoding end to end on a toy model. It is greedy decoding for a
-        lookup table, not for a language model; a real checkpoint comes at milestone M10, and the kernel it will call is
-        this one. The softmax's <code>scale</code> becomes the temperature of sampling in module X1 and 1/√d in the
+        lookup table, not for a language model. Milestone M10 (<a href={href('x3', 'labs')}>lab X3.2</a>) runs a small
+        Llama-style model, written by a script in the repository from a fixed seed, and its greedy step calls the reference solution of this lab's{' '}
+        <code>launchArgmaxRows</code>. The softmax's <code>scale</code> becomes the temperature of sampling in module X1 and 1/√d in the
         attention of chapter 20.
       </p>
       <Beyond>

@@ -392,7 +392,7 @@ export const questionsSA7: Record<string, Question> = {
     options: [
       { label: 'Swaps rows so that the pivot is the largest-magnitude entry of that column among the remaining rows.', correct: true },
       { label: 'Swaps rows and columns to bring the largest entry of the remaining submatrix to the pivot.', why: 'That is complete pivoting, A = P L U Q (LAPACK getc2).' },
-      { label: 'Searches only a local group of nearby rows, so less data has to be exchanged.', why: 'That is the book\'s description of partial pivoting, which matches neither library term.' },
+      { label: 'Searches a localised group of nearby rows for the largest entry, so less data has to be exchanged.', why: 'That is the book\'s description of partial pivoting, which matches neither library term.' },
       { label: 'Nothing, unless the pivot is exactly zero; then it swaps with the next row.', why: 'It searches every column; a tiny non-zero pivot is the dangerous case too.' },
     ],
     explain: (

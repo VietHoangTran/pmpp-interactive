@@ -334,10 +334,10 @@ export const questionsS124: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'No: device scope cannot address shared memory.', why: 'Scope says which threads must see the operation consistently, not which memory it may touch.' },
-      { label: 'No: with the wider scope the threads of the block would race.', why: 'A wider scope includes every thread a narrower one does, so nothing that was ordered stops being ordered.' },
+      { label: 'No: device scope applies to global memory only, so it cannot be used on a counter that lives in shared memory.', why: 'Scope says which threads must see the operation consistently, not which memory it may touch.' },
+      { label: 'No: with device scope the block\'s threads no longer see each other\'s increments in order, so they would race.', why: 'A wider scope includes every thread a narrower one does, so nothing that was ordered stops being ordered.' },
       {
-        label: 'Yes, it would still be correct; block scope is simply the narrowest scope that is.',
+        label: 'Yes. Block scope is the narrowest correct scope, not the only one.',
         correct: true,
       },
     ],
@@ -362,12 +362,12 @@ export const questionsS124: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Nothing: the commit still waits at barrier 3.', why: 'Barrier 3 orders the read of blockStart. It cannot change the count thread 0 already used for the reservation.' },
+      { label: 'Nothing: the commit still waits at barrier 3, so every key is in the private list before anything is copied.', why: 'Barrier 3 orders the read of blockStart. It cannot change the count thread 0 already used for the reservation.' },
       {
         label: 'Thread 0 reserves before the other threads have counted, so the block reserves too few public slots and its chunk overlaps the next block\'s.',
         correct: true,
       },
-      { label: 'The private list is incomplete when it is copied.', why: 'The copy happens after barrier 3, by which time every thread has stored its key. The list is complete; the reservation was made too small.' },
+      { label: 'The private list is incomplete when it is copied, because threads that run after thread 0 have not stored their keys yet.', why: 'The copy happens after barrier 3, by which time every thread has stored its key. The list is complete; the reservation was made too small.' },
     ],
     explain: (
       <p>
@@ -388,7 +388,7 @@ export const questionsS124: Record<string, Question> = {
       { label: 'In order only.', why: 'In order, thread 0 runs first and has written blockStart before any other thread reads it.' },
       { label: 'Reversed only.', why: 'Reversed does expose it, but so does the shuffled order: there too a thread with a key to copy runs before thread 0.' },
       { label: 'Reversed and shuffled; in order passes.', correct: true },
-      { label: 'All three.', why: 'In order, thread 0 happens to go first.' },
+      { label: 'All three: in every order some thread reads blockStart before thread 0 writes it.', why: 'In order, thread 0 happens to go first.' },
     ],
     explain: (
       <p>
@@ -407,10 +407,10 @@ export const questionsS124: Record<string, Question> = {
     prompt: <>In the commit, why does thread <i>k</i> copy the <i>k</i>-th entry of the private list instead of its own key?</>,
     options: [
       {
-        label: 'Consecutive threads then write consecutive public addresses, so the stores coalesce, and each of the first outputSize_s threads has a key to copy even if its own was dropped.',
+        label: 'So that consecutive threads write consecutive addresses and the stores coalesce, even for threads whose own key was dropped.',
         correct: true,
       },
-      { label: 'To keep the keys in input order.', why: 'The private list is in the order the private atomics completed, so the result is still unstable.' },
+      { label: 'To keep the keys in input order: entry k of the private list holds the block\'s k-th kept key, so copying by position preserves it.', why: 'The private list is in the order the private atomics completed, so the result is still unstable.' },
       { label: 'Because a thread cannot read another thread\'s shared memory.', why: 'Shared memory is shared by the whole block; that is the point of it.' },
     ],
     explain: (
@@ -453,12 +453,12 @@ export const questionsS124: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'The output becomes stable.', why: 'Within a warp the ranks follow lane order, but warps still reserve their pieces of the private list in whatever order their atomics complete.' },
+      { label: 'The output becomes stable, since each lane\'s rank now follows lane order rather than the order the atomics complete.', why: 'Within a warp the ranks follow lane order, but warps still reserve their pieces of the private list in whatever order their atomics complete.' },
       {
-        label: 'Fewer same-address atomics on outputSize_s (one per warp that keeps anything), the same single public atomic per block, and the result is still unstable.',
+        label: 'Fewer atomics on outputSize_s, one per busy warp; still one public atomic per block, and still unstable.',
         correct: true,
       },
-      { label: 'The public atomics drop to zero.', why: 'The block still has to reserve its range of the public output, once.' },
+      { label: 'The public atomics drop to zero, because each warp\'s leader can now reserve its piece of the public output directly.', why: 'The block still has to reserve its range of the public output, once.' },
     ],
     explain: (
       <p>
@@ -646,7 +646,7 @@ export function S124() {
         <tbody>
           <tr>
             <td><code>cuda::atomic_ref&lt;unsigned int, cuda::thread_scope_block&gt;</code> on a shared counter</td>
-            <td>The same spelling through libhipcxx's <code>&lt;cuda/atomic&gt;</code> (ROCm 10.1 and later). There is no <code>atomicAdd_block</code>; the legacy <code>atomicAdd</code> works on shared and global memory, and lab 12.1's HIP build uses it, because the course's HIP build links libhipcxx only where ROCm provides it.</td>
+            <td>The same spelling through libhipcxx's <code>&lt;cuda/atomic&gt;</code> (ROCm 10.1 and later). There is no <code>atomicAdd_block</code>; the legacy <code>atomicAdd</code> works on shared and global memory, and lab 12.1 uses it on HIP. The course's HIP build links <code>libhipcxx::libhipcxx</code> when CMake finds it. Without it, code that includes <code>&lt;cuda/atomic&gt;</code> does not build. With it, no ROCm machine has built this course's code yet (unverified). The legacy call needs no extra library.</td>
             <td><code>threadgroup atomic_uint outputSize_s;</code> and <code>atomic_fetch_add_explicit(&amp;outputSize_s, 1u, memory_order_relaxed)</code>. No scope argument: the address space says who shares the counter.</td>
           </tr>
           <tr>

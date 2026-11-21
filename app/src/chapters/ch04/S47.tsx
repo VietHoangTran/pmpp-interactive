@@ -1106,6 +1106,12 @@ export function S47() {
         either slider and the other plot is redrawn. Look for three things: where the first step is, how much a single
         step can cost at 1024 threads per block, and what happens to all of it on other limits.
       </p>
+      <Simplification>
+        <p>
+          The calculator's model again: registers counted as threads × registers per thread, with no allocation
+          granularity, and shared memory left out, so slots and registers are the only budgets.
+        </p>
+      </Simplification>
       <CliffExplorer />
       <Ask q={questionsS47['ch04/4.7/q-ex8c']} />
       <p>

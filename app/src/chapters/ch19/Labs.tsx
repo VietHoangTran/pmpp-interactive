@@ -317,8 +317,9 @@ export function Labs() {
             'kernel.cu',
             <>
               <code>convDirectKernel</code> and <code>launchConvDirect</code>; <code>unrollKernel</code> and{' '}
-              <code>launchUnroll</code>; <code>launchConvGemm</code>. Plain CUDA: the same file builds for HIP and both
-              emulators.
+              <code>launchUnroll</code>; <code>launchConvGemm</code>. Plain CUDA with only threads, blocks, shared memory and
+              barriers. The same file runs on both emulators (emulator-checked), and is set up to build for HIP through{' '}
+              <code>pmpp/vendors/hip.h</code> (unverified: not compiled or run on AMD hardware here).
             </>,
           ],
           ['kernel.metal', <><code>conv_direct</code> and <code>unroll_input</code></>],

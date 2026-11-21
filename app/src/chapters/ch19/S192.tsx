@@ -58,7 +58,7 @@ export const questionsS192: Record<string, Question> = {
     options: [
       { label: 'The full sum, or the sum of only some of the six parts.', correct: true },
       {
-        label: 'Always the full sum; only the order of the additions varies.',
+        label: 'The full sum; just the order of the six additions varies from run to run.',
         why: 'That is what an atomic add guarantees. A plain += is a load, an add and a store, and two threads can load the same old value.',
       },
       {
@@ -115,7 +115,7 @@ export const questionsS192: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'With a square grid of tiles the swap only changes which block owns which tile. A 32 × 64 output would fail.',
+        label: 'On a square grid of tiles the swap only changes which block owns which tile; a 32 × 64 output would fail.',
         correct: true,
       },
       {
@@ -123,7 +123,7 @@ export const questionsS192: Record<string, Question> = {
         why: 'They agree for few blocks. At 64 × 64 the swap moves most blocks to another tile; it just happens to move them onto a full set of tiles.',
       },
       {
-        label: 'The tests passed by luck of thread timing. Running them again on another GPU would fail.',
+        label: 'The tests passed by luck of thread timing; the same tests run again on another GPU would fail.',
         why: 'Nothing here depends on timing. The index arithmetic is the same on every run.',
       },
       {
@@ -204,9 +204,9 @@ export const questionsS192: Record<string, Question> = {
     id: 'ch19/19.2/q-reuse',
     prompt: <>Why can&rsquo;t the direct kernel keep one input tile in shared memory and use it for all M output maps?</>,
     options: [
-      { label: 'Each block computes one output map, and shared memory is private to a block.', correct: true },
-      { label: 'Shared memory is too small to hold an input tile and its halo.', why: 'Chapter 7 holds exactly such a tile. Size is not what stops reuse across maps.' },
-      { label: 'Each output map reads a different part of the input.', why: 'Every output map reads every input map, all of it: the same X.' },
+      { label: 'Each block serves one output map, and shared memory is private to a block.', correct: true },
+      { label: 'Shared memory is too small to hold an input tile, its halo and all M filters.', why: 'Chapter 7 holds exactly such a tile, and the filters need not sit in shared memory. Size is not what stops reuse across maps.' },
+      { label: 'Each output map reads a different part of the input, so no tile is common to two maps.', why: 'Every output map reads every input map, all of it: the same X.' },
       { label: 'The barriers needed to share the tile would deadlock.', why: 'Barriers work within a block; nothing about them is in the way.' },
     ],
     explain: (
@@ -835,7 +835,7 @@ function DirectKernel() {
           The direct kernel and its launch from lab 19.1&rsquo;s reference solution, loaded from{' '}
           <code>labs/{SOL}/</code>
           {parts.every((x) => x.found) ? '' : ' (a region marker was not found, so a whole file is shown)'}. Try it in the{' '}
-          <a href={href('ch19', 'labs')}>lab</a> first. The HIP build compiles the CUDA file unchanged. The status beside the
+          <a href={href('ch19', 'labs')}>lab</a> first. The HIP build is set up to take the CUDA file unchanged through <code>pmpp/vendors/hip.h</code>; it has not been compiled or run on AMD hardware here. The status beside the
           tabs is read from this machine&rsquo;s recorded lab runs.
         </>
       }
@@ -1046,9 +1046,12 @@ export function S192() {
 
       <h2>On HIP and Metal</h2>
       <p>
-        The CUDA kernel compiles for HIP unchanged. It uses only <code>__global__</code>, <code>blockIdx</code>,{' '}
-        <code>threadIdx</code>, <code>dim3</code> and the triple-angle-bracket launch, which HIP spells the same way. A 16
-        × 16 block is four wavefronts of 64 on gfx9 devices, eight of 32 on gfx10 and later.
+        The CUDA kernel is set up to build for HIP unchanged through <code>pmpp/vendors/hip.h</code> (documented,
+        ch19-facts B1; it has not been compiled or run on AMD hardware here), because it uses only{' '}
+        <code>__global__</code>, <code>blockIdx</code>, <code>threadIdx</code>, <code>dim3</code> and the
+        triple-angle-bracket launch, which HIP spells the same way. That is not true of every CUDA file: warp{' '}
+        <code>_sync</code> intrinsics, cooperative groups, half-precision headers, CUB functors and matrix-core intrinsics
+        all differ on HIP, and <code>__dp4a</code> has no HIP counterpart. A 16 × 16 block is four wavefronts of 64 on gfx9 devices, eight of 32 on gfx10 and later.
       </p>
       <Beyond>
         <p>

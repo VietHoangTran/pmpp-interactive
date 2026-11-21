@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
+import { useNarrow } from '../../lib/narrow';
 import { href } from '../../lib/router';
 import {
   FIG_HEAD,
@@ -278,31 +279,6 @@ function CounterRow({ c, mode, status }: { c: Counters; mode: Mode; status: Reac
   );
 }
 
-/** True on screens narrower than the app's own breakpoint for stacking columns (52rem). */
-function useNarrow(): boolean {
-  const q = '(max-width: 52rem)';
-  const get = () => {
-    try {
-      return window.matchMedia(q).matches;
-    } catch {
-      return false;
-    }
-  };
-  const [narrow, setNarrow] = useState(get);
-  useEffect(() => {
-    let m: MediaQueryList;
-    try {
-      m = window.matchMedia(q);
-    } catch {
-      return;
-    }
-    const on = () => setNarrow(m.matches);
-    m.addEventListener('change', on);
-    return () => m.removeEventListener('change', on);
-  }, []);
-  return narrow;
-}
-
 function FigStepper() {
   const narrow = useNarrow();
   const [mode, setMode] = useState<Mode>('migrate');
@@ -510,23 +486,23 @@ export const questionsSC6: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Both work: Unified Memory keeps CPU and GPU coherent.',
-        why: 'Coherent pages do not order anything. Nothing makes use_data wait for the sort, and on Windows the CPU may not touch managed memory at all while a kernel runs.',
+        label: 'Both work: Unified Memory keeps CPU and GPU coherent, so use_data sees the sorted buffer.',
+        why: 'Coherent pages do not order anything. Nothing makes use_data wait for the sort, and on Windows the CPU must not touch managed memory at all while the GPU is active.',
       },
       {
-        label: 'Windows: a segmentation fault when use_data touches managed memory while the GPU is active. Linux: no crash, but use_data may read unsorted or partly sorted bytes.',
+        label: 'Windows: use_data segfaults, touching managed memory while the GPU is active. Linux: it may read unsorted data.',
         correct: true,
       },
       {
-        label: 'Both crash.',
+        label: 'Both crash with a segmentation fault: no system lets the CPU touch managed memory before a synchronise.',
         why: 'With compute capability 6.0 or later on Linux, the CPU may touch managed memory while a kernel runs. Allowed is not the same as correct.',
       },
-      { label: 'Linux crashes and Windows works.', why: 'The other way round: Windows is the limited mode.' },
+      { label: 'Linux crashes, because pages fault back to the CPU during the sort, and Windows works.', why: 'The other way round: Windows is the limited mode.' },
     ],
     explain: (
       <p>
         Windows, WSL and some Tegra systems run Unified Memory in the limited mode, where any CPU access to managed memory
-        while a kernel is active is a segmentation fault. NVIDIA's own example writes <code>y = 20</code> right after a launch:
+        while the GPU is active, that is, until it is synchronised, is a segmentation fault. NVIDIA's own example writes <code>y = 20</code> right after a launch:
         it runs on compute capability 6.x and fails before 6.0 and on Windows. On Linux with full support there is no crash,
         and that is the trap: <code>use_data</code> now races with the sort. The book says it plainly: the program still has
         to synchronise concurrent access.
@@ -543,13 +519,13 @@ export const questionsSC6: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Pages fault in on demand, and the least recently used go back to the CPU.', why: 'That is full Unified Memory on Linux. Windows is the limited mode: no GPU page faults.' },
+      { label: 'Pages fault in on demand, and the least recently used pages are evicted back to the CPU.', why: 'That is full Unified Memory on Linux. Windows is the limited mode: no GPU page faults.' },
       { label: 'It runs, at the speed of the interconnect.', why: 'It never gets as far as running.' },
       {
-        label: 'The driver\'s Sysmem Fallback spills the excess into system memory.',
+        label: "The driver's Sysmem Fallback spills the excess into system memory, so it runs, more slowly.",
         why: 'That Windows driver feature is for ordinary allocations that run out of GPU memory. The limit on managed memory is documented separately.',
       },
-      { label: 'It is not allowed: a limited system cannot allocate more managed memory than the GPU physically has.', correct: true },
+      { label: 'Not allowed: a limited system cannot allocate more managed memory than the GPU has.', correct: true },
     ],
     explain: (
       <p>
@@ -570,7 +546,7 @@ export const questionsSC6: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'About half: only what the kernel touches moves.', why: 'It touches all of it, so all of it moves, and comes back when use_data reads it.' },
+      { label: 'About half: only the pages the kernel touches move, and the rest stay put.', why: 'It touches all of it, so all of it moves, and comes back when use_data reads it.' },
       { label: 'About the same: every page in once and out once.', correct: true },
       { label: 'None: the pointer is shared.', why: 'The pointer is shared; the memory is not. On a discrete GPU the bytes still have to reach GPU memory.' },
       { label: 'About double: every page faults twice.', why: 'Each page faults once in each direction: one crossing each way, as the two copies make.' },
@@ -597,10 +573,10 @@ export const questionsSC6: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'All four, plus a didModifyRange call after fread.',
+        label: 'All four, plus a didModifyRange call after fread so that the GPU sees what the CPU wrote.',
         why: 'didModifyRange belongs to managed storage, which is deprecated and "has no effect on Apple Silicon". And Metal has no free call.',
       },
-      { label: 'Allocate a shared buffer, launch, and wait for the command buffer before use_data. Nothing migrates.', correct: true },
+      { label: 'A shared buffer, the launch, and a wait before use_data. Nothing migrates.', correct: true },
       { label: 'None: with unified memory you need no wait.', why: 'You still owe ordering: Apple asks you to make sure the GPU\'s changes complete before the CPU reads them.' },
     ],
     explain: (
@@ -622,10 +598,10 @@ export const questionsSC6: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'From device memory, after each page migrates on first touch.', why: 'Access-driven migration needs HSA_XNACK=1 and a driver with HMM; without them it is disabled.' },
-      { label: 'Nowhere: the allocation fails.', why: 'The call still works. AMD says managed memory then operates "in a degraded fashion".' },
-      { label: 'From host memory over the interconnect: without XNACK and HMM it behaves like pinned host memory.', correct: true },
-      { label: 'From device memory, after a bulk copy at the launch.', why: 'Not what AMD documents for this case: the header says the call then behaves the same as hipMallocHost, which allocates host memory.' },
+      { label: 'From device memory, after each page migrates there on its first touch, as on NVIDIA.', why: 'Access-driven migration needs HSA_XNACK=1 and a driver with HMM; without them it is disabled.' },
+      { label: 'Nowhere: without XNACK, hipMallocManaged returns an error and allocates nothing.', why: 'The call still works. AMD says managed memory then operates "in a degraded fashion".' },
+      { label: 'From host memory, over the link, as if it were pinned host memory.', correct: true },
+      { label: 'From device memory, after the runtime copies the whole allocation in bulk at the launch.', why: 'Not what AMD documents for this case: the header says the call then behaves the same as hipMallocHost, which allocates host memory.' },
     ],
     explain: (
       <p>
@@ -761,6 +737,9 @@ export function SC6() {
         If you run models on a Mac you have heard "unified memory" for years, and it means something else. The difference
         is not in a picture of two boxes; it is in what moves, and when. Watch the same program on both.
       </p>
+      <Simplification>
+        <p>The animation runs the stepper's model and shares its simplifications: pages, not bytes or time.</p>
+      </Simplification>
       <TwoUnifiedScene />
       <p>
         CUDA's term names a software-managed pool over separate memories: "a CUDA feature that enables managed memory which

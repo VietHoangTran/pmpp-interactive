@@ -443,7 +443,7 @@ export const questionsS206: Record<string, Question> = {
     prompt: <>Speculative decoding verifies k drafted tokens in one pass of the target model. What happens to the cache bytes read per verified token?</>,
     options: [
       { label: 'They fall about k times: one read of the prefix serves all k rows.', correct: true },
-      { label: 'Nothing changes: each drafted token still reads its own copy of the cache.', why: 'The k rows share one prefix, so they share one cache. That is the difference from batching separate requests.' },
+      { label: 'Nothing: each drafted token still reads the cache on its own.', why: 'They need not: the k rows share one prefix, so one pass can load each cached K and V once for all k (p. 508). Reading per token is what batching separate requests forces.' },
       { label: 'They double, because two models run and each reads a cache.', why: 'The draft model is small and has its own small cache; the target’s cache is read once per pass.' },
       { label: 'They fall to zero, because the drafts were already computed.', why: 'The cache is still read, once per pass.' },
     ],

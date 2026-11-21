@@ -752,16 +752,15 @@ export const questionsS55: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Yes. A thread that owns no element of P contributes nothing to the result.',
+        label: 'Yes. A thread that owns no element of P contributes nothing to the result, so it may leave.',
         why: 'It contributes loads. Which slots of Mds and Nds is that thread the only one to fill?',
       },
       {
-        label:
-          'No. The thread still has to load the elements of M and N that belong in its slots, because neighbours with valid outputs read them.',
+        label: 'No. The thread must still fill its slots of Mds and Nds, which neighbours with valid outputs read.',
         correct: true,
       },
       {
-        label: 'Yes, as long as the three bounds tests and the zero-writes stay in the loop.',
+        label: 'Yes, as long as the three bounds tests and the zero-writes stay inside the phase loop.',
         why: 'Those run only in threads that reach the loop. The returned thread never writes its slots at all, not even a zero.',
       },
       {
@@ -796,12 +795,11 @@ export const questionsS55: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Both reads fall outside their arrays and may crash.',
+        label: 'Both reads fall outside their 25-element arrays, so both may fault or return garbage.',
         why: 'Work out the flat index of M[1][6]: 1·5 + 6 = 11, which is inside the array.',
       },
       {
-        label:
-          'M[1][6] quietly returns M[2][1]. N[6][1] is index 31 of an array that ends at 24: garbage, or a fault.',
+        label: 'M[1][6] quietly returns M[2][1]. N[6][1] is index 31, past the end: garbage or a fault.',
         correct: true,
       },
       {
@@ -809,7 +807,7 @@ export const questionsS55: Record<string, Question> = {
         why: 'The other way round. A column index that is too large lands in the next row; a row index that is too large is multiplied by the whole row length.',
       },
       {
-        label: 'Both quietly return some other element of their own matrix.',
+        label: 'Both quietly return some other element of their own matrix, a row or so further on.',
         why: '6·5 + 1 = 31, and the array ends at index 24.',
       },
     ],

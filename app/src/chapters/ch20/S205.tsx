@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Ask, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
-import { defineLabs, solutionStatus } from '../../components/LabKit';
+import { defineLabs, solutionTabStatus } from '../../components/LabKit';
 import { Aside, Beyond, Simplification, Source, Today, type Tier } from '../../components/notes';
 import { useReports, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
@@ -22,20 +22,9 @@ import { OnlineSoftmaxStepper } from './OnlineSoftmaxStepper';
 
 const [LAB2] = defineLabs('ch20', [{ num: '20.2', dir: 'lab2_flash', name: 'flash attention forward' }]);
 
-/** The listing's status line from this machine's runs, in the fixed vocabulary. */
+/** The listing's status lines from this machine's runs, in the labs page's words. */
 function statuses(reports: Reports) {
-  const emu = solutionStatus(reports, 'emu', LAB2);
-  const cuda = solutionStatus(reports, 'cuda', LAB2);
-  const hip = solutionStatus(reports, 'hip', LAB2);
-  const metal = solutionStatus(reports, 'metal', LAB2);
-  const dev =
-    cuda.tone !== 'ok' && hip.tone !== 'ok'
-      ? 'unverified on CUDA and HIP hardware'
-      : [cuda.tone === 'ok' ? cuda.text : 'unverified on CUDA', hip.tone === 'ok' ? hip.text : 'unverified on HIP'].join('; ');
-  return {
-    cu: `${emu.tone === 'ok' ? 'emulator-checked' : 'emulator: ' + emu.text}; ${dev}`,
-    metal: metal.tone === 'ok' ? 'verified on Metal' : 'unverified: no passing Metal run on this machine',
-  };
+  return { cu: solutionTabStatus(reports, LAB2, 'kernel.cu'), metal: solutionTabStatus(reports, LAB2, 'kernel.metal') };
 }
 
 const FLASH_TIERS: Record<string, Tier> = {
@@ -403,7 +392,7 @@ export function S205() {
       </p>
       <Simplification>
         <p>
-          One row, not a block of rows. float32 is emulated by rounding every operation with Math.fround, and exp is
+          The scene and the stepper: one row, not a block of rows. float32 is emulated by rounding every operation with Math.fround, and exp is
           JavaScript's, rounded to float32, not a GPU's (which may differ in the last bits). No threads or shared memory
           here; the kernel stepper further down has those.
         </p>
@@ -678,7 +667,8 @@ export function S205() {
       </p>
       <Today checked="2026-11-20 (notes/today/ch20-facts.md A3, B4, C4, D1)">
         <p>
-          CUDA guide 5.4.6.5 on shuffles and 5.4.4.2 on <code>__syncwarp</code>. The call compiles on HIP; on Metal the
+          CUDA guide 5.4.6.5 on shuffles and 5.4.4.2 on <code>__syncwarp</code>. HIP's headers declare the call too, with a
+          64-bit mask type for the masked form (unverified: nothing here has been built with ROCm); on Metal the
           counterpart is <code>simdgroup_barrier(mem_flags::mem_threadgroup)</code>. llama.cpp's vector attention kernel
           has <code>ggml_cuda_syncwarp(); // Needed for KQ synchronization.</code> at the same point.
         </p>

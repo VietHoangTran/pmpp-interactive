@@ -2,7 +2,8 @@ import { useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
 import { Aside, Bench, Beyond, Simplification, Source, type Tier } from '../../components/notes';
-import { labStatus, useReports } from '../../lib/reports';
+import { solutionTabStatus } from '../../components/LabKit';
+import { useReports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import {
   CLAUSES,
@@ -681,10 +682,10 @@ export const questionsS33: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Every pixel is darker than it should be.', why: 'An interior thread did sum 9 values, so dividing by 9 is right for it.' },
+      { label: 'Every pixel is darker, the interior as much as the border.', why: 'An interior thread did sum 9 values, so dividing by 9 is right for it.' },
       { label: 'The interior is unchanged; the border is darker, and the corners are darkest.', correct: true },
       { label: 'The picture is unchanged, because all the values are equal.', why: 'Equal values make the sum 4 or 6 times the grey level at the border, and that is then divided by 9.' },
-      { label: 'An out-of-bounds read at the border.', why: 'The inner test is untouched, so nothing outside the picture is read. Only the divisor changed.' },
+      { label: 'Garbage at the border, from reads outside the picture.', why: 'The inner test is untouched, so nothing outside the picture is read. Only the divisor changed.' },
     ],
     explain: (
       <p>
@@ -705,12 +706,12 @@ export const questionsS33: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Nothing. The inner test on line 15 rejects every position outside the picture.', why: 'It does, for the reads. The store on line 22 is not inside that test.' },
+      { label: 'Nothing. The inner test on line 15 rejects every position outside the picture, for surplus threads too, so they do no harm.', why: 'It does, for the reads. The store on line 22 is not inside that test.' },
       {
-        label: 'The 408 surplus threads run the loop as well, and each of them stores a byte at out[row*w + col], which is another thread\'s pixel or lies past the end of the buffer.',
+        label: 'The 408 surplus threads also store, each at out[row*w + col]: on another thread\'s pixel or past the end of out.',
         correct: true,
       },
-      { label: 'Every surplus thread divides by zero and the kernel stops.', why: 'Some of them find valid positions and divide by 1, 2 or 3. The others divide 0 by 0 in floating point, which stops nothing.' },
+      { label: 'Each of the 408 surplus threads finds no valid position, divides by zero, and the launch stops with an error.', why: 'Some of them find valid positions and divide by 1, 2 or 3. The others divide 0 by 0 in floating point, which stops nothing.' },
       { label: 'A compile error, because row and col are used unchecked.', why: 'The compiler has no idea how large the buffers are.' },
     ],
     explain: (
@@ -738,10 +739,10 @@ export const questionsS33: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'The result is still correct, since each thread writes only its own pixel.', why: 'Each thread writes one pixel, but it reads up to nine, and eight of those are now pixels that other threads write.' },
-      { label: 'The result is wrong, but it is the same wrong picture on every run.', why: 'It would be if the threads ran in a fixed order. Nothing fixes it.' },
-      { label: 'The result depends on the order in which the threads run, because a thread may read a neighbour that has already been overwritten.', correct: true },
-      { label: 'The kernel fails to compile, because in and out alias.', why: 'Two pointer parameters may hold the same address; the compiler does not check.' },
+      { label: 'The result is still correct: each thread writes only its own pixel, and no two threads write the same one.', why: 'Each thread writes one pixel, but it reads up to nine, and eight of those are now pixels that other threads write.' },
+      { label: 'The result is wrong, but every run produces the same wrong picture, fixed by the order of the blocks.', why: 'It would be if the threads ran in a fixed order. Nothing fixes it.' },
+      { label: 'It depends on the order of the threads: some read neighbours already overwritten.', correct: true },
+      { label: 'The kernel fails to compile, because in and out are the same pointer.', why: 'Two pointer parameters may hold the same address; the compiler does not check.' },
     ],
     explain: (
       <p>
@@ -758,10 +759,10 @@ export const questionsS33: Record<string, Question> = {
     id: 'ch03/3.3/q-maskedmean',
     prompt: <>Which framework computation has the same shape as lines 10 to 22 of the blur kernel?</>,
     options: [
-      { label: 'softmax over the last dimension', why: 'It normalises by a sum of exponentials, not by a count of the positions that were allowed in.' },
+      { label: 'softmax over the last dimension of the scores', why: 'It normalises by a sum of exponentials, not by a count of the positions that were allowed in.' },
       { label: 'mean pooling over the unmasked tokens of a padded batch', correct: true },
-      { label: 'a matrix transpose', why: 'That is pure index mapping, one element in and one out: the grayscale kernel\'s shape.' },
-      { label: 'a residual add', why: 'One element in from each input and one out, with no loop and no test.' },
+      { label: 'a transpose of each [seq, hidden] slice', why: 'That is pure index mapping, one element in and one out: the grayscale kernel\'s shape.' },
+      { label: 'a residual add of two hidden states', why: 'One element in from each input and one out, with no loop and no test.' },
     ],
     explain: (
       <p>
@@ -783,14 +784,10 @@ export function S33() {
   const cu = useLabFile(LAB2 + '/solution/kernel.cu');
   const metal = useLabFile(LAB2 + '/solution/kernel.metal');
   const mm = useLabFile(LAB2 + '/solution/launch.mm');
-  // The status of the reference solution in the fixed vocabulary, read from this machine's lab runs.
+  // The status of the reference solution in the labs page's words, read from this machine's lab runs.
   const { reports } = useReports();
-  const st = (b: string) => labStatus(reports[b], LAB2, 'solution');
-  const cudaStatus =
-    (st('emu') === 'pass' ? 'emulator-checked' : 'unverified: no passing emulator run on this machine') +
-    '; ' +
-    (st('cuda') === 'pass' ? 'verified on CUDA' : 'unverified on CUDA hardware');
-  const metalStatus = st('metal') === 'pass' ? 'verified on Metal' : 'unverified: no passing Metal run on this machine';
+  const cudaStatus = solutionTabStatus(reports, LAB2, 'kernel.cu');
+  const metalStatus = solutionTabStatus(reports, LAB2, 'kernel.metal');
   return (
     <>
       <p>
@@ -817,7 +814,7 @@ export function S33() {
       </p>
       <Source section="3.3" pages="56, 58" figs="Fig. 3.8" />
       <Code
-        tabs={[{ label: 'CUDA', code: KERNEL, tiers: BLUR_TIERS, status: 'front-end-checked; emulator-checked (python3 labs/ch03/snippets/check.py); unverified on CUDA hardware' }]}
+        tabs={[{ label: 'CUDA', code: KERNEL, tiers: BLUR_TIERS, status: 'front-end-checked; emulator-checked (python3 labs/ch03/snippets/check.py); unverified on CUDA or HIP hardware' }]}
         firstLine={0}
         highlight={[5, 15, 22]}
         caption={

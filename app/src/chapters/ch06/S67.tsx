@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Ask, type Question } from '../../components/Ask';
 import { Code, MATMUL_TIERS, useLabFile } from '../../components/Code';
-import { defineLabs, solutionStatus } from '../../components/LabKit';
+import { defineLabs, solutionStatus, solutionTabStatus } from '../../components/LabKit';
 import { Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
 import { useReports } from '../../lib/reports';
 import { href } from '../../lib/router';
@@ -339,12 +339,12 @@ function TiledListing() {
   const cu = useLabFile('ch06/lab5_doublebuf/solution/kernel.cu');
   const metal = useLabFile('ch06/lab5_doublebuf/solution/kernel.metal');
   if (!ch5 || !cu || !metal) return null;
-  const emu = (l: typeof LAB65) => solutionStatus(reports, 'emu', l).text;
+  // The CUDA tabs use the labs page's words for the emulator, CUDA and HIP together.
   return (
     <Code
       tabs={[
-        { label: 'Chapter 5: two barriers', code: ch5, tiers: MATMUL_TIERS, status: `${emu(LAB52)}; unverified on CUDA and HIP hardware` },
-        { label: 'Double-buffered (CUDA)', code: cu, tiers: MATMUL_TIERS, status: `${emu(LAB65)}; unverified on CUDA and HIP hardware` },
+        { label: 'Chapter 5: two barriers', code: ch5, tiers: MATMUL_TIERS, status: solutionTabStatus(reports, LAB52, 'kernel.cu') },
+        { label: 'Double-buffered (CUDA)', code: cu, tiers: MATMUL_TIERS, status: solutionTabStatus(reports, LAB65, 'kernel.cu') },
         { label: 'Double-buffered (Metal)', code: metal, tiers: MATMUL_TIERS, status: solutionStatus(reports, 'metal', LAB65).text },
       ]}
       caption={
@@ -402,10 +402,10 @@ export const questionsS67: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'The one after the read: it guards the write-after-read (false) dependence.', correct: true },
-      { label: 'The one after the write.', why: 'That one makes the next iteration\'s readers wait for this iteration\'s writers. They need the new values; no second buffer supplies them sooner.' },
-      { label: 'Both.', why: 'One of the two dependences is real whatever the memory layout.' },
-      { label: 'Neither.', why: 'One of them exists only because the write lands where a read has yet to happen.' },
+      { label: 'The one after the read, which guards the false dependence.', correct: true },
+      { label: 'The one after the write, which guards the read-after-write dependence.', why: 'That one makes the next iteration\'s readers wait for this iteration\'s writers. They need the new values; no second buffer supplies them sooner.' },
+      { label: 'Both: with two buffers, reads and writes never share a location.', why: 'One of the two dependences is real whatever the memory layout: a reader still needs the value a writer produces.' },
+      { label: 'Neither: two buffers save memory traffic, not barriers.', why: 'They save no traffic. One barrier exists only because the write lands where a read has yet to happen, and two buffers remove it.' },
     ],
     explain: (
       <p>
@@ -422,9 +422,9 @@ export const questionsS67: Record<string, Question> = {
     id: 'ch06/6.7/q-swap',
     prompt: <>The double-buffered loop forgets the swap. What happens?</>,
     options: [
-      { label: 'Every iteration reads the original buffer, so the values never get past the first step: wrong on every device, every time, with no race.', correct: true },
-      { label: 'A race that only some thread orders show.', why: 'Try it in the stepper under lockstep: it is wrong there too. A race depends on timing; this does not.' },
-      { label: 'Nothing: the barrier covers it.', why: 'The barrier orders the reads and writes; it does not tell the next iteration where the new values are.' },
+      { label: 'Every iteration reads the starting values again: wrong on every device, every time, with no race.', correct: true },
+      { label: 'A race that only some thread orders show, since reads and writes now overlap.', why: 'Try it in the stepper under lockstep: it is wrong there too. A race depends on timing; this does not.' },
+      { label: 'Nothing: the barrier after the write makes the new values visible anyway.', why: 'The barrier orders the reads and writes; it does not tell the next iteration where the new values are.' },
     ],
     explain: (
       <p>
@@ -444,13 +444,14 @@ export const questionsS67: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Yes. Each thread holds its own copies of the two pointers; a thread that skipped it would read and write the wrong buffers.', correct: true },
-      { label: 'No, one thread swaps for the whole block.', why: 'The pointers are ordinary local variables, one pair per thread, in registers. Nothing another thread does changes yours.' },
-      { label: 'Only thread 0 of each warp.', why: 'There is no per-warp copy of a local variable either.' },
+      { label: 'Yes: each thread holds its own copy of the two pointers.', correct: true },
+      { label: 'No: one thread swaps for the whole block, since the buffers are shared.', why: 'The pointers are ordinary local variables, one pair per thread, in registers. Nothing another thread does changes yours.' },
+      { label: 'Only thread 0 of each warp, since a warp runs in lockstep.', why: 'There is no per-warp copy of a local variable either, and lockstep or not, each lane has its own registers.' },
     ],
     explain: (
       <p>
-        The buffers are shared; the pointers to them are not. The book does not show how <code>swap</code> is written
+        The buffers are shared; the pointers to them are not, so a thread that skipped the swap would read and write
+        the wrong buffers. The book does not show how <code>swap</code> is written
         (notes item 15), and that hides the point: it exchanges the calling thread's own pointers. The snippet above
         passes them by reference to <code>swapPointers</code>, and every thread calls it.
       </p>
@@ -494,7 +495,7 @@ export const questionsS67: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Every read of tile[(t + 1) % 64]: each is another thread\'s copy, and a thread\'s wait covers only its own. The reads of tile[t] are safe.',
+        label: 'Every read of tile[(t + 1) % 64]: each is another thread\'s copy, and a thread\'s wait covers only its own.',
         correct: true,
       },
       {
@@ -513,7 +514,8 @@ export const questionsS67: Record<string, Question> = {
     explain: (
       <p>
         NVIDIA: &ldquo;By default, each thread only waits for its own LDGSTS copies,&rdquo; so data prefetched for other
-        threads needs a <code>__syncthreads()</code> after the wait. A tile filled by many threads is shared data, so the
+        threads needs a <code>__syncthreads()</code> after the wait. The reads of <code>tile[t]</code> are safe: each
+        is the thread&rsquo;s own copy. A tile filled by many threads is shared data, so the
         block still needs a barrier between the wait and the first read of another thread&rsquo;s element. This is a true
         dependence (read after write), the kind double buffering never removes. llama.cpp&rsquo;s helper for these copies
         carries a comment saying the same.
@@ -527,7 +529,7 @@ export const questionsS67: Record<string, Question> = {
     prompt: <>Your double-buffered kernel runs clean on the race backend. What have you shown?</>,
     options: [
       { label: 'No unsynchronised access occurred in the schedules that ran: strong evidence, not a proof.', correct: true },
-      { label: 'The kernel is race-free on every GPU.', why: 'ThreadSanitizer examines only the interleavings that actually happened in that run.' },
+      { label: 'The kernel is race-free on every GPU, since every access was checked.', why: 'ThreadSanitizer examines only the interleavings that actually happened in that run.' },
       { label: 'Nothing: the race backend cannot see shared memory.', why: 'It sees every access the emulated threads make, shared memory included; what it cannot see is a schedule that never occurred.' },
     ],
     explain: (

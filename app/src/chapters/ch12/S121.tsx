@@ -253,7 +253,7 @@ export const questionsS121: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'The same token every time: the seed fixes u.',
+        label: 'The same token every time: the seed fixes u, and the set of candidates and their probabilities is the same in every run.',
         why: 'u is fixed, but the walk visits the candidates in array order. Another order puts a different token where the running sum crosses u.',
       },
       {
@@ -304,15 +304,15 @@ export const questionsS121: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Out of place: in place is impossible on a GPU, because threads run in no fixed order.',
+        label: 'Out of place: in place is impossible on a GPU, because threads run in no fixed order and cannot wait for one another.',
         why: 'Section 12.7 does it, by ordering the reads before the writes they could clobber.',
       },
       {
-        label: 'In place, because there is no room for a second list. The cost: threads must be ordered so that no position is written before its old key has been read.',
+        label: 'In place, since a second list will not fit; but no position may be written before its old key is read.',
         correct: true,
       },
       {
-        label: 'In place, and it costs nothing extra.',
+        label: 'In place, and it costs nothing extra: keys only move to lower positions, so the list never needs more room than it has.',
         why: 'It adds ordering constraints between threads, and between blocks when a key moves into another block\'s range.',
       },
     ],

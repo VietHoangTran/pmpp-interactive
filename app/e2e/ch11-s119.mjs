@@ -226,10 +226,10 @@ await pause(80);
 await (await qs.$('button.primary')).click();
 await pause(120);
 check('q-ssa: 16 alone is not accepted (the 8/S term counts)', !(await qs.evaluate((e) => e.textContent)).includes('Correct.'));
-check('q-deadlock: the claimed index is the right answer', await answer('waits on the block with', 'Claiming the index from an atomic counter'));
+check('q-deadlock: the claimed index is the right answer', await answer('waits on the block with', 'an index claimed from an atomic counter'));
 check('q-metal: several dispatches', await answer('10⁸ floats on Metal', 'A hierarchical scan in several dispatches'));
 check('q-scope: undefined behaviour', await answer('thread_scope_block', 'Undefined behaviour'));
-check('q-ex5: three states', await answer('Exercise 5 asks for decoupled lookback', 'Three: nothing published yet'));
+check('q-ex5: three states', await answer('Exercise 5 asks for decoupled lookback', 'Three: nothing yet'));
 
 // ---------------------------------------------------------------- batched rows (facts D1)
 const prose = await page.$eval('.prose', (e) => e.textContent);

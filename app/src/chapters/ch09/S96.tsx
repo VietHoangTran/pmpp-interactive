@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
 import { Bench, Beyond, Simplification, Source, Today, type Tier } from '../../components/notes';
-import { fmt, labStatus, useReports } from '../../lib/reports';
+import { solutionTabStatus } from '../../components/LabKit';
+import { fmt, useReports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import {
   PRESETS,
@@ -63,7 +64,8 @@ function Listing() {
   const cu = useLabFile(LAB + '/solution/kernel.cu');
   const msl = useLabFile(LAB + '/solution/kernel.metal');
   const { reports } = useReports();
-  const st = (b: string) => labStatus(reports[b], LAB, 'solution');
+  // The same words as the labs page's status table and reference-solution tabs.
+  const st = (f: 'kernel.cu' | 'kernel.metal') => solutionTabStatus(reports, LAB, f);
   const k = region(cu, 'runs');
   const m = region(msl, 'runs');
   if (!k)
@@ -78,14 +80,14 @@ function Listing() {
     <Code
       tabs={[
         {
-          label: 'CUDA',
+          label: 'CUDA and HIP',
           code: k,
           tiers: HIST_TIERS,
-          status: (st('emu') === 'pass' ? 'emulator-checked' : 'unverified: no passing emulator run on this machine') + '; unverified on CUDA and HIP hardware',
+          status: st('kernel.cu'),
           highlight: atomics(k),
         },
         ...(m
-          ? [{ label: 'Metal', code: m, tiers: HIST_TIERS, status: st('metal') === 'pass' ? 'verified on Metal' : 'unverified: no passing Metal run on this machine', highlight: atomics(m) }]
+          ? [{ label: 'Metal', code: m, tiers: HIST_TIERS, status: st('kernel.metal'), highlight: atomics(m) }]
           : []),
       ]}
       caption={
@@ -487,9 +489,9 @@ export const questionsS96: Record<string, Question> = {
     id: 'ch09/9.6/q-diverge',
     prompt: <>For which input does Fig. 9.15's new branch cost the most divergence?</>,
     options: [
-      { label: 'Uniform noise.', why: 'Almost every lane flushes in almost every iteration, so the lanes mostly agree.' },
-      { label: 'A constant image.', why: 'Every lane extends in every iteration: no split at all.' },
-      { label: 'Data where, in the same iteration, some lanes extend a run while others flush.', correct: true },
+      { label: 'Uniform noise, where a thread\'s next pixel almost never equals its last one.', why: 'Almost every lane flushes in almost every iteration, so the lanes mostly agree.' },
+      { label: 'A constant image, where every pixel a thread reads equals its last one.', why: 'Every lane extends in every iteration: no split at all.' },
+      { label: 'Data on which, in one iteration, some lanes extend a run and others flush.', correct: true },
     ],
     explain: (
       <p>
@@ -653,8 +655,9 @@ export function S96() {
       <p>
         CUB's histogram ships the same idea as an optional run-length path. A related remedy, which NVIDIA's profiler
         guide puts first for atomic contention, combines updates across the lanes of a warp with shuffles before one lane
-        issues the atomic. It merges across lanes rather than across one thread's elements, and{' '}
-        <a href={href('ch10', '10.7')}>chapter 10</a> builds the shuffles.
+        issues the atomic. It merges across lanes rather than across one thread's elements.{' '}
+        <a href={href('ch10', '10.7')}>Section 10.7</a> builds the shuffles, and{' '}
+        <a href={href('ch12', '12.3')}>section 12.3</a> uses warp-level primitives to coalesce a counter's atomics.
       </p>
       <Today checked="2026-11-20 (notes/today/ch09-facts.md D3, A6)">
         <p>

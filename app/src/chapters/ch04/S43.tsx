@@ -635,7 +635,7 @@ export const questionsS43: Record<string, Question> = {
       { label: 'All four wait at the call on line 5, and later all four at the call on line 9.', why: 'A thread takes one branch. No thread reaches both calls.' },
       { label: 'Nobody waits for long: each pair is complete at its own barrier, so both pairs are released at once.', why: 'A barrier counts the whole block, not the threads that happened to take its branch.' },
       {
-        label: 'Threads 0 and 2 wait at the call on line 5, 1 and 3 at line 9; neither call has all four, so it may hang.',
+        label: 'Threads 0 and 2 wait at the call on line 5, 1 and 3 at line 9, and neither call ever gets all four.',
         correct: true,
       },
       { label: 'The compiler merges the two calls into one barrier after the if, so all four meet there.', why: 'It does not. Two calls in the source are two barriers.' },
@@ -725,7 +725,7 @@ export const questionsS43: Record<string, Question> = {
       { label: 'Asking the device for its SM count and choosing the number of blocks from it.', why: 'That tunes a launch to a device. The kernel is still correct on any other.' },
       { label: 'Calling __syncthreads() several times in one kernel, so that blocks stop at many barriers.', why: 'Barriers stay inside a block, which is the condition for scalability, not a threat to it.' },
       {
-        label: 'Code that assumes how many blocks run at once, or in what order, such as reading another block\'s output.',
+        label: 'Making one block wait for a result from another block of the same grid that may not have started.',
         correct: true,
       },
       { label: 'Launching more blocks than the device can run at once, so that some wait for a free SM.', why: 'That is the normal case. The runtime\'s list absorbs it.' },

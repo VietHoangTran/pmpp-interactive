@@ -132,7 +132,7 @@ await pick(q, 3);
 check(`small bins: "the list gets shorter" is wrong: ${n(list(2))} against ${list(4)}`, (await qText(q)).includes('Not quite.') && (await qText(q)).includes(`${n(list(2))} against ${list(4)}`));
 await pick(q, 0);
 check(`small bins: about ${share(2)} % pass, ${n(list(2))} bins, blocks of 64 threads, is right`,
-  (await qText(q)).includes('Correct.') && (await qText(q)).includes(`About ${share(2)} %`) && (await qText(q)).includes('about four times as many'));
+  (await qText(q)).includes('Correct.') && (await qText(q)).includes(`about ${share(2)} % of tested atoms pass`) && (await qText(q)).includes('about four times as many'));
 
 q = await question('within a tolerance, not bit for bit');
 await pick(q, 1);

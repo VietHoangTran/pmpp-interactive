@@ -302,7 +302,7 @@ export const questionsS46: Record<string, Question> = {
     options: [
       {
         label:
-          'Large caches and branch prediction. A thread that waits on memory still waits just as long; other warps use the unit meanwhile.',
+          'Large caches and branch prediction. A thread that waits still waits just as long; other warps use the unit.',
         correct: true,
       },
       {
@@ -341,7 +341,7 @@ export const questionsS46: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Its warps compute for many cycles on values already in registers between memory accesses, so a few keep the units busy.',
+        label: 'Between memory accesses its warps compute for many cycles on registers, so a few keep the units busy.',
         correct: true,
       },
       {

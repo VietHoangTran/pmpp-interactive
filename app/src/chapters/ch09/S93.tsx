@@ -396,6 +396,7 @@ export function S93() {
         <p>
           One atomic per location at a time, different locations fully in parallel, no transfer delay between the load
           and the store (the book's arithmetic leaves it out too), no caches and no merging of atomics by the compiler.
+          Eight threads stand in for a warp; a real warp has 32 lanes on NVIDIA and 32 or 64 on AMD.
           The cache, shared-memory and issue-slot figures are illustrative: the book gives only "tens" and "a few" cycles.
         </p>
       </Simplification>

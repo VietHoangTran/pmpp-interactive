@@ -62,18 +62,26 @@ static int tests(const pmpp::Args& a) {
   return t.finish();
 }
 
+// Lab 5.2's benchmark grows its width from 512, doubling, until its naive kernel takes long
+// enough to time, and stops at 4096. This one times every width that rule can settle on, so
+// that the two kernels can be compared at the same width (the labs page matches the rows).
+static const int kBenchWidths[] = {512, 1024, 2048, 4096};
+
 static int bench(const pmpp::Args& a) {
-  const int w = 2048;
-  pmpp::GemmProblem p(w, w, w, 5, false);
-  std::printf("width %d, one binary, tile width chosen at run time, best of %d runs\n", w, a.reps);
-  for (int tile = 4; tile <= largestTile(); tile *= 2) {
-    double s = pmpp::time_it(a.reps, [&] { return runIt(p, tile); }).min_s;
-    std::string err = pmpp::take_error();
-    if (!err.empty() || s <= 0) { std::printf("  T=%-3d failed: %s\n", tile, err.c_str()); continue; }
-    std::printf("  T=%-3d %10.4f ms  %9.2f GFLOP/s  (%d bytes of shared memory per block)\n", tile, s * 1e3,
-                p.flop() / s / 1e9, 2 * tile * tile * 4);
-    pmpp::bench_row(a, "tiled_dynamic").n("tile", tile).n("width", w).n("seconds", s)
-        .n("gflops", p.flop() / s / 1e9).n("shared_bytes_per_block", 2.0 * tile * tile * 4).emit();
+  std::printf("one binary, tile width chosen at run time, best of %d runs; widths 512 to 4096 (the widths\n"
+              "lab 5.2's benchmark can choose, so the two compare at the same width)\n", a.reps);
+  for (int w : kBenchWidths) {
+    pmpp::GemmProblem p(w, w, w, 5, false);
+    std::printf("width %d\n", w);
+    for (int tile = 4; tile <= largestTile(); tile *= 2) {
+      double s = pmpp::time_it(a.reps, [&] { return runIt(p, tile); }).min_s;
+      std::string err = pmpp::take_error();
+      if (!err.empty() || s <= 0) { std::printf("  T=%-3d failed: %s\n", tile, err.c_str()); continue; }
+      std::printf("  T=%-3d %10.4f ms  %9.2f GFLOP/s  (%d bytes of shared memory per block)\n", tile, s * 1e3,
+                  p.flop() / s / 1e9, 2 * tile * tile * 4);
+      pmpp::bench_row(a, "tiled_dynamic").n("tile", tile).n("width", w).n("seconds", s)
+          .n("gflops", p.flop() / s / 1e9).n("shared_bytes_per_block", 2.0 * tile * tile * 4).emit();
+    }
   }
   return 0;
 }

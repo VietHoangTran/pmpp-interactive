@@ -1255,3 +1255,109 @@ One line per cell. "Same" means the same source text compiles for both through `
 | Half precision | `__half` from `cuda_fp16.h` | `__half` from `<hip/hip_fp16.h>` | `half` is a built-in type (`0.5h`) |
 | 8-bit integers | `char`, `unsigned char` | Same | `char`, `uchar` |
 | 64-bit floating point | `double` | `double` | Not supported |
+
+---
+
+## Group E (2026-11-21): what the emulators and the front-end stub were extended with
+
+Checked on 2026-11-21 for the final pass on the lab runtime (`labs/common/include/pmpp/`). Sources reported "v13.5" (CUDA Math API Reference Manual, Programming Guide, Runtime API reference) and HIPIFY's `amd-develop` branch (last commit to the table 2026-11-19). Same conventions as above; **Quote** is from the page as fetched and flattened. Nothing was compiled against CUDA or ROCm. Where each fact went: `pmpp/check/cuda_stub.h` (front-end stub), `pmpp/emu/emu_types.h`, `emu_device.h`, `emu_host.h`, `emu_runtime.h`, `cuda_fp16_emu.h` (emulators), `pmpp/vendors/hip.h`; tested by `labs/selftest/{intrinsics,halfprec,hostapi,shared}.cu`.
+
+### E1. Sizes and alignments of the built-in vector types
+
+**Verdict: CONFIRMED** (and it settles the alignments the stub and emulator had marked unverified).
+
+Source: CUDA Programming Guide 13.5, section 5.4.2.3 "Built-in Types", Table 49 "Alignment Requirements", https://docs.nvidia.com/cuda/cuda-programming-guide/05-appendices/cpp-language-extensions.html (read 2026-11-21).
+
+- Size and alignment in bytes: `char1`/`uchar1` 1 1; `char2`/`uchar2` 2 2; `char3`/`uchar3` 3 1; `char4`/`uchar4` 4 4; `short1`/`ushort1` 2 2; `short2`/`ushort2` 4 4; `short3`/`ushort3` 6 2; `short4`/`ushort4` 8 8; `int2`/`uint2` 8 8; `int3`/`uint3` 12 4; `int4`/`uint4` 16 16; `float2` 8 8; `float3` 12 4; `float4` 16 16; `double2` 16 16; `double3` 24 8; `double4` (deprecated) 32 16; `double4_16a` 32 16; `double4_32a` 32 32.
+- "They all have a factory function of the form `make_<type_name>()`", example `make_int4(x + 1, y + 1, z + 1, w + 1)`.
+
+### E2. `__dp4a`: the four documented overloads
+
+**Verdict: CONFIRMED** (matches x2-facts A2).
+
+Source: CUDA Math API 13.5, "Integer Intrinsics", https://docs.nvidia.com/cuda/cuda-math-api/cuda_math_api/group__CUDA__MATH__INTRINSIC__INT.html (read 2026-11-21).
+
+- `__device__ int __dp4a(int srcA, int srcB, int c)`: "Four-way signed int8 dot product with int32 accumulate." "Extracts four pairs of packed byte-sized integers from srcA and srcB, then creates four pairwise products and adds them together to a signed 32-bit integer c."
+- `__device__ int __dp4a(char4 srcA, char4 srcB, int c)`; `__device__ unsigned int __dp4a(unsigned int srcA, unsigned int srcB, unsigned int c)` ("Four-way unsigned int8 dot product with unsigned int32 accumulate."); `__device__ unsigned int __dp4a(uchar4 srcA, uchar4 srcB, unsigned int c)`.
+- COULD NOT VERIFY on this page: sign extension of the bytes (only "signed int8" is said), wrap-around of the 32-bit accumulation, and a compute capability requirement (none is stated on the page; x2-facts A2 has 6.1 from llama.cpp and the PTX ISA, whose `dp4a` semantics add into a 32-bit `d`). The emulators sign-extend for the signed forms and wrap modulo 2^32.
+- HIP: no `__dp4a` (x2-facts B1). `hip.h` maps nothing and says so.
+
+### E3. `__byte_perm`, `__umulhi`, `__mulhi`, `__umul64hi`
+
+**Verdict: CONFIRMED.** Same page as E2.
+
+- `__device__ unsigned int __byte_perm(unsigned int x, unsigned int y, unsigned int s)`: "Return selected bytes from two 32-bit unsigned integers." The page's own description: `uint64_t tmp64 = ((uint64_t)y << 32) | x;` `selector0 = (s >> 0) & 0x7;` `selector1 = (s >> 4) & 0x7;` `selector2 = (s >> 8) & 0x7;` `selector3 = (s >> 12) & 0x7;` `res[07:00] = tmp64[selector0];` ... `res[31:24] = tmp64[selector3];`. So bits 3, 7, 11, 15 and 16 to 31 of `s` are never read.
+- `__device__ __tile__ unsigned int __umulhi(unsigned int x, unsigned int y)`: "Returns the most significant 32 bits of the product x * y." `__device__ __tile__ int __mulhi(int x, int y)`: the same for signed. `__device__ __tile__ unsigned long long int __umul64hi(unsigned long long int x, unsigned long long int y)`: "the most significant 64 bits". (The stub leaves out `__tile__`.)
+- HIPIFY maps `__byte_perm` to `__byte_perm` (x2-facts B1); `__umulhi` exists in HIP (x1-facts B3).
+
+### E4. Type-casting intrinsics
+
+**Verdict: CONFIRMED.** Source: CUDA Math API 13.5, "Type Casting Intrinsics", https://docs.nvidia.com/cuda/cuda-math-api/cuda_math_api/group__CUDA__MATH__INTRINSIC__CAST.html (read 2026-11-21).
+
+- `__device__ unsigned int __float_as_uint(float x)` "Reinterpret bits in a float as an unsigned integer."; `__device__ float __uint_as_float(unsigned int x)`; `__device__ int __float_as_int(float x)`; `__device__ float __int_as_float(int x)`.
+
+### E5. Single-precision math functions and fast intrinsics: device-only signatures
+
+**Verdict: CONFIRMED** for the names and signatures; the emulators do NOT model NVIDIA's error bounds.
+
+Sources: CUDA Math API 13.5, "Single Precision Mathematical Functions", https://docs.nvidia.com/cuda/cuda-math-api/cuda_math_api/group__CUDA__MATH__SINGLE.html, and "Single Precision Intrinsics", https://docs.nvidia.com/cuda/cuda-math-api/cuda_math_api/group__CUDA__MATH__INTRINSIC__SINGLE.html (both read 2026-11-21).
+
+- Each listed as `__device__` only: `float expf(float x)`, `exp2f`, `logf`, `log2f`, `rsqrtf`, `sqrtf`, `tanhf`, `erff`, `fabsf`, `float fmaf(float x, float y, float z)`, `float fminf(float x, float y)`, `fmaxf`, `powf`, `copysignf`. The page shows no `__host__` qualifier.
+- Intrinsics, `__device__` only: `__expf` ("the fast approximation to the base e exponential"), `__logf`, `__sinf`, `__cosf`, `float __powf(float x, float y)` ("a fast approximation to x^y"), `float __fdividef(float x, float y)` ("the fast approximation to the quotient"), `float __saturatef(float x)` ("Clamp the input argument to [+0.0, 1.0]"), and the `_rn` forms `__frsqrt_rn`, `__fmaf_rn`, `__fadd_rn`, `__fmul_rn`.
+- For the project: clang's CUDA mode needs these declared `__device__` for a kernel to call them; the stub now declares them (labs no longer need their own `#if PMPP_CUDA_FRONTEND_CHECK` prototypes, which still compile as redeclarations). The `_rn` intrinsics were left out of both because lab A.1 defines `__fadd_rn`/`__fsub_rn` itself for the emulator. NaN behaviour of `__saturatef` was not checked.
+
+### E6. Per-dimension limits on blocks and grids
+
+**Verdict: CONFIRMED.**
+
+Source: CUDA Programming Guide 13.5, section 5.1 "Compute Capabilities", Table 33 "Device and Streaming Multiprocessor (SM) Information per Compute Capability", https://docs.nvidia.com/cuda/cuda-programming-guide/05-appendices/compute-capabilities.html (read 2026-11-21).
+
+- "Maximum dimensionality of a grid" 3; "Maximum x-dimension of a grid" 2^31-1; "Maximum y- or z-dimension of a grid" 65535; "Maximum dimensionality of a thread block" 3; "Maximum x- or y-dimensionality of a thread block" 1024; "Maximum z-dimension of a thread block" 64; "Maximum number of threads per block" 1024; "Warp size" 32. One value per row, spanning every compute capability the table lists (7.5 to 12.x).
+- The emulators now refuse a launch over any of these with `cudaErrorInvalidConfiguration` and a message citing the table, and report them as `maxThreadsDim` and `maxGridSize`.
+
+### E7. Stream priorities and the current device
+
+**Verdict: CONFIRMED.**
+
+Sources: CUDA Runtime API 13.5, "Stream Management", https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__STREAM.html, and "Device Management", https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DEVICE.html (read 2026-11-21).
+
+- `__host__ cudaError_t cudaStreamCreateWithPriority(cudaStream_t *pStream, unsigned int flags, int priority)`; `__host__ cudaError_t cudaStreamGetPriority(cudaStream_t hStream, int *priority)`. "lower numbers represent higher priorities. '0' represents default priority." An out-of-range priority "will automatically be clamped to the lowest or the highest number in the range".
+- `__host__ cudaError_t cudaDeviceGetStreamPriorityRange(int *leastPriority, int *greatestPriority)`: the valid range is `*greatestPriority` to `*leastPriority`; if the device does not support stream priorities both are returned as 0; either pointer may be NULL.
+- `__host__ cudaError_t cudaGetDevice(int *device)`: "Returns the device on which the active host thread executes the device code."
+- The emulators answer as a device without priorities (range 0 to 0, every stream priority 0) and report device 0.
+
+### E8. Half precision: `__half`, `__half2`, conversions and arithmetic
+
+**Verdict: CONFIRMED** for the subset the emulators and the stub provide; see "not modelled" in `pmpp/emu/cuda_fp16_emu.h`.
+
+Sources: CUDA Math API 13.5 (read 2026-11-21): "Half Precision Conversion and Data Movement", https://docs.nvidia.com/cuda/cuda-math-api/cuda_math_api/group__CUDA__MATH____HALF__MISC.html; "Half Arithmetic Functions", https://docs.nvidia.com/cuda/cuda-math-api/cuda_math_api/group__CUDA__MATH____HALF__ARITHMETIC.html; "Half2 Arithmetic Functions", https://docs.nvidia.com/cuda/cuda-math-api/cuda_math_api/group__CUDA__MATH____HALF2__ARITHMETIC.html; struct pages https://docs.nvidia.com/cuda/cuda-math-api/cuda_math_api/struct____half.html and https://docs.nvidia.com/cuda/cuda-math-api/cuda_math_api/struct____half2.html.
+
+- Conversions, `__host__ __device__` unless noted: `__half __float2half(const float a)` and `__float2half_rn` (round-to-nearest-even), `float __half2float(const __half a)`, `__half2 __float2half2_rn(const float a)` (both halves), `__half2 __floats2half2_rn(const float a, const float b)`, `__half2 __float22half2_rn(const float2 a)`, `float2 __half22float2(const __half2 a)`, `__halves2half2`, `make_half2`, `__half2half2`, `float __low2float(const __half2 a)` and `__high2float` ("the low 16 bits" / "the high 16 bits"), `__low2half`, `__high2half`, `__half_as_ushort`, `__ushort_as_half`, `__half_as_short`, `__short_as_half`, `__int2half_rn`; `__device__ int __half2int_rn(const __half h)`.
+- Arithmetic: `__hadd`, `__hsub`, `__hmul`, `__hdiv` ("round-to-nearest-even"), `__device__ __half __hfma(...)` (one rounding), `__hneg`, `__habs`; `__hadd2`, `__hsub2`, `__hmul2`, `__h2div`, `__device__ __half2 __hfma2(const __half2 a, const __half2 b, const __half2 c)` ("fused multiply-add ... with one rounding", round-to-nearest-even), `__hneg2`, `__habs2`. Operators on `__half`: binary `+ - * /`, `+=`, unary `-` (each "see" the matching function); on `__half2`: unary `+ -`, binary `+ - * /`, `+= -= *= /=`, `++`, `--`.
+- `struct __half`: default constructor (uninitialised), `constexpr __half(const __half_raw&)`, implicit constructors from `double`, `float`, `int`, `long long`, `long`, `short` and the unsigned types, conversion operators to `float`, `int`, `bool` and the other integer types. `struct __half2`: members `__half x` (lower) and `__half y` (upper), `constexpr __half2(const __half&, const __half&)`, copy and move, from `__half2_raw`.
+- COULD NOT VERIFY: the alignment of `__half2` (no statement on the pages; the stub and emulator use 4, from memory of `cuda_fp16.h`); the bit pattern of a canonical half NaN; the compute capability needed for half arithmetic in device code. HIP's header is `<hip/hip_fp16.h>` (B12).
+
+### E9. `cudaFuncGetAttributes`, `struct cudaFuncAttributes`, and their HIP names
+
+**Verdict: CONFIRMED.**
+
+Sources: CUDA Runtime API 13.5, "Execution Control", https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__EXECUTION.html, "C++ API Routines", https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__HIGHLEVEL.html, and https://docs.nvidia.com/cuda/cuda-runtime-api/structcudaFuncAttributes.html; HIPIFY "CUDA Runtime API supported by HIP", https://github.com/ROCm/HIPIFY/blob/amd-develop/docs/reference/tables/CUDA_Runtime_API_functions_supported_by_HIP.md (all read 2026-11-21).
+
+- `__host__ cudaError_t cudaFuncGetAttributes(struct cudaFuncAttributes *attr, const void *func)` ("Find out attributes for a given function."), and `template<class T> __host__ cudaError_t cudaFuncGetAttributes(struct cudaFuncAttributes *attr, T *entry)`.
+- Fields used by the course: `int binaryVersion`, `size_t constSizeBytes`, `size_t localSizeBytes`, `int maxDynamicSharedSizeBytes`, `int maxThreadsPerBlock`, `int numRegs`, `int preferredShmemCarveout`, `int ptxVersion`, `size_t sharedSizeBytes` (the struct has more: cluster fields, `cacheModeCA`, `sharedMemoryMode`, `reserved`).
+- HIPIFY rows: `cudaGetDevice` -> `hipGetDevice` (HIP 1.6.0); `cudaFuncGetAttributes` -> `hipFuncGetAttributes` (1.9.0); `cudaFuncAttributes` -> `hipFuncAttributes` (1.9.0; the CUDA column marks it changed in 13.3); `cudaStreamCreateWithPriority` -> `hipStreamCreateWithPriority` and `cudaDeviceGetStreamPriorityRange` -> `hipDeviceGetStreamPriorityRange` (2.0.0; already in `hip.h`). The first three were added to `hip.h`.
+- In the emulators every field is synthetic: 0 except `maxThreadsPerBlock` (1024) and `maxDynamicSharedSizeBytes` (the kernel's `cudaFuncSetAttribute` value, else 48 KiB).
+
+## Group F (2026-11-21): what the lab runner's device report reads
+
+### F1. `asyncEngineCount` and `concurrentKernels` in `cudaDeviceProp` and `hipDeviceProp_t`
+
+**Verdict: CONFIRMED** (names and types); the meaning on ROCm differs (ch23-facts B3).
+
+Sources (read 2026-11-21): CUDA Runtime API 13.5, `cudaDeviceProp` struct reference, https://docs.nvidia.com/cuda/cuda-runtime-api/structcudaDeviceProp.html; HIP 7.2.53211 documentation (ROCm docs-7.2.4), `hipDeviceProp_t` struct reference, https://rocm.docs.amd.com/projects/HIP/en/docs-7.2.4/doxygen/html/structhip_device_prop__t.html; HIP how-to "Asynchronous concurrent execution", https://rocm.docs.amd.com/projects/HIP/en/develop/_sources/how-to/hip_runtime_api/asynchronous.rst.
+
+- CUDA: `int asyncEngineCount` "Number of asynchronous engines."; `int concurrentKernels` "Device can possibly execute multiple kernels concurrently."
+- HIP: `int hipDeviceProp_t::asyncEngineCount` "Number of async engines."; `int hipDeviceProp_t::concurrentKernels` "Device can possibly execute multiple kernels concurrently."; `int deviceOverlap` "Deprecated. Use asyncEngineCount instead."
+- HIP how-to: "Applications can query this capability by checking the `asyncEngineCount` device property." "Devices with an `asyncEngineCount` greater than zero support concurrent data transfers." "Devices that support the `concurrentKernels` property can perform intra-device copies concurrently with kernel execution."
+- What one and two copy engines allow on NVIDIA is ch23-facts A7 (Best Practices Guide 10.1.2); that on ROCm `asyncEngineCount` is the runtime constant 8 for every device is ch23-facts B3 (from the ROCm sources). `python3 labs/pmpp.py doctor` prints both fields on CUDA and HIP (`labs/common/src/backend_cudalike.cpp`) with those readings beside them. The emulator's `cudaDeviceProp` has `concurrentKernels` (0) but no `asyncEngineCount`; its device report gives 0 for it, since the emulator runs streams synchronously.
+- Not compiled on CUDA or HIP here (no such device): the field accesses are unverified on both.

@@ -591,6 +591,12 @@ export function S191() {
         filter on a 5 × 5 map has exactly one place to sit.
       </p>
       <Source section="19.1" pages="458" figs="Fig. 19.1" />
+      <Simplification>
+        <p>
+          Shapes and counts only. Traffic is the ideal: each element of X, F and Y moved once per batch as a 4-byte
+          float, with no caches and no particular kernel.
+        </p>
+      </Simplification>
       <LeNet />
       <p>
         Read the comparison table from top to bottom. Early layers have few channels and large maps; late layers have

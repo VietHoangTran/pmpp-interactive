@@ -17,7 +17,9 @@ there is no copy to drift. They are not built by the lab runner.
 `wrap_pairs.cu` and the Fig. 12.4 snippet include `<cuda/atomic>` without a HIP fallback.
 They are for the CUDA front-end check and the emulators; lab 12.1 shows the portable
 spelling. On HIP, `<cuda/atomic>` comes from libhipcxx, which the course's HIP build links
-only where ROCm provides it (`notes/today/infra-facts.md` B2).
+as `libhipcxx::libhipcxx` when CMake finds it (it ships with ROCm 10.1 and later,
+`notes/today/infra-facts.md` B2). Without it, code that includes `<cuda/atomic>` does not
+build. With it, no ROCm machine has built this course's code yet (unverified).
 
 The CUDA front-end check is the one `labs/pmpp.py` runs: `clang++ -x cuda --cuda-host-only
 -nocudainc -nocudalib -fsyntax-only -std=c++17 -I labs/common/include -I

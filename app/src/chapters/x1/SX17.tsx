@@ -380,11 +380,11 @@ export const questionsSX17: Record<string, Question> = {
     prompt: <>Why does a counter-based generator suit a batched sampler better than one <code>std::mt19937</code> shared by the batch?</>,
     options: [
       {
-        label: "Each (seed, stream, step) maps straight to its numbers, so each row's thread computes its own u in any order, and a row's draw does not depend on how many rows were drawn before it",
+        label: 'Each (seed, stream, step) maps straight to its bits, so each row computes its own u in any order',
         correct: true,
       },
-      { label: 'Philox has a longer period than mt19937, so a long generation never repeats', why: "mt19937's period is far longer than any generation; the period is not the problem, the shared sequential state is." },
-      { label: 'mt19937 cannot run on a GPU, so the host would have to draw every u', why: 'It can be ported; the trouble is that its next value depends on every value before it, so rows would wait on each other and on the batch order.' },
+      { label: 'Philox has a longer period than mt19937, so a long generation at a large batch never repeats a number', why: "mt19937's period is far longer than any generation; the period is not the problem, the shared sequential state is." },
+      { label: 'mt19937 does not run on a GPU, so the host would have to draw every u and upload it at each step', why: 'It can be ported; the trouble is that its next value depends on every value before it, so rows would wait on each other and on the batch order.' },
     ],
     explain: (
       <p>
@@ -449,7 +449,7 @@ export const questionsSX17: Record<string, Question> = {
     options: [
       { label: 'Nothing: MSL 4.1 has no random function, so M5 writes Philox in MSL with mulhi or a ulong product', correct: true },
       { label: 'A Philox state type and a uniform function, like cuRAND\'s device API', why: "Apple's Philox is MPSMatrixRandomPhilox, encoded from the host, and MPSGraph ops; neither is callable from a shader." },
-      { label: 'A hash-based noise function meant for graphics, which a sampler can use', why: 'The spec has no random, noise or hash function at all; "random" appears once, about iterators.' },
+      { label: 'A hash-based noise function meant for graphics shaders, which a sampler can call once per row for its u', why: 'The spec has no random, noise or hash function at all; "random" appears once, about iterators.' },
     ],
     explain: (
       <p>
@@ -466,11 +466,11 @@ export const questionsSX17: Record<string, Question> = {
     prompt: <>Why does M5 take raw 32-bit words and convert them itself instead of calling <code>curand_uniform</code>?</>,
     options: [
       {
-        label: "cuRAND does not promise how many raw values a distribution consumes, the vendors' conversions differ and can return 1.0, and Metal has none; the 24-bit conversion is exact everywhere",
+        label: "cuRAND does not fix how many raw values a call consumes, the vendors' conversions differ, and Metal has none",
         correct: true,
       },
       { label: 'curand_uniform is slower than a shift and a multiply', why: 'Speed is not the reason; agreement across backends is.' },
-      { label: "curand_uniform returns a double, and Metal has no double", why: 'It returns a float in (0, 1]. The problem is which float, and on which backend.' },
+      { label: 'curand_uniform returns a double in (0, 1], and Metal has no double, so a Metal kernel would need another conversion', why: 'It returns a float in (0, 1]. The problem is which float, and on which backend.' },
     ],
     explain: (
       <p>
@@ -491,9 +491,9 @@ export const questionsSX17: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: "Its u depends on its slot, so the same seed with a different batch mix gives different tokens; M5 takes a per-row stream id (the request's) and a per-row step", correct: true },
-      { label: 'Nothing: the seed alone fixes the stream', why: 'The seed is the key; the row picks the subsequence, so the slot changes the bits.' },
-      { label: 'Only the first token changes; later steps realign', why: 'Every step whose slot differs draws from a different subsequence.' },
+      { label: 'Its u follows its slot, so the same seed in another batch mix gives different tokens', correct: true },
+      { label: "Nothing: the seed alone fixes the stream, so the request's tokens do not depend on its row", why: 'The seed is the key; the row picks the subsequence, so the slot changes the bits.' },
+      { label: 'Only the first token after the move changes; from the next step on, its numbers realign', why: 'Every step whose slot differs draws from a different subsequence.' },
     ],
     explain: (
       <p>
@@ -599,6 +599,12 @@ export function SX17() {
         reading of PyTorch's Metal Philox returns for seed 0 (E3): it stops one round early. Switch on the PyTorch MPS reading
         with seed 42 and compare its words with the ten-round ones.
       </p>
+      <Simplification>
+        <p>
+          The animation below shows rows 0 and 1 (streams 0 and 1) at seed 0 and step 0, in the stepper's exact 32-bit
+          arithmetic. No timing.
+        </p>
+      </Simplification>
       <PhiloxRoundsScene />
 
       <h2>M5's mapping</h2>
@@ -640,8 +646,8 @@ export function SX17() {
       <p>
         So M5 writes Philox itself, once in the <code>.cu</code> file and once in the <code>.metal</code> file. It forms the
         64-bit product in <code>unsigned long long</code> (<code>ulong</code> on Metal) instead of calling{' '}
-        <code>__umulhi</code>. Both are correct; the product form also compiles on the course's emulator and front-end stub,
-        which do not declare <code>__umulhi</code>.
+        <code>__umulhi</code>. Both are correct, and the course's emulator and front-end stub accept both; the product form
+        needs no intrinsic and reads the same in the <code>.metal</code> file with <code>ulong</code>.
       </p>
       <Ask q={questionsSX17['x1/X1.7/q-metal']} />
 
@@ -699,8 +705,11 @@ export function SX17() {
 
       <h2>The code</h2>
       <p>
-        The round, the key schedule, M5's mapping and the 24-bit conversion, with Random123's notice. The CUDA file runs
-        unchanged on HIP and the emulators; the Metal file is the same function in MSL with <code>mulhi</code> for the high
+        The round, the key schedule, M5's mapping and the 24-bit conversion, with Random123's notice. The CUDA file is
+        plain integer arithmetic, with none of the pieces that differ on HIP (warp <code>_sync</code> intrinsics and their
+        lane masks, cooperative groups, half-precision headers), so the same source serves HIP through{' '}
+        <code>pmpp/vendors/hip.h</code> and the emulators; it is unverified on HIP hardware. The Metal file is the same
+        function in MSL with <code>mulhi</code> for the high
         half and the wrapping 32-bit product for the low half. Lab X1.3's Metal kernel uses the other form, a{' '}
         <code>ulong</code> product, so you see both; they pass the same known-answer vectors.
       </p>

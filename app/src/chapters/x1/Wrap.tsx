@@ -1,5 +1,5 @@
 import { Ask, type Question } from '../../components/Ask';
-import { Aside, Beyond, Source, Today } from '../../components/notes';
+import { Aside, Beyond, NoteGroup, Source, Today } from '../../components/notes';
 import { useProgress } from '../../lib/progress';
 import { labStatus, realBackends, useReports, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
@@ -242,13 +242,15 @@ export function Wrap() {
         </li>
         <li>One tie rule, applied at every stage, is the only way two backends agree on a row with equal logits.</li>
       </ul>
-      <Beyond title="Ours, not the book's">
-        <p>
-          The book's transformer ends at the un-embedding layer's distribution over tokens. Everything above is this
-          module's own.
-        </p>
-      </Beyond>
-      <Source section="20.1" pages="481" />
+      <NoteGroup>
+        <Beyond title="Ours, not the book's">
+          <p>
+            The book's transformer ends at the un-embedding layer's distribution over tokens. Everything above is this
+            module's own.
+          </p>
+        </Beyond>
+        <Source section="20.1" pages="481" />
+      </NoteGroup>
 
       <h2>A mixed check</h2>
       <p>
@@ -377,8 +379,9 @@ export function Wrap() {
       </table>
       <p>
         Next in this course's order is chapter 20 of the book, on large language models (pp. 477–512): the attention
-        kernels of milestone M6 and the KV cache of M7. M7's single-token decode path ends by calling this sampler once per
-        step.
+        kernels of milestone M6 and the KV cache of M7. Module X3's milestone M10 then runs a small Llama-style model on
+        M7's decode step and, on a GPU when lab X1.3's solution is present, can draw its tokens with this sampler in place
+        of the argmax.
       </p>
     </>
   );

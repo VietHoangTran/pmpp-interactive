@@ -8,6 +8,7 @@ import {
   LabResults,
   LabsIntro,
   LabsPage,
+  RaceStatus,
   ReferenceSolution,
   RunningLabs,
   VerificationStatus,
@@ -265,25 +266,6 @@ function BarrierPrediction() {
   );
 }
 
-/** One line on the race backend, which the status table does not show. */
-function RaceStatus() {
-  const { reports, loading } = useLabs();
-  const run = reports.race;
-  const s = labStatus(run, l3.id, 'solution');
-  const tests = run?.results.filter((x) => x.lab === l3.id && x.variant === 'solution').flatMap((x) => x.tests) ?? [];
-  return (
-    <p data-race-status={loading ? 'loading' : s}>
-      {loading
-        ? 'Reading reports.'
-        : !run || s === 'none'
-          ? 'On this machine the reference solution has no run on the race backend yet.'
-          : s === 'pass'
-            ? `On this machine the reference solution passed all ${tests.length} tests on the race backend, with no race reported: emulator-checked under both flavours.`
-            : 'On this machine the reference solution failed on the race backend: unverified there.'}
-    </p>
-  );
-}
-
 // ---------------------------------------------------------------- milestone M1
 function MilestoneStatus() {
   const { reports, loading } = useLabs();
@@ -328,8 +310,8 @@ export function Labs() {
         The emulator has a second flavour, <code>race</code>, which lab 4.3 is also built for. It runs the emulated
         threads concurrently under ThreadSanitizer and reports two threads that touch the same element without
         synchronisation, with both source lines. Ask for it with <code>--backend race</code>;{' '}
-        <code>python3 labs/pmpp.py doctor</code> says whether your compiler can build it. The tables on this page show
-        the first flavour only.
+        <code>python3 labs/pmpp.py doctor</code> says whether your compiler can build it. The status table below gives
+        it a column of its own; the other tables on this page show the first flavour only.
       </p>
       <p>
         Two of this chapter's measurements, what a divergent warp costs and what block size does to a kernel that
@@ -613,7 +595,7 @@ export function Labs() {
         device reports, each with lengths that are and are not multiples of the block. The Metal barrier takes a flag
         that names the memory it orders; deciding which one belongs here is part of the lab.
       </p>
-      <RaceStatus />
+      <RaceStatus lab={l3} />
       <h3>The experiment of exercise 5</h3>
       <p>
         Exercise 5 claims that with 32 threads in a block the barrier can be left out. Once all your tests pass, delete

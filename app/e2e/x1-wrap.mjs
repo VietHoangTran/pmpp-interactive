@@ -70,7 +70,7 @@ check('the page has its five parts, in order', JSON.stringify(h2) === JSON.strin
 const carry = await page.$$eval('.prose > ul', (uls) => [...uls[0].children].map((li) => li.textContent));
 check('the carry-forward list has six points, from the chain to one tie rule', carry.length === 6 &&
   carry[0].includes('chain of row-wise stages') && carry[2].includes('Top-k is a selection') && carry[3].includes('shorter prefix') && carry[5].includes('One tie rule'), JSON.stringify(carry.map((c) => c.slice(0, 30))));
-const notes = await page.$$eval('.prose > aside.note', (as) => as.map((a) => a.textContent));
+const notes = await page.$$eval('.prose aside.note', (as) => as.map((a) => a.textContent));
 check('the module is labelled as ours, with the book\'s anchor §20.1, p. 481', notes.some((t) => t.includes("Ours, not the book's")) && notes.some((t) => t.includes('§20.1, p. 481')));
 const text0 = await body();
 check('nothing on the page says it is being written', !/being written/i.test(text0));
@@ -172,6 +172,18 @@ for (const l of links) {
   await goto(page, l.slice(2));
   const ok = await page.evaluate(() => !!document.querySelector('.page h1') && !document.querySelector('.page').textContent.includes('This section is being written'));
   check(`link ${l} opens a written page`, ok);
+}
+
+// ---- the whole module: two margin notes in a row open a blank gap in the text column;
+// notes that share a paragraph go in one NoteGroup.
+{
+  const stacked = [];
+  for (const r of ['start', 'X1.1', 'X1.2', 'X1.3', 'X1.4', 'X1.5', 'X1.6', 'X1.7', 'X1.8', 'labs', 'wrap']) {
+    await goto(page, 'x1/' + r);
+    const n = await page.evaluate(() => document.querySelectorAll('.prose > .note + .note').length);
+    if (n) stacked.push(`${r}: ${n}`);
+  }
+  check('no page of the module stacks two margin notes after one paragraph', stacked.length === 0, stacked.join(', '));
 }
 
 check('no console or page errors', errors.length === 0, errors.join(' | '));

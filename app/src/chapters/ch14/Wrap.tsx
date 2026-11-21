@@ -46,20 +46,19 @@ export const questionsWrap: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Nothing: within a step the pairs are disjoint, so no two threads touch the same element.',
+        label: 'Nothing: within a step the pairs are disjoint, so no two threads touch the same element, and the GPU test confirms it.',
         why: 'Within one step, yes. But element 2t + 2 belongs to thread t + 1 on an even step and to thread t on the odd step after it, and nothing makes the even step finish first.',
       },
       {
-        label:
-          'A thread can start the next step while its neighbour is still on the previous one, and compare or swap an element the neighbour has not finished with. One __syncthreads() at the end of each step fixes it.',
+        label: 'A thread can start a step while its neighbour is still on the last one; one __syncthreads() per step fixes it.',
         correct: true,
       },
       {
-        label: 'The swaps must be atomic.',
+        label: 'The swaps must be atomic, because two threads of one step can still swap the same element.',
         why: 'No two threads write the same element in the same step. What is missing is an order between steps, which a barrier gives and an atomic does not.',
       },
       {
-        label: 'n steps are too few; it needs section 14.2\'s flag and a loop until nothing changes.',
+        label: 'n steps are too few for a block-level sort; it needs section 14.2\'s flag and a loop that runs until nothing changes.',
         why: 'A fixed number of steps is what makes this a sorting network (section 14.9). The corrected kernel sorts every case the test gives it in n steps, including all 256 lists of eight 0s and 1s.',
       },
     ],
@@ -93,20 +92,19 @@ export const questionsWrap: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'The keys sorted, but equal keys in no promised order.',
+        label: 'The keys sorted by value, but equal keys in no promised order: the atomics cost only stability.',
         why: 'That describes one pass. An LSD sort needs every pass to keep the previous order inside each bucket, and without that the later passes undo the earlier ones.',
       },
       {
-        label:
-          'Every key exactly once, but in general not sorted: inside each bucket the order is the order the atomics happened in, so each pass throws away the order the earlier passes built.',
+        label: 'Every key once, but in general not sorted: atomics fill each bucket in arrival order, discarding the earlier passes\' work.',
         correct: true,
       },
       {
-        label: 'Keys lost or duplicated, because two threads can take the same slot.',
+        label: 'Keys lost or duplicated: two threads of one bucket can read the same counter value before either adds, and both write that slot.',
         why: 'atomicAdd returns a different old value to every thread, so every slot is taken exactly once.',
       },
       {
-        label: 'The keys sorted, as with the scan, only slower.',
+        label: 'The keys sorted, as with the scan, only slower: each bucket\'s counter serialises its threads.',
         why: 'The scan gives each key the slot that keeps input order; the atomic gives it a slot in arrival order. Same bucket, different place in it.',
       },
     ],
@@ -174,26 +172,26 @@ export const questionsWrap: Record<string, Question> = {
     id: 'ch14/wrap/q-topp-head',
     prompt: (
       <>
-        A top-p sampler with p = 0.9 runs on a row whose 200 most likely tokens already hold 0.95 of the probability. What
-        is the least ordering work that still gives the same cut as a full sort?
+        A top-p sampler with p = 0.9 must cut every row exactly where a full sort would. On the row in front of you, the
+        200 most likely tokens already hold 0.95 of the probability. What is the least ordering work the sampler can
+        always rely on?
       </>
     ),
     options: [
       {
-        label: 'A full sort of the row: the cut is defined on the sorted order.',
+        label: 'A full sort of the row: the cut is defined on the sorted order, so every token\'s rank must be known.',
         why: 'Only the head of that order matters. Tokens past the cut are dropped whatever their order.',
       },
       {
-        label:
-          'Find a set that surely contains the cut, here the 200 largest, with a selection, and sort only those; if their sum fell short of p, take more and try again.',
+        label: 'Select a set sure to contain the cut, here the 200 largest, and sort only those; widen it if their sum falls short of p.',
         correct: true,
       },
       {
-        label: 'None: add up probabilities in token order until the sum reaches 0.9.',
+        label: 'None: add up probabilities in token order until the running sum reaches 0.9, then cut there.',
         why: 'That keeps the first tokens by id, not the most likely ones.',
       },
       {
-        label: 'Sort the 200 largest and skip the check, since 200 tokens are always enough.',
+        label: 'Sort the 200 largest on every row and skip the check: this row shows that 200 tokens hold more than p.',
         why: 'A flat row can spread 0.9 over thousands of tokens; only the running sum shows whether the head was long enough.',
       },
     ],

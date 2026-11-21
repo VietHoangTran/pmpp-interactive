@@ -84,10 +84,11 @@ depend on it).
   - `race`: r = 1 passes; at r = 2 the run stops with a ThreadSanitizer SEGV at the tile write
     `keys_s[dst] = ...` (a corrupted index; the race backend has no bounds checks), and the one
     race it reports is a write-write race on `start_s` in step 3, a consequence of the
-    corruption. It does not name the missing barrier's read and write. The race flavour shares
-    one ThreadSanitizer token between all of a block's `__syncthreads()`, which hides races
-    between two barriers (`labs/ch14/snippets/README.md`, the wrap kernel), so a clean race run
-    is not evidence that every barrier is there. Run `emu` first.
+    corruption. It does not name the missing barrier's read and write. At the time the race
+    flavour shared one ThreadSanitizer token between all of a block's `__syncthreads()`, which
+    could hide races between two barriers; it now alternates two tokens per barrier
+    (`labs/ch14/snippets/README.md`, the wrap kernel), and this defect has not been planted
+    again since. A clean race run is not evidence that every barrier is there. Run `emu` first.
 - Measure: `python3 labs/pmpp.py run 14.2 --bench` (real devices only).
 - The reference solution: add `--solution`.
 

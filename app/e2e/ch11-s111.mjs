@@ -153,7 +153,7 @@ const ask = async (text, value) => {
 check('q-offsets accepts 15', (await ask('At which slot does sequence 4', 15)).includes('Correct.'));
 check('q-rule accepts 1', (await ask('keep a token while the', 1)).includes('Correct.'));
 const choice = await page.evaluateHandle(() => [...document.querySelectorAll('.q')].find((e) => e.textContent.includes('rather than with')));
-await choice.evaluate((e) => [...e.querySelectorAll('label')].find((l) => l.textContent.includes('does not fix the order')).querySelector('input').click());
+await choice.evaluate((e) => [...e.querySelectorAll('label')].find((l) => l.textContent.includes('leaves std::inclusive_scan')).querySelector('input').click());
 await (await choice.$('button.primary')).click();
 await pause(120);
 check('q-cpu-ref accepts the order answer and quotes cppreference', (await choice.evaluate((e) => e.textContent)).includes('non-deterministic if the add_op is not associative'));

@@ -207,9 +207,9 @@ const choose = async (promptPart, optionPart) => {
   await pause(100);
   return h.evaluate((e) => e.querySelector('.verdict')?.textContent ?? '');
 };
-v = await choose('Which do you trust?', 'The duration.');
+v = await choose('Which do you trust?', 'The duration:');
 check('q-sol: the duration is correct, with facts A17', v.includes('Correct.') && v.includes('A17'), v);
-v = await choose('unrolls its loops', 'At most about 10% faster');
+v = await choose('unrolls its loops', 'Little or no change');
 check('q-nonbottleneck: correct', v.includes('Correct.') && v.includes('p. 153'), v);
 
 // ---- narrow screen

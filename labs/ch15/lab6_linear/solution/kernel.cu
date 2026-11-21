@@ -17,8 +17,8 @@
 // - The template parameter for the warp width is WARP, not lab 15.5's W: here W is the
 //   weight matrix.
 // - The float4 paths assume X, W and Y are 16-byte aligned allocations. cudaMalloc
-//   aligns to at least 256 bytes (ch06-facts A3). hipMalloc's alignment is in no facts
-//   file, so on HIP the float4 paths are unverified.
+//   aligns to at least 256 bytes (ch06-facts A3). AMD's reference states no alignment
+//   for hipMalloc (ch15-facts B8), so on HIP the float4 paths are unverified.
 // Where this differs from the page: as in lab 15.5 (a 1D block of 256 threads, notes
 // "Unclear" 7; every index into the padded A tile uses bK + 1, "Unclear" 4; Fig. 15.14
 // made concrete, with buffers chosen by parity, "Unclear" 8; vector loads and stores from

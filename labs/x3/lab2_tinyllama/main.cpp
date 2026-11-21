@@ -26,14 +26,21 @@
 
 #include "llama.h"
 #include "pmpp/harness.hpp"
+#if defined(PMPP_HAVE_M9)
+#include "provided/m9_linear.h"   // M9's quantised linear layer behind LinearFn (lab X2.4)
+#include "../../x2/shared-g12/qformats.h"   // llama.cpp's blocks and the CPU quantisers
+#endif
 using pmpp::Buf;
 
 // ---------------------------------------------------------------- what the step can use
-enum Gemm { GEMV, M2, M3 };
+// M9Q is M9's quantised layer through provided/m9_linear (the "M9 in M10" checks only; it
+// needs a quantised model bound to it, so it is not in kGemms).
+enum Gemm { GEMV, M2, M3, M9Q };
 static const Gemm kGemms[] = {GEMV, M2, M3};
-static const char* gemmName(Gemm g) { return g == GEMV ? "gemv" : g == M2 ? "m2" : "m3"; }
+static const char* gemmName(Gemm g) { return g == GEMV ? "gemv" : g == M2 ? "m2" : g == M3 ? "m3" : "m9"; }
 static const char* gemmSource(Gemm g) {
-  return g == GEMV ? "lab 22.1's gather" : g == M2 ? "lab 6.4's tiled kernel" : "lab 15.6's register-tiled kernel";
+  return g == GEMV ? "lab 22.1's gather" : g == M2 ? "lab 6.4's tiled kernel" : g == M3 ? "lab 15.6's register-tiled kernel"
+                                                                                         : "lab X2.4's quantised layer (M9)";
 }
 static const int kGemvMaxBatch = 8;   // lab 22.1's MAX_BATCH
 enum Attn { DECODE, GROUPED };
@@ -641,6 +648,14 @@ static id<MTLComputePipelineState> linearPso(Gemm g, std::string* err) {
       *err = p ? "" : "lab 22.1's gemv_gather did not build: " + pmpp::take_error();
 #endif
       break;
+    case M9Q:
+#if defined(PMPP_HAVE_M9)
+      // encodeLinearM9 picks its own GEMV for each matrix; the step is handed the gather's
+      // pipeline, which the adapter ignores.
+      *err = m9Pipelines();
+      if (err->empty()) p = P(PMPP_GEMV_METAL, "gemv_gather");
+#endif
+      break;
   }
   if (!p && err->empty()) *err = std::string("no ") + gemmName(g) + " on this build";
   return err->empty() ? p : nil;
@@ -653,6 +668,9 @@ static EncodeLinearFn linearEncoder(Gemm g) {
 #endif
 #if defined(PMPP_GEMV_METAL)
     case GEMV: return encodeGemvGather;
+#endif
+#if defined(PMPP_HAVE_M9)
+    case M9Q: return encodeLinearM9;
 #endif
     default: return nullptr;
   }
@@ -1000,6 +1018,9 @@ static LinearFn linearFor(Gemm g) {
 #endif
 #if defined(PMPP_HAVE_GEMV)
     case GEMV: return launchGemvGather;
+#endif
+#if defined(PMPP_HAVE_M9)
+    case M9Q: return launchLinearM9;
 #endif
     default: return nullptr;
   }
@@ -1719,6 +1740,186 @@ static std::string tokenLine(const std::vector<int>& rec, int B, int b, int from
   return s;
 }
 
+// ---------------------------------------------------------------- M9 in M10: the quantised model
+// Not in the book; the formats are llama.cpp's (notes/today/x2-facts.md D1). The driver
+// quantises the test model's seven projections per layer and the tied embedding with
+// llama.cpp's _ref rules (labs/x2/shared-g12/qformats.h), as lab X2.4's driver does, and
+// keeps the dequantised floats as the model's float weights. The CPU reference, run on those
+// floats, is the model the quantised kernels compute; your step runs unchanged, with
+// provided/m9_linear as its linear layer. The RMSNorm weights stay float32: they are vectors
+// the step multiplies element by element, not matrices the linear layer reads.
+#if defined(PMPP_HAVE_M9)
+#ifndef PMPP_Q8_0_FROM
+#define PMPP_Q8_0_FROM "unknown"
+#endif
+#ifndef PMPP_Q4_0_FROM
+#define PMPP_Q4_0_FROM "unknown"
+#endif
+static const char* m9Name(int f) { return f == M9_Q8_0 ? "Q8_0" : f == M9_Q4_0 ? "Q4_0" : "F32"; }
+static const int kM9Matrices[] = {W_Q, W_K, W_V, W_O, W_1, W_2, W_3};
+static int colsOf(const LlamaConfig& c, int i) { return i == W_O ? dqOf(c) : i == W_2 ? c.hidden_dim : c.dim; }
+
+// One matrix in M9's layout (qdecode.h's QMatrix), on the host.
+struct QHost {
+  int form = M9_F32, rows = 0, cols = 0;
+  std::vector<int8_t> q8;
+  std::vector<uint16_t> q8d;
+  std::vector<BlockQ4_0> q4;
+};
+// Quantises w [rows x cols] row by row, then overwrites w with the dequantised values.
+static std::string quantiseInPlace(std::vector<float>& w, int cols, int form, QHost& q) {
+  q.form = form;
+  q.cols = cols;
+  q.rows = (int)(w.size() / cols);
+  if (form == M9_F32) return "";
+  if (cols % 32 != 0) return fmt("a matrix with %.0f columns: M9's formats need a multiple of 32", cols);
+  const size_t n = w.size(), r = q.rows;
+  if (form == M9_Q8_0) {
+    q.q8.resize(n);
+    q.q8d.resize(n / 32);
+    for (size_t i = 0; i < r; ++i) {
+      qref::quantizeQ8_0Row(&w[i * cols], &q.q8[i * cols], &q.q8d[i * cols / 32], cols);
+      qref::dequantizeQ8_0Row(&q.q8[i * cols], &q.q8d[i * cols / 32], &w[i * cols], cols);
+    }
+  } else {
+    q.q4.resize(n / 32);
+    for (size_t i = 0; i < r; ++i) {
+      qref::quantizeQ4_0Row(&w[i * cols], &q.q4[i * cols / 32], cols);
+      qref::dequantizeQ4_0Row(&q.q4[i * cols / 32], &w[i * cols], cols);
+    }
+  }
+  return "";
+}
+struct QuantModel {
+  HostModel h;                         // the dequantised model: what M9's kernels compute with
+  QHost E;                             // the tied embedding and LM head
+  std::vector<std::array<QHost, W_COUNT>> L;
+  std::string problem;
+};
+static void quantiseModel(const HostModel& src, int layersForm, int headForm, QuantModel& q) {
+  q.h = src;
+  std::string e = quantiseInPlace(q.h.E, src.c.dim, headForm, q.E);
+  q.L.assign(src.L.size(), std::array<QHost, W_COUNT>());
+  for (size_t l = 0; l < src.L.size() && e.empty(); ++l)
+    for (int i : kM9Matrices) {
+      std::vector<float>* w[W_COUNT] = {nullptr, &q.h.L[l].wq, &q.h.L[l].wk, &q.h.L[l].wv, &q.h.L[l].wo, nullptr,
+                                        &q.h.L[l].w1, &q.h.L[l].w2, &q.h.L[l].w3};
+      e = quantiseInPlace(*w[i], colsOf(src.c, i), layersForm, q.L[l][i]);
+      if (!e.empty()) break;
+    }
+  q.problem = e;
+}
+
+// The quantised copies on the device, each bound to the float buffer the step will pass.
+struct QDev {
+  std::vector<std::pair<Buf*, const QHost*>> codes, scales;   // q8 or q4 blocks; q8 scales
+  bool ok = false;
+  QDev(DevModel& dm, const QuantModel& q) {
+    pmpp::take_error();
+    m9Clear();
+    bind(dm.E, q.E);
+    for (size_t l = 0; l < dm.L.size(); ++l)
+      for (int i : kM9Matrices) bind(dm.L[l][i], q.L[l][i]);
+    ok = pmpp::take_error().empty();
+  }
+  QDev(const QDev&) = delete;
+  ~QDev() {
+    m9Clear();
+    for (auto& c : codes) pmpp::release(c.first);
+    for (auto& c : scales) pmpp::release(c.first);
+  }
+  static size_t codeBytes(const QHost& q) { return q.form == M9_Q8_0 ? q.q8.size() : q.q4.size() * sizeof(BlockQ4_0); }
+  static const void* codeData(const QHost& q) { return q.form == M9_Q8_0 ? (const void*)q.q8.data() : (const void*)q.q4.data(); }
+  void bind(Buf* W, const QHost& q) {
+    Buf* a = nullptr;
+    Buf* b = nullptr;
+    if (q.form != M9_F32) {   // exact sizes: on emu a read past the end is an AddressSanitizer error
+      a = pmpp::alloc(codeBytes(q));
+      pmpp::upload(a, codeData(q), codeBytes(q));
+      codes.push_back({a, &q});
+      if (q.form == M9_Q8_0) {
+        b = pmpp::alloc(q.q8d.size() * 2);
+        pmpp::upload(b, q.q8d.data(), q.q8d.size() * 2);
+        scales.push_back({b, &q});
+      }
+    }
+    M9Weight w{};
+    w.fmt = q.form;
+    w.rows = q.rows;
+    w.cols = q.cols;
+#if defined(PMPP_BACKEND_METAL)
+    w.f32 = buffer(W);
+    if (q.form == M9_Q8_0) {
+      w.q8 = buffer(a);
+      w.q8d = buffer(b);
+    } else if (q.form == M9_Q4_0) {
+      w.q4 = buffer(a);
+    }
+    m9Bind(buffer(W), w);
+#else
+    w.f32 = f32(W);
+    if (q.form == M9_Q8_0) {
+      w.q8 = (const int8_t*)pmpp::raw(a);
+      w.q8d = (const uint16_t*)pmpp::raw(b);
+    } else if (q.form == M9_Q4_0) {
+      w.q4 = pmpp::raw(a);
+    }
+    m9Bind(f32(W), w);
+#endif
+  }
+  // The quantised copies are inputs: unchanged after a run.
+  std::string unchanged() const {
+    for (const auto& c : codes) {
+      std::vector<unsigned char> got(codeBytes(*c.second));
+      pmpp::download(c.first, got.data(), got.size());
+      if (std::memcmp(got.data(), codeData(*c.second), got.size()) != 0) return "a quantised weight's codes were changed";
+    }
+    for (const auto& c : scales) {
+      std::vector<uint16_t> got(c.second->q8d.size());
+      pmpp::download(c.first, got.data(), got.size() * 2);
+      if (got != c.second->q8d) return "a quantised weight's scales were changed";
+    }
+    return "";
+  }
+};
+// A problem the adapter recorded, which explains a wrong result better than the result does.
+static std::string withM9(const std::string& r) {
+  const std::string p = m9TakeProblem();
+  return p.empty() ? r : "M9's linear layer through provided/m9_linear: " + p;
+}
+// M9's layer alone, through the adapter, on two of the model's own matrices (q's projection,
+// in = d; the down projection, in = hidden), against the CPU in double on the dequantised floats.
+static std::string pieceM9(DevModel& dm, const HostModel& qh, int batch) {
+  const struct { int i; const std::vector<float>* w; int in, out; } ms[] = {
+      {W_Q, &qh.L[0].wq, qh.c.dim, dqOf(qh.c)}, {W_2, &qh.L[0].w2, qh.c.hidden_dim, qh.c.dim}};
+  for (const auto& m : ms) {
+    Bufs B;
+    const std::vector<float> x = rnd((size_t)batch * m.in, 43);
+    Buf* X = B(dev(x, false));
+    Buf* Y = B(dev(nanVec((size_t)batch * m.out), true));
+    std::string err;
+    opLinear(M9Q, X, dm.L[0][m.i], Y, batch, m.in, m.out, &err);
+    if (!(err = withM9(after(err))).empty()) return err;
+    std::vector<float> got = fetch<float>(Y, (size_t)batch * m.out);
+    Close c;
+    for (int r = 0; r < batch; ++r)
+      for (int o = 0; o < m.out; ++o) {
+        double acc = 0, mag = 0;
+        for (int i = 0; i < m.in; ++i) {
+          const double t = (double)x[(size_t)r * m.in + i] * (*m.w)[(size_t)o * m.in + i];
+          acc += t;
+          mag += std::fabs(t);
+        }
+        c.see((size_t)r * m.out + o, got[(size_t)r * m.out + o], acc, mag, kPieceRtol);
+      }
+    const std::string what = m.i == W_Q ? "M9's layer on wq" : "M9's layer on w2";
+    if (!guardIntact(got, (size_t)batch * m.out)) return what + " wrote past the end of its output";
+    if (!c.why(what).empty()) return c.why(what);
+  }
+  return "";
+}
+#endif
+
 // ---------------------------------------------------------------- tests
 static int tests(const pmpp::Args& a) {
   pmpp::Tests t(a);
@@ -2000,6 +2201,90 @@ static int tests(const pmpp::Args& a) {
   }
 #else
   std::printf("  (no sampler checks: lab X1.3's solution was not found when the lab was configured)\n");
+#endif
+  // ---- M9 in M10: the same step with lab X2.4's quantised linear layer (provided/m9_linear)
+#if defined(PMPP_HAVE_M9)
+  {
+    std::printf("M9 in M10: your step, unchanged, with M9's quantised layer as its linear layer\n"
+                "  Q8_0 GEMV: %s\n  Q4_0 GEMV: %s\n",
+                PMPP_Q8_0_FROM, PMPP_Q4_0_FROM);
+    // Every projection and the tied embedding in one format. On a GPU, also every sequence
+    // teacher-forced; on the emulators the free-running run alone, over the prompt and two
+    // generated tokens (each emulated step takes a while: the GEMVs launch a warp per output
+    // row, and the whole lab run must fit pmpp.py's time limit).
+    const int mSteps = emu ? P + 1 : steps, mGen = mSteps - (P - 1);
+    for (int form : {M9_Q8_0, M9_Q4_0}) {
+      const std::string tag = std::string("M9 in M10, ") + m9Name(form) + " weights and head";
+      QuantModel qm;
+      quantiseModel(h, form, form, qm);
+      if (!qm.problem.empty()) {
+        t.check(tag + ": quantise the test model", [&] { return qm.problem; });
+        continue;
+      }
+      DevModel dq(qm.h);
+      QDev qd(dq, qm);
+      if (!dq.ok || !qd.ok) {
+        t.check(tag + ": allocate the quantised model", [] { return std::string("allocation failed"); });
+        continue;
+      }
+      // The reference on the same quantised weights (their dequantised floats), in double.
+      std::vector<RefTrace> qrefs;
+      for (int b = 0; b < Bmax; ++b) qrefs.push_back(refRun(qm.h, LLAMA_ROPE_CONSECUTIVE, refs[b].prompt, mSteps));
+      if (firstTime(tag + " info")) {
+        // Where each sequence's greedy tokens first leave the float32 model's (not a test: the
+        // model is random and has no training, so one changed token changes all that follow).
+        std::string part;
+        for (int b = 0; b < Bmax; ++b) {
+          int first = -1;
+          for (int s = P - 1; s < mSteps && first < 0; ++s)
+            if (qrefs[b].steps[s].argmax != refs[b].steps[s].argmax) first = s - (P - 1) + 1;
+          part += (b ? ", " : "") + (first < 0 ? std::string("never") : "at token " + std::to_string(first));
+        }
+        double r = 1e300;
+        for (const RefTrace& q : qrefs)
+          for (const RefStep& st : q.steps) r = std::min(r, st.gap / st.need);
+        std::printf("  %s: the CPU reference on the quantised weights generates %s for sequence 0\n"
+                    "    against the float32 model's greedy tokens, the %d sequences first differ: %s of %d (not a "
+                    "test)\n    smallest top-two margin over twice the tolerance: %.1f\n",
+                    tag.c_str(),
+                    [&] {
+                      std::string s;
+                      for (int i = P - 1; i < mSteps; ++i) s += (s.empty() ? "" : " ") + std::to_string(qrefs[0].steps[i].argmax);
+                      return s;
+                    }().c_str(),
+                    Bmax, part.c_str(), mGen, r);
+      }
+      t.check(tag + ": M9's layer alone through the adapter, on wq and w2, batch 3",
+              [&] { return pieceM9(dq, qm.h, 3); });
+      std::vector<const RefTrace*> rs;
+      for (int b = 0; b < Bmax; ++b) rs.push_back(&qrefs[b]);
+      const std::string with9 = std::string(" (m9 ") + m9Name(form) + ", " + (a0 == GROUPED ? "grouped" : "decode") + " attention)";
+      if (!emu) {
+        const std::string tf = "M9 in M10, teacher-forced, batch " + std::to_string(Bmax) + with9;
+        t.check(tf + ": every logit within the tolerance of the reference on the same quantised weights", [&] {
+          Runner run(dq, M9Q, a0, LLAMA_ROPE_CONSECUTIVE);
+          std::string e = withM9(teacherForced(run, dq, qm.h, rs, steps, tf, false));
+          return e.empty() ? qd.unchanged() : e;
+        });
+      }
+      const std::string fr = "M9 in M10, free-running greedy, batch " + std::to_string(Bmax) + with9;
+      t.check(fr + ": " + std::to_string(mSteps) + " steps, tokens equal the reference's on the same quantised weights", [&] {
+        Runner run(dq, M9Q, a0, LLAMA_ROPE_CONSECUTIVE);
+        std::vector<int> rec;
+        std::string e = withM9(generateRecord(run, qm.h.c, rs, P, mSteps, &rec));
+        if (!e.empty()) return e;
+        int conclusive = 0;
+        e = compareRecord(rec, rs, P, mSteps, fr, &conclusive);
+        if (!e.empty()) return e;
+        if (firstTime(fr + " tokens"))
+          std::printf("    %s: sequence 0 generated %s\n", fr.c_str(), tokenLine(rec, Bmax, 0, P - 1, mSteps).c_str());
+        e = weightsUnchanged(dq, qm.h);
+        return e.empty() ? qd.unchanged() : e;
+      });
+    }
+  }
+#else
+  std::printf("  (no M9 checks: lab X2.4's solution or lab 22.1's gather was not found when the lab was configured)\n");
 #endif
   return t.finish();
 }

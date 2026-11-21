@@ -424,9 +424,9 @@ const pick = async (q, label) => {
   await pause(120);
 };
 let q = await question('safe to give every iteration');
-await pick(q, 'The iterations read disjoint inputs');
+await pick(q, 'The iterations read disjoint sets of inputs');
 check('q-criterion: disjoint reads is rejected as too strong', (await qText(q)).includes('far too strong'));
-await pick(q, 'No iteration reads a location that another iteration writes');
+await pick(q, 'No iteration reads a location that any other iteration');
 check('q-criterion: the read half alone is rejected, with the m = x[i] counterexample', !(await qText(q)).includes('Correct.') && (await qText(q)).includes('Only half of it') && (await qText(q)).includes('m = x[i]'));
 await pick(q, 'Each iteration writes only locations that no other iteration reads or writes');
 check('q-criterion: the full read-write condition is accepted', (await qText(q)).includes('Correct.'));
@@ -439,7 +439,7 @@ check('q-blur-reads: the model’s count is accepted', (await qText(q)).includes
 q = await question('appears global');
 await pick(q, 'Each pixel can be given its own thread');
 check('q-average: one shared total is rejected as a race', (await qText(q)).includes('is a race'));
-await pick(q, 'Additions can be regrouped');
+await pick(q, 'Addition can be regrouped');
 check('q-average: regrouping is accepted, with the rounding caution', (await qText(q)).includes('Correct.') && (await qText(q)).includes('not exactly associative'));
 q = await question('Loop 1 is');
 await pick(q, 'Both');

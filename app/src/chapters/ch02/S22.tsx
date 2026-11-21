@@ -498,7 +498,7 @@ export const questionsS22: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Yes to both.', correct: true },
+      { label: 'Yes to both: one stream runs them in issue order, and the copy blocks.', correct: true },
       {
         label: 'No: kB may run before kA or alongside it, so it can miss kA’s writes.',
         why: 'Launches that name no stream go into one default stream, and a stream runs its operations in the order they were issued.',
@@ -508,7 +508,7 @@ export const questionsS22: Record<string, Question> = {
         why: 'The copy is in the same in-order stream, behind both kernels, and cudaMemcpy does not return until the copy is complete.',
       },
       {
-        label: 'Neither is certain unless cudaDeviceSynchronize() follows each launch.',
+        label: 'Neither, unless a cudaDeviceSynchronize() follows each launch.',
         why: 'An explicit wait does no harm here, and it is not needed.',
       },
     ],
@@ -713,7 +713,7 @@ export function S22() {
       </p>
       <Today checked="2026-11-20 against the CUDA 13.5 guide (notes/today/ch02-facts.md, A19)">
         <p>
-          Could not be verified. The pages read give no cycle counts for creating a thread, so take this as the
+          Could not be confirmed. The pages read give no cycle counts for creating a thread, so take this as the
           book's claim.
         </p>
       </Today>

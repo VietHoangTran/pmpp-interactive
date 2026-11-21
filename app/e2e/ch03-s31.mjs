@@ -252,12 +252,12 @@ for (const [key, label] of choices.slice(2)) {
   if (key === 'metal')
     check(`explorer: by "${label}" the per-dimension caps pass and the page says the total is per kernel`, v.legal === 'true' && v.text.includes('maxTotalThreadsPerThreadgroup') && v.text.includes('Apple documents no limit on the size of a grid'), v.text);
   else if (label.includes('emulator')) {
-    check(`explorer: by "${label}" (32,32,2) is rejected and the page says the emulator rejects it too`, v.legal === 'false' && v.text.includes('The emulator rejects this launch too') && v.text.includes('enforces only the 1024-thread total') && v.text.includes('rejects a zero dimension') && foot.includes('not a GPU'), v.text);
-    // A grid over the cap the emulator reports, with a legal block: it reports the cap but does not enforce it.
+    check(`explorer: by "${label}" (32,32,2) is rejected and the page says the emulator rejects it`, v.legal === 'false' && v.text.includes('The emulator rejects this launch') && v.text.includes('enforces the limits it reports') && v.text.includes('rejects a zero dimension') && foot.includes('not a GPU'), v.text);
+    // A grid over the cap the emulator reports, with a legal block: the emulator enforces that cap too.
     await preset('b8-16-4');
     await setDim('gridDim', 'y', 65536);
     v = await verdict();
-    check(`explorer: by "${label}" a grid over its reported cap is flagged, and the page says the emulator would run it anyway`, v.legal === 'false' && (await violations()).every((x) => x.includes('gridDim')) && v.text.includes('The emulator would run this launch anyway') && v.text.includes('does not enforce the per-dimension or grid caps'), v.text);
+    check(`explorer: by "${label}" a grid over its reported cap is flagged, and the page says the emulator rejects it`, v.legal === 'false' && (await violations()).every((x) => x.includes('gridDim')) && v.text.includes('The emulator rejects this launch') && !v.text.includes('would run'), v.text);
     await setDim('gridDim', 'y', 2);
     await preset('b32-32-2');
   }
@@ -357,9 +357,9 @@ check('q-zcap: (32,16,2) is marked wrong, with the reason', (await qText(q)).inc
 await pick(q, 'dim3(1, 1, 128)');
 check('q-zcap: (1,1,128) is accepted', (await qText(q)).includes('Correct.'));
 q = await question('It never calls cudaGetLastError()');
-await pick(q, 'The launch line throws an exception');
+await pick(q, 'The launch statement throws an exception');
 check('q-silent: an exception is marked wrong', (await qText(q)).includes('Not quite.') && (await qText(q)).includes('throws nothing'));
-await pick(q, 'The kernel never runs');
+await pick(q, 'No thread runs');
 check('q-silent: the silent failure is accepted, and labelled unverified on device', (await qText(q)).includes('Correct.') && (await qText(q)).includes('unverified on device'));
 q = await question('What is the Metal host code for the same');
 await pick(q, 'MTLSizeMake(42)');

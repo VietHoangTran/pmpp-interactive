@@ -279,7 +279,7 @@ check('the Metal tab is the lab\'s weak compare-and-swap retry loop', metalTab.i
 const reportsNow = await (await fetch(`${BASE}/api/reports`)).json().catch(() => ({}));
 const frontierTests = (reportsNow.metal?.results ?? []).filter((r) => r.lab === 'ch18/lab1_frontier' && r.built)
   .flatMap((r) => r.tests.filter((t) => t.case.startsWith('provided frontier')));
-const wantStatus = !frontierTests.length ? 'unverified (no run' : frontierTests.every((t) => t.pass) ? 'verified on Metal' : 'unverified (failed';
+const wantStatus = !frontierTests.length ? 'unverified: no run' : frontierTests.every((t) => t.pass) ? 'verified on Metal' : 'unverified: failed';
 const metalStatus = await backends.evaluate((f) => f.querySelector('.status')?.textContent ?? '');
 check('the Metal tab\'s status is derived from the reports, in the fixed vocabulary', metalStatus.startsWith(wantStatus), metalStatus);
 const colW = await page.$$eval('table[data-backends] thead th', (ths) => ths.map((t) => Math.round(t.getBoundingClientRect().width)));

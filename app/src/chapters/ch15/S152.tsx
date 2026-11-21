@@ -15,12 +15,12 @@ export const questionsS152: Record<string, Question> = {
     prompt: <>In the 128 × 128 kernel the tile depth bK doubles from 8 to 16. What changes?</>,
     options: [
       {
-        label: 'Intensity stays the same; the shared memory for one tile pair doubles, from 8 KB to 16 KB; the number of tile pairs, and so of barriers, per block halves.',
+        label: 'Intensity is unchanged; one tile pair\'s shared memory doubles to 16 KB; half as many tile pairs, and barriers, cover K.',
         correct: true,
       },
-      { label: 'Intensity doubles.', why: 'Operations and bytes per tile pair both double, so their ratio does not move.' },
-      { label: 'Intensity halves.', why: 'Operations and bytes per tile pair both double, so their ratio does not move.' },
-      { label: 'Nothing changes at all.', why: 'The ratio does not, but each pair now takes twice the shared memory, and half as many pairs cover K.' },
+      { label: 'Intensity doubles: each loaded element now feeds twice as many multiply-adds, while shared memory per tile pair stays at 8 KB.', why: 'Operations and bytes per tile pair both double, so their ratio does not move, and the pair now takes 16 KB.' },
+      { label: 'Intensity halves, because each tile pair now loads twice as many bytes into shared memory.', why: 'Operations and bytes per tile pair both double, so their ratio does not move.' },
+      { label: 'Nothing that matters: intensity, shared memory per pair and the number of barriers all stay the same.', why: 'The ratio does not, but each pair now takes twice the shared memory, and half as many pairs cover K.' },
     ],
     explain: (
       <p>
@@ -56,10 +56,10 @@ export const questionsS152: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Fewer bytes per weight (quantisation), or more rows per fetched weight (batching).', correct: true },
-      { label: 'A wider output tile.', why: 'With m = 1 the intensity is 0.5 n / (n + 1), below 0.5 for every n. Widening approaches 0.5 and never passes it.' },
-      { label: 'A deeper tile, larger bK.', why: 'k cancels: it changes operations and bytes by the same factor.' },
-      { label: 'More threads per block.', why: 'Threads change who does the work, not how many bytes each operation needs.' },
+      { label: 'Batching more rows, or fewer bytes per weight.', correct: true },
+      { label: 'A wider output tile, so that one block covers more of the layer\'s outputs.', why: 'With m = 1 the intensity is 0.5 n / (n + 1), below 0.5 for every n. Widening approaches 0.5 and never passes it.' },
+      { label: 'A deeper tile, larger bK, so that each load brings in more of the inner dimension.', why: 'k cancels: it changes operations and bytes by the same factor.' },
+      { label: 'More threads per block, so that more multiply-adds are in flight at once.', why: 'Threads change who does the work, not how many bytes each operation needs.' },
     ],
     explain: (
       <p>
@@ -513,7 +513,7 @@ export function S152() {
         <p>
           The m = 1 bound is our derivation from the book's formula. llama.cpp uses matrix-vector kernels up to batch 8
           (<code>MMVQ_MAX_BATCH_SIZE</code>, <code>MMVF_MAX_BATCH_SIZE</code>), and PyTorch's code says gemv "is bw bound"
-          (ch15-facts D1, D4). Quantised kernels are module X2.
+          (ch15-facts D1, D4). Quantised kernels are the subject of <a href={href('x2')}>module X2</a>.
         </p>
       </Beyond>
       <Ask q={questionsS152['ch15/15.2/q-decode']} />

@@ -181,7 +181,7 @@ check('2048 floats touch all 32', (await outOf(D, 'channels')).text === '32');
 if (out) await (await page.$(B(D))).screenshot({ path: out + '-dealer.png' });
 await click(D, 'Fig. 6.9: 8-byte bursts, 4 channels, 2 banks');
 check('the Fig. 6.9 preset restores the toy', (await outOf(D, 'channels')).text === '4' && (await cell(3, 1)).endsWith('M[14..15]'));
-check('q-onechannel: one channel', (await answerChoice('256 bytes at a time', 'One.')).includes('Correct.'));
+check('q-onechannel: one channel', (await answerChoice('256 bytes at a time', 'One, the same one for every row.')).includes('Correct.'));
 
 // ---- the phase-by-phase replay and the 8 x 8 prediction
 const T = 'The tiled multiplication, phase by phase';

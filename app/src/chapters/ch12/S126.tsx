@@ -313,9 +313,9 @@ export const questionsS126: Record<string, Question> = {
     id: 'ch12/12.6/q-direct',
     prompt: <>In Fig. 12.8, 12 of a warp's 32 lanes keep their keys. Where do their stores land?</>,
     options: [
-      { label: 'In 12 slots scattered over the output.', why: 'Each kept lane\'s offset is one more than the previous kept lane\'s, because the scan counts exactly the kept keys between them: none.' },
-      { label: 'In 12 consecutive output slots, in lane order.', correct: true },
-      { label: 'In 32 slots: the other lanes write zeros.', why: 'Lanes whose key is dropped do not store at all.' },
+      { label: 'In 12 slots scattered over the output, wherever each kept lane\'s offset happens to fall.', why: 'Each kept lane\'s offset is one more than the previous kept lane\'s, because the scan counts exactly the kept keys between them: none.' },
+      { label: 'In 12 consecutive slots, in lane order.', correct: true },
+      { label: 'In 32 slots: the other lanes write zeros into theirs.', why: 'Lanes whose key is dropped do not store at all.' },
     ],
     explain: (
       <p>
@@ -339,9 +339,9 @@ export const questionsS126: Record<string, Question> = {
     id: 'ch12/12.6/q-scan-coarse',
     prompt: <>Besides longer chunks, what does coarsening buy the stable filter, according to the book?</>,
     options: [
-      { label: 'Fewer global reads of the keys.', why: 'Every design reads each key from global memory; coarsening changes who reads it, not how often.' },
-      { label: 'Stability.', why: 'The filter was already stable; the scan gives every key its exact slot with or without coarsening.' },
-      { label: 'A cheaper scan: the block scans one count per thread (or one total per warp) for many keys, so the barrier-heavy part is spread over more work.', correct: true },
+      { label: 'Fewer global reads of the keys: each thread loads its c keys once, keeps them in registers and reuses them for the store.', why: 'Every design reads each key from global memory; coarsening changes who reads it, not how often.' },
+      { label: 'Stability: without coarsening, kept keys from neighbouring warps can swap places in the output.', why: 'The filter was already stable; the scan gives every key its exact slot with or without coarsening.' },
+      { label: 'A cheaper scan: one count per thread, or one total per warp, enters the barrier-heavy block scan for many keys.', correct: true },
     ],
     explain: (
       <p>
@@ -378,11 +378,11 @@ export const questionsS126: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Staging costs a trip through shared memory and a barrier, and pays only by turning many scattered stores into few full ones; with at most about one kept key per thread the stores are a small part of the traffic either way.',
+        label: 'Staging costs shared memory and a barrier and pays only by merging scattered stores, which at one kept key per thread or fewer are a small share of the traffic.',
         correct: true,
       },
-      { label: 'Staging is incorrect at low fractions.', why: 'It is correct at any fraction; the question is whether it pays.' },
-      { label: 'The direct scatter is stable and staging is not.', why: 'Both write every kept key at its scanned offset; both are stable.' },
+      { label: 'Staging is incorrect at low fractions: threads past the tile\'s count would copy stale entries of the staging array.', why: 'It is correct at any fraction; the question is whether it pays.' },
+      { label: 'The direct scatter is stable and staging is not: copying out by thread index reorders the kept keys.', why: 'Both write every kept key at its scanned offset; both are stable.' },
     ],
     explain: (
       <p>
@@ -431,6 +431,16 @@ export function S126() {
         is the block's private piece of the output, as in section 12.4, but now in order.
       </p>
       <Source section="12.6" pages="298–299" figs="Fig. 12.9" />
+      <p>
+        The scene writes the same kept keys three ways: the direct scatter of Fig. 12.8, the staged version, and the
+        staged version coarsened by 2.
+      </p>
+      <Simplification>
+        <p>
+          The scene shrinks everything to fit: the book's sixteen keys, blocks of eight threads, warps of four lanes
+          and 16-byte segments. It counts stores and segments; nothing is timed.
+        </p>
+      </Simplification>
       <StageWriteScene />
       <Predict
         id="ch12/12.6/p-stores"
@@ -517,6 +527,17 @@ export function S126() {
         />
       ) : null}
       <Ask q={questionsS126['ch12/12.6/q-budget']} label="Work it out" />
+      <p>
+        The table sets the three designs' global traffic side by side: exercise 1's three kernels, lab 12.3 part B's
+        count-then-scatter, and exercise 2's single pass. Slide the fraction kept and see which part of each total moves.
+      </p>
+      <Simplification>
+        <p>
+          Bytes, not time: each array is counted once for every kernel that reads or writes it. Not counted: the scan's
+          traffic beyond reading its input and writing its output, caches, and the single pass's look-back reads, a
+          few words per block.
+        </p>
+      </Simplification>
       <BytesTable />
 
       <h2>When not to stage</h2>

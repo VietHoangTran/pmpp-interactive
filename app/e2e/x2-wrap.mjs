@@ -156,10 +156,11 @@ const CH = { '2.3': 'ch02', '10.3': 'ch10', '22.1': 'ch22', '22.2': 'ch22', 'X2.
 const m9 = await page.$$eval('table[data-table="m9"] tbody tr', (trs) => trs.map((tr) => ({ num: tr.dataset.m9, pass: tr.dataset.pass, href: tr.querySelector('a').getAttribute('href') })));
 check('the M9 table lists the seven labs whose code runs in the step, each linked to its labs page', m9.length === 7 && m9.every((r) => DIRS[r.num] && r.href === `#/${CH[r.num]}/labs`), JSON.stringify(m9));
 check("each M9 row reads the reader's own status from the reports", m9.every((r) => r.pass === (passingOn(DIRS[r.num]).join(',') || 'none')), JSON.stringify(m9.map((r) => [r.num, r.pass])));
-check('the next module is named, not linked', text0.includes('module X3, Reading real backends') &&
-  !(await page.$$eval('.prose a', (as) => as.some((a) => a.getAttribute('href')?.startsWith('#/x3')))));
+check('the course order after X2 is named (chapters 7 and 19, appendix C, then X3, linked)', text0.includes('chapters 7 and 19 and appendix C, then module X3, Reading real backends') &&
+  (await page.$$eval('.prose a', (as) => as.some((a) => a.getAttribute('href') === '#/x3'))));
 check("M10 is described in X3's words, and the GGUF claim is narrowed to llama.cpp's files",
   text0.includes('generated Llama-style model run end to end') && text0.includes('GGUF files made') && !text0.includes('published checkpoint'));
+check('M9 is said to compose with M10 through the adapter', text0.includes('M9 composes with it') && text0.includes('launchQLinear') && text0.includes('Q8_0 and Q4_0 weights'));
 check('the page names what the module leaves out and points at the facts file\'s "Not checked" list',
   text0.includes('What this module leaves out') && ['GPTQ', 'AWQ', 'Marlin', 'KV caches'].every((t) => text0.includes(t)) && notes.some((t) => t.includes('Not checked') && t.includes('x2-facts.md')));
 await shot('project', 'table[data-table="m9"]');

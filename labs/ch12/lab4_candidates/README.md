@@ -115,7 +115,7 @@ the sampler's business:
   llama.cpp computes exactly this, `max_logit + logf(p)`, on logits, so no softmax is needed
   to filter (D3).
 - **Top-k.** The threshold is the k-th largest logit, which comes from a selection
-  (chapter 14 and module X1). Ties at the threshold are all kept, in column order, so
+  (module X1, section X1.4: a radix select, measured against chapter 14's sort). Ties at the threshold are all kept, in column order, so
   `counts[r]` can exceed k. To keep exactly k with llama.cpp's tie rule, "the lowest columns
   win" (D1), drop the surplus pairs whose value equals the threshold, starting from the end
   of the list: the ties are in column order, so the ones dropped are the highest columns.

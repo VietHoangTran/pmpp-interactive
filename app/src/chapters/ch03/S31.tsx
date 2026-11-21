@@ -37,7 +37,6 @@ import {
   type Limits,
   type Target,
   type Unchecked,
-  type Verdict,
 } from '../../sim/grid';
 
 // ---------------------------------------------------------------- small helpers
@@ -106,7 +105,7 @@ function reported(reports: Reports): Choice[] {
             kind: 'emu',
             label: "The course's CPU emulator (not a GPU)",
             limits,
-            note: 'The numbers the course emulator reports about itself. It is not a GPU, and it enforces only one of them: 1024 threads in a block.',
+            note: 'The numbers the course emulator reports about itself. It is not a GPU; it copies the limits in NVIDIA\'s table and enforces them.',
           },
         ];
       if (b === 'metal')
@@ -141,20 +140,18 @@ function uncheckedNote(u: Unchecked, kind: Kind): string {
 
 // What the course emulator itself does with a launch (labs/common/include/pmpp/emu/emu_runtime.h,
 // launch_impl; checked by labs/ch03/snippets/check.py): it rejects a block of more than 1024
-// threads, a zero grid or block dimension, and dynamic shared memory over its limit. It does not
-// enforce the per-dimension caps or the grid caps it reports.
+// threads, a block or grid dimension over NVIDIA's per-dimension caps, a zero dimension, and
+// dynamic shared memory over its limit, all with cudaErrorInvalidConfiguration.
 const EMU_ENFORCES =
-  'Of the limits it reports, the emulator enforces only the 1024-thread total. It also rejects a zero dimension and too much dynamic shared memory. It does not enforce the per-dimension or grid caps.';
+  "The emulator enforces the limits it reports, which are NVIDIA's documented ones. It also rejects a zero dimension and too much dynamic shared memory.";
 
-function errorNote(kind: Kind, v: Verdict): string {
+function errorNote(kind: Kind): string {
   const e = kind === 'hip' ? LAUNCH_ERROR.hip : LAUNCH_ERROR.cuda;
   switch (kind) {
     case 'book':
       return 'The book stops here. What a device does with such a launch is the subject of "What happens when you break a limit", further down this page.';
     case 'emu':
-      return v.violations.some((x) => x.clause === 'zero' || x.clause === 'block-threads')
-        ? `The emulator rejects this launch too: it sets ${e.name} (${e.value}) and prints a line. ${EMU_ENFORCES}`
-        : `The emulator would run this launch anyway. ${EMU_ENFORCES}`;
+      return `The emulator rejects this launch: it sets ${e.name} (${e.value}) and prints a line. ${EMU_ENFORCES}`;
     case 'metal':
       return 'Apple documents no error for a threadgroup over its limit. Do not rely on any particular behaviour.';
     default:
@@ -421,7 +418,7 @@ function GridExplorer() {
                 ))}
               </ul>
               <p className="muted" style={{ margin: 0 }} data-out="error">
-                {errorNote(choice.kind, verdict)}
+                {errorNote(choice.kind)}
               </p>
             </>
           )}
@@ -1093,19 +1090,19 @@ export const questionsS31: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'The file does not compile: 2048 threads in a block is over the limit.',
+        label: 'The file does not compile: nvcc rejects a block of 2048 threads on the launch line.',
         why: 'The compiler sees three integers. The limit belongs to the device and is checked when the launch runs.',
       },
       {
-        label: 'The launch line throws an exception that names the bad configuration.',
+        label: 'The launch statement throws an exception that names the bad configuration.',
         why: 'A launch statement has no value and throws nothing. The failure goes into an error state that you have to query.',
       },
       {
-        label: 'The kernel runs with the block shrunk to the 1024 threads the device allows.',
+        label: 'The runtime shrinks the block to the 1024 threads the device allows and runs it.',
         why: 'Nothing is adjusted for you. The launch fails as a whole.',
       },
       {
-        label: 'The kernel never runs, nothing is reported, and the program prints whatever the buffer already held.',
+        label: 'No thread runs, nothing is reported, and the program prints whatever the buffer held.',
         correct: true,
       },
     ],
@@ -1503,11 +1500,10 @@ export function S31() {
       <p>
         PyTorch does this after every launch. Its CUDA kernels are followed by the macro{' '}
         <code>C10_CUDA_KERNEL_LAUNCH_CHECK()</code>, which is defined as <code>C10_CUDA_CHECK(cudaGetLastError())</code>
-        . Do the same in your own launch functions. One caution about the course's emulator. Of the limits it reports,
-        it enforces only the 1024-thread total; it also rejects a zero dimension and too much dynamic shared memory,
-        and it does not enforce the per-dimension or grid caps. A block of (1, 1, 128) runs there (emulator-checked by
-        the same script) and is documented to fail on a CUDA device, so a shape that passes in the emulator is not
-        thereby legal.
+        . Do the same in your own launch functions. The course's emulator applies NVIDIA's documented limits, per
+        dimension as well as in total: a block of (1, 1, 128) and a grid of 65,536 blocks along y fail there with the
+        same error (emulator-checked by the same script). Those are the documented limits, not your device's; a
+        real device can also refuse a smaller launch, as the comparison below explains.
       </p>
       <Ask q={questionsS31['ch03/3.1/q-silent']} />
 

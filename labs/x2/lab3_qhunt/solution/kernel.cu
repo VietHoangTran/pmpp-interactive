@@ -50,8 +50,8 @@ typedef unsigned int lane_mask_t;
 #endif
 
 // ================================================================ provided, correct
-// FP16 bits <-> float. The emulators model no __half (appA-facts E2), so the bits are
-// converted by hand, as qref::halfToFloat and qref::floatToHalf do on the CPU.
+// FP16 bits <-> float. cuda_fp16.h and hip_fp16.h differ, and the emulators' __half is not
+// relied on (appA-facts E2), so the bits are converted by hand, as qref::halfToFloat and qref::floatToHalf do on the CPU.
 static __device__ float halfToFloat(uint16_t h) {
     const unsigned sign = (unsigned)(h & 0x8000u) << 16;
     const unsigned e = (h >> 10) & 0x1Fu, m = h & 0x3FFu;

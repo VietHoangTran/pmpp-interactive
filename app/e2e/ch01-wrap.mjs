@@ -176,12 +176,13 @@ check('the hyper-threading row quotes the book (Intel and AMD) and answers it wi
   aged[2].includes("Ampere, the book's ARM example, calls its cores single-threaded") && !/\d+\s+cores/.test(aged[2]), aged[2]);
 check('the Today note names the facts items it rests on', (await page.$$eval('.prose aside.note', (as) => as.map((a) => a.textContent))).some((t) => t.includes('A6, A7') && t.includes('ch05-facts.md, A9')));
 const errata = await page.$$eval('ul[data-list="errata"] > li', (lis) => lis.map((li) => li.textContent.replace(/\s+/g, ' ')));
-check(`the errata list has eight items (${errata.length})`, errata.length === 8);
-check('it covers the four parts, scan as chapter 14, Fig. 1.1(a)/(b), the junction under 14, the titles, the 14 chapters and the typos',
+check(`the errata list has nine items (${errata.length})`, errata.length === 9);
+check('it covers the four parts, scan as chapter 14, Fig. 1.1(a)/(b), the junction under 14, the titles, the 14 chapters, the OpenCL date and the typos',
   errata[0].includes('"into four major parts" (p. xxii)') && errata[1].includes('"relies on the scan pattern covered in Chapter 14" (p. 16)') &&
   errata[2].includes('"Fig. 1.1(a)"') && errata[3].includes('under the box of chapter 14') && errata[4].includes('Chapter titles differ') &&
-  errata[5].includes('"consists of 14 chapters"') && errata[6].includes('"coverts"'));
-check('the 1,979 figure is marked "not a slip" and sent to the start page', errata[7].startsWith('Not a slip') && errata[7].includes('1,979'));
+  errata[5].includes('"consists of 14 chapters"') && errata[6].includes('OpenCL to 2009 (p. 13)') && errata[6].includes('reference [9]') &&
+  errata[7].includes('"coverts"'));
+check('the 1,979 figure is marked "not a slip" and sent to the start page', errata[8].startsWith('Not a slip') && errata[8].includes('1,979'));
 check('readings of the PDF are marked as ours', (await body()).includes('our readings of one PDF'));
 const omitted = await page.$$eval('ul[data-list="omitted"] > li', (lis) => lis.map((li) => li.textContent.replace(/\s+/g, ' ')));
 check(`what was left out is listed with pages, ${omitted.length} items`, omitted.length === 8 && omitted.every((o) => /pp?\. /.test(o)), JSON.stringify(omitted.filter((o) => !/pp?\. /.test(o))));
@@ -206,8 +207,8 @@ check('the project paragraph names M0 as chapter 2\'s and asks for the doctor co
 
 // ---- links
 const links = await page.$$eval('.prose a[href^="#/"]', (as) => [...new Set(as.map((a) => a.getAttribute('href')))]);
-const known = new Set(['#/ch01/start', '#/ch01/1.3', '#/ch01/1.7', '#/ch02/start']);
-check(`links go to sections that exist (${links.join(', ')})`, links.length === 4 && links.every((l) => known.has(l)), links.join(', '));
+const known = new Set(['#/ch01/start', '#/ch01/1.3', '#/ch01/1.7', '#/ch23/23.4', '#/ch02/start']);
+check(`links go to sections that exist (${links.join(', ')})`, links.length === 5 && links.every((l) => known.has(l)), links.join(', '));
 await page.evaluate(() => [...document.querySelectorAll('.prose a')].find((a) => a.getAttribute('href') === '#/ch02/start').click());
 await page.waitForFunction(() => location.hash === '#/ch02/start' && document.querySelector('.page[data-ready] h1'), { timeout: 15000 });
 check('the link to chapter 2 opens its start page', (await page.$eval('.page h1', (e) => e.textContent)).length > 0);

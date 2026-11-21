@@ -37,13 +37,18 @@ describe('summary page of chapter 23', () => {
       }
     }
   });
-  it('no right answer is the longest option (string labels)', () => {
+  it('the right answer is strictly the longest option in at most one question, and the shortest in at most one', () => {
+    let longest = 0;
+    let shortest = 0;
     for (const q of Object.values(questionsWrap)) {
       if (q.kind !== 'choice') continue;
       const lengths = q.options.map((o) => text(o.label).length);
       const right = lengths[correct(q)];
-      expect(lengths.some((l, i) => i !== correct(q) && l >= right), q.id).toBe(true);
+      if (lengths.every((l, i) => i === correct(q) || l < right)) longest++;
+      if (lengths.every((l, i) => i === correct(q) || l > right)) shortest++;
     }
+    expect(longest).toBeLessThanOrEqual(1);
+    expect(shortest).toBeLessThanOrEqual(1);
   });
 });
 

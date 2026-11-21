@@ -918,6 +918,7 @@ export function S13() {
         A kernel is never the whole program. Commit to a number for each of these before you read on. No formula is
         needed: think in run time, part by part.
       </p>
+      <Source section="1.3" pages="9" />
       <Predict
         id="ch01/1.3/p-thirty"
         prompt={
@@ -966,7 +967,6 @@ export function S13() {
           </p>
         )}
       </Predict>
-      <Source section="1.3" pages="9" />
 
       <h2>Amdahl's law</h2>
       <p>
@@ -995,7 +995,8 @@ export function S13() {
       </p>
       <Simplification>
         <p>
-          Two parts only, and they do not overlap in time; chapter 22 (§22.3) relaxes that. The untouched part is
+          Two parts only, and they do not overlap in time; chapter 22 (
+          <a href={href('ch22', '22.3')}>§22.3</a>) relaxes that. The untouched part is
           assumed to stay the same size, although moving work to a GPU adds copies and kernel launches to it. The
           problem size is fixed.
         </p>
@@ -1020,8 +1021,8 @@ export function S13() {
       </p>
       <Beyond>
         <p>
-          The mapping to a decode step is ours. The book works the same law on a molecular-dynamics application in
-          §22.3 (pp. 537–538), where the modules left on the host cap the whole.
+          The mapping to a decode step is ours. The book works the same law on a molecular-dynamics application in{' '}
+          <a href={href('ch22', '22.3')}>§22.3</a> (pp. 537–538), where the modules left on the host cap the whole.
         </p>
       </Beyond>
       <p>

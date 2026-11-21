@@ -1,7 +1,8 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
-import { Bench, Beyond, Simplification, Source, Today, type Tier } from '../../components/notes';
+import { solutionTabStatus } from '../../components/LabKit';
+import { Bench, Beyond, NoteGroup, Simplification, Source, Today, type Tier } from '../../components/notes';
 import { num, realBackends, useReports, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import { SEGMENT_MODELS, type SegmentModelId } from '../../sim/coalesce';
@@ -34,10 +35,6 @@ import { functionSource } from '../../sim/toolchain';
 const FACTS = 'notes/today/x1-facts.md';
 const LAB = 'ch09/lab3_tokencounts';
 const FIELD: CSSProperties = { display: 'inline-flex', flexDirection: 'column', gap: '0.2rem', color: 'var(--ink-2)' };
-const STATUS = {
-  cu: 'front-end-checked; emulator-checked; unverified on CUDA and HIP hardware',
-  metal: 'verified on Metal',
-};
 const TIERS: Record<string, Tier> = { logits: 'global', counts: 'global', c: 'reg', i: 'reg', n: 'reg' };
 const fmtInt = (v: number) => v.toLocaleString('en-US');
 const f3 = (v: number) => (Object.is(v, -0) ? '0.000' : v.toFixed(3));
@@ -132,12 +129,12 @@ export const questionsSX13: Record<string, Question> = {
     prompt: <>Which statement about transformers' penalties is right?</>,
     options: [
       {
-        label: 'It applies a repetition penalty to every token present in input_ids, prompt included, each counted once, and has no frequency or presence penalty.',
+        label: 'It penalises every token in input_ids, prompt included, once each, and has no frequency or presence penalty.',
         correct: true,
       },
-      { label: 'It penalises only the generated tokens, not the prompt.', why: 'input_ids holds the prompt too, unless prompt_ignore_length is given.' },
-      { label: "It implements OpenAI's frequency and presence formula.", why: 'Neither word appears as a parameter in its generation code.' },
-      { label: 'It counts each occurrence, so a token used three times is penalised three times.', why: 'The penalty is applied once per distinct token, whatever the count.' },
+      { label: 'It penalises only the generated tokens, never the prompt, and scales the penalty by how often each token appeared.', why: 'input_ids holds the prompt too, unless prompt_ignore_length is given.' },
+      { label: "It implements OpenAI's frequency and presence formula alongside its sign-aware repetition penalty.", why: 'Neither word appears as a parameter in its generation code.' },
+      { label: 'It counts each occurrence, so a token used three times in the context is penalised three times over.', why: 'The penalty is applied once per distinct token, whatever the count.' },
     ],
     explain: (
       <p>
@@ -158,10 +155,10 @@ export const questionsSX13: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'One thread owns each row, so no two threads ever update the same count in one launch.', correct: true },
-      { label: 'The counts are small, so the update cannot overflow.', why: 'Overflow is not the hazard. Two threads losing each other’s increment is.' },
-      { label: 'The GPU serialises writes to the same address.', why: 'It does not serialise a read-modify-write: that is the lost update of chapter 9.' },
-      { label: 'Decode steps are separate launches.', why: 'True, but inside one launch every row is updated at once. What makes it safe is who updates each row.' },
+      { label: 'One thread owns each row, so no two threads ever read and write the same count in one launch.', correct: true },
+      { label: 'The counts are small integers, so one increment per step cannot overflow even over a long generation.', why: 'Overflow is not the hazard. Two threads losing each other’s increment is.' },
+      { label: 'The GPU serialises plain writes to the same address, so two increments of one count cannot overlap.', why: 'It does not serialise a read-modify-write: that is the lost update of chapter 9.' },
+      { label: "Each launch updates its rows one after another, so no two rows' counts change at the same time.", why: "Rows update at once, one thread each. What makes it safe is that each row's counts have one owner." },
     ],
     explain: (
       <p>
@@ -456,6 +453,8 @@ function AccessExplorer() {
 
 // ---------------------------------------------------------------- the listing
 function PenaltyListing() {
+  const { reports } = useReports();
+  const STATUS = { cu: solutionTabStatus(reports, LAB, 'kernel.cu'), metal: solutionTabStatus(reports, LAB, 'kernel.metal') };
   const cu = useLabFile(LAB + '/solution/kernel.cu');
   const metal = useLabFile(LAB + '/solution/kernel.metal');
   const k = cu ? functionSource(cu, 'applyPenalties') : null;
@@ -490,14 +489,16 @@ export function SX13() {
         vocabulary as bins, and a pass over the logits that applies one of three formulas. The formulas are simple. The
         sign rule in one of them is where projects, and the paper they cite, part ways.
       </p>
-      <Beyond title="Ours, not the book's">
-        <p>
-          Penalties and counting token ids are not in the book. The atomics, the privatisation and the owner-computes rule
-          are chapter 9's.
-        </p>
-      </Beyond>
-      <Source section="9.2" pages="203–209" />
-      <Source section="9.4" pages="211–213" />
+      <NoteGroup>
+        <Beyond title="Ours, not the book's">
+          <p>
+            Penalties and counting token ids are not in the book. The atomics, the privatisation and the owner-computes rule
+            are chapter 9's.
+          </p>
+        </Beyond>
+        <Source section="9.2" pages="203–209" />
+        <Source section="9.4" pages="211–213" />
+      </NoteGroup>
 
       <h2>Where the counts come from</h2>
       <p>
@@ -620,8 +621,8 @@ export function SX13() {
       </Simplification>
       <AccessExplorer />
       <p>
-        With one thread per element or one block per row, consecutive lanes read consecutive floats: a warp of 32 asks for
-        128 bytes and touches four 32-byte sectors, all of them useful. With one thread per row, every active lane touches
+        With one thread per element or one block per row, consecutive lanes read consecutive floats: a warp of 32 lanes
+        (NVIDIA's width) asks for 128 bytes and touches four 32-byte sectors, all of them useful. With one thread per row, every active lane touches
         its own segment and uses 4 bytes of it, and the warp has only as many active lanes as there are rows.
       </p>
 

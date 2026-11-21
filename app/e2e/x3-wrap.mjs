@@ -166,10 +166,10 @@ check(`the M10 line reads the reports: ${own.join(',') || 'none'}`, ownText.v ==
   (Object.keys(reports).length === 0 ? ownText.t.includes('No lab results') : own.length ? ownText.t.includes(own.map(NAME).join(' and ')) : ownText.t.includes('does not pass on any backend')), JSON.stringify(ownText));
 // The pieces lab X3.2's provided/pieces.cmake copies: every row's lab directory must exist.
 const DIRS = { '2.3': 'ch02/lab3_elementwise', '6.4': 'ch06/lab4_linear', '10.3': 'ch10/lab3_softmax_argmax', '20.4': 'ch20/lab4_decode', '22.2': 'ch22/lab2_batching',
-  'X3.1': 'x3/lab1_llama_pieces', '15.6': 'ch15/lab6_linear', '20.5': 'ch20/lab5_gqa_decode', '22.1': 'ch22/lab1_gemv', 'X1.3': 'x1/lab3_sampler', 'X3.2': 'x3/lab2_tinyllama' };
+  'X3.1': 'x3/lab1_llama_pieces', '15.6': 'ch15/lab6_linear', '20.5': 'ch20/lab5_gqa_decode', '22.1': 'ch22/lab1_gemv', 'X1.3': 'x1/lab3_sampler', 'X2.4': 'x2/lab4_m9', 'X3.2': 'x3/lab2_tinyllama' };
 const readme = await page.evaluate(() => fetch('/api/lab-file?path=' + encodeURIComponent('x3/lab2_tinyllama/README.md')).then((r) => (r.ok ? r.text() : '')));
 const m10 = await page.$$eval('table[data-table="m10"] tbody tr', (trs) => trs.map((tr) => ({ num: tr.dataset.m10, pass: tr.dataset.pass, href: tr.querySelector('a').getAttribute('href'), need: tr.children[2].textContent })));
-check('the M10 table has the eleven labs, required ones first, each linked to its labs page', m10.length === 11 && m10.every((r) => DIRS[r.num] && r.href === `#/${DIRS[r.num].split('/')[0]}/labs`) &&
+check('the M10 table has the twelve labs, required ones first, each linked to its labs page', m10.length === 12 && m10.every((r) => DIRS[r.num] && r.href === `#/${DIRS[r.num].split('/')[0]}/labs`) &&
   m10.filter((r) => r.need === 'required').length === 6, JSON.stringify(m10));
 {
   const flat = readme.replace(/\s+/g, ' ');
@@ -180,8 +180,11 @@ check('the M10 table has the eleven labs, required ones first, each linked to it
     flat.includes(`labs ${list(req)} (required) and ${list(opt)} (if present)`), flat.slice(flat.indexOf('copies the reference'), flat.indexOf('copies the reference') + 160));
 }
 check("each M10 row reads the reader's own status from the reports", m10.every((r) => r.pass === (passingOn(DIRS[r.num]).join(',') || 'none')), JSON.stringify(m10.map((r) => [r.num, r.pass])));
-check('M10 says plainly it runs without M9', text0.includes('M10 runs in float32') && text0.includes('do not meet yet'));
-check('the next chapter is named with its pages', text0.includes('chapter 24 (pp. 577–580)'));
+check('M10 says it runs with M9 through an adapter, and how that is checked', 
+  text0.includes("with M9's quantised layer in its linear-layer slot") && text0.includes('provided adapter') &&
+  text0.includes('same quantised weights') && !text0.includes('do not meet yet'));
+check("chapter 24's summary page is named with its pages", text0.includes("chapter 24, the book's closing chapter (pp. 577–580)") &&
+  (await page.$('a[href$="ch24/wrap"]')) !== null);
 await shot('project', 'table[data-table="m10"]');
 
 // ---- margin notes, links, narrow screen

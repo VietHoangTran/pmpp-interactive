@@ -469,7 +469,7 @@ check('grid barrier question: residency is accepted', (await qText(q)).includes(
 q = await question('Which habit breaks transparent scalability');
 await pick(q, 'Launching more blocks than the device can run at once');
 check('scalability question: "more blocks than fit" is marked wrong', (await qText(q)).includes('Not quite.') && (await qText(q)).includes('That is the normal case'), await qText(q));
-await pick(q, 'Code that assumes how many blocks run at once');
+await pick(q, 'Making one block wait for a result from another block');
 check('scalability question: assumptions about other blocks is accepted', (await qText(q)).includes('Correct.') && (await qText(q)).includes('Source: ch. 4 §4.3, pp. 73–74'), await qText(q));
 
 // ---------------------------------------------------------------- narrow screen

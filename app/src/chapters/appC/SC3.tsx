@@ -1,7 +1,7 @@
 import { useState, type MouseEvent } from 'react';
 import { Ask, type Question } from '../../components/Ask';
 import { Code } from '../../components/Code';
-import { Bench, Beyond, Simplification, Source, Today, type Tier } from '../../components/notes';
+import { Bench, Beyond, NoteGroup, Simplification, Source, Today, type Tier } from '../../components/notes';
 import { benchRows, useReports, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import { ALLOCS, HOP_LABEL, NODE_VALUES, SETTINGS, addresses, chase, hex, type Alloc, type HopVerdict, type Setting } from '../../sim/ptrchase';
@@ -349,10 +349,10 @@ export const questionsSC3: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'A host-to-device copy into GPU 1, inferred from the two addresses.', correct: true },
-      { label: 'It fails, because the kind of copy is missing.', why: 'cudaMemcpyDefault is the kind: it asks the runtime to infer the direction, which unified addressing allows.' },
-      { label: 'A copy to the current device, whatever dst says.', why: 'The destination value says GPU 1; the current device does not matter for where the bytes go.' },
-      { label: 'A device-to-host copy.', why: 'The direction is read off the values: src is host memory, dst is GPU memory.' },
+      { label: 'Host to device, into GPU 1, read off the two pointer values.', correct: true },
+      { label: 'It fails with an invalid-direction error, because cudaMemcpyDefault names no kind of copy.', why: 'cudaMemcpyDefault is the kind: it asks the runtime to infer the direction, which unified addressing allows.' },
+      { label: 'A host-to-device copy into the current device, whatever GPU dst came from.', why: 'The destination value says GPU 1; the current device does not matter for where the bytes go.' },
+      { label: 'A device-to-host copy, because the runtime reads the first argument, dst, as the source.', why: 'The order is destination first, as in memcpy, and the direction is read off the values: src is host memory, dst is GPU memory.' },
     ],
     explain: (
       <p>
@@ -369,8 +369,8 @@ export const questionsSC3: Record<string, Question> = {
     prompt: <>A teammate says: "With UVA every pointer works everywhere." Which is a counterexample on CUDA today?</>,
     options: [
       { label: 'Host code dereferencing a cudaMalloc pointer.', correct: true },
-      { label: 'A kernel reading cudaMallocHost memory.', why: 'Allowed: under unified addressing that pointer works in kernels directly, over the interconnect.' },
-      { label: 'A kernel reading managed memory.', why: 'Allowed: that is what managed memory is for (section C.6).' },
+      { label: "A kernel reading cudaMallocHost memory through the host's own pointer.", why: 'Allowed: under unified addressing that pointer works in kernels directly, over the interconnect.' },
+      { label: 'A kernel reading managed memory that the host wrote.', why: 'Allowed: that is what managed memory is for (section C.6).' },
       { label: 'cudaMemcpyDefault between two GPUs.', why: 'Allowed: the direction is inferred from the two values.' },
     ],
     explain: (
@@ -415,19 +415,19 @@ export const questionsSC3: Record<string, Question> = {
     options: [
       {
         label:
-          'It works on HIP because AMD documents host reads of hipMalloc memory, as slow zero copy over the interconnect. CUDA forbids host code to dereference cudaMalloc memory, so the line is wrong in the CUDA build. Copy the value out with a memcpy call in both.',
+          'AMD documents host reads of hipMalloc memory, as zero copy; CUDA forbids them for cudaMalloc memory. Use a memcpy in both builds.',
         correct: true,
       },
       {
-        label: 'It is fine on both: unified addressing lets the host read any device pointer.',
+        label: 'It is fine on both: unified addressing, on in every 64-bit process, lets the host read any device pointer.',
         why: 'Unified addressing tells the runtime where a pointer lives; it grants no access. CUDA host code still may not dereference cudaMalloc memory.',
       },
       {
-        label: 'It is fine on both, only slow, because every read crosses the interconnect.',
+        label: 'It is fine on both, just slow, because every host read of device memory crosses the interconnect.',
         why: 'Slow is HIP\'s documented behaviour. On CUDA the read is not allowed at all.',
       },
       {
-        label: 'It only worked by luck on HIP: host reads of device memory are undefined there too.',
+        label: 'It worked by luck on HIP: host reads of device memory are undefined there too, just as they are on CUDA.',
         why: 'AMD documents it: "CPUs can access memory allocated via hipMalloc()". This is one of the places where HIP and CUDA really differ.',
       },
     ],
@@ -461,15 +461,17 @@ export function SC3() {
         longer needs to be told the direction: pass <code>cudaMemcpyDefault</code> and it reads the direction off the two
         pointers.
       </p>
-      <Source section="C.3" pages="625" />
-      <Today checked="2026-11-20 against the CUDA 13.5 guide and runtime reference (notes/today/appC-facts.md, A5; ch02-facts A4)">
-        <p>
-          CUDA 4 is from May 2011. Today's guide: "A single virtual address space is used for all host memory and all
-          global memory on all GPUs", including memory from <code>malloc</code> and <code>mmap</code>, and it is on
-          automatically in 64-bit processes. <code>cudaPointerGetAttributes</code> tells you where a pointer lives. The
-          exceptions to "one location": registered and write-combined host memory get a distinct device address.
-        </p>
-      </Today>
+      <NoteGroup>
+        <Source section="C.3" pages="625" />
+        <Today checked="2026-11-20 against the CUDA 13.5 guide and runtime reference (notes/today/appC-facts.md, A5; ch02-facts A4)">
+          <p>
+            CUDA 4 is from May 2011. Today's guide: "A single virtual address space is used for all host memory and all
+            global memory on all GPUs", including memory from <code>malloc</code> and <code>mmap</code>, and it is on
+            automatically in 64-bit processes. <code>cudaPointerGetAttributes</code> tells you where a pointer lives. The
+            exceptions to "one location": registered and write-combined host memory get a distinct device address.
+          </p>
+        </Today>
+      </NoteGroup>
       <p>
         Two names, one feature: appendix C says UVAS, and chapter 2's footnote on page 35 says UVA. NVIDIA uses both.
         The book also says UVAS came from GMAC, the research library of the 2010 paper it cites; that is the book's
@@ -505,13 +507,15 @@ export function SC3() {
         over PCIe. Pointers that a kernel reads from memory, such as the links of a list the host built, are safe only if
         they too point into <code>cudaHostAlloc</code> memory.
       </p>
-      <Source section="C.3" pages="625" />
-      <Today checked="2026-11-20 against the CUDA 13.5 guide (notes/today/appC-facts.md, A12)">
-        <p>
-          Still true of <code>cudaMalloc</code> memory on every kind of system: "Hardware coherency does not enable access
-          to GPU-only allocations such as those made with cudaMalloc from the host."
-        </p>
-      </Today>
+      <NoteGroup>
+        <Source section="C.3" pages="625" />
+        <Today checked="2026-11-20 against the CUDA 13.5 guide (notes/today/appC-facts.md, A12)">
+          <p>
+            Still true of <code>cudaMalloc</code> memory on every kind of system: "Hardware coherency does not enable access
+            to GPU-only allocations such as those made with cudaMalloc from the host."
+          </p>
+        </Today>
+      </NoteGroup>
       <Ask q={questionsSC3['appC/C.3/q-address-not-access']} />
 
       <h2>Follow the list</h2>

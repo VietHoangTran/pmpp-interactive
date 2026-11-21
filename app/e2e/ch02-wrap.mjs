@@ -157,10 +157,10 @@ check('exercises 1 to 3 point at 2.5, 4 and 9 at 2.6, 5 to 8 at 2.4, 10 at 2.7, 
 // ---- errata, today's differences, omissions
 const errata = await page.$$eval('ul[data-list="errata"] > li', (lis) => lis.map((li) => li.textContent.replace(/\s+/g, ' ')));
 check(`the errata list has ${errata.length} items, the three in code first`,
-  errata.length === 10 && errata[0].includes('float *d_A *d_B, *d_C;') && errata[1].includes('tests error') && errata[2].includes('vectAdd') && errata[2].includes('ceil(n/256)'),
+  errata.length === 11 && errata[0].includes('float *d_A *d_B, *d_C;') && errata[1].includes('tests error') && errata[2].includes('vectAdd') && errata[2].includes('ceil(n/256)'),
   String(errata.length));
-check('it lists the swapped captions, the naming of Figs. 2.5, 2.12 and 2.13, the guard of Fig. 2.9 and the p. 37 slips',
-  errata.some((e) => e.includes('swapped')) && errata.some((e) => e.includes('Figs. 2.5, 2.12 and 2.13')) && errata.some((e) => e.includes('Fig. 2.9 (p. 33) has no')) && errata.some((e) => e.includes('vecAddVecKernel')));
+check('it lists the swapped captions, the naming of Figs. 2.5, 2.12 and 2.13, the guard of Fig. 2.9, the p. 37 slips and the Fig. 2.3 timeline',
+  errata.some((e) => e.includes('swapped')) && errata.some((e) => e.includes('Figs. 2.5, 2.12 and 2.13')) && errata.some((e) => e.includes('Fig. 2.9 (p. 33) has no')) && errata.some((e) => e.includes('vecAddVecKernel')) && errata.some((e) => e.includes('Fig. 2.3 (p. 25)')));
 check('readings of the PDF are marked as ours, and the two non-errors are set apart',
   (await body()).includes('our readings of one PDF') && (await body()).includes('Two things look like slips and are not'));
 const today = await page.$$eval('ul[data-list="today"] > li', (lis) => lis.map((li) => li.textContent.replace(/\s+/g, ' ')));
@@ -198,7 +198,7 @@ check('every margin note directly follows a paragraph or a list', after.every((t
 
 // ---- links
 const links = await page.$$eval('.prose a[href^="#/"]', (as) => [...new Set(as.map((a) => a.getAttribute('href')))]);
-const known = new Set(['#/ch02/start', '#/ch02/2.1', '#/ch02/2.2', '#/ch02/2.3', '#/ch02/2.4', '#/ch02/2.5', '#/ch02/2.6', '#/ch02/2.7', '#/ch02/labs', '#/ch02/wrap', '#/ch03/start']);
+const known = new Set(['#/ch02/start', '#/ch02/2.1', '#/ch02/2.2', '#/ch02/2.3', '#/ch02/2.4', '#/ch02/2.5', '#/ch02/2.6', '#/ch02/2.7', '#/ch02/labs', '#/ch02/wrap', '#/ch03/start', '#/ch23', '#/appC']);
 check(`links go to sections that exist (${links.join(', ')})`, links.length >= 8 && links.every((l) => known.has(l)), links.join(', '));
 await page.evaluate(() => [...document.querySelectorAll('.prose a')].find((a) => a.getAttribute('href') === '#/ch02/labs').click());
 await page.waitForFunction(() => document.querySelector('.page h1')?.textContent.includes('Labs'), { timeout: 10000 });

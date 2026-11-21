@@ -344,10 +344,10 @@ export const questionsS103: Record<string, Question> = {
     id: 'ch10/10.3/q-stale-read',
     prompt: <>Remove the barrier and run the kernel on 16 values with 8 threads. Which read can see a value that is not final yet?</>,
     options: [
-      { label: 'In the first iteration, thread 0 reads input[1], which thread 1 is updating.', why: 'Odd elements belong to no thread. Nobody ever writes input[1], so there is nothing to wait for.' },
-      { label: 'In the second iteration (stride 2), thread 0 reads input[2], which thread 1 updates in the first iteration.', correct: true },
-      { label: 'In the second iteration, thread 1 reads input[4], which thread 2 updates.', why: 'Thread 1 is not active in the second iteration: 1 % 2 is not 0.' },
-      { label: 'None: each thread reads only elements it owns.', why: 'The partner element input[i + stride] belongs to another thread from the second iteration on.' },
+      { label: 'At stride 1, thread 0 reads input[1], which thread 1 is updating in the same iteration.', why: 'Odd elements belong to no thread. Nobody ever writes input[1], so there is nothing to wait for.' },
+      { label: 'At stride 2, thread 0 reads input[2], which thread 1 writes in the iteration before.', correct: true },
+      { label: 'At stride 2, thread 1 reads input[4], which thread 2 writes in the iteration before.', why: 'Thread 1 is not active at stride 2: 1 % 2 is not 0.' },
+      { label: 'None: each thread reads only elements it owns or elements nobody writes.', why: 'The partner element input[i + stride] belongs to another thread from the second iteration on.' },
     ],
     explain: (
       <p>
@@ -369,10 +369,10 @@ export const questionsS103: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Every thread of the block must reach the same barrier; inside the if, the inactive threads would never arrive.', correct: true },
-      { label: 'So the inactive threads can help with the addition.', why: 'They do no addition; they only wait.' },
-      { label: 'It is a style choice; inside the if would behave the same.', why: 'A barrier that only some threads reach breaks the rule of chapter 4.' },
-      { label: 'To make the loop run faster.', why: 'A barrier only ever adds waiting.' },
+      { label: 'Every thread of the block must reach the barrier; inside the if, inactive threads never would.', correct: true },
+      { label: 'So that the inactive threads can pick up additions the active ones have not finished.', why: 'They do no addition; they only wait.' },
+      { label: 'It is a style choice: inside the if, it would wait for the active threads, which is all it needs.', why: 'A barrier that only some threads reach breaks the rule of chapter 4.' },
+      { label: 'To make the loop run faster, since all threads then leave the barrier together.', why: 'A barrier only ever adds waiting.' },
     ],
     explain: (
       <p>
@@ -394,13 +394,13 @@ export const questionsS103: Record<string, Question> = {
       </>
     ),
     options: [
-      { label: 'Each block reduces its own third of the input.', why: 'Nothing in the kernel uses blockIdx. Every block computes i = 2*threadIdx.x.' },
-      { label: 'The answer is right, only slower than one block.', why: 'The three blocks write the same elements at the same time.' },
+      { label: 'Each block reduces its own third of the input, and the last block to finish writes *output.', why: 'Nothing in the kernel uses blockIdx. Every block computes i = 2*threadIdx.x.' },
+      { label: 'The answer is right, only slower than one block, because the blocks repeat the same work.', why: 'The three blocks write the same elements at the same time.' },
       {
-        label: 'All three blocks reduce the same first 2048 values in place at the same time, racing on them and on *output; values past 2048 are never read.',
+        label: 'All three reduce the first 2048 values in place at once, racing on them and on *output.',
         correct: true,
       },
-      { label: 'The launch fails: a kernel with __syncthreads() may only run one block.', why: 'The launch is legal. The barrier simply has no effect between blocks.' },
+      { label: 'The launch fails: a kernel that calls __syncthreads() may only be launched with one block.', why: 'The launch is legal. The barrier simply has no effect between blocks.' },
     ],
     explain: (
       <p>

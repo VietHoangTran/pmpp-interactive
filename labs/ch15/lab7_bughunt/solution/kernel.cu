@@ -1,7 +1,7 @@
 // Lab 15.7 reference solution: the three defects of the starter, fixed.
 // The kernel is lab 15.6's (milestone M3): Y[batch x out] = X[batch x in] * W^T, W stored
 // (out, in) row-major. Lab 15.6's solution says what is the book's and what is ours, and
-// why its float4 paths are unverified on HIP (hipMalloc's alignment is in no facts file).
+// why its float4 paths are unverified on HIP (AMD's reference states no alignment for hipMalloc: ch15-facts B8).
 
 #include <cstdio>
 

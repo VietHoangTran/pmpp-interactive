@@ -94,9 +94,9 @@ export const questionsWrap: Record<string, Question> = {
         label: 'Launch the sampling kernel in a stream of higher priority.',
         why: 'While the host waits for the copy nothing else is queued, so a priority, a hint about pending kernels, has nothing to prefer.',
       },
-      { label: 'Queue step n + 1 before reading token n; check for the end one step late.', correct: true },
+      { label: 'Queue step n + 1 before reading token n, and check for the end of the sequence one step late.', correct: true },
       {
-        label: 'Switch to cudaMemcpyAsync into the same int, then synchronise right after it.',
+        label: 'Switch to cudaMemcpyAsync into the same int, then synchronise right after it, before the next launch.',
         why: 'The host still waits for the copy before it queues anything, and from pageable memory the copy may not be asynchronous at all.',
       },
       {
@@ -193,7 +193,7 @@ export const questionsWrap: Record<string, Question> = {
         label: 'Only (c), the 128-byte minimum.',
         why: 'Nothing in the chapter sets a minimum, and its norm reduction sends a single 4-byte float.',
       },
-      { label: 'Both (a) and (b).', correct: true },
+      { label: 'Both (a) and (b); (c) is false.', correct: true },
     ],
     explain: (
       <p>
@@ -235,7 +235,8 @@ export function Wrap() {
         <li>
           A stream is an ordered queue; work in different streams may overlap. To hide copies, cut the job into chunks
           over several streams: the total becomes the time to fill the pipeline plus one chunk&rsquo;s slowest stage per
-          further chunk. The fill-and-drain bubble does not shrink with more chunks, and every chunk adds fixed costs.
+          further chunk. Smaller chunks shrink the fill-and-drain bubble, but every chunk adds fixed costs, so there is a
+          best chunk count to measure.
         </li>
         <li>
           An asynchronous copy overlaps only from pinned host memory. From pageable memory it is legal, and it quietly
@@ -337,7 +338,7 @@ export function Wrap() {
       <ul data-list="errata">
         <li>p. 546 says Fig. 23.5 shows five essential MPI functions; it shows four.</li>
         <li>
-          Fig. 23.14 line 19 (p. 557) has an extra closing parenthesis. Page <a href={href('ch23', '23.4')}>23.4</a> shows
+          Fig. 23.14 line 19 (p. 557) has an extra closing parenthesis. Page <a href={href('ch23', '23.4')}>23.3–23.5</a> shows
           the corrected line, and its unit test proves the printed one does not compile.
         </li>
         <li>p. 559 places the wait on the bottom stream at line 32; in the figure it is line 31, as p. 564 says.</li>
@@ -375,7 +376,8 @@ export function Wrap() {
         <li>Exercise 1 does not say whether edge columns count; exercise 3 has two true statements and asks for one.</li>
         <li>
           Wording, as printed: &ldquo;when may be interested&rdquo; (p. 558), &ldquo;responsible these rows&rdquo; (p.
-          544), &ldquo;intialize&rdquo; (p. 566), &ldquo;calls nvshmem_finalize releases&rdquo; (p. 572).
+          544), &ldquo;intialize&rdquo; (p. 566), &ldquo;calls nvshmem_finalize releases&rdquo; (p. 572), and a missing full
+          stop after &ldquo;[1]&rdquo; (p. 551).
         </li>
         <li>
           Not an error: which way priorities run. The book does not say; NVIDIA does, a lower number is a higher priority,
@@ -450,18 +452,18 @@ export function Wrap() {
           MPI in full (section 23.2, pp. 545–553, Figs. 23.4 to 23.11): shared against distributed memory, processes,
           ranks and communicators, <code>MPI_Init</code> and its companions, <code>MPI_Send</code>, <code>MPI_Recv</code>{' '}
           and <code>MPI_Sendrecv</code> with their parameters, <code>MPI_Isend</code> and <code>MPI_Irecv</code>, periodic
-          boundaries, CUDA-aware MPI and <code>MPI_Allreduce</code>. One paragraph on page 23.4 and the first loop in words
-          on the start page stand in for it.
+          boundaries, CUDA-aware MPI and <code>MPI_Allreduce</code>. One paragraph on page{' '}
+          <a href={href('ch23', '23.4')}>23.3–23.5</a> and the first loop in words on the start page stand in for it.
         </li>
         <li>
           NCCL&rsquo;s setup, its send and receive calls, group calls and the full NCCL loop (section 23.4, pp. 563–568,
-          Figs. 23.16 to 23.21), kept as one paragraph, the exchange lines, a beat of the loop animation and one version
-          of the explorer on page 23.4.
+          Figs. 23.16 to 23.21), kept as one paragraph, the exchange lines, a column of the comparison table and a beat
+          of the loop animation on page 23.3–23.5. The explorer there models only the two MPI loops.
         </li>
         <li>
           NVSHMEM&rsquo;s symmetric heap, its in-kernel puts and gets, its initialisation with MPI, the on-stream barrier,
-          kernel fusion and fine- against coarse-grained puts (section 23.5, pp. 568–574, Figs. 23.22 to 23.25), kept the
-          same way.
+          kernel fusion and fine- against coarse-grained puts (section 23.5, pp. 568–574, Figs. 23.22 to 23.25), kept as
+          one paragraph, a column of the same table and the same beat.
         </li>
         <li>The API signature boxes (Figs. 23.5, 23.8 to 23.11, 23.16, 23.18, 23.19 and 23.22) and the references (p. 576).</li>
       </ul>

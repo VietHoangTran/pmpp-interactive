@@ -235,10 +235,10 @@ export const questionsS41: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Cores bound what executes in one cycle, not what is in progress: each SM keeps 2048 threads resident.',
+        label: 'Too low: cores bound what executes in one cycle, and each SM can keep up to 2048 threads in progress.',
         correct: true,
       },
-      { label: 'No correction: one thread per core, and the rest of the grid waits on the runtime\'s list.', why: 'That is how you would size a CPU thread pool. An SM holds sixteen times more threads than it has cores in the example.' },
+      { label: 'No correction: one thread runs per core, and the rest of the grid waits on the runtime\'s list.', why: 'That is how you would size a CPU thread pool. An SM holds sixteen times more threads than it has cores in the example.' },
       { label: 'Too high: an SM runs one thread at a time, so at most 132 threads are in progress.', why: 'An SM is not a core. It has 128 of them in the example.' },
       { label: 'Too high: a block holds at most 1024 threads, and the device runs one block at a time.', why: 'That limit is per block. Many blocks are in progress at once.' },
     ],

@@ -73,8 +73,8 @@ export const questionsS220: Record<string, Question> = {
       {
         label: (
           <>
-            <code>emu</code> gives every thread a private copy of <code>bins</code>, so increments never meet; any
-            real GPU would catch it on the first run.
+            <code>emu</code> gives every thread a private copy of <code>bins</code> and adds the copies at the end,
+            so increments never meet; any real GPU would catch the bug on its first run.
           </>
         ),
         why: 'There is one array, checked by AddressSanitizer. And a real GPU may pass too: a race only shows when two increments actually overlap.',
@@ -108,7 +108,7 @@ export const questionsS220: Record<string, Question> = {
     id: 'ch22/start/q-tree-writers',
     prompt: <>In one step of chapter 10&rsquo;s block reduction tree, how many threads write each partial-sum slot?</>,
     options: [
-      { label: 'Exactly one, so the tree needs a barrier between steps but no atomics.', correct: true },
+      { label: 'Exactly one: a barrier between steps, and no atomics.', correct: true },
       {
         label: 'Two, one for each operand, so every slot needs an atomic add.',
         why: 'Two values are read, but only the thread that owns the slot writes it.',

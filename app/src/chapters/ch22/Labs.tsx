@@ -8,6 +8,7 @@ import {
   LabResults,
   LabsIntro,
   LabsPage,
+  RaceStatus,
   ReferenceSolution,
   RunningLabs,
   VerificationStatus,
@@ -21,7 +22,7 @@ import {
   whose,
   type BenchSet,
 } from '../../components/LabKit';
-import { fmt, labStatus, num, type BenchRow, type Reports, type RunResult } from '../../lib/reports';
+import { fmt, num, type BenchRow, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import { M8_GEMMS, kneeOf, measuredDevices, thresholdOf, type ReportsLike } from '../../sim/batching';
 
@@ -100,42 +101,6 @@ const MISSING_221 = (
     once your kernels pass (or with <code>--solution</code> to time the reference).
   </>
 );
-
-/** One line on lab 22.1 on the race backend, which the status table does not show. */
-function RaceStatus() {
-  const { reports, loading } = useLabs();
-  const run = reports.race;
-  const line = (variant: 'solution' | 'work') => {
-    const rs = (run?.results.filter((x) => x.lab === l1.id && x.variant === variant) ?? []) as (RunResult & { tsan?: unknown[] })[];
-    const tests = rs.flatMap((x) => x.tests);
-    const found = rs.reduce((k, x) => k + (Array.isArray(x.tsan) ? x.tsan.length : 0), 0);
-    return { s: labStatus(run, l1.id, variant), tests, passed: tests.filter((t) => t.pass).length, found };
-  };
-  const sol = line('solution');
-  const mine = line('work');
-  return (
-    <p data-race-status={loading ? 'loading' : run ? sol.s : 'none'} data-race-work={loading ? 'loading' : mine.s}>
-      {loading ? (
-        'Reading reports.'
-      ) : !run ? (
-        'No run on the race backend on this machine yet.'
-      ) : (
-        <>
-          {sol.s === 'none'
-            ? 'On this machine the reference solution has no run on the race backend yet.'
-            : sol.s === 'pass'
-              ? `On this machine the reference solution passed all ${sol.tests.length} tests on the race backend with ${sol.found ? `${sol.found} ThreadSanitizer report(s)` : 'no race reported'}: emulator-checked on this flavour.`
-              : `On this machine the reference solution failed on the race backend (${sol.passed} of ${sol.tests.length} tests): unverified there.`}{' '}
-          {mine.s === 'none'
-            ? 'Your own kernels have no recorded run there, or are still the untouched starter.'
-            : mine.s === 'pass'
-              ? `Your own kernels passed all ${mine.tests.length} tests there with ${mine.found ? `${mine.found} ThreadSanitizer report(s): read them` : 'no race reported'}.`
-              : `Your own kernels passed ${mine.passed} of ${mine.tests.length} tests there, with ${mine.found} ThreadSanitizer report(s) in the run.`}
-        </>
-      )}
-    </p>
-  );
-}
 
 /** Lab 22.1's best weight bandwidth per layer at batch 1, beside lab 5.1's measured bandwidth. */
 function SpeedOfLight() {
@@ -262,7 +227,7 @@ function KneePrediction() {
         <>
           The model of <a href={href('ch22', '22.5')}>section 22.5</a> puts a float32 projection's knee near twice your
           threshold. M3 computes 128 rows of the batch per block whatever the batch, so its GEMM time is flat up to 128 for
-          that reason alone (ch22-facts E3), and its knee will normally fall at 256 or later unless the per-row pieces
+          that reason alone (ch22-facts E3): among 1, 2, 4, ..., its knee can come before 256 only if the per-row pieces
           alone add half a step. Compare with M2's knee in the table below, whose tiles are 16 rows. The definition of the
           knee is ours.
         </>
@@ -541,7 +506,7 @@ export function Labs() {
         one that fails with a report. On Metal nothing detects races here: a lost update shows only as a wrong sum, and only
         when two SIMD-groups collide in time. A clean run there is not evidence of a correct kernel.
       </p>
-      <RaceStatus />
+      <RaceStatus lab={l1} />
       <p>
         The fix differs by backend. On CUDA and HIP it is <code>atomicAdd(&amp;Y[...], total)</code>. On Metal an atomic
         function takes an atomic type, so <code>Y</code> becomes <code>device atomic_float*</code> and the add is{' '}
@@ -864,7 +829,10 @@ export function Labs() {
         (lab 6.4), M3 (lab 15.6), M4 (lab 10.3) and lab 22.1's gather through one function pointer for the GEMM, so a later
         GEMM can be timed in the same step by setting that pointer. The attention of milestones M6 and M7 (
         <a href={href('ch20')}>chapter 20</a>) and the sampler of M5 (<a href={href('x1')}>module X1</a>) are where the step
-        grows next.
+        grows next. Milestone M10 (<a href={href('x3', 'labs')}>module X3&rsquo;s labs</a>) composes M7&rsquo;s decode
+        attention, this lab&rsquo;s embedding gather and step, and lab X3.1&rsquo;s RMSNorm, RoPE and SwiGLU into a
+        Llama-style decode step, with M5&rsquo;s sampler on a GPU when lab X1.3&rsquo;s solution is present; M6, the
+        prefill kernel, is not part of it.
       </p>
     </LabsPage>
   );

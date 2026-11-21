@@ -65,19 +65,19 @@ export const questionsWrap: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Both print 0.',
+        label: 'Both print 0: the table is managed, so everything reached through it is host-readable.',
         why: 'Line A is fine: out is managed and the kernel has finished. Line B reads layers[0].k, which is fine, and then dereferences it on the host. That pointer came from cudaMalloc.',
       },
       {
-        label: 'Line A prints 0. Line B is not allowed: host code dereferences cudaMalloc memory, although the table that holds the pointer is managed.',
+        label: 'A prints 0. B is not allowed: it dereferences cudaMalloc memory on the host, though the table is managed.',
         correct: true,
       },
       {
-        label: 'The kernel fails: a kernel cannot follow a pointer that it read from memory.',
+        label: 'The kernel fails: a kernel cannot follow a pointer that it read from memory, only one passed as an argument.',
         why: 'It can, as long as the memory at the other end is memory the kernel may dereference. The table is managed and the keys are device memory; both qualify.',
       },
       {
-        label: 'Both fail: managed memory cannot hold device pointers.',
+        label: 'Both fail: managed memory cannot hold device pointers, so the table is unusable on either side.',
         why: 'A pointer stored in memory is just a number, and any memory can hold it. What matters is who dereferences it, and where it points.',
       },
     ],
@@ -142,11 +142,11 @@ export const questionsWrap: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Read logits.contents after waitUntilCompleted: the CPU and the GPU share one memory.',
+        label: 'Read logits.contents after waitUntilCompleted: the CPU and the GPU share one memory, so every buffer is CPU-readable.',
         why: 'One physical memory does not make every buffer CPU-visible. contents is NULL for a private buffer.',
       },
       {
-        label: 'Encode a blit that copies the logits into a shared buffer, wait for that command buffer, then read the shared buffer. Or keep the logits in a shared buffer from the start.',
+        label: 'Blit the logits into a shared buffer, wait for that command buffer, read the shared one; or use a shared buffer from the start.',
         correct: true,
       },
       {
@@ -181,11 +181,11 @@ export const questionsWrap: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'It is safe: both sides use atomic operations on the same physical memory.',
+        label: 'It is safe: both sides use atomic read-modify-write operations on the same physical memory, so no update is lost.',
         why: 'NVIDIA says the GPU\'s atomics on mapped memory are not atomic from the host\'s point of view.',
       },
       {
-        label: 'Updates can be lost: atomics on mapped memory are not atomic from the host\'s point of view, and are not guaranteed to be supported on every system.',
+        label: "Updates can be lost: atomics on mapped memory are not atomic from the host's point of view.",
         correct: true,
       },
       {
@@ -199,7 +199,8 @@ export const questionsWrap: Record<string, Question> = {
     ],
     explain: (
       <p>
-        Mapped memory makes host memory reachable, not shared in every sense. Keep a counter that both sides update in
+        Mapped memory makes host memory reachable, not shared in every sense. NVIDIA also does not guarantee that atomics
+        on mapped memory are supported on every system. Keep a counter that both sides update in
         two parts: the GPU counts in device memory and the host reads it after the kernel, or each side keeps its own
         count and you add them at the end. The book's own rule from <a href={href('appC', 'C.6')}>section C.6</a>{' '}
         applies here too: concurrent access is still yours to order.
@@ -438,7 +439,7 @@ export function Wrap() {
         </li>
         <li>
           Kepler "introduced in 2013" (p. 626): the first Kepler GPUs launched in March 2012. Nor was Kepler first:
-          Fermi already had 64-bit load and store addressing, a 40-bit unified address space, up to 6 GB of memory and
+          Fermi already had 64-bit load and store addressing, a 40-bit unified address space, more than 4 GiB of memory and
           unified addressing. Kepler's "at least 40-bit" physical addresses could not be checked (A6).
         </li>
         <li>
@@ -487,11 +488,11 @@ export function Wrap() {
         </li>
         <li>
           Chapter 21's grid cut into 2D slices (p. 623) is named as the book's example of chunking, not reworked here; it
-          is on p. 517.
+          is on p. 517, and chapter 21's <a href={href('ch21', '21.2')}>section 21.2</a> covers it briefly.
         </li>
         <li>
           Chapter 23's halo exchange (p. 626) appears only in <a href={href('appC', 'C.5')}>section C.5</a>'s step list.
-          The multi-GPU stencil, MPI, NCCL and NVSHMEM stay in chapter 23 (pp. 541–576).
+          The multi-GPU stencil, MPI, NCCL and NVSHMEM stay in <a href={href('ch23')}>chapter 23</a> (pp. 541–576).
         </li>
         <li>
           The large in-core data sets of CAD (p. 629) and the cheaper CUDA libraries (p. 624) are one sentence each in
@@ -521,9 +522,8 @@ export function Wrap() {
         short, and logits in memory both processors may read.
       </p>
       <p>
-        In the course's order, <a href={href('x1')}>chapter X1</a>, sampling kernels, comes next.{' '}
-        <a href={href('x3')}>Chapter X3</a>, reading the GPU backends of llama.cpp, MLX and PyTorch, is where you meet
-        this appendix's mechanisms in production code: llama.cpp's pool of reserved and mapped device memory and its
+        In the course's order, <a href={href('x3')}>module X3, Reading real backends</a>, comes next. On the GPU
+        backends of llama.cpp, MLX and PyTorch, it is where you meet this appendix's mechanisms in production code: llama.cpp's pool of reserved and mapped device memory and its
         switch to managed memory, its Metal backend wrapping memory-mapped weights without a copy, and PyTorch's pinned
         host memory and expandable segments.
       </p>

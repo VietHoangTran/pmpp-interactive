@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { Ask, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
 import { Bench, Beyond, Simplification, Source, Today, type Tier } from '../../components/notes';
-import { labStatus, useReports, type Reports } from '../../lib/reports';
+import { solutionTabStatus } from '../../components/LabKit';
+import { useReports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import {
   BOOK_EXAMPLE,
@@ -50,11 +51,11 @@ export const questionsStaging: Record<string, Question> = {
         why: 'Each load loop is coalesced on its own: consecutive threads copy consecutive elements, whatever the count. Lab 13.1 loads ranges of different lengths and still coalesces.',
       },
       {
-        label: 'The split between A and B is unknown until after the loads, and it may all come from one side.',
+        label: 'The A/B split is found only after the loads; all outputs may come from the same input.',
         correct: true,
       },
       {
-        label: 'The unused half stays in shared memory and is used in the next iteration.',
+        label: 'Whatever this iteration does not use stays in shared memory and feeds the next iteration.',
         why: 'Not in this kernel: the next iteration loads from A_curr + A_consumed into A_S[0] again and overwrites it. Keeping that half is what the circular-buffer kernel of §13.7 adds.',
       },
       {
@@ -65,8 +66,8 @@ export const questionsStaging: Record<string, Question> = {
     explain: (
       <p>
         The block knows how many outputs it will write next, not where they come from: that is what the per-thread
-        co-rank searches on the tiles find out, and they run after the loads. Worst case, every output of the iteration
-        comes from one input, so each tile has to hold <code>tile_size</code> elements. In every full iteration exactly
+        co-rank searches on the tiles find out, and they run after the loads. Worst case, all of the iteration's outputs
+        come from the same input, so each tile has to hold <code>tile_size</code> elements. In every full iteration exactly
         half of the <code>2 × tile_size</code> loaded elements go into outputs (p. 318); the rest is loaded again next
         time.
       </p>
@@ -400,16 +401,6 @@ function partOf(file: string | null, start: RegExp, end: RegExp): string | null 
 }
 
 const LAB = 'ch13/lab1_merge';
-function statusText(reports: Reports, which: 'cu' | 'metal'): string {
-  const pass = (b: string) => labStatus(reports[b], LAB, 'solution') === 'pass';
-  if (which === 'metal') return pass('metal') ? "verified on Metal (lab 13.1's tests)" : 'unverified: no passing Metal run of lab 13.1 recorded here';
-  const parts: string[] = [];
-  if (pass('emu')) parts.push("emulator-checked (lab 13.1's tests)");
-  for (const b of ['cuda', 'hip']) if (pass(b)) parts.push(`verified on ${b === 'cuda' ? 'CUDA' : 'HIP'}`);
-  const lacking = ['cuda', 'hip'].filter((b) => !pass(b)).map((b) => (b === 'cuda' ? 'CUDA' : 'HIP'));
-  return parts.length ? parts.join(', ') + (lacking.length ? `; unverified on ${lacking.join(' and ')}` : '') : 'unverified (no run on this machine)';
-}
-
 export const LAB_TIERS: Record<string, Tier> = {
   A: 'global', B: 'global', C: 'global', bounds: 'global',
   tile: 'shared', A_S: 'shared', B_S: 'shared', As: 'shared', Bs: 'shared',
@@ -425,8 +416,8 @@ function LabTiled() {
   return (
     <Code
       tabs={[
-        { label: 'CUDA', code: cu ?? `// loading labs/${LAB}/solution/kernel.cu`, tiers: LAB_TIERS, status: statusText(reports, 'cu') },
-        { label: 'Metal', code: metal ?? `// loading labs/${LAB}/solution/kernel.metal`, tiers: LAB_TIERS, status: statusText(reports, 'metal') },
+        { label: 'CUDA', code: cu ?? `// loading labs/${LAB}/solution/kernel.cu`, tiers: LAB_TIERS, status: solutionTabStatus(reports, LAB, 'kernel.cu') },
+        { label: 'Metal', code: metal ?? `// loading labs/${LAB}/solution/kernel.metal`, tiers: LAB_TIERS, status: solutionTabStatus(reports, LAB, 'kernel.metal') },
       ]}
       caption={
         <>

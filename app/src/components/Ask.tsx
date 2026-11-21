@@ -97,7 +97,7 @@ export function Ask({
   };
 
   return (
-    <div className="q">
+    <div className="q" data-question={q.id} data-question-kind={q.kind}>
       <div className="kind">{label}</div>
       <div className="prompt">{q.prompt}</div>
       {q.kind === 'choice' ? (
@@ -109,6 +109,7 @@ export function Ask({
             >
               <input
                 type="radio"
+                data-written-index={i}
                 name={q.id + (review ? '-r' : '')}
                 checked={pick === i}
                 onChange={() => {
@@ -155,54 +156,93 @@ export function Ask({
   );
 }
 
-/** Commit to a number before seeing the answer. The reveal gets what you committed. */
+/**
+ * Commit to a prediction before seeing the answer. The reveal gets what you committed.
+ *
+ * By default the prediction is a number. With `options` it is a choice among them instead:
+ * the reader picks one, the written index of the pick is stored under `id` and passed to
+ * `children` (with the option itself as the second argument). Options are shown in the
+ * written order, since a prediction has no right answer to hide.
+ */
 export function Predict({
   id,
   prompt,
   unit,
+  options,
   children,
 }: {
   id: string;
   prompt: ReactNode;
   unit?: string;
-  children: (committed: number) => ReactNode;
+  /** Make this a choice: the options, in the order shown. */
+  options?: ReactNode[];
+  children: (committed: number, option?: ReactNode) => ReactNode;
 }) {
   const { progress, answer } = useProgress();
   const prior = progress.answers[id];
   const [text, setText] = useState('');
-  const committed = typeof prior?.value === 'number' ? prior.value : null;
+  const [pick, setPick] = useState<number | null>(null);
+  const stored = typeof prior?.value === 'number' ? prior.value : null;
+  // A stored index outside the options (an option removed since) does not count as committed.
+  const committed = stored != null && options && !(Number.isInteger(stored) && stored >= 0 && stored < options.length) ? null : stored;
   const commit = () => {
+    if (options) {
+      if (pick != null) answer(id, pick);
+      return;
+    }
     const v = Number(text);
     if (text.trim() !== '' && !isNaN(v)) answer(id, v);
   };
   return (
-    <div className="q">
+    <div className="q" data-question={id} data-question-kind={options ? 'predict-choice' : 'predict'}>
       <div className="kind">Predict first</div>
       <div className="prompt">{prompt}</div>
       {committed == null ? (
-        <div className="row">
-          <input
-            type="number"
-            step="any"
-            value={text}
-            aria-label="your prediction"
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && commit()}
-          />
-          {unit ? <span className="ui muted">{unit}</span> : null}
-          <button className="primary" onClick={commit} disabled={text.trim() === ''}>
-            Commit prediction
-          </button>
-        </div>
+        options ? (
+          <>
+            <div className="opts" role="radiogroup">
+              {options.map((o, i) => (
+                <label key={i}>
+                  <input type="radio" data-written-index={i} name={id} checked={pick === i} onChange={() => setPick(i)} />
+                  <span>{o}</span>
+                </label>
+              ))}
+            </div>
+            <button className="primary" onClick={commit} disabled={pick == null}>
+              Commit prediction
+            </button>
+          </>
+        ) : (
+          <div className="row">
+            <input
+              type="number"
+              step="any"
+              value={text}
+              aria-label="your prediction"
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && commit()}
+            />
+            {unit ? <span className="ui muted">{unit}</span> : null}
+            <button className="primary" onClick={commit} disabled={text.trim() === ''}>
+              Commit prediction
+            </button>
+          </div>
+        )
       ) : (
         <div className="verdict info">
           <p>
             <b>
-              You predicted {committed}
-              {unit ? ' ' + unit : ''}.
+              {options ? (
+                <>You predicted: {options[committed]}</>
+              ) : (
+                <>
+                  You predicted {committed}
+                  {unit ? ' ' + unit : ''}.
+                </>
+              )}
             </b>
           </p>
-          {children(committed)}
+          {children(committed, options?.[committed])}
         </div>
       )}
     </div>

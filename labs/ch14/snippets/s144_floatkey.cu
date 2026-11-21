@@ -4,8 +4,8 @@
 // keys (notes/today/ch14-facts.md A3) and rocPRIM uses (B2); E1 checks its bit patterns.
 //
 // Every function takes the float's 32 bits as an unsigned int and never holds a float:
-//   - the course's CPU emulator has no __float_as_uint, so the labs read a float buffer
-//     through an unsigned view (on CUDA and HIP, __float_as_uint(x) gives the same bits
+//   - the unsigned view needs no bit-cast intrinsic on any backend, so the labs read a
+//     float buffer through it (on CUDA and HIP, __float_as_uint(x) gives the same bits
 //     from a float in a register: A8, B6);
 //   - on Metal, fast and relaxed math both allow "no signed zeros", so a float test such
 //     as x == 0.0f could be rewritten; done on the bits, nothing is left to rewrite (C3).

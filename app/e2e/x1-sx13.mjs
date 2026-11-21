@@ -242,7 +242,7 @@ const tabs = await page.$$eval('figure.code .tabs button', (b) => b.map((x) => x
 check('the listing has CUDA and Metal tabs', tabs.includes('CUDA') && tabs.includes('Metal kernel'), tabs.join('|'));
 const code = await page.$eval('figure.code pre', (e) => e.textContent);
 check("the CUDA tab is lab 9.3's applyPenalties and its launcher", code.includes('__global__ void applyPenalties') && code.includes('void launchApplyPenalties'));
-check('the CUDA tab states its status in the course vocabulary', (await page.$eval('figure.code .status', (e) => e.textContent)).includes('front-end-checked'));
+check('the CUDA tab states its status in the course vocabulary', /emulator-checked|unverified|verified on/.test(await page.$eval('figure.code .status', (e) => e.textContent)));
 
 // ---------------------------------------------------------------- the Predict and the questions
 const qHandle = (text) => page.evaluateHandle((t) => [...document.querySelectorAll('.q')].find((e) => e.querySelector('.prompt')?.textContent.includes(t)), text);

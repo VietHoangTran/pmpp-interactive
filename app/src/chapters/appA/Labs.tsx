@@ -25,9 +25,9 @@ import { fmt, labStatus, num, type BenchRow, type Reports } from '../../lib/repo
 import { href } from '../../lib/router';
 
 // The page is built from components/LabKit.tsx; what is here is appendix A's own content.
-// The lab runner resolves "N.M" to chNN/labM_ only, so the lab's number on this page is
-// its directory prefix, appA/lab1, which `pmpp.py run` finds by substring. Lessons call
-// it lab A.1.
+// The lab runner resolves "A.1" to appA/lab1_ and also finds a directory prefix by
+// substring; the lab's number on this page is its directory prefix, appA/lab1, the start
+// of the id the run reports record (appA/lab1_sumerror). Lessons call it lab A.1.
 // No question on this page: the lab is the exercise. (Predictions are stored, not graded.)
 export const questionsLabs: Record<string, Question> = {};
 
@@ -261,12 +261,12 @@ export function Labs() {
         One lab, in <code>labs/appA/lab1_sumerror/</code>. It sums one float32 array three ways, a loop, a tree and a
         compensated tree, with three accumulator types, and measures what the order and the width do to the result and
         what each costs in time. It is section A.6 measured on your hardware, and the evidence for the accumulator
-        module X2 chooses for its quantised GEMM.
+        module X2 chooses for its quantised GEMVs.
       </LabsIntro>
       <p>
-        <code>pmpp.py run A.1</code> does not work: the lab runner resolves numbers such as 5.2 to chapters only, and
-        answers "matches nothing". Every command on this page names the lab by the start of its directory,{' '}
-        <code>appA/lab1</code>, and the tables below call it that too. The lessons call it lab A.1.
+        The lab runner accepts the lab's number, <code>pmpp.py run A.1</code>, and the start of its directory,{' '}
+        <code>appA/lab1</code>. Every command on this page uses the second, the start of the id the run reports record
+        (<code>appA/lab1_sumerror</code>), and the tables below call it that too. The lessons call it lab A.1.
       </p>
       <RunningLabs
         example="appA/lab1"
@@ -387,9 +387,10 @@ export function Labs() {
         </table>
       </div>
       <p>
-        The emulators and the CUDA front-end check do not model the 16-bit types, so on this machine those branches of{' '}
-        <code>kernel.cu</code> are compiled by no compiler at all. They are unverified, and not even front-end-checked,
-        until a CUDA or ROCm machine runs them.
+        The emulators and the CUDA front-end check model <code>__half</code> but not <code>__nv_bfloat16</code>, and
+        this lab's <code>PMPP_NARROW_ACC</code> guard leaves both 16-bit branches of <code>kernel.cu</code> out of
+        those builds. On this machine those branches are therefore compiled by no compiler at all. They are unverified,
+        and not even front-end-checked, until a CUDA or ROCm machine runs them.
       </p>
       <Today checked={`2026-11-20 (${FACTS} A16, B1, C1)`}>
         <p>
@@ -566,8 +567,8 @@ export function Labs() {
       <h2>What this lab feeds</h2>
       <p>
         The lab is not a numbered milestone of the course project. Its templated accumulator, and the measured error and
-        cost of each choice, are the evidence for two later decisions: the accumulator of module X2's int8 and 4-bit GEMM
-        (milestone M9), and keeping milestone M4's softmax, lab 10.3, in float. Three ways to go further, all ours:
+        cost of each choice, are the evidence for two later decisions: the accumulator of module X2's int8- and 4-bit-weight GEMVs and
+        of milestone M9, the quantised decode step built on them, and keeping milestone M4's softmax, lab 10.3, in float. Three ways to go further, all ours:
       </p>
       <ul>
         <li>

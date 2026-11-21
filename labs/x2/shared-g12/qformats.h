@@ -8,8 +8,8 @@
 // for Q4_0 and Q8_0, ggml/src/ggml-cuda/quantize.cu for Q8_1.
 //
 // llama.cpp stores a scale as ggml_half, which is uint16_t in C and C++. Here the scales are
-// uint16_t too, holding IEEE binary16 bits, and these functions convert them. The CPU
-// emulator does not model __half (appA-facts E2), so the device code converts the bits itself.
+// uint16_t too, holding IEEE binary16 bits, and these functions convert them. The device
+// code converts the bits itself, so it needs neither vendor's half header (appA-facts E2).
 #pragma once
 #include <cmath>
 #include <cstdint>

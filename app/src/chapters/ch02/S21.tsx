@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Ask, type Question } from '../../components/Ask';
-import { Aside, Bench, Beyond, Simplification, Source } from '../../components/notes';
+import { Aside, Bench, Beyond, NoteGroup, Simplification, Source } from '../../components/notes';
 import { href } from '../../lib/router';
 import {
   BINS,
@@ -669,11 +669,11 @@ export const questionsS21: Record<string, Question> = {
     prompt: <>Which condition makes it safe to give every iteration of a loop its own thread?</>,
     options: [
       {
-        label: 'The iterations read disjoint inputs.',
+        label: 'The iterations read disjoint sets of inputs, so no input element is read by two of them.',
         why: 'Sufficient for the reads, and far too strong. Blur reads overlap heavily and it is fine, as the explorer shows.',
       },
       {
-        label: 'No iteration reads a location that another iteration writes.',
+        label: 'No iteration reads a location that any other iteration of the loop writes.',
         why: 'Only half of it. The loop for i: m = x[i] meets it, since nothing it reads is written, yet every iteration writes m, and the value left there depends on which thread ran last.',
       },
       {
@@ -682,11 +682,11 @@ export const questionsS21: Record<string, Question> = {
         why: 'Then nothing a thread reads can change under it, and nothing it writes can be overwritten, so the result cannot depend on when any thread ran.',
       },
       {
-        label: 'Every iteration does the same amount of work.',
+        label: 'Every iteration does the same amount of work, so no thread finishes late.',
         why: 'Uneven work makes threads finish at different times. It does not change what any of them computes.',
       },
       {
-        label: 'The loop body has no branches.',
+        label: 'The loop body has no branches, so every thread follows the same path.',
         why: 'A branch is private to the thread that takes it. Blur tests for the edge of the array in every thread.',
       },
     ],
@@ -712,7 +712,7 @@ export const questionsS21: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Only loop 1.',
+        label: 'Only loop 1: each iteration writes its own y[i], and nothing it reads is written.',
         correct: true,
       },
       {
@@ -770,7 +770,7 @@ export const questionsS21: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Additions can be regrouped: sum chunks of the image independently, then combine the partial sums.',
+        label: 'Addition can be regrouped: sum chunks independently, then combine the partial sums.',
         correct: true,
       },
       {
@@ -778,7 +778,7 @@ export const questionsS21: Record<string, Question> = {
         why: 'Many threads reading and writing one location is a race: updates get lost. Chapter 9 is about exactly this.',
       },
       {
-        label: 'The image can be made smaller first, so that fewer pixels need to be read.',
+        label: 'The image can be downsampled first, so that far fewer pixels need to be read and summed.',
         why: 'That computes the average of a different image.',
       },
       {
@@ -868,12 +868,20 @@ export function S21() {
         inputs gives the same answer in any order. An operation in which one thread reads what another writes does
         not. The animation runs two nearly identical loops in two orders each.
       </p>
-      <Aside>
-        <p>
-          The example is ours. The 8 numbers are the ones the book uses when it introduces the running total in
-          chapter 11 (p. 252).
-        </p>
-      </Aside>
+      <NoteGroup>
+        <Aside>
+          <p>
+            The example is ours. The 8 numbers are the ones the book uses when it introduces the running total in
+            chapter 11 (p. 252).
+          </p>
+        </Aside>
+        <Simplification>
+          <p>
+            Each order in the animation runs one whole thread after another. Real threads interleave more finely and
+            some run at the same moment, which only adds orders that can differ from the loop.
+          </p>
+        </Simplification>
+      </NoteGroup>
       <OrderScene />
       <Ask q={questionsS21['ch02/2.1/q-inplace']} />
 

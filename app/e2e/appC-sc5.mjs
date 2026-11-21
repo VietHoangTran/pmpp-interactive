@@ -140,12 +140,12 @@ await setBox('NVSwitch', false);
 await setBox('IOMMU', false);
 
 // ---- questions
-check('q-removes: the staging copy and the host set-up', (await choose('what does loading the neighbour', 'The staging copy of the halo')).includes('Correct.'));
-check('q-oneway: one direction only', (await choose('Which loads now work', "Kernels on GPU 0 may load from GPU 1's memory. The reverse")).includes('Correct.'));
+check('q-removes: the staging copy and the host set-up', (await choose('what does loading the neighbour', 'The staging copy and')).includes('Correct.'));
+check('q-oneway: one direction only', (await choose('Which loads now work', "GPU 0's kernels may load from GPU 1's memory; the reverse")).includes('Correct.'));
 check('q-eight: no, eight peers without NVSwitch', (await choose('sixteen GPUs and no NVSwitch', 'No. Each GPU would need 15 peers')).includes('Correct.'));
 const wrong = await choose('What becomes of the peer-access path', 'Bind the other GPU');
 check('q-metal: a wrong pick explains why', wrong.includes('Not quite.') && wrong.includes('blit copies'));
-check('q-metal: no Metal counterpart on Apple silicon', (await choose('What becomes of the peer-access path', 'It has no Metal counterpart to port to')).includes('Correct.'));
+check('q-metal: no Metal counterpart on Apple silicon', (await choose('What becomes of the peer-access path', 'No Metal counterpart:')).includes('Correct.'));
 
 // ---- narrow screen
 await page.setViewport({ width: 400, height: 900, deviceScaleFactor: 1 });

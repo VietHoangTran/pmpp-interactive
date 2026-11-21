@@ -196,11 +196,12 @@
   },
   "round-trip-6": {
    "file": "round-trip-6.mp3",
-   "sha256": "1abb1e98277483e1ba29ec15ef5d516e499e888404e74aaf456013e79e2a4c64",
-   "duration": 20.88,
-   "bytes": 352372,
-   "generated": "2026-11-20",
-   "take": 2
+   "sha256": "ed0a6db749550ff8501db8e6d800f1b7d02af97b5ab4a27d47e8f6a7768c59ec",
+   "duration": 20.56,
+   "bytes": 347356,
+   "generated": "2026-11-21",
+   "model": "eleven_v4",
+   "take": 1
   }
  }
 }

@@ -99,7 +99,7 @@ q = await question('is to point at');
 await pick(q, '(void **) &A_d');
 check('exercise 6: (void **) &A_d, and the cast is optional today', (await qText(q)).includes('Correct.') && (await qText(q)).includes('plain &A_d compiles too'));
 q = await question('Why does');
-await pick(q, 'Allocation has to write a new address');
+await pick(q, 'Allocation writes a new address');
 check('the out-parameter question, with exercise 8 in the explanation', (await qText(q)).includes('Correct.') && (await qText(q)).includes('cudaError_t'));
 q = await question('Copy 3000 bytes');
 await pick(q, 'cudaMemcpy(A_h, A_d, 3000, cudaMemcpyHostToDevice);');
@@ -238,7 +238,7 @@ check('q-not-cleared: "zeros on both" is refused with NVIDIA\'s words', (await q
 await pick(q, 'On CUDA whatever that device memory held before.');
 check('q-not-cleared: CUDA stale, Metal zeros', (await qText(q)).includes('Correct.'));
 q = await question('Metal, shared buffers. The host commits');
-await pick(q, 'Possibly old or partly written data.');
+await pick(q, 'Possibly old or partly written data:');
 check('q-shared-wait: it must wait for the command buffer', (await qText(q)).includes('Correct.') && (await qText(q)).includes('waitUntilCompleted'));
 
 // ---------------------------------------------------------------- B: break the stub

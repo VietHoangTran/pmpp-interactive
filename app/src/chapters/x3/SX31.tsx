@@ -88,7 +88,7 @@ export const questionsSX31: Record<string, Question> = {
         label: 'add.out is a ufunc op: torchgen writes its CUDA file, UfuncCUDA_add.cu, at build time from ufunc/add.h.',
         correct: true,
       },
-      { label: 'Adds go to cuBLAS, so PyTorch has no add kernel of its own.', why: 'No library is involved. The generated file calls PyTorch’s own gpu_kernel loop.' },
+      { label: 'Adds go to cuBLAS, so PyTorch keeps no add kernel of its own in native/cuda.', why: 'No library is involved. The generated file calls PyTorch’s own gpu_kernel loop.' },
       { label: 'The kernel moved to the MPS tree, which serves every GPU now.', why: 'MPS is the Apple backend only, and it has its own hand-written add_out_mps for exactly this reason.' },
       { label: 'add is implemented in Python and traced into a kernel at run time.', why: 'That describes no PyTorch op here. The scalar body is C++ in native/ufunc/add.h.' },
     ],
@@ -112,12 +112,12 @@ export const questionsSX31: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'The fusion pass sent RMS_NORM and the MUL after it to ggml_cuda_op_rms_norm_fused. Rerun with GGML_CUDA_DISABLE_FUSION set.',
+        label: 'Fusion sent RMS_NORM and its MUL to ggml_cuda_op_rms_norm_fused; rerun with GGML_CUDA_DISABLE_FUSION set.',
         correct: true,
       },
-      { label: 'The op ran on the CPU backend. Check ggml_backend_cuda_device_supports_op.', why: 'The CUDA backend accepts RMS_NORM. supports_op would tell you if it did not, but this is not the likely cause.' },
-      { label: 'The model file stores pre-normalised weights, so no norm runs.', why: 'RMSNorm divides each activation row by its own root mean square, which depends on the input. Weights cannot do that ahead of time.' },
-      { label: 'The HIP build was loaded instead. Check which library the process opened.', why: 'The HIP build compiles the same norm.cu and runs the same fusion pass, so this would not explain it either.' },
+      { label: 'The op fell back to the CPU backend, which ran it there. Check ggml_backend_cuda_device_supports_op for RMS_NORM.', why: 'The CUDA backend accepts RMS_NORM. supports_op would tell you if it did not, but this is not the likely cause.' },
+      { label: 'The model file stores pre-normalised weights, so no norm needs to run at inference time; check the GGUF metadata.', why: 'RMSNorm divides each activation row by its own root mean square, which depends on the input. Weights cannot do that ahead of time.' },
+      { label: 'The HIP build was loaded instead of the CUDA one. Check which shared library the process actually opened.', why: 'The HIP build compiles the same norm.cu and runs the same fusion pass, so this would not explain it either.' },
     ],
     explain: (
       <p>
@@ -140,7 +140,7 @@ export const questionsSX31: Record<string, Question> = {
     ),
     options: [
       { label: 'The string the host asks for, kernel_rms_norm_mul_f32, which a [[host_name(...)]] gives to one instantiation.', correct: true },
-      { label: 'The template’s C++ name, kernel_rms_norm_fuse_impl, which is the kernel the pipeline runs.', why: 'That template serves every fusion level and type. Its name does not tell you which instantiation runs.' },
+      { label: 'The template’s C++ name, kernel_rms_norm_fuse_impl, since every instantiation the pipeline can run carries that name.', why: 'That template serves every fusion level and type. Its name does not tell you which instantiation runs.' },
       { label: 'The host function’s name, ggml_metal_op_norm, which the .metal file defines.', why: 'ggml_metal_op_norm is C++ host code in ggml-metal-ops.cpp; it is where you came from.' },
       { label: 'The op enum GGML_OP_RMS_NORM, which the .metal file switches on.', why: 'The switch is on the host. Kernel source never sees the op enum.' },
     ],
@@ -159,11 +159,11 @@ export const questionsSX31: Record<string, Question> = {
     prompt: <>Where is the Metal source of MLX’s <code>nn.silu</code>?</>,
     options: [
       {
-        label: 'Nowhere in the tree: nn.silu is under mx.compile, so Compiled::eval_gpu writes its source at run time and compiles it.',
+        label: 'Nowhere in the tree: nn.silu is under mx.compile, so its kernel source is written at run time.',
         correct: true,
       },
-      { label: 'In mlx/backend/metal/kernels/unary.h, beside the other unary ops.', why: 'A plausible place, but the facts show nn.silu is an mx.compile function, which has no kernel file.' },
-      { label: 'In a .metal file generated when MLX is built, like PyTorch’s ufunc files.', why: 'Generated, yes, but at run time on first call, not at build time.' },
+      { label: 'In mlx/backend/metal/kernels/unary.h, beside the other unary ops such as exp and sigmoid.', why: 'A plausible place, but the facts show nn.silu is an mx.compile function, which has no kernel file.' },
+      { label: 'In a .metal file that MLX’s build generates from a template, as torchgen generates PyTorch’s ufunc kernels.', why: 'Generated, yes, but at run time on first call, not at build time.' },
       { label: 'In MPS: MLX calls Apple’s Metal Performance Shaders for activations.', why: 'Nothing in the facts routes MLX activations to MPS.' },
     ],
     explain: (
@@ -186,12 +186,12 @@ export const questionsSX31: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Not as is: it relies on cuBLASLt, cuDNN’s frontend and cooperative groups, none of them a HIP-compatible spelling, and MLX has no AMD backend.',
+        label: 'Not as is: it calls cuBLASLt, cuDNN’s frontend and cooperative groups, each needing a port rather than a rename.',
         correct: true,
       },
-      { label: 'Yes: hipify renames every CUDA call, so any CUDA source builds for HIP.', why: 'Libraries and cooperative groups are where the simple claim stops being true (the course’s portability notes, infra B4).' },
+      { label: 'Yes: hipify renames every CUDA runtime and library call to its HIP spelling, so any CUDA source then builds for AMD.', why: 'Libraries and cooperative groups are where the simple claim stops being true (the course’s portability notes, infra B4).' },
       { label: 'Yes: MLX already ships that step under mlx/backend/rocm.', why: 'There is no such directory at the pinned commit; an experimental ROCm pull request is open and unmerged.' },
-      { label: 'No, because AMD GPUs have no warps.', why: 'They do: 64 or 32 wide. That is not the obstacle.' },
+      { label: 'No, because AMD GPUs have no warps for its warp-level reductions to run on.', why: 'They do: 64 or 32 wide. That is not the obstacle.' },
     ],
     explain: (
       <p>

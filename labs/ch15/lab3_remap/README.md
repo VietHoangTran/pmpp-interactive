@@ -59,8 +59,9 @@ dropping the alignment condition still passes on `emu`. On Metal the same mistak
 to the wrong elements (the `float4` view's index rounds down) and fails. For the book's
 pointer cast on CUDA, NVIDIA's developer blog requires a 16-byte-aligned address
 (`notes/today/ch06-facts.md` A11), and `cudaMalloc` returns at least 256-byte-aligned
-memory (A3), so N a multiple of 4 is enough. On HIP, C comes from `hipMalloc`, whose
-alignment no facts file documents: that the same rule is enough there is unverified.
+memory (A3), so N a multiple of 4 is enough. On HIP, C comes from `hipMalloc`, for which
+AMD's memory reference states no alignment (ch15-facts B8): that the same rule is enough
+there is unverified.
 
 ## Before you benchmark
 

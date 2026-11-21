@@ -1,7 +1,7 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
-import { Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
+import { Bench, Beyond, NoteGroup, Simplification, Source, Today } from '../../components/notes';
 import { href } from '../../lib/router';
 import {
   CDF_LABEL,
@@ -562,7 +562,7 @@ export const questionsSX18: Record<string, Question> = {
     ),
     options: [
       { label: '≥ picks index 0, a zero-probability token; > picks index 1', correct: true },
-      { label: 'Both pick index 1', why: 'The first inclusive sum is 0, and 0 ≥ 0 holds, so ≥ stops at index 0.' },
+      { label: 'Both pick index 1: both rules skip a token whose probability is 0', why: 'The first inclusive sum is 0, and 0 ≥ 0 holds, so ≥ stops at index 0.' },
       { label: 'Both pick index 0', why: '0 > 0 is false, so the strict rule moves on to index 1, where the sum is 0.5.' },
     ],
     explain: (
@@ -585,7 +585,7 @@ export const questionsSX18: Record<string, Question> = {
     ),
     options: [
       { label: 'No index qualifies; without a fallback the kernel writes an invalid token or reads past the row', correct: true },
-      { label: 'The last token is chosen automatically', why: 'Only if someone wrote that fallback. The search itself finds nothing.' },
+      { label: 'The last token is chosen automatically, because a search that runs off the end of the row stops on the last entry', why: 'Only if someone wrote that fallback. The search itself finds nothing.' },
       { label: 'Nothing, because probabilities sum to 1', why: 'They sum to 1 in exact arithmetic; the float sum here is 1 − 2⁻²⁴.' },
     ],
     explain: (
@@ -603,8 +603,8 @@ export const questionsSX18: Record<string, Question> = {
     prompt: <>What does <code>torch.multinomial(probs, 1)</code>, the call transformers' <code>generate</code> makes, compute today?</>,
     options: [
       { label: 'An exponential race: q ~ Exp(1) per entry, then argmax(p / q), on CPU, CUDA, MPS and XPU', correct: true },
-      { label: 'A binary search of a cumulative sum', why: 'That path is used only with replacement and more than one sample.' },
-      { label: 'Gumbel-max on the logits', why: "Its comment derives the race from Gumbel-max, but it takes probabilities and divides by exponentials." },
+      { label: 'A binary search of the cumulative sum of probs: the inverse CDF', why: 'That path is used only with replacement and more than one sample.' },
+      { label: 'The argmax of probs itself: with one sample and no replacement, multinomial falls back to greedy', why: 'There is no greedy fallback. It divides each p by a fresh Exp(1) draw before the argmax, so any token with p > 0 can win.' },
     ],
     explain: (
       <p>
@@ -619,8 +619,8 @@ export const questionsSX18: Record<string, Question> = {
     id: 'x1/X1.8/q-mlx-batch',
     prompt: <>mlx-lm draws a row with <code>mx.random.categorical</code>. By our reading of MLX's source, what changes when the batch grows from 1 to 2 rows with the same key?</>,
     options: [
-      { label: 'The algorithm: inverse CDF at batch 1, Gumbel-max at 2 or more, so the same key can give a different token for the same row', correct: true },
-      { label: 'Nothing; only the speed', why: '`categorical_impl` takes its inverse-CDF path only for a single distribution with a sample shape.' },
+      { label: 'The algorithm: inverse CDF at batch 1, Gumbel-max from 2 rows, so one key can give a different token for a row', correct: true },
+      { label: 'Nothing but the speed: categorical runs the same algorithm at every batch size, so each row keeps the token it drew', why: '`categorical_impl` takes its inverse-CDF path only for a single distribution with a sample shape.' },
       { label: 'The key is split per row, so each row gets a fresh stream but the same algorithm', why: 'The switch is in the algorithm, not only in the key.' },
     ],
     explain: (
@@ -652,9 +652,9 @@ export const questionsSX18: Record<string, Question> = {
     id: 'x1/X1.8/q-device-u',
     prompt: <>llama.cpp's backend <code>dist</code> uploads a u drawn by the host's mt19937 every step. What does deriving u on the device from (seed, stream, step) buy?</>,
     options: [
-      { label: 'No per-step upload, and every backend reproduces the same u from the same inputs', correct: true },
-      { label: 'Better randomness than mt19937', why: 'Both pass the standard test batteries; quality is not the difference.' },
-      { label: 'Nothing: the upload is a few bytes', why: 'The bytes are few, but it is a host step per token, and the host stream ties every backend to the host.' },
+      { label: 'No per-step upload from the host, and every backend reproduces the same u from the same inputs', correct: true },
+      { label: 'Better randomness than mt19937, whose 32-bit outputs are too coarse for a vocabulary of 150,000', why: 'Both pass the standard test batteries, and 32 bits give over four billion values, far finer than 150,000 tokens. Quality is not the difference.' },
+      { label: 'Nothing: the upload is a few bytes per row, and it overlaps with the next kernel', why: 'The bytes are few, but it is a host step per token, and the host stream ties every backend to the host.' },
     ],
     explain: (
       <p>
@@ -676,8 +676,8 @@ export const questionsSX18: Record<string, Question> = {
     ),
     options: [
       { label: 'The race backend: it names the read of the total and the write of a warp total; emu passes in every order', correct: true },
-      { label: 'The emu backend, under its in-order schedule', why: 'Every thread reads the total before its first shuffle, and no thread writes a warp total until its whole warp is past the scan: in both fixed orders all reads come first.' },
-      { label: 'A GPU, on every run', why: 'Only when one warp runs ahead through its scan before another has read the total; it may pass every run.' },
+      { label: 'The emu backend, under its in-order schedule, which runs thread 0 first', why: 'Every thread reads the total before its first shuffle, and no thread writes a warp total until its whole warp is past the scan: in both fixed orders all reads come first.' },
+      { label: 'A GPU, on every run, since its warps really do run concurrently', why: 'Only when one warp runs ahead through its scan before another has read the total; it may pass every run.' },
     ],
     explain: (
       <p>
@@ -701,13 +701,15 @@ export function SX18() {
         weight, using the u from the <a href={href('x1', 'X1.7')}>previous page</a>. Lay the weights end to end on a line,
         put a mark at u times their total, and take the survivor under the mark.
       </p>
-      <Beyond>
-        <p>
-          The draw is ours. It is chapter 11's sausage with u as the knife: an inclusive scan gives the cut points. The block
-          scan is §11.4, the total §10.8, the vote §12.3.
-        </p>
-      </Beyond>
-      <Source section="11.1" pages="252–254" />
+      <NoteGroup>
+        <Beyond>
+          <p>
+            The draw is ours. It is chapter 11's sausage with u as the knife: an inclusive scan gives the cut points. The block
+            scan is §11.4, the total §10.8, the vote §12.3.
+          </p>
+        </Beyond>
+        <Source section="11.1" pages="252–254" />
+      </NoteGroup>
 
       <h2>The inverse CDF</h2>
       <p>
@@ -776,14 +778,16 @@ export function SX18() {
         flagged lane; an <code>atomicMin</code> on a shared index keeps the lowest across warps. That is chapter 12's leader
         election, choosing the lowest instead of any.
       </p>
-      <Source section="12.3" pages="291–295" />
-      <Today checked="2026-11-20 (notes/today/x1-facts.md A6)">
-        <p>
-          FlashInfer's <code>SamplingFromProbKernel</code> has this shape: one block per row, chunks of{' '}
-          <code>BLOCK_THREADS * VEC_SIZE</code>, a chunk scanned only if <code>aggregate + aggregate_local &gt; u</code>, then{' '}
-          <code>BlockScan</code> and the first lane past u.
-        </p>
-      </Today>
+      <NoteGroup>
+        <Source section="12.3" pages="291–295" />
+        <Today checked="2026-11-20 (notes/today/x1-facts.md A6)">
+          <p>
+            FlashInfer's <code>SamplingFromProbKernel</code> has this shape: one block per row, chunks of{' '}
+            <code>BLOCK_THREADS * VEC_SIZE</code>, a chunk scanned only if <code>aggregate + aggregate_local &gt; u</code>, then{' '}
+            <code>BlockScan</code> and the first lane past u.
+          </p>
+        </Today>
+      </NoteGroup>
       <p>
         The stepper runs this kernel on one row. Step through the 200-survivor row first: two chunks are skipped on their
         sums alone and only the third is scanned. Then use the barrier switch to remove one of the two barriers around the
@@ -805,6 +809,16 @@ export function SX18() {
         through its scan. Only a warp that runs ahead overwrites the total under the others, which a GPU may or may not do.
       </p>
       <Ask q={questionsSX18['x1/X1.8/q-barrier']} />
+      <p>
+        The animation below walks one whole draw with both barriers in place: the target, a skipped chunk, the scan of
+        the crossing chunk and the vote, then a draw that rounding decides and the two ends of the interval.
+      </p>
+      <Simplification>
+        <p>
+          One block of 8 threads in display warps of 4, two survivors per thread, chunks of 16, drawing from 40 survivors
+          at T = 3 with u = 0.8; float32 imitated as in the stepper. No timing.
+        </p>
+      </Simplification>
       <FindUScene />
 
       <h2>Exact agreement across backends</h2>

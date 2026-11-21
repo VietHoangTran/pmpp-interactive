@@ -307,11 +307,11 @@ export const questionsS148: Record<string, Question> = {
     ),
     options: [
       {
-        label: 'Almost nothing: most blocks were waiting for a slot anyway, and fewer, larger blocks write longer runs and need a smaller table.',
+        label: 'Almost nothing: most blocks were waiting for a slot anyway, and larger blocks write longer runs.',
         correct: true,
       },
-      { label: 'Parallelism, so it must be slower.', why: 'Only 40 blocks run at once either way. As long as there are well over 40 blocks, the device stays as busy.' },
-      { label: 'Correctness, because blocks then share buckets.', why: 'Each block still owns its keys and its table entries; the scan still gives every local bucket its own range.' },
+      { label: 'Parallelism, so it must be slower: fewer blocks means fewer keys being sorted at any one moment on the device.', why: 'Only 40 blocks run at once either way. As long as there are well over 40 blocks, the device stays as busy.' },
+      { label: 'Correctness: coarsened blocks share buckets, and would need atomics to place their keys.', why: 'Each block still owns its keys and its table entries; the scan still gives every local bucket its own range.' },
     ],
     explain: (
       <p>

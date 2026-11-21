@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
 import { Aside, Bench, Beyond, Simplification, Source, Today, type Tier } from '../../components/notes';
-import { benchRows, fmt, labStatus, num, useReports, type BenchRow, type Reports } from '../../lib/reports';
+import { solutionTabStatus } from '../../components/LabKit';
+import { benchRows, fmt, num, useReports, type BenchRow, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import {
   EXERCISE5,
@@ -52,11 +53,8 @@ const linesWith = (text: string, needles: string[]) =>
 
 function useListingStatus() {
   const { reports } = useReports();
-  const st = (b: string) => labStatus(reports[b], LAB, 'solution');
-  return {
-    cu: (st('emu') === 'pass' ? 'emulator-checked' : 'unverified: no passing emulator run on this machine') + '; unverified on CUDA and HIP hardware',
-    metal: st('metal') === 'pass' ? 'verified on Metal' : 'unverified: no passing Metal run on this machine',
-  };
+  // The same words as the labs page's status table and reference-solution tabs.
+  return { cu: solutionTabStatus(reports, LAB, 'kernel.cu'), metal: solutionTabStatus(reports, LAB, 'kernel.metal') };
 }
 
 function Listing() {
@@ -688,7 +686,7 @@ export const questionsS95: Record<string, Question> = {
       { label: 'Yes: one private copy means the least zeroing and committing possible, which is what coarsening is for.', why: 'True of the overhead, and irrelevant: the device now has almost nothing to run.' },
       { label: 'No: one block runs on one SM and the rest of the device idles; keep about as many blocks as run at once.', correct: true },
       { label: 'No: a block cannot have 1024 threads on current hardware, so the launch fails before coarsening matters.', why: '1024 threads per block is the maximum on current hardware, and allowed.' },
-      { label: 'It makes no difference: coarsening never changes the total work, only how it is divided among threads.', why: 'The work is the same; the parallelism exposed to the hardware is not.' },
+      { label: 'It makes no difference: coarsening leaves the total work as it was and changes how it is divided among threads.', why: 'The work is the same; the parallelism exposed to the hardware is not.' },
     ],
     explain: (
       <p>
