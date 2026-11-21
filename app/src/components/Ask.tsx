@@ -157,12 +157,28 @@ export function Ask({
 }
 
 /**
+ * What a stored prediction counts as: the committed number, or null when nothing usable is
+ * stored. For a choice (`optionCount` given) only a whole index of an existing option counts,
+ * so an option removed since leaves the prediction open again rather than pointing at nothing.
+ */
+export function committedPrediction(stored: unknown, optionCount?: number): number | null {
+  if (typeof stored !== 'number' || !Number.isFinite(stored)) return null;
+  if (optionCount != null && !(Number.isInteger(stored) && stored >= 0 && stored < optionCount)) return null;
+  return stored;
+}
+
+/**
  * Commit to a prediction before seeing the answer. The reveal gets what you committed.
  *
  * By default the prediction is a number. With `options` it is a choice among them instead:
  * the reader picks one, the written index of the pick is stored under `id` and passed to
  * `children` (with the option itself as the second argument). Options are shown in the
  * written order, since a prediction has no right answer to hide.
+ *
+ * Either way the prediction is stored like a question's answer (progress.answers[id], with
+ * attempts and time) but carries no `correct` and gets no review schedule: a prediction is
+ * not graded, so it never enters the spaced-review pool. Ids end in `/p-<slug>`; never
+ * reorder or remove options once shipped, since the stored value is the written index.
  */
 export function Predict({
   id,
@@ -179,12 +195,9 @@ export function Predict({
   children: (committed: number, option?: ReactNode) => ReactNode;
 }) {
   const { progress, answer } = useProgress();
-  const prior = progress.answers[id];
   const [text, setText] = useState('');
   const [pick, setPick] = useState<number | null>(null);
-  const stored = typeof prior?.value === 'number' ? prior.value : null;
-  // A stored index outside the options (an option removed since) does not count as committed.
-  const committed = stored != null && options && !(Number.isInteger(stored) && stored >= 0 && stored < options.length) ? null : stored;
+  const committed = committedPrediction(progress.answers[id]?.value, options?.length);
   const commit = () => {
     if (options) {
       if (pick != null) answer(id, pick);

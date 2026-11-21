@@ -7,6 +7,7 @@
 // Usage: node e2e/ch14-s146.mjs [screenshot-prefix]
 import { registerHooks } from 'node:module';
 import { open, goto, BASE } from './browser.mjs';
+import { tabStatus } from './labstatus.mjs';
 
 // The models import their siblings without a file extension (as the app's bundler allows).
 registerHooks({
@@ -288,23 +289,10 @@ check('the lab 14.2 listing has CUDA-and-HIP and Metal tabs', tabs.includes('CUD
 const status = await page.$eval('.code .tabs .status', (e) => e.textContent);
 const reports = await (await fetch(BASE + '/api/reports')).json();
 {
-  // The labs page's wording, recomputed from the reports.
-  const st = (b) => {
-    const rs = reports[b]?.results.filter((x) => x.lab === RC.LAB2 && x.variant === 'solution' && x.tests.length) ?? [];
-    return !rs.length ? 'none' : rs.every((x) => x.built && x.test_rc === 0 && x.tests.every((t) => t.pass)) ? 'pass' : 'fail';
-  };
-  // LabKit's solutionTabStatus: what passed (CUDA, HIP, then the emulator), then what failed, then
-  // the CUDA-family backends with no run.
-  const fam = ['cuda', 'hip', 'emu'];
-  const WHERE = { cuda: 'CUDA', hip: 'HIP', emu: 'the emulator' };
-  const and = (xs) => (xs.length < 3 ? xs.join(' and ') : xs.slice(0, -1).join(', ') + ' and ' + xs.at(-1));
-  const passed = fam.filter((b) => st(b) === 'pass').map((b) => (b === 'emu' ? 'emulator-checked' : `verified on ${WHERE[b]}`));
-  const failed = fam.filter((b) => st(b) === 'fail').map((b) => WHERE[b]);
-  const none = ['cuda', 'hip'].filter((b) => st(b) === 'none').map((b) => WHERE[b]);
-  const want = !passed.length && !failed.length
-    ? 'unverified: no run on this machine'
-    : [passed.join(', '), failed.length ? `unverified on ${and(failed)}: failed on this machine` : '', none.length ? `unverified on ${none.join(' and ')}` : '']
-        .filter(Boolean).join('; ');
+  // The labs page's wording (LabKit's solutionTabStatus), from the shared helper, with this
+  // machine's CUDA front-end check.
+  const frontend = await (await fetch(BASE + '/api/frontend-check')).json();
+  const want = tabStatus(reports, RC.LAB2, 'kernel.cu', frontend);
   check(`the CUDA tab's status is the labs page's, from the reports: "${want}"`, status === want, status);
 }
 const devs = Object.keys(reports).filter((b) => b !== 'emu' && b !== 'race').filter((b) => {

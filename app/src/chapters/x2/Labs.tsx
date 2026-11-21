@@ -11,6 +11,7 @@ import {
   ReferenceSolution,
   RunningLabs,
   VerificationStatus,
+  benchRow,
   defineLabs,
   measure,
   msCol,
@@ -56,8 +57,7 @@ const TIERS_4 = tiers(['E', 'q8', 'q8d', 'q4', 'tokens', 'H', 'blk'], [], ['i', 
 const ms = (s: number | undefined) => (s ? `${fmt(s * 1000)} ms` : '?');
 const secs = (r: BenchRow | undefined) => num(r?.seconds);
 /** The first row of a set with this name whose fields equal `where`, strings and numbers alike. */
-const row = (s: BenchSet, name: string, where: Record<string, string | number>) =>
-  s.rows.find((r) => r.name === name && Object.entries(where).every(([k, v]) => (typeof v === 'number' ? num(r[k]) === v : r[k] === v)));
+const row = benchRow;
 const qgemv = (s: BenchSet, kernel: string, batch: number, inW = 4096, outW = 4096) => row(s, 'qgemv', { kernel, batch, in: inW, out: outW });
 const qstep = (s: BenchSet, layers: string, head: string, batch: number) => row(s, 'qstep', { format_layers: layers, format_head: head, batch });
 /** Lab 5.1's bandwidth on a backend, as a percentage of which a row's weight GB/s is read. */

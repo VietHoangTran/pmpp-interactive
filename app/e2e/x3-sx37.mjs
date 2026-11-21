@@ -4,6 +4,7 @@
 // src/sim/ropepair.ts, run here in Node.
 // Usage: APP_URL=http://localhost:5173 node e2e/x3-sx37.mjs [--dark] [screenshot-prefix]
 import { open, goto, BASE } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 
 const L = await import('../src/sim/llamastep.ts');
 const P = await import('../src/sim/ropepair.ts');
@@ -246,6 +247,12 @@ await (await q2.$$('input[type=radio]'))[0].click();
 await (await q2.$('button.primary')).click();
 await pause(120);
 check('q-rope-v accepts q and k', (await q2.evaluate((e) => e.textContent)).includes('Correct.'));
+
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'x3/X3.7', [
+  { label: 'CUDA', lab: 'x3/lab1_llama_pieces', file: 'kernel.cu' },
+  { label: 'Metal kernel', lab: 'x3/lab1_llama_pieces', file: 'kernel.metal' },
+]);
 
 check('no console or page errors', errors.length === 0, errors.join(' | '));
 await browser.close();

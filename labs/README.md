@@ -19,7 +19,13 @@ python3 labs/pmpp.py run 5.2 --solution     # the reference solution instead of 
 python3 labs/pmpp.py run 5.2 --full         # sanitizer reports in full (they are condensed by default)
 python3 labs/pmpp.py reset 5.2 --yes        # throw your work away and start again
 python3 labs/pmpp.py doctor                 # backends found, device properties
+python3 labs/pmpp.py starters               # is every current starter in the starter history?
 ```
+
+Your `work/` counts as *untouched* while it equals the current `starter/` or any earlier
+version of it recorded in `labs/starter-history.json`. When a starter has been corrected
+since your copy was made, `run` and `doctor` say so: `reset <lab> --yes` brings the
+corrected starter (only do that if you have not started the lab; it overwrites `work/`).
 
 ### What a run records and prints
 
@@ -170,3 +176,15 @@ unsynchronised updates), and give `race` the same small problem sizes as `emu`:
 `pmpp::backend()` returns `"race"`, and `PMPP_BACKEND_RACE` is defined in `main.cpp`. A lab is finished only when its
 solution passes on Metal and the emulator, its untouched starter builds and fails, and
 each planted defect has been shown to fail on its own.
+
+### Correcting a starter
+
+`work/` belongs to the reader and is never overwritten, so a starter is corrected through
+the starter history instead: `labs/starter-history.json` holds the sha256 of every version
+each lab's `starter/` files have had (the versions before 2026-11-21 were read from the git
+history). Edit `starter/`, then run `python3 labs/pmpp.py starters --record`, which appends
+the new version; never remove an entry. A `work/` equal to any recorded version stays
+`untouched` in reports and the app (it is still a starter, which must fail), and `run` and
+`doctor` tell the reader that `reset` brings the corrected one. `python3 labs/pmpp.py
+starters` fails while a current starter is unrecorded, and so does
+`python3 -m unittest discover -s labs/tests`, which also tests the matching rules.

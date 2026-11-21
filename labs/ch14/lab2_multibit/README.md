@@ -81,14 +81,17 @@ depend on it).
   - `emu`: r = 1 passes (step 3's barrier covers the gap); r = 2, c = 1 fails in the first
     thread order with a wrong order, then AddressSanitizer reports a heap-buffer-overflow at
     the tile write `vals_s[dst] = ...`.
-  - `race`: r = 1 passes; at r = 2 the run stops with a ThreadSanitizer SEGV at the tile write
-    `keys_s[dst] = ...` (a corrupted index; the race backend has no bounds checks), and the one
-    race it reports is a write-write race on `start_s` in step 3, a consequence of the
-    corruption. It does not name the missing barrier's read and write. At the time the race
-    flavour shared one ThreadSanitizer token between all of a block's `__syncthreads()`, which
-    could hide races between two barriers; it now alternates two tokens per barrier
-    (`labs/ch14/snippets/README.md`, the wrap kernel), and this defect has not been planted
-    again since. A clean race run is not evidence that every barrier is there. Run `emu` first.
+  - `race` (re-run on 2026-11-21 after the two-token barrier fix, four runs, each stopped in
+    under a minute): r = 1 passes; r = 2, c = 1 and c = 2 fail. Every run now names the
+    missing barrier's pair: a write of the tile in one split (`vals_s[dst] = ...`, or
+    `keys_s[dst]`) against a read of it at the start of the next (`myVals[k] = vals_s[p]`);
+    some runs also report the scan's buffer `scan_s` reused across splits and a write-write
+    race on `start_s` in step 3. The run then stops with a ThreadSanitizer SEGV at
+    `keys_s[dst] = ...` (a corrupted index; the race backend has no bounds checks). When this
+    defect was first planted, the race flavour shared one ThreadSanitizer token between all of
+    a block's `__syncthreads()`, and only the `start_s` race was reported; it now alternates
+    two tokens per barrier (`labs/ch14/snippets/README.md`, the wrap kernel). Still, a clean
+    race run is not evidence that every barrier is there. Run `emu` first.
 - Measure: `python3 labs/pmpp.py run 14.2 --bench` (real devices only).
 - The reference solution: add `--solution`.
 

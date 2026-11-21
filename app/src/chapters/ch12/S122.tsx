@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
+import { solutionTabStatus } from '../../components/LabKit';
+import { useReports } from '../../lib/reports';
 import { Beyond, Bench, Simplification, Source, Today, type Tier } from '../../components/notes';
 import { href } from '../../lib/router';
 import {
@@ -20,10 +22,15 @@ import { functionSource } from '../../sim/toolchain';
 // notes/today/ch12-facts.md (A7, B4, D1), ch09-facts.md (A3, B1), infra-facts.md (B1, B2, C1).
 
 const LAB = 'ch12/lab1_unstable/solution/';
-const STATUS = {
-  cu: 'emulator-checked and front-end-checked; unverified on CUDA and HIP hardware',
-  metal: 'verified on Metal',
-};
+/** A lab's reference-solution status, in the labs page's words (LabKit's solutionTabStatus), from this machine's runs. */
+function useLabStatus(lab: string) {
+  const { reports } = useReports();
+  return {
+    cu: solutionTabStatus(reports, lab, 'kernel.cu'),
+    metal: solutionTabStatus(reports, lab, 'kernel.metal'),
+    mm: solutionTabStatus(reports, lab, 'launch.mm'),
+  };
+}
 const TIERS: Record<string, Tier> = {
   input: 'global', output: 'global', outputSize: 'global', outputSize_ref: 'global',
   i: 'reg', val: 'reg', j: 'reg', n: 'reg', threshold: 'reg',
@@ -39,6 +46,7 @@ function labPart(src: string | null, region: string, fn: string): string | null 
 }
 
 function Listing() {
+  const status = useLabStatus('ch12/lab1_unstable');
   const cu = useLabFile(LAB + 'kernel.cu');
   const metal = useLabFile(LAB + 'kernel.metal');
   const k = labPart(cu, 'atomic', 'filterAtomicKernel');
@@ -47,8 +55,8 @@ function Listing() {
   return (
     <Code
       tabs={[
-        { label: 'CUDA', code: k, tiers: TIERS, status: STATUS.cu },
-        ...(m ? [{ label: 'Metal', code: m, tiers: TIERS, status: STATUS.metal }] : []),
+        { label: 'CUDA', code: k, tiers: TIERS, status: status.cu },
+        ...(m ? [{ label: 'Metal', code: m, tiers: TIERS, status: status.metal }] : []),
       ]}
       caption={
         <>

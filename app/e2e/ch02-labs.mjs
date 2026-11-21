@@ -4,7 +4,8 @@
 // /api/lab-file, so the check holds on any machine, with or without runs.
 // Usage: node e2e/ch02-labs.mjs [screenshot-prefix] [--dark]
 // Environment: APP_URL (default http://localhost:5173), E2E_WIDTH (default 1440).
-import { open, goto } from './browser.mjs';
+import { open, goto, BASE } from './browser.mjs';
+import { tabStatus } from './labstatus.mjs';
 
 const args = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const out = args[0];
@@ -76,6 +77,7 @@ const largest = (rows, name, sync) =>
 await goto(page, 'ch02/labs');
 await page.evaluate((t) => { document.documentElement.dataset.theme = t; }, dark ? 'dark' : 'light');
 const reports = await page.evaluate(() => fetch('/api/reports').then((r) => r.json()));
+const frontend = await (await fetch(BASE + '/api/frontend-check')).json();
 await page.waitForFunction(() => !document.querySelector('td[data-status="loading"]'), { timeout: 10000 });
 console.log(`note  backends with runs on this machine: ${Object.keys(reports).join(', ') || 'none'}`);
 const body = () => page.$eval('.prose', (e) => e.textContent);
@@ -316,21 +318,9 @@ for (const l of LABS) {
   check(`lab ${l.num}: the three solution files exist in the repository`, Object.values(files).every((t) => t !== 'MISSING' && t.length > 100));
   const tabs = await page.$$eval('figure.code .tabs button', (b) => b.map((x) => x.textContent));
   check(`lab ${l.num}: tabs are CUDA, Metal kernel, Metal host`, tabs.join('|') === 'CUDA|Metal kernel|Metal host', tabs.join('|'));
-  const st = (b) => labStatus(reports[b], l.id, 'solution');
-  // The wording of LabKit's solutionTabStatus: what passed (CUDA, HIP, then the emulator), then what
-  // failed, then the CUDA-family backends with no run; "unverified: no run on this machine" when
-  // nothing passed or failed.
-  const fam = ['cuda', 'hip', 'emu'];
-  const WHERE = { cuda: 'CUDA', hip: 'HIP', emu: 'the emulator' };
-  const and = (xs) => (xs.length < 3 ? xs.join(' and ') : xs.slice(0, -1).join(', ') + ' and ' + xs.at(-1));
-  const passed = fam.filter((b) => st(b) === 'pass').map((b) => (b === 'emu' ? 'emulator-checked' : `verified on ${NAME[b]}`));
-  const failed = fam.filter((b) => st(b) === 'fail').map((b) => WHERE[b]);
-  const none = ['cuda', 'hip'].filter((b) => st(b) === 'none').map((b) => NAME[b]);
-  const cuStatus = !passed.length && !failed.length
-    ? 'unverified: no run on this machine'
-    : [passed.join(', '), failed.length ? `unverified on ${and(failed)}: failed on this machine` : '', none.length ? `unverified on ${none.join(' and ')}` : '']
-        .filter(Boolean).join('; ');
-  const metalStatus = st('metal') === 'pass' ? 'verified on Metal' : st('metal') === 'fail' ? 'unverified: failed on this machine' : 'unverified: no run on this machine';
+  // LabKit's solutionTabStatus, from the shared helper (it adds this machine's CUDA front-end check).
+  const cuStatus = tabStatus(reports, l.id, 'kernel.cu', frontend);
+  const metalStatus = tabStatus(reports, l.id, 'kernel.metal', frontend);
   const order = [['kernel.cu', cuStatus], ['kernel.metal', metalStatus], ['launch.mm', metalStatus]];
   for (let i = 0; i < 3; i++) {
     await page.evaluate((i) => [...document.querySelectorAll('figure.code .tabs button')][i].click(), i);

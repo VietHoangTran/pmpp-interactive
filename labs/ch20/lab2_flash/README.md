@@ -249,5 +249,5 @@ The numbers are measurements of your machine, at these sizes, not targets.
   without mixing (B2). Not compiled or run on AMD hardware here: unverified. The padding
   `addr()` is tuned for 32 banks; AMD has 32 or 64 (B3).
 - Metal: see above. The `B_c` your device gets is printed at the start of the test run.
-- `kernel.cu` declares `expf` and `logf` under `PMPP_CUDA_FRONTEND_CHECK`, a macro only the
-  course's CUDA front-end check defines.
+- `expf` and `logf` need no declaration of their own: the course's CUDA front-end check
+  declares the single-precision math functions in its stub header.

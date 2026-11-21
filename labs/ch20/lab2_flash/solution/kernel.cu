@@ -49,12 +49,6 @@
 //   - compute_P_and_update_D returns nothing: the page returns curr_sum_warp and never uses it.
 #include <cfloat>
 
-// The course's CUDA front-end check declares no CUDA Math API functions.
-#if defined(PMPP_CUDA_FRONTEND_CHECK)
-__device__ float expf(float x);
-__device__ float logf(float x);
-#endif
-
 #ifndef TILE_WIDTH
 #define TILE_WIDTH 32
 #endif

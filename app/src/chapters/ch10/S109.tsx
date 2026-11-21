@@ -24,7 +24,7 @@ import {
 } from '../../sim/multiblock';
 import { functionSource, type FunctionSource } from '../../sim/toolchain';
 import { CommitOrderScene } from './CommitOrderScene';
-import { STATUS } from './status';
+import { useLabStatus } from './status';
 
 const LAB = 'ch10/lab1_sum';
 const fmtInt = (n: number) => n.toLocaleString('en-US');
@@ -51,7 +51,7 @@ const linesWith = (text: string, needles: string[]) =>
 function CommitListing() {
   const cu = useLabFile(LAB + '/solution/kernel.cu');
   const metal = useLabFile(LAB + '/solution/kernel.metal');
-  const status = STATUS;
+  const status = useLabStatus(LAB);
   const k = cu ? functionSource(cu, 'CoarsenedSumReductionKernel') : null;
   const host = cu ? functionSource(cu, 'launchCoarsenedSum') : null;
   const m = metal ? metalKernelWith(metal, 'atomic_fetch_add_explicit') : null;

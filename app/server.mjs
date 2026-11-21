@@ -3,11 +3,14 @@
 //   GET     /api/reports         latest lab results per backend, from reports/runs/*.json
 //   GET     /api/lab-file        a lab source file, for display
 //   GET     /api/race-labs       ids of the labs built for the race emulator (RACE in pmpp_add_lab)
+//   GET     /api/frontend-check  per .cu file, 'ok' or 'fail' from the last CUDA front-end check
+//                                (reports/runs/checks/cuda-frontend.json), for files unchanged since then
 //   GET     /content/...         narration scripts, audio and manifests
 import http from 'node:http';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { createServer as createVite } from 'vite';
 
@@ -74,6 +77,23 @@ async function api(req, res, url) {
       }
     } catch {
       /* no runs yet */
+    }
+    return send(res, 200, out);
+  }
+  if (url.pathname === '/api/frontend-check' && req.method === 'GET') {
+    // Written by labs/pmpp.py (verify.sh, or `pmpp.py frontend`): { generated, files: { path: { ok, sha256 } } }.
+    // A file edited since the check has no status: the check said nothing about its current text.
+    const out = {};
+    try {
+      const rec = JSON.parse(await fsp.readFile(path.join(REPO, 'reports', 'runs', 'checks', 'cuda-frontend.json'), 'utf8'));
+      for (const [rel, f] of Object.entries(rec.files ?? {})) {
+        const p = inside(path.join(REPO, 'labs'), rel.replace(/^labs\//, ''));
+        if (!p || typeof f?.sha256 !== 'string') continue;
+        const now = await fsp.readFile(p).catch(() => null);
+        if (now && crypto.createHash('sha256').update(now).digest('hex') === f.sha256) out[rel] = f.ok ? 'ok' : 'fail';
+      }
+    } catch {
+      /* no check recorded on this machine */
     }
     return send(res, 200, out);
   }

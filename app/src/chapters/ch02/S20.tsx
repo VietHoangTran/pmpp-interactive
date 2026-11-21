@@ -1,29 +1,12 @@
 import { Ask, type Question } from '../../components/Ask';
 import { Aside, Beyond, Source, type Tier } from '../../components/notes';
-import { Code, useLabFile } from '../../components/Code';
+import { Code, useLabExcerpt } from '../../components/Code';
 import { href } from '../../lib/router';
 import { ceiling, speedup } from '../../sim/amdahl';
 
 const LAB1 = 'ch02/lab1_vecadd/solution/kernel.cu';
 
 const VEC_TIERS: Record<string, Tier> = { A: 'global', B: 'global', C: 'global', i: 'reg' };
-
-/**
- * The kernel function of a lab file and nothing else: from the `__global__`
- * line (and the comment lines directly above it) to the closing brace in
- * column 0. Returns null when the file has no kernel, for example while it is
- * still loading.
- */
-export function kernelOnly(src: string): { code: string; firstLine: number } | null {
-  const lines = src.split('\n');
-  const at = lines.findIndex((l) => /^\s*__global__\b/.test(l));
-  if (at < 0) return null;
-  let first = at;
-  while (first > 0 && /^\s*\/\//.test(lines[first - 1])) first--;
-  let last = at;
-  while (last < lines.length - 1 && !/^}/.test(lines[last])) last++;
-  return { code: lines.slice(first, last + 1).join('\n'), firstLine: first + 1 };
-}
 
 // The book's own worked case (ch. 1, p. 9) and the ceiling this page asks for, from the model chapter 1 runs on.
 const BOOK_CASE = speedup(0.3, 100);
@@ -157,8 +140,8 @@ export const questionsS20: Record<string, Question> = {
 };
 
 export function S20() {
-  const file = useLabFile(LAB1);
-  const kernel = file ? kernelOnly(file) : null;
+  // The kernel and the comment above it, numbered as in the file (components/Code.tsx, lib/excerpt.ts).
+  const kernel = useLabExcerpt(LAB1, 'vecAddKernel');
   return (
     <>
       <p>
@@ -206,7 +189,7 @@ export function S20() {
         </p>
       </Aside>
       <Code
-        tabs={[{ label: 'CUDA', code: kernel?.code ?? file ?? '// loading labs/' + LAB1, tiers: VEC_TIERS }]}
+        tabs={[{ label: 'CUDA', code: kernel?.text ?? '// loading labs/' + LAB1, tiers: VEC_TIERS }]}
         firstLine={kernel?.firstLine ?? 1}
         caption={
           <>

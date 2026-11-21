@@ -3,6 +3,7 @@
 // src/sim/coarsescan.ts, imported inside the page through the app's module server.
 // Usage: APP_URL=http://localhost:5173 node e2e/ch11-s117.mjs [screenshot-prefix]
 import { open, goto } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 
 const out = process.argv[2];
 const { browser, page, errors } = await open({ width: 1440, height: 1000 });
@@ -141,6 +142,12 @@ await pause(120);
 check('q-odd: the odd factors', (await odd.evaluate((x) => x.textContent)).includes('Correct.'));
 
 const forgiven = errors.filter((x) => !(x.includes('404') && labMisses-- > 0));
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch11/11.7', [
+  { label: 'lab 11.2 (CUDA and HIP)', lab: 'ch11/lab2_coarsened', file: 'kernel.cu' },
+  { label: 'lab 11.2 (Metal)', lab: 'ch11/lab2_coarsened', file: 'kernel.metal' },
+]);
+
 check('no console or page errors', forgiven.length === 0, forgiven.join(' | '));
 await browser.close();
 console.log(fail.length ? `\n${fail.length} check(s) failed` : '\nall checks passed');

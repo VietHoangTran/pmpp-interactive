@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Ask, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
+import { solutionTabStatus } from '../../components/LabKit';
+import { useReports } from '../../lib/reports';
 import { Aside, Beyond, Bench, Simplification, Today } from '../../components/notes';
 import { href } from '../../lib/router';
 import {
@@ -28,7 +30,6 @@ import { TwoSoftmaxesScene } from './TwoSoftmaxesScene';
 
 const FACTS = 'notes/today/x3-facts.md';
 const LAB = 'ch10/lab3_softmax_argmax/solution/kernel.cu';
-const CU_STATUS = 'emulator-checked; front-end-checked; unverified on CUDA and HIP hardware';
 // Quotations from llama.cpp and MLX, copied from notes/today/x3-facts.md B2 and B3 at the
 // pinned commits and shown with the module's Excerpt (file, lines, permalink, licence). A line
 // that is exactly "..." marks lines left out. Not course code: not compiled here.
@@ -513,6 +514,9 @@ const guardLine = (fn: { text: string; firstLine: number }) =>
   fn.firstLine + fn.text.split('\n').findIndex((l) => l.includes('laneIdx() < warpsInBlock()'));
 export function SX33() {
   const cu = useLabFile(LAB);
+  // The labs page's words (LabKit's solutionTabStatus), from this machine's runs.
+  const { reports } = useReports();
+  const CU_STATUS = solutionTabStatus(reports, 'ch10/lab3_softmax_argmax', 'kernel.cu');
   const reduce = cu ? functionSource(cu, 'blockReduceSum') : null;
   const softmax = cu ? functionSource(cu, 'softmaxRowsKernel') : null;
   return (

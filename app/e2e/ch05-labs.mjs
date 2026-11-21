@@ -3,7 +3,8 @@
 // Everything expected is computed here from /api/reports and /api/lab-file, so the
 // check holds on any machine, with or without runs.
 // Usage: node e2e/labs.mjs [screenshot-prefix] [--dark]
-import { open, goto } from './browser.mjs';
+import { open, goto, BASE } from './browser.mjs';
+import { tabStatus } from './labstatus.mjs';
 
 const args = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const out = args[0];
@@ -72,6 +73,7 @@ const compare = (predicted, measured) => {
 await goto(page, 'ch05/labs');
 await page.evaluate((t) => { document.documentElement.dataset.theme = t; }, dark ? 'dark' : 'light');
 const reports = await page.evaluate(() => fetch('/api/reports').then((r) => r.json()));
+const frontend = await (await fetch(BASE + '/api/frontend-check')).json();
 await page.waitForFunction(() => !document.querySelector('td[data-status="loading"]'), { timeout: 10000 });
 console.log(`note  backends with runs on this machine: ${Object.keys(reports).join(', ') || 'none'}`);
 const body = () => page.$eval('.prose', (e) => e.textContent);
@@ -235,11 +237,9 @@ for (const l of LABS) {
   check(`lab ${l.num}: the three solution files exist in the repository`, Object.values(files).every((t) => t !== 'MISSING' && t.length > 100));
   const tabs = await page.$$eval('figure.code .tabs button', (b) => b.map((x) => x.textContent));
   check(`lab ${l.num}: tabs are CUDA, Metal kernel, Metal host`, tabs.join('|') === 'CUDA|Metal kernel|Metal host', tabs.join('|'));
-  const st = (b) => labStatus(reports[b], l.id, 'solution');
-  const got = [st('cuda') === 'pass' ? 'verified on CUDA' : '', st('hip') === 'pass' ? 'verified on HIP' : '', st('emu') === 'pass' ? 'emulator-checked' : ''].filter(Boolean);
-  const lacking = ['cuda', 'hip'].filter((b) => st(b) !== 'pass').map((b) => NAME[b]);
-  const cuStatus = got.length ? got.join(', ') + (lacking.length ? `; unverified on ${lacking.join(' and ')}` : '') : 'unverified (no run on this machine)';
-  const metalStatus = st('metal') === 'pass' ? 'verified on Metal' : st('metal') === 'fail' ? 'unverified (failed on this machine)' : 'unverified (no run on this machine)';
+  // LabKit's solutionTabStatus, from the shared helper (it adds this machine's CUDA front-end check).
+  const cuStatus = tabStatus(reports, l.id, 'kernel.cu', frontend);
+  const metalStatus = tabStatus(reports, l.id, 'kernel.metal', frontend);
   const order = [['kernel.cu', cuStatus], ['kernel.metal', metalStatus], ['launch.mm', metalStatus]];
   for (let i = 0; i < 3; i++) {
     await page.evaluate((i) => [...document.querySelectorAll('figure.code .tabs button')][i].click(), i);

@@ -5,6 +5,7 @@
 // recipe, five questions, and the page at a narrow width.
 // Usage: node e2e/ch04-s48.mjs [screenshot-prefix]
 import { open, goto, BASE } from './browser.mjs';
+import { checkLabStatuses, tabStatus } from './labstatus.mjs';
 import { BOOK_LAUNCH, RULES, appleRecipe, checkLaunch, launchLimitsFromReport, suggest } from '../src/sim/launchconfig.ts';
 import { occupancy, pct } from '../src/sim/occupancy.ts';
 
@@ -159,7 +160,7 @@ if (out) await page.$eval(T, (e) => e.scrollIntoView({ block: 'start' })), await
 
 // ---- the Metal excerpt and recipe
 const mm = codes.find((c) => c.code.includes('part 1: ask'));
-check("the Metal excerpt is lab 4.1's part 1 only, with a status read from this machine's run", !!mm && !mm.code.includes('part 2') && mm.status === (solutionPasses('metal') ? 'verified on Metal' : 'unverified: no passing Metal run on this machine'), JSON.stringify(mm?.status));
+check("the Metal excerpt is lab 4.1's part 1 only, with a status read from this machine's run", !!mm && !mm.code.includes('part 2') && mm.status === tabStatus(reports, 'ch04/lab1_launchconfig', 'launch.mm'), JSON.stringify(mm?.status));
 const qm = queried('metal');
 const shape = qm ? appleRecipe(qm.threadExecutionWidth, qm.maxTotalThreadsPerThreadgroup) : null;
 check("Apple's recipe is applied to the pipeline's own numbers, or not at all", (await attr('[data-out=metal-recipe]', 'data-shape')) === (shape ? `${shape.x}x${shape.y}` : 'none'), await attr('[data-out=metal-recipe]', 'data-shape'));
@@ -268,6 +269,11 @@ const narrow = await page.evaluate((L) => {
 }, L);
 check('at a narrow width nothing overflows, and the limits list fits its bench', narrow.page && narrow.select, JSON.stringify(narrow));
 if (out) await page.$eval(L, (e) => e.scrollIntoView({ block: 'start' })), await page.screenshot({ path: out + '-narrow.png' });
+
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch04/4.8', [
+  { label: 'Metal host', lab: 'ch04/lab1_launchconfig', file: 'launch.mm' },
+]);
 
 check('no console or page errors', errors.length === 0, errors.join(' | '));
 await browser.close();

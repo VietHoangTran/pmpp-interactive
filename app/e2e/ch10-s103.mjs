@@ -3,6 +3,7 @@
 // the tested model, src/sim/reduction.ts, imported here directly.
 // Usage: APP_URL=http://localhost:5173 node e2e/ch10-s103.mjs [screenshot-prefix]
 import { open, goto } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 import { EXERCISE_6, FIG_VALUES, arraysAfter, firstIssueStep, runInPlace } from '../src/sim/reduction.ts';
 
 const out = process.argv[2];
@@ -147,6 +148,12 @@ await qb.evaluate((e) => e.querySelectorAll('input[type=radio]')[0].click());
 await (await qb.$('button.primary')).click();
 await pause(100);
 check('q-three-blocks: "each block its own third" is marked wrong', (await qb.evaluate((e) => e.textContent)).includes('Not quite.'));
+
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch10/10.3', [
+  { label: 'CUDA (lab 10.1)', lab: 'ch10/lab1_sum', file: 'kernel.cu' },
+  { label: 'Metal (lab 10.1)', lab: 'ch10/lab1_sum', file: 'kernel.metal' },
+]);
 
 check('no console or page errors', errors.length === 0, errors.join(' | '));
 await browser.close();

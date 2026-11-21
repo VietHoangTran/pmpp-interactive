@@ -12,13 +12,13 @@ import {
   RaceStatus,
   RunningLabs,
   VerificationStatus,
+  benchRow,
   defineLabs,
   measure,
   msCol,
   numCol,
   rawCol,
   useLabs,
-  type BenchSet,
   type Col,
 } from '../../components/LabKit';
 import { fmt, labStatus, num, type BenchRow, type Reports } from '../../lib/reports';
@@ -48,17 +48,15 @@ const TIERS_64: Record<string, Tier> = {
 };
 
 // ---------------------------------------------------------------- reading the benchmark rows
-// Several labs tell their rows apart by a string field (`variant` is the kernel's name),
-// which LabKit's benchRow() does not match, so these helpers do.
-const rowWhere = (set: BenchSet | undefined, name: string, where: Record<string, string | number>) =>
-  set?.rows.find((r) => r.name === name && Object.entries(where).every(([k, v]) => r[k] === v));
+// Several labs tell their rows apart by a string field (`variant` is the kernel's name);
+// LabKit's benchRow() matches string and number fields alike.
 const ms = (r?: BenchRow) => (num(r?.seconds) != null ? `${fmt(num(r!.seconds)! * 1000)} ms` : 'no time');
 
 /** Lab 6.1: the strided read at stride 2, as a percentage of stride 1. */
 const stride2 = (reports: Reports) =>
   measure(reports, l1, (s) => {
-    const two = rowWhere(s, 'strided', { stride: 2 });
-    const one = rowWhere(s, 'strided', { stride: 1 });
+    const two = benchRow(s, 'strided', { stride: 2 });
+    const one = benchRow(s, 'strided', { stride: 1 });
     const v = num(two?.relative_to_stride1);
     if (!two || v == null) return null;
     return {
@@ -69,18 +67,18 @@ const stride2 = (reports: Reports) =>
 /** Lab 6.2: the float4 kernel's speed-up over one float per thread. */
 const vec4Speedup = (reports: Reports) =>
   measure(reports, l2, (s) => {
-    const r = rowWhere(s, 'vecadd', { variant: 'vec4' });
+    const r = benchRow(s, 'vecadd', { variant: 'vec4' });
     const v = num(r?.speedup_vs_scalar);
     if (!r || v == null) return null;
-    return { value: v, detail: `${ms(r)} against ${ms(rowWhere(s, 'vecadd', { variant: 'scalar' }))} at n = ${String(r.n)}` };
+    return { value: v, detail: `${ms(r)} against ${ms(benchRow(s, 'vecadd', { variant: 'scalar' }))} at n = ${String(r.n)}` };
   });
 /** Lab 6.3: the bank probe's time per access at stride 32, over stride 1. */
 const probe32 = (reports: Reports) =>
   measure(reports, l3, (s) => {
-    const r = rowWhere(s, 'bank_probe', { stride: 32 });
+    const r = benchRow(s, 'bank_probe', { stride: 32 });
     const v = num(r?.relative_to_stride1);
     if (!r || v == null) return null;
-    const one = rowWhere(s, 'bank_probe', { stride: 1 });
+    const one = benchRow(s, 'bank_probe', { stride: 1 });
     return {
       value: v,
       detail: `${fmt(num(r.ns_per_access) ?? NaN)} ns per warp-wide access at stride 32, ${fmt(num(one?.ns_per_access) ?? NaN)} at stride 1, ${String(r.lanes)} lanes`,
@@ -89,8 +87,8 @@ const probe32 = (reports: Reports) =>
 /** Lab 6.3: transpose time without padding over time with it, at T = 32. */
 const padGain = (reports: Reports) =>
   measure(reports, l3, (s) => {
-    const plain = rowWhere(s, 'transpose', { tile: 32, pitch: 32 });
-    const padded = rowWhere(s, 'transpose', { tile: 32, pitch: 33 });
+    const plain = benchRow(s, 'transpose', { tile: 32, pitch: 32 });
+    const padded = benchRow(s, 'transpose', { tile: 32, pitch: 33 });
     const a = num(plain?.seconds);
     const b = num(padded?.seconds);
     if (!a || !b) return null;
@@ -99,21 +97,21 @@ const padGain = (reports: Reports) =>
 /** Lab 6.4: the corner-turned, padded kernel over the provided baseline, batch 256, T = 16. */
 const linearSpeedup = (reports: Reports) =>
   measure(reports, l4, (s) => {
-    const r = rowWhere(s, 'linear', { variant: 'tuned', tile: 16, batch: 256 });
+    const r = benchRow(s, 'linear', { variant: 'tuned', tile: 16, batch: 256 });
     const v = num(r?.speedup_vs_baseline);
     if (!r || v == null) return null;
     return {
       value: v,
-      detail: `${fmt(num(r.gflops) ?? NaN)} GFLOP/s against the baseline's ${fmt(num(rowWhere(s, 'linear', { variant: 'baseline', tile: 16, batch: 256 })?.gflops) ?? NaN)}, ${String(r.in)} → ${String(r.out)} layer`,
+      detail: `${fmt(num(r.gflops) ?? NaN)} GFLOP/s against the baseline's ${fmt(num(benchRow(s, 'linear', { variant: 'baseline', tile: 16, batch: 256 })?.gflops) ?? NaN)}, ${String(r.in)} → ${String(r.out)} layer`,
     };
   });
 /** Lab 6.5: one barrier per phase (double buffered) over two, at T = 16. */
 const oneBarrier = (reports: Reports) =>
   measure(reports, l5, (s) => {
-    const r = rowWhere(s, 'matmul', { variant: 'double_buffered', tile: 16 });
+    const r = benchRow(s, 'matmul', { variant: 'double_buffered', tile: 16 });
     const v = num(r?.speedup_vs_two_barriers);
     if (!r || v == null) return null;
-    return { value: v, detail: `${ms(r)} against ${ms(rowWhere(s, 'matmul', { variant: 'two_barriers', tile: 16 }))} at width ${String(r.width)}` };
+    return { value: v, detail: `${ms(r)} against ${ms(benchRow(s, 'matmul', { variant: 'two_barriers', tile: 16 }))} at width ${String(r.width)}` };
   });
 
 // ---------------------------------------------------------------- results columns

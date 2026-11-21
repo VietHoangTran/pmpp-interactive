@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { open, goto, BASE } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 import { blockHistogram, classifyTaps, makeProblem, runCached, warpSplits } from '../src/sim/convcached.ts';
 import { sceneFacts, summarise } from '../src/sim/halocache.ts';
 
@@ -290,6 +291,12 @@ const expected404 = (u) => /\/content\/ch07\/narration\/(manifest\.json|[\w-]+\.
 const realErrors = errors.filter((e) => !/Failed to load resource: the server responded with a status of 404/.test(e));
 check('no console or page errors (a missing narration manifest is allowed)', realErrors.length === 0 && missing.every(expected404),
   [...realErrors, ...missing.filter((u) => !expected404(u))].join(' | '));
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch07/7.6', [
+  { label: 'CUDA', lab: 'ch07/lab2_tiledconv', file: 'kernel.cu' },
+  { label: 'Metal kernel', lab: 'ch07/lab2_tiledconv', file: 'kernel.metal' },
+], { reveal: ['Show the repaired kernel now'] });
+
 await browser.close();
 console.log(fail.length ? `\n${fail.length} check(s) failed` : '\nall checks passed');
 process.exit(fail.length ? 1 : 0);

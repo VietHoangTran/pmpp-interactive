@@ -4,6 +4,7 @@ import { Code, useLabFile } from '../../components/Code';
 import { defineLabs } from '../../components/LabKit';
 import { cuStatus } from './labStatus';
 import { Beyond, Bench, Simplification, Source, TierLegend, Today, type Tier } from '../../components/notes';
+import { excerptFunction } from '../../lib/excerpt';
 import { useReports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import {
@@ -38,16 +39,12 @@ const TIERS: Record<string, Tier> = {
 };
 
 /**
- * One top-level function of a lab file, located by name: from the line that defines it
- * to its closing brace in column 0, with the file's own line numbers.
+ * One function of a lab file, located by name (lib/excerpt.ts), from the line that declares
+ * it to its closing brace, without the comment above it, with the file's own line numbers.
  */
 export function functionOf(text: string, name: string): { code: string; firstLine: number } | null {
-  const lines = text.split('\n');
-  const def = new RegExp(`\\b${name}\\s*\\(`);
-  const start = lines.findIndex((l) => def.test(l) && !/^\s/.test(l) && !/^\s*(\/\/|\*)/.test(l) && !/;\s*$/.test(l));
-  if (start < 0) return null;
-  const end = lines.findIndex((l, i) => i > start && /^}/.test(l));
-  return end < 0 ? null : { code: lines.slice(start, end + 1).join('\n'), firstLine: start + 1 };
+  const e = excerptFunction(text, name, { comment: false });
+  return e ? { code: e.text.replace(/\n$/, ''), firstLine: e.firstLine } : null;
 }
 
 function TwoMm() {

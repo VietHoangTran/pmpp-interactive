@@ -27,8 +27,9 @@ the emulator run are quoted in section 10.6: `BarrierInsideIfKernel` passes in a
 orders, because the emulator, like NVIDIA's wording, lets exited threads off a barrier
 (the lesson's model holds the book's stricter rule and reports it stuck); and
 `LessOrEqualKernel` stops with an AddressSanitizer report on its addition line. The two
-max-then-sum kernels sum `x - max` instead of `exp(x - max)` because the front-end check's
-stub header declares no device math functions.
+max-then-sum kernels sum `x - max` instead of `exp(x - max)`: they were written when the
+front-end check's stub header declared no device math functions (it declares `expf` now),
+and the barrier question they ask does not depend on which is summed.
 
 `s107_hybrid_test.cu` also holds two variants of Fig. 10.14 written for the check, not for
 a lesson: one without the barrier after the loop (line 11), which section 10.7 says is not

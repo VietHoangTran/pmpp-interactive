@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { benchRow, defineLabs, raceSolutionStatus, solutionStatus, solutionTabStatus, type BenchSet } from './LabKit';
-import type { BackendRun, Reports, RunResult } from '../lib/reports';
+import { FRONTEND, type BackendRun, type Reports, type RunResult } from '../lib/reports';
 
 const [lab] = defineLabs('ch09', [{ num: '9.1', dir: 'lab1_x', name: 'x' }]);
 const res = (backend: string, pass: boolean): RunResult => ({
@@ -11,6 +11,19 @@ const run = (backend: string, pass: boolean): BackendRun => ({ generated: '2026-
 const reports = (spec: Record<string, boolean>): Reports => Object.fromEntries(Object.entries(spec).map(([b, p]) => [b, run(b, p)]));
 
 describe('solutionTabStatus', () => {
+  it('adds the CUDA front-end check of the solution kernel while CUDA has not passed', () => {
+    const file = `labs/${lab.id}/solution/kernel.cu`;
+    const fe = (r: Reports, v: 'ok' | 'fail'): Reports => Object.assign(r, { [FRONTEND]: { [file]: v } });
+    expect(solutionTabStatus(fe(reports({ emu: true }), 'ok'), lab, 'kernel.cu')).toBe('emulator-checked, front-end-checked; unverified on CUDA and HIP');
+    expect(solutionTabStatus(fe({}, 'ok'), lab, 'kernel.cu')).toBe('front-end-checked; unverified on CUDA and HIP');
+    expect(solutionTabStatus(fe(reports({ emu: true }), 'fail'), lab, 'kernel.cu')).toBe(
+      'emulator-checked; failed the CUDA front-end check on this machine; unverified on CUDA and HIP',
+    );
+    expect(solutionTabStatus(fe(reports({ cuda: true, emu: true }), 'ok'), lab, 'kernel.cu')).toBe('verified on CUDA, emulator-checked; unverified on HIP');
+    expect(solutionTabStatus(fe(reports({ metal: true }), 'ok'), lab, 'kernel.metal')).toBe('verified on Metal');
+    // Object.keys never sees the check: code that lists backends is unaffected.
+    expect(Object.keys(fe(reports({ emu: true }), 'ok'))).toEqual(['emu']);
+  });
   it('keeps the usual wording when the emulator passed and CUDA and HIP have no run', () => {
     expect(solutionTabStatus(reports({ emu: true, metal: true }), lab, 'kernel.cu')).toBe('emulator-checked; unverified on CUDA and HIP');
     expect(solutionTabStatus(reports({ emu: true, metal: true }), lab, 'kernel.metal')).toBe('verified on Metal');

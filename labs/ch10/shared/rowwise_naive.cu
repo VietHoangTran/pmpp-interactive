@@ -10,12 +10,6 @@
 // Contract as in the lab: [rows x cols] float32, row-major, finite logits.
 #include <cfloat>
 
-// The course's CUDA front-end check (labs/pmpp.py) declares no CUDA Math API functions,
-// so it is given expf's device declaration here. nvcc, hipcc and the emulator never see it.
-#if defined(PMPP_CUDA_FRONTEND_CHECK)
-__device__ float expf(float x);
-#endif
-
 #define NAIVE_BLOCK 64
 
 __global__ void softmaxRowsNaiveKernel(const float* x, float* y, int rows, int cols, float scale) {

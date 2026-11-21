@@ -25,7 +25,7 @@ import { functionSource } from '../../sim/toolchain';
 import { widthChoices } from '../../sim/warps';
 import { MIN_W, ShuffleScene, VIEW_W, WarpGrid, gridHeight } from './ShuffleScene';
 import { useNarrow } from './useNarrow';
-import { STATUS } from './status';
+import { STATUS, useLabStatus } from './status';
 
 import { NoteGroup } from './NoteGroup';
 const LAB = 'ch10/lab1_sum';
@@ -517,6 +517,7 @@ function HandoffExplorer() {
 
 // ---------------------------------------------------------------- code
 function WarpReduceListing() {
+  const status = useLabStatus(LAB);
   const printed = useLabFile(AS_PRINTED);
   const cu = useLabFile(LAB + '/solution/kernel.cu');
   const metal = useLabFile(LAB + '/solution/kernel.metal');
@@ -526,8 +527,8 @@ function WarpReduceListing() {
   if (missing(printed)) return null;
   const tabs = [
     { label: 'as printed (CUDA only)', code: printed!, tiers: TIERS, status: STATUS.printed },
-    ...(fn ? [{ label: 'portable (lab 10.1)', code: (mask ? mask + '\n\n' : '') + fn.text, tiers: TIERS, status: STATUS.cu }] : []),
-    ...(mfn ? [{ label: 'Metal (lab 10.1)', code: mfn.text, tiers: TIERS, status: STATUS.metal }] : []),
+    ...(fn ? [{ label: 'portable (lab 10.1)', code: (mask ? mask + '\n\n' : '') + fn.text, tiers: TIERS, status: status.cu }] : []),
+    ...(mfn ? [{ label: 'Metal (lab 10.1)', code: mfn.text, tiers: TIERS, status: status.metal }] : []),
   ];
   return (
     <Code

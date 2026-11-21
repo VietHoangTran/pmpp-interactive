@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, MATMUL_TIERS, useLabFile } from '../../components/Code';
+import { solutionTabStatus } from '../../components/LabKit';
 import { Aside, Bench, Beyond, Simplification, Source, TierLegend, Today } from '../../components/notes';
 import { benchRows, fmt, num, realBackends, useReports } from '../../lib/reports';
 import { href } from '../../lib/router';
@@ -471,6 +472,9 @@ export function S54() {
   const cu = useLabFile('ch05/lab2_tiled/solution/kernel.cu');
   const metal = useLabFile('ch05/lab2_tiled/solution/kernel.metal');
   const mm = useLabFile('ch05/lab2_tiled/solution/launch.mm');
+  // The labs page's words (LabKit's solutionTabStatus), read from this machine's runs.
+  const { reports } = useReports();
+  const st = (f: 'kernel.cu' | 'kernel.metal' | 'launch.mm') => solutionTabStatus(reports, 'ch05/lab2_tiled', f);
   return (
     <>
       <p>
@@ -483,9 +487,9 @@ export function S54() {
       {cu && metal && mm ? (
         <Code
           tabs={[
-            { label: 'CUDA', code: cu, tiers: MATMUL_TIERS, status: 'emulator-checked and front-end-checked; unverified on CUDA hardware' },
-            { label: 'Metal kernel', code: metal, tiers: MATMUL_TIERS, status: 'verified on Metal' },
-            { label: 'Metal host', code: mm, tiers: {}, status: 'verified on Metal' },
+            { label: 'CUDA', code: cu, tiers: MATMUL_TIERS, status: st('kernel.cu') },
+            { label: 'Metal kernel', code: metal, tiers: MATMUL_TIERS, status: st('kernel.metal') },
+            { label: 'Metal host', code: mm, tiers: {}, status: st('launch.mm') },
           ]}
           caption={
             <>

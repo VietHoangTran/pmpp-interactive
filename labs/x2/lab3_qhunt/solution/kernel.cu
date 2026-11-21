@@ -33,11 +33,11 @@
 
 #include "../qhunt.h"
 
-// The course's CUDA front-end check declares no CUDA Math API functions.
+// The course's CUDA front-end check (labs/pmpp.py) declares fabsf and fmaxf in its stub but
+// not roundf, so it is given roundf's device declaration here. nvcc, hipcc and the emulators
+// never see it.
 #if defined(PMPP_CUDA_FRONTEND_CHECK)
 __device__ float roundf(float x);
-__device__ float fabsf(float x);
-__device__ float fmaxf(float x, float y);
 #endif
 
 #define WARPS 4                      // warps per output row; 128 threads on a 32-lane warp

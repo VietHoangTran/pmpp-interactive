@@ -3,6 +3,7 @@
 // rectangular-matrix exercise. Leaves no trace: writes to /api/progress are answered here
 // and never reach the server.
 import { open, goto } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 
 const { browser, page, errors } = await open();
 await page.setRequestInterception(true);
@@ -241,6 +242,11 @@ try {
 }
 
 for (const e of errors) ok(false, e);
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses((name, cond, detail) => ok(cond, cond ? name : `${name}: ${detail}`), 'ch05/5.5', [
+  { label: 'CUDA', lab: 'ch05/lab3_gemm', file: 'kernel.cu' },
+], { reveal: ['Show the reference kernel'] });
+
 await browser.close();
 console.log(failed ? `\n${failed} check(s) failed` : '\nall checks passed');
 process.exit(failed ? 1 : 0);

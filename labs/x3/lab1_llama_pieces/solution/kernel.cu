@@ -20,13 +20,6 @@
 //   launchSwiGLU       out[i] = gate[i] / (1 + expf(-gate[i])) * up[i]; out may be gate.
 #include <cstdint>
 
-// The course's CUDA front-end check (labs/pmpp.py) declares no CUDA Math API functions, so it
-// is given the device declarations used here. nvcc, hipcc and the emulators never see them.
-#if defined(PMPP_CUDA_FRONTEND_CHECK)
-__device__ float expf(float x);
-__device__ float sqrtf(float x);
-#endif
-
 #define BLOCK_SIZE 256                          // part A: threads per block
 #define MIN_WARP_SIZE 32                        // the narrowest warp any backend here has
 #define MAX_WARPS (BLOCK_SIZE / MIN_WARP_SIZE)  // per-warp slots for a block of BLOCK_SIZE

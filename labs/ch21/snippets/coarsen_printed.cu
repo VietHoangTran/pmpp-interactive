@@ -7,11 +7,6 @@
 #ifndef CHUNK_SIZE
 #define CHUNK_SIZE 256
 #endif
-// The course's CUDA front-end check declares no CUDA Math API functions, so it is given
-// sqrtf's device declaration here. nvcc, hipcc and the emulator never see it.
-#if defined(PMPP_CUDA_FRONTEND_CHECK)
-__device__ float sqrtf(float x);
-#endif
 // ---- as printed ----
 __constant__ float atoms[CHUNK_SIZE*4];
 #define COARSEN_FACTOR 4

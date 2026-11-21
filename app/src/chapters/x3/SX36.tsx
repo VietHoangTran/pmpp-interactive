@@ -1,6 +1,8 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { Ask, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
+import { solutionTabStatus } from '../../components/LabKit';
+import { useReports } from '../../lib/reports';
 import { Aside, Bench, Beyond, Simplification, Source, Today, type Tier } from '../../components/notes';
 import { href } from '../../lib/router';
 import {
@@ -14,10 +16,6 @@ const X3 = 'notes/today/x3-facts.md';
 const X1 = 'notes/today/x1-facts.md';
 const C10 = 'notes/today/ch10-facts.md';
 const LAB = 'ch10/lab3_softmax_argmax';
-const STATUS = {
-  cu: 'front-end-checked; emulator-checked; unverified on CUDA and HIP hardware',
-  metal: 'verified on Metal',
-};
 const TIERS: Record<string, Tier> = { v: 'reg', i: 'reg', otherV: 'reg', otherI: 'reg' };
 const FIELD: CSSProperties = { display: 'inline-flex', flexDirection: 'column', gap: '0.2rem', color: 'var(--ink-2)' };
 
@@ -379,6 +377,9 @@ function WhereItRuns() {
 // ---------------------------------------------------------------- the M4 listing
 function M4Listing() {
   const cu = useLabFile(LAB + '/solution/kernel.cu');
+  // The labs page's words (LabKit's solutionTabStatus), from this machine's runs.
+  const { reports } = useReports();
+  const STATUS = { cu: solutionTabStatus(reports, LAB, 'kernel.cu'), metal: solutionTabStatus(reports, LAB, 'kernel.metal') };
   const metal = useLabFile(LAB + '/solution/kernel.metal');
   const a = cu ? functionSource(cu, 'argmaxCombine') : null;
   const w = cu ? functionSource(cu, 'warpArgmax') : null;

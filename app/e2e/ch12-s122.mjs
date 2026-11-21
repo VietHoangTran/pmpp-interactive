@@ -1,7 +1,8 @@
 // Browser check for section 12.2: the lab listing, the prediction, the "One counter, many
 // threads" explorer (against src/sim/filter.ts, imported directly) and two questions.
 // Usage: node e2e/ch12-s122.mjs [screenshot-prefix]
-import { open, goto } from './browser.mjs';
+import { open, goto, BASE } from './browser.mjs';
+import { checkLabStatuses, tabStatus } from './labstatus.mjs';
 import { FRACTIONS, atomicCounts, expectedAtomics, patternSource } from '../src/sim/filter.ts';
 
 const out = process.argv[2];
@@ -54,7 +55,9 @@ if (hasListing) {
   check('listing shows the CUDA and Metal tabs', tabs.includes('CUDA') && tabs.includes('Metal'), tabs.join('|'));
   const code = await page.$eval('.code pre', (e) => e.textContent);
   check('the CUDA tab is lab 12.1\'s filterAtomicKernel', code.includes('filterAtomicKernel') && code.includes('fetch_add(1, cuda::memory_order_relaxed)'));
-  check('the status uses the fixed vocabulary', (await page.$eval('.code .tabs .status', (e) => e.textContent)).startsWith('emulator-checked and front-end-checked'));
+  const labReports = await (await fetch(BASE + '/api/reports')).json();
+  const frontend = await (await fetch(BASE + '/api/frontend-check')).json();
+  check('the status is the labs page\'s, from this machine\'s runs', (await page.$eval('.code .tabs .status', (e) => e.textContent)) === tabStatus(labReports, 'ch12/lab1_unstable', 'kernel.cu', frontend));
 } else check('listing shows lab 12.1 (labs/ch12/lab1_unstable/solution/ must exist)', false);
 
 // ---- predict
@@ -144,6 +147,12 @@ check('at a narrow width the curves\' legend is in view without scrolling sidewa
   return items.length === 3 && items.every((e) => e.getBoundingClientRect().right <= document.documentElement.clientWidth);
 }, bench(X)));
 if (out) await page.$eval(bench(X), (el) => el.scrollIntoView({ block: 'start' })), await page.screenshot({ path: out + '-narrow.png' });
+
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch12/12.2', [
+  { label: 'CUDA', lab: 'ch12/lab1_unstable', file: 'kernel.cu' },
+  { label: 'Metal', lab: 'ch12/lab1_unstable', file: 'kernel.metal' },
+]);
 
 check('no console or page errors', errors.length === 0, errors.join(' | '));
 await browser.close();

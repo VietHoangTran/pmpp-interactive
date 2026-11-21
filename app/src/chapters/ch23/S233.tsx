@@ -383,7 +383,7 @@ function Stepper({ cfg, setCfg, devices }: { cfg: PipeConfig; setCfg: (c: PipeCo
             ) : null}
           </div>
           <div className="panel" data-readouts>
-            <table className="threads">
+            <table className="threads wrap">
               <tbody>
                 {([
                   ['Total', <b>{fmtN(s.total)}</b>, 'total'],
@@ -394,8 +394,8 @@ function Stepper({ cfg, setCfg, devices }: { cfg: PipeConfig; setCfg: (c: PipeCo
                   ['Fastest chunk count, 1 to 64', best.n === 1 ? `n = 1 (${fmtN(best.total)}): cutting does not help here` : `n = ${best.n} (${fmtN(best.total)})`, 'best-n'],
                 ] as [string, ReactNode, string][]).map(([k, v, id]) => (
                   <tr key={id}>
-                    <td style={{ whiteSpace: 'normal' }}>{k}</td>
-                    <td style={{ whiteSpace: 'normal' }} data-out={id}>{v}</td>
+                    <td>{k}</td>
+                    <td data-out={id}>{v}</td>
                   </tr>
                 ))}
               </tbody>

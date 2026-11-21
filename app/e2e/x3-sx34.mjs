@@ -5,6 +5,7 @@
 // src/sim/matmulroute.ts, run inside the page through the app's module server.
 // Usage: APP_URL=http://localhost:5173 node e2e/x3-sx34.mjs [screenshot-prefix]
 import { open, goto } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 
 const out = process.argv[2];
 const { browser, page, errors } = await open({ width: 1440, height: 1000 });
@@ -157,6 +158,13 @@ check('q-mlx-transposed accepts GEMV', (await answer('GEMV or cuBLASLt?', 0)).in
 check('q-nine accepts mmvf and mmvq ruled out', (await answer('a batch of 9 tokens', 0)).includes('Correct.'));
 const t = await answer('Does this matrix product reach cuBLAS?', 1);
 check('q-one-token rejects "the weights are not F32" with its reason', t.includes('Not quite.') && t.includes('activations'));
+
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'x3/X3.4', [
+  { label: 'lab 22.1, warpRowDots', lab: 'ch22/lab1_gemv', file: 'kernel.cu' },
+  { label: 'gemvGatherKernel', lab: 'ch22/lab1_gemv', file: 'kernel.cu' },
+  { label: 'warpSum', lab: 'ch22/lab1_gemv', file: 'kernel.cu' },
+]);
 
 check('no console or page errors', errors.length === 0, errors.join(' | '));
 await browser.close();

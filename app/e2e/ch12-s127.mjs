@@ -4,6 +4,7 @@
 // The narrated animation has its own check, e2e/ch12-scene-scan-chain.mjs.
 // Usage: APP_URL=http://localhost:5173 node e2e/ch12-s127.mjs [--dark] [screenshot-prefix]
 import { open, goto, BASE } from './browser.mjs';
+import { checkLabStatuses, tabStatus } from './labstatus.mjs';
 import { BOOK_PUZZLE, FIG_KEEP, orderingTable, overlap } from '../src/sim/inplace.ts';
 
 const dark = process.argv.includes('--dark');
@@ -152,7 +153,9 @@ if (labText) {
   console.log('note lab 12.5 is not written yet: the listing shows its placeholder');
   check('lab 12.5 listing falls back to a placeholder naming the file', code.includes('labs/ch12/lab5_inplace/solution/kernel.cu'));
 }
-check('listing carries its verification status', (await page.$eval('figure.code .status', (e) => e.textContent)).includes('unverified on CUDA and HIP hardware'));
+const labReports = await (await fetch(BASE + '/api/reports')).json();
+const frontend = await (await fetch(BASE + '/api/frontend-check')).json();
+check('listing carries its verification status, the labs page\'s, from this machine\'s runs', (await page.$eval('figure.code .status', (e) => e.textContent)) === tabStatus(labReports, 'ch12/lab5_inplace', 'kernel.cu', frontend));
 check('the scan-chain animation is on the page', !!(await page.$('section.scene[aria-label="The scan chain orders the blocks"]')));
 check('the designs table covers CUDA, HIP and Metal', /CUDA.*HIP.*Metal/.test(await txt('table[data-part="designs"]')));
 check('the HIP row gives the documented-safe one-block design and marks the single pass unverified', await page.$eval('table[data-part="designs"]', (t) => {
@@ -190,6 +193,11 @@ const ovf = await page.$eval('[data-part="overlap-frame"]', (f) => {
 check('at 390 px the overlap drawing keeps its design size and scrolls in its own frame', ovf.drawn >= ovf.design - 0.5 && ovf.scrolls, JSON.stringify(ovf));
 
 const errs = labText ? errors : errors.filter((e) => !e.includes('status of 404'));
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch12/12.7', [
+  { label: 'CUDA (and HIP)', lab: 'ch12/lab5_inplace', file: 'kernel.cu' },
+]);
+
 check('no console or page errors', errs.length === 0, errs.join(' | '));
 await browser.close();
 console.log(fail.length ? `\n${fail.length} check(s) failed` : '\nall checks passed');

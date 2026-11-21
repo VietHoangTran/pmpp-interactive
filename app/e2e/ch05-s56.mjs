@@ -1,6 +1,7 @@
 // Browser check for section 5.6: the shared-memory budget calculator and the erratum hunt.
 // Usage: node e2e/s56.mjs [screenshot-prefix] [--dark]
-import { open, goto } from './browser.mjs';
+import { open, goto, BASE } from './browser.mjs';
+import { checkLabStatuses, tabStatus } from './labstatus.mjs';
 
 const args = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const out = args[0];
@@ -33,6 +34,7 @@ await goto(page, 'ch05/5.6');
 await page.evaluate((t) => { document.documentElement.dataset.theme = t; }, dark ? 'dark' : 'light');
 await page.waitForSelector(B);
 const reports = await page.evaluate(() => fetch('/api/reports').then((r) => r.json()));
+const frontend = await (await fetch(BASE + '/api/frontend-check')).json();
 
 // What the calculator shows right now.
 const state = () =>
@@ -209,11 +211,11 @@ const shown = () => page.$eval('figure.code pre', (e) => e.textContent.replace(/
 const same = (a, b) => a.replace(/\s+$/g, '') === b.replace(/\s+$/g, '');
 await page.waitForFunction(() => document.querySelector('figure.code pre').textContent.includes('extern __shared__ float tiles[];'), { timeout: 10000 });
 check('CUDA tab is labs/ch05/lab5_dynamic/solution/kernel.cu, verbatim', same(await shown(), await file('kernel.cu')));
-check('CUDA tab status', (await page.$eval('figure.code .tabs .status', (e) => e.textContent)) === 'emulator-checked and front-end-checked; unverified on CUDA and HIP hardware');
+check('CUDA tab status', (await page.$eval('figure.code .tabs .status', (e) => e.textContent)) === tabStatus(reports, 'ch05/lab5_dynamic', 'kernel.cu', frontend));
 await page.evaluate(() => [...document.querySelectorAll('figure.code .tabs button')][1].click());
 await pause(100);
 check('Metal kernel tab is solution/kernel.metal, verbatim', same(await shown(), await file('kernel.metal')));
-check('Metal kernel tab status', (await page.$eval('figure.code .tabs .status', (e) => e.textContent)) === 'verified on Metal');
+check('Metal kernel tab status', (await page.$eval('figure.code .tabs .status', (e) => e.textContent)) === tabStatus(reports, 'ch05/lab5_dynamic', 'kernel.metal', frontend));
 await page.evaluate(() => [...document.querySelectorAll('figure.code .tabs button')][2].click());
 await pause(100);
 check('Metal host tab is solution/launch.mm, verbatim', same(await shown(), await file('launch.mm')) && (await shown()).includes('setThreadgroupMemoryLength'));
@@ -223,6 +225,13 @@ await shot('kernel', 'figure.code');
 const prompts = await page.$$eval('.q .prompt', (p) => p.map((x) => x.textContent));
 check('exercise 12 questions say "per block"', prompts.filter((t) => t.includes('per block') && t.includes('96 KB')).length === 2);
 check('the tile-doubling question is present', prompts.some((t) => t.includes('TILE_WIDTH 32')));
+
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch05/5.6', [
+  { label: 'CUDA', lab: 'ch05/lab5_dynamic', file: 'kernel.cu' },
+  { label: 'Metal kernel', lab: 'ch05/lab5_dynamic', file: 'kernel.metal' },
+  { label: 'Metal host', lab: 'ch05/lab5_dynamic', file: 'launch.mm' },
+], { reveal: ['Show the corrected kernel now'] });
 
 check('no console or page errors', errors.length === 0, errors.join(' | '));
 await browser.close();

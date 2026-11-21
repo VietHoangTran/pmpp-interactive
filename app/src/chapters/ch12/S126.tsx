@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
+import { solutionTabStatus } from '../../components/LabKit';
 import { Aside, Bench, Simplification, Source, Today, type Tier } from '../../components/notes';
 import { benchRows, fmt, num, realBackends, useReports, type BenchRow } from '../../lib/reports';
 import { href } from '../../lib/router';
@@ -395,7 +396,18 @@ export const questionsS126: Record<string, Question> = {
   },
 };
 
+/** A lab's reference-solution status, in the labs page's words (LabKit's solutionTabStatus), from this machine's runs. */
+function useLabStatus(lab: string) {
+  const { reports } = useReports();
+  return {
+    cu: solutionTabStatus(reports, lab, 'kernel.cu'),
+    metal: solutionTabStatus(reports, lab, 'kernel.metal'),
+    mm: solutionTabStatus(reports, lab, 'launch.mm'),
+  };
+}
+
 export function S126() {
+  const status = useLabStatus('ch12/lab3_stable');
   const cu = useLabFile('ch12/lab3_stable/solution/kernel.cu');
   const metal = useLabFile('ch12/lab3_stable/solution/kernel.metal');
   const mm = useLabFile('ch12/lab3_stable/solution/launch.mm');
@@ -513,9 +525,9 @@ export function S126() {
       {cuPart && metalPart && mmPart ? (
         <Code
           tabs={[
-            { label: 'CUDA', code: cuPart, tiers: TIERS, status: 'emulator-checked and front-end-checked; unverified on CUDA and HIP hardware' },
-            { label: 'Metal kernel', code: metalPart, tiers: TIERS, status: 'verified on Metal' },
-            { label: 'Metal host', code: mmPart, tiers: {}, status: 'verified on Metal' },
+            { label: 'CUDA', code: cuPart, tiers: TIERS, status: status.cu },
+            { label: 'Metal kernel', code: metalPart, tiers: TIERS, status: status.metal },
+            { label: 'Metal host', code: mmPart, tiers: {}, status: status.mm },
           ]}
           caption={
             <>

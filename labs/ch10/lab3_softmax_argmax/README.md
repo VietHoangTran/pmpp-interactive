@@ -163,8 +163,9 @@ banned tokens). They come back with the mask and softmax kernel of chapter 20.
 - Metal: `launch.mm` reads the SIMD-group width from the pipeline (`threadExecutionWidth`),
   checks that 256 threads make whole SIMD-groups with no more groups than lanes, and sizes
   the per-SIMD-group threadgroup memory from it (a multiple of 16 bytes, ch05-facts C8).
-- `kernel.cu` declares `expf` under `PMPP_CUDA_FRONTEND_CHECK`, a macro only the course's
-  CUDA front-end check defines. The check's stub now declares `expf` and the other
-  single-precision math functions itself, so that declaration is redundant (and harmless).
-  The comment above it in `kernel.cu` (and in `shared/rowwise_naive.cu`), which says the
-  check declares no CUDA Math API functions, predates that change and is out of date.
+- `expf` needs no declaration of its own: the course's CUDA front-end check declares the
+  single-precision math functions in its stub header. Earlier versions of `kernel.cu` and
+  `shared/rowwise_naive.cu` declared it under `PMPP_CUDA_FRONTEND_CHECK`, with a comment
+  saying the check declares no CUDA Math API functions; that predates the stub's math
+  section, and the declaration is gone. If your `work/kernel.cu` still has it, it is
+  harmless.

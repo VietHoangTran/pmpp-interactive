@@ -15,8 +15,7 @@
 
 __global__ void tiledTransposeKernel(const float* in, float* out, int rows, int cols, int pitch) {
     // TILE_WIDTH rows of TILE_WIDTH + 1 words, enough for the larger pitch. Index it as
-    // tile[row * pitch + col]. (Written without parentheses because the CPU emulator's
-    // translator does not accept them in a __shared__ array bound.)
+    // tile[row * pitch + col].
     __shared__ float tile[TILE_WIDTH * TILE_WIDTH + TILE_WIDTH];
 
     // TODO 1: copy this block's input tile into the shared tile. Neighbouring threads

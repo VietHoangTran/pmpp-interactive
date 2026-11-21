@@ -6,4 +6,6 @@
 # PMPP_BUILD_DIR and PMPP_ONLY apply as for labs/pmpp.py (see labs/README.md).
 set -e
 cd "$(dirname "$0")"
+# pmpp.py's own tests first (starter history): a broken runner would make the report meaningless.
+python3 -m unittest discover -s labs/tests -q
 exec python3 labs/pmpp.py verify "$@"

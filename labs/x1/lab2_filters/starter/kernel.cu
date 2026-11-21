@@ -18,12 +18,6 @@
 #include <cfloat>
 #include <cmath>
 
-// The course's CUDA front-end check declares no CUDA Math API functions, so it is given
-// expf's device declaration here. nvcc, hipcc and the emulator never see it.
-#if defined(PMPP_CUDA_FRONTEND_CHECK)
-__device__ float expf(float x);
-#endif
-
 #define BLOCK_DIM 256                           // threads per block; one block per row
 #define COARSE_FACTOR 4                         // tokens per thread per chunk (lab 11.6)
 #define CHUNK (COARSE_FACTOR * BLOCK_DIM)       // tokens per chunk: 1,024

@@ -17,12 +17,6 @@
 
 #include <cstdio>
 
-// The course's CUDA front-end check (labs/pmpp.py) declares no CUDA Math API functions,
-// so it is given sqrtf's device declaration here. nvcc, hipcc and the emulators never see it.
-#if defined(PMPP_CUDA_FRONTEND_CHECK)
-__device__ float sqrtf(float x);
-#endif
-
 // TODO 0: declare one chunk of atoms in constant memory, at file scope: room for CHUNK_MAX
 //         atoms of four floats each (x, y, z, charge). The book calls it `atoms`.
 

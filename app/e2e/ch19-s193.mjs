@@ -4,6 +4,7 @@
 // asserts is one the models in sim/unfold.ts and sim/implicitgemm.ts produce.
 // Usage: node e2e/ch19-s193.mjs [screenshot-prefix]
 import { open, goto, BASE } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 
 const out = process.argv.slice(2).find((a) => !a.startsWith('--')); // a screenshot prefix; flags are ignored
 const { browser, page, errors } = await open({ width: 1440, height: 1000 });
@@ -339,6 +340,16 @@ check('at 390 px the page does not scroll sideways', over <= 1, `overflow ${over
 past = await pastText();
 check('at 390 px nothing in a paragraph extends past it', past.length === 0, past.join(' | '));
 if (out) await page.$eval('.prose > p[data-line="28"]', (e) => e.scrollIntoView({ block: 'center' })), await page.screenshot({ path: out + '-narrow-line28.png' });
+
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch19/19.3', [
+  { label: 'CUDA (also HIP, emulator)', lab: 'ch19/lab1_convgemm', file: 'kernel.cu', prefix: 'tested with lab 19.1: ' },
+  { label: 'Metal', lab: 'ch19/lab1_convgemm', file: 'kernel.metal', prefix: 'tested with lab 19.1: ' },
+  { label: 'unroll, kernel.cu', lab: 'ch19/lab1_convgemm', file: 'kernel.cu' },
+  { label: 'unroll, kernel.metal', lab: 'ch19/lab1_convgemm', file: 'kernel.metal' },
+  { label: 'gemm-path, kernel.cu', lab: 'ch19/lab1_convgemm', file: 'kernel.cu' },
+  { label: 'gemm-path, launch.mm', lab: 'ch19/lab1_convgemm', file: 'launch.mm' },
+], { reveal: ["Show the reference solution's unroll and GEMM call"] });
 
 check('no console or page errors', errors.length === 0, errors.join(' | '));
 await browser.close();

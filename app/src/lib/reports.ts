@@ -25,7 +25,18 @@ export interface BackendRun {
   /** Per lab: 'untouched' while work/ is still identical to starter/, else 'edited'. */
   work_state?: Record<string, 'untouched' | 'edited'>;
 }
-export type Reports = Record<string, BackendRun>;
+/**
+ * The last CUDA front-end check on this machine (GET /api/frontend-check), per .cu file
+ * ('labs/ch05/lab1_x/solution/kernel.cu'): 'ok' or 'fail', present only while the file is
+ * unchanged since the check. Kept under a symbol so that code listing a Reports' backends
+ * (Object.keys) never sees it.
+ */
+export const FRONTEND = Symbol('cuda front-end check');
+export type FrontendCheck = Record<string, 'ok' | 'fail'>;
+export type Reports = Record<string, BackendRun> & { [FRONTEND]?: FrontendCheck };
+
+/** The front-end check's verdict on one file, or 'none' when this machine has no current one. */
+export const frontendStatus = (reports: Reports, file: string): 'ok' | 'fail' | 'none' => reports[FRONTEND]?.[file] ?? 'none';
 
 export function useReports(): { reports: Reports; loading: boolean; reload: () => void } {
   const [reports, setReports] = useState<Reports>({});
@@ -33,9 +44,9 @@ export function useReports(): { reports: Reports; loading: boolean; reload: () =
   const [n, setN] = useState(0);
   useEffect(() => {
     setLoading(true);
-    fetch('/api/reports')
-      .then((r) => r.json())
-      .then(setReports)
+    const json = (u: string) => fetch(u).then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
+    Promise.all([json('/api/reports'), json('/api/frontend-check')])
+      .then(([runs, fe]) => setReports(Object.assign(runs as Reports, { [FRONTEND]: fe as FrontendCheck })))
       .catch(() => setReports({}))
       .finally(() => setLoading(false));
   }, [n]);

@@ -7,7 +7,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { open, goto } from './browser.mjs';
+import { open, goto, BASE } from './browser.mjs';
+import { checkLabStatuses, tabStatus } from './labstatus.mjs';
 import {
   basicAI,
   cubeAI,
@@ -144,10 +145,14 @@ check('the listing is the file\'s own text', !!sig && codes[0].code.includes(sig
 check('second listing is the cube kernel from labs/ch08/shared', codes[1].code.includes('stencilTiledCubeKernel') && cubeFile.includes('stencilTiledCubeKernel'));
 const def = /#define\s+(\w*IN_TILE_DIM)\s+(\d+)/.exec(cubeFile);
 check('the cube caption names the file\'s own tile constants', !!def && codes[1].cap.includes(`${def[1]} as ${def[2]}`), codes[1].cap);
-check('CUDA status reads the fixture: no emulator or CUDA run', codes[0].status.includes('unverified on CUDA and HIP'), codes[0].status);
+// The fixture has no emulator, CUDA or HIP run of the solution; the page still reads this machine's
+// CUDA front-end check (GET /api/frontend-check is not intercepted).
+const frontend = await (await fetch(BASE + '/api/frontend-check')).json();
+const wantCu = tabStatus(FIXTURE, LAB, 'kernel.cu', frontend);
+check(`CUDA status reads the fixture (no emulator, CUDA or HIP run of the solution) and the front-end check: "${wantCu}"`, codes[0].status === wantCu, codes[0].status);
 await page.evaluate(() => [...document.querySelectorAll('figure.code')][0].querySelectorAll('.tabs button')[1].click());
 await pause(80);
-check('Metal tab shows the Metal kernel, verified on Metal per the fixture', (await text('figure.code pre')).includes('stencil_basic') && (await text('figure.code .status')).includes('verified on Metal'));
+check('Metal tab shows the Metal kernel, verified on Metal per the fixture', (await text('figure.code pre')).includes('stencil_basic') && (await text('figure.code .status')) === 'verified on Metal');
 
 // ---------------------------------------------------------------- the prediction
 {
@@ -308,6 +313,12 @@ check('q-never-read: 80 is correct', t.includes('Correct.'));
 }
 check('the basic kernel\'s caption does not claim the HIP path compiled', (await text('body')).includes('that path has not been compiled on AMD hardware yet') && !(await text('body')).includes('The HIP build compiles the CUDA file unchanged'));
 check('the AI curve keeps a readable width and scrolls in its own frame', await page.$eval('[data-scroll="ai-curve"]', (e) => getComputedStyle(e).overflowX === 'auto' && parseFloat(getComputedStyle(e.querySelector('svg')).minWidth) >= 500));
+
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch08/8.4', [
+  { label: 'CUDA and HIP', lab: 'ch08/lab1_stencil3d', file: 'kernel.cu' },
+  { label: 'Metal', lab: 'ch08/lab1_stencil3d', file: 'kernel.metal' },
+]);
 
 check('no console or page errors', errors.length === 0, errors.join(' | '));
 await browser.close();

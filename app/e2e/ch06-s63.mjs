@@ -10,6 +10,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { open, goto, BASE } from './browser.mjs';
+import { tabStatus } from './labstatus.mjs';
 import { instructions, plan, widestVector } from '../src/sim/vectorize.ts';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -76,11 +77,6 @@ const answerChoice = async (needle, optionStart) => {
   await pause(120);
   return q.evaluate((e) => e.textContent);
 };
-// The project's rule for a reference solution's status (src/lib/reports.ts labStatus).
-const passes = (reports, backend) => {
-  const rs = reports[backend]?.results.filter((x) => x.lab === LAB && x.variant === 'solution' && x.tests.length) ?? [];
-  return rs.length > 0 && rs.every((x) => x.built && x.test_rc === 0 && x.tests.every((t) => t.pass));
-};
 const statusOf = () => page.$eval('.code .tabs .status', (e) => e.textContent.trim());
 const tab = async (label) => {
   await page.evaluate((l) => [...document.querySelectorAll('.code .tabs button')].find((b) => b.textContent.trim() === l).click(), label);
@@ -101,19 +97,11 @@ const shown = () => page.$eval('.code pre', (e) => e.textContent.replace(/\n$/, 
 check('the CUDA tab is the file on disk, with the vector kernel', (await shown()) === disk('kernel.cu') && (await shown()).includes('((const float4*)x)[i]'));
 check('the float4 lines are highlighted', (await page.$$('.code .ln.hl')).length >= 4);
 const reports = await (await fetch(BASE + '/api/reports')).json();
-// The same words as the labs page (components/LabKit.tsx solutionTabStatus).
-const ran = (b) => (reports[b]?.results ?? []).some((x) => x.lab === LAB && x.variant === 'solution' && x.tests.length);
-const st = (b) => (!ran(b) ? 'none' : passes(reports, b) ? 'pass' : 'fail');
-const NAMES = { cuda: 'CUDA', hip: 'HIP', emu: 'the emulator' };
-const fam = ['cuda', 'hip', 'emu'];
-const passed = fam.filter((b) => st(b) === 'pass').map((b) => (b === 'emu' ? 'emulator-checked' : `verified on ${NAMES[b]}`));
-const failed = fam.filter((b) => st(b) === 'fail').map((b) => NAMES[b]);
-const noRun = ['cuda', 'hip'].filter((b) => st(b) === 'none').map((b) => NAMES[b]);
-const and = (xs) => (xs.length < 3 ? xs.join(' and ') : xs.slice(0, -1).join(', ') + ' and ' + xs.at(-1));
-const wantCu = !passed.length && !failed.length
-  ? 'unverified: no run on this machine'
-  : [passed.join(', '), failed.length ? `unverified on ${and(failed)}: failed on this machine` : '', noRun.length ? `unverified on ${noRun.join(' and ')}` : ''].filter(Boolean).join('; ');
-const wantMetal = st('metal') === 'pass' ? 'verified on Metal' : `unverified: ${st('metal') === 'fail' ? 'failed on this machine' : 'no run on this machine'}`;
+// The same words as the labs page (LabKit's solutionTabStatus), from the shared helper, with
+// this machine's CUDA front-end check.
+const frontend = await (await fetch(BASE + '/api/frontend-check')).json();
+const wantCu = tabStatus(reports, LAB, 'kernel.cu', frontend);
+const wantMetal = tabStatus(reports, LAB, 'kernel.metal', frontend);
 check('the CUDA status is read from the reports, in the project vocabulary', (await statusOf()) === wantCu, `${await statusOf()} vs ${wantCu}`);
 await tab('Metal kernel');
 check('the Metal tab declares float4 buffers instead of casting', (await shown()) === disk('kernel.metal') && (await shown()).includes('device const float4* x4'));

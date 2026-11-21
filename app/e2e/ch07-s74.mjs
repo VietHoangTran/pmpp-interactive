@@ -5,6 +5,7 @@
 // with no audio the player runs on estimated timings and shows each script regardless.
 // Usage: node e2e/ch07-s74.mjs [screenshot-prefix]
 import { open, goto, BASE } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 import { DEMO_SEED, distinctCount, expectedDistinct, replaySchedule, warpAddresses } from '../src/sim/constcache.ts';
 
 const out = process.argv[2];
@@ -304,6 +305,13 @@ if (out) {
 const expected404 = (u) => /\/content\/ch07\/narration\/(manifest\.json|[\w-]+\.mp3)$/.test(u);
 const realErrors = errors.filter((e) => !/Failed to load resource: the server responded with a status of 404/.test(e));
 check('no console or page errors (a missing narration manifest is allowed)', realErrors.length === 0 && missing.every(expected404), [...realErrors, ...missing.filter((u) => !expected404(u))].join(' | '));
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch07/7.4', [
+  { label: 'CUDA', lab: 'ch07/lab1_constconv', file: 'kernel.cu' },
+  { label: 'Metal kernel', lab: 'ch07/lab1_constconv', file: 'kernel.metal' },
+  { label: 'Metal host', lab: 'ch07/lab1_constconv', file: 'launch.mm' },
+]);
+
 await browser.close();
 console.log(fail.length ? `\n${fail.length} check(s) failed` : '\nall checks passed');
 process.exit(fail.length ? 1 : 0);

@@ -4,6 +4,7 @@
 // notes/today/ch16-facts.md E1 and the closed forms the page states.
 // Usage: node e2e/ch16-s166.mjs [screenshot-prefix]
 import { open, goto } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 import { fill, launchPlan, loadsOf, cellAt, makeSequences, runTile, summary, busyPerStep } from '../src/sim/wavetile.ts';
 
 const out = process.argv[2];
@@ -332,6 +333,13 @@ if (out) {
 
 const expected404 = (u) => /\/content\/ch16\/narration\/(manifest\.json|[\w-]+\.mp3)$/.test(u);
 const realErrors = errors.filter((e) => !/Failed to load resource: the server responded with a status of 404/.test(e) && !(e.startsWith('requestfailed') && expected404(e.slice(15))));
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch16/16.6', [
+  { label: 'CUDA', lab: 'ch16/lab1_wavefront', file: 'kernel.cu' },
+  { label: 'Metal kernel', lab: 'ch16/lab1_wavefront', file: 'kernel.metal' },
+  { label: 'Metal host', lab: 'ch16/lab1_wavefront', file: 'launch.mm' },
+]);
+
 check('no console or page errors', realErrors.length === 0, realErrors.join(' | '));
 await browser.close();
 console.log(fail.length ? `\n${fail.length} check(s) failed` : '\nall checks passed');

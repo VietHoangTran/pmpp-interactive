@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Ask, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
+import { solutionTabStatus } from '../../components/LabKit';
+import { useReports } from '../../lib/reports';
 import { Aside, Bench, Beyond, Simplification, Today } from '../../components/notes';
 import { useProgress } from '../../lib/progress';
 import { href } from '../../lib/router';
@@ -30,7 +32,6 @@ import { Excerpt } from './Excerpt';
 
 const FACTS = 'notes/today/x3-facts.md';
 const LAB = 'ch20/lab4_decode/solution/kernel.cu';
-const CU_STATUS = 'emulator-checked; front-end-checked; unverified on CUDA and HIP hardware';
 const GITMODULES = permalink('pytorch', '.gitmodules', [115, 117]);
 /** The start page's prediction this section reveals. */
 export const START_PREDICTION = 'x3/start/p-attention-home';
@@ -375,6 +376,9 @@ const linesWith = (fn: { text: string; firstLine: number }, parts: string[]) =>
 
 export function SX35() {
   const cu = useLabFile(LAB);
+  // The labs page's words (LabKit's solutionTabStatus), from this machine's runs.
+  const { reports } = useReports();
+  const CU_STATUS = solutionTabStatus(reports, 'ch20/lab4_decode', 'kernel.cu');
   const decode = cu ? functionSource(cu, 'decodeAttentionKernel') : null;
   const butterfly = cu ? functionSource(cu, 'warpSumAll') : null;
   return (

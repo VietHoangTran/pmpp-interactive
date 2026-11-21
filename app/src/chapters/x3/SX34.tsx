@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Ask, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
+import { solutionTabStatus } from '../../components/LabKit';
 import { Aside, Bench, Beyond, Simplification, Today } from '../../components/notes';
 import { fmt, useReports } from '../../lib/reports';
 import { href } from '../../lib/router';
@@ -24,7 +25,6 @@ import { Excerpt } from './Excerpt';
 
 const FACTS = 'notes/today/x3-facts.md';
 const LAB = 'ch22/lab1_gemv/solution/kernel.cu';
-const CU_STATUS = 'emulator-checked; front-end-checked; unverified on CUDA and HIP hardware';
 const LLAMA_MUL_MAT = permalink('llama.cpp', 'ggml/src/ggml-cuda/ggml-cuda.cu', [2535, 2596]);
 
 // MLX CUDA's gemv_impl, copied from notes/today/x3-facts.md B4 at the pinned commit and shown
@@ -382,6 +382,9 @@ function WhichKernel() {
 // ---------------------------------------------------------------- the page
 export function SX34() {
   const cu = useLabFile(LAB);
+  // The labs page's words (LabKit's solutionTabStatus), from this machine's runs.
+  const { reports } = useReports();
+  const CU_STATUS = solutionTabStatus(reports, 'ch22/lab1_gemv', 'kernel.cu');
   const dots = cu ? functionSource(cu, 'warpRowDots') : null;
   const sum = cu ? functionSource(cu, 'warpSum') : null;
   const gather = cu ? functionSource(cu, 'gemvGatherKernel') : null;

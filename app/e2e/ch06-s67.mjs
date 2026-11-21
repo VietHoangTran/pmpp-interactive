@@ -5,6 +5,7 @@
 // ch06-scene-double-buffer.mjs.
 // Usage: node e2e/ch06-s67.mjs [screenshot-prefix]
 import { open, goto } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 import { KIND_LABEL, SCHEDULES, VARIANTS, firstFailure, run } from '../src/sim/doublebuf.ts';
 
 const out = process.argv[2];
@@ -173,7 +174,7 @@ check("the CUDA tab is lab 6.5's reference solution, with one barrier in the loo
 await fig.evaluate((f) => [...f.querySelectorAll('.tabs button')].find((b) => b.textContent === 'Double-buffered (Metal)').click());
 await pause(80);
 const status = await fig.evaluate((f) => f.querySelector('.tabs .status')?.textContent ?? '');
-check('the Metal tab is the Metal kernel, its status in the fixed vocabulary', (await figText()).includes('threadgroup_barrier') && /^(verified on Metal|no run on this machine|unverified: failed on this machine)$/.test(status), status);
+check('the Metal tab is the Metal kernel, its status in the fixed vocabulary', (await figText()).includes('threadgroup_barrier') && /^(verified on Metal|unverified: no run on this machine|unverified: failed on this machine)$/.test(status), status);
 
 // ---- questions
 const q = async (needle) => page.evaluateHandle((n) => [...document.querySelectorAll('.q')].find((e) => e.textContent.includes(n)), needle);
@@ -227,6 +228,13 @@ if (out) {
 const expected404 = (u) => /\/content\/ch06\/narration\/(manifest\.json|double-buffer-\d\.mp3)$/.test(u);
 const real = errors.filter((e) => !/Failed to load resource: the server responded with a status of 404/.test(e));
 check('no console or page errors (a missing narration manifest is allowed)', real.length === 0 && missing.every(expected404), [...real, ...missing.filter((u) => !expected404(u))].join(' | '));
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch06/6.7', [
+  { label: 'Chapter 5: two barriers', lab: 'ch05/lab2_tiled', file: 'kernel.cu' },
+  { label: 'Double-buffered (CUDA)', lab: 'ch06/lab5_doublebuf', file: 'kernel.cu' },
+  { label: 'Double-buffered (Metal)', lab: 'ch06/lab5_doublebuf', file: 'kernel.metal' },
+]);
+
 await browser.close();
 console.log(fail.length ? `\n${fail.length} check(s) failed` : '\nall checks passed');
 process.exit(fail.length ? 1 : 0);

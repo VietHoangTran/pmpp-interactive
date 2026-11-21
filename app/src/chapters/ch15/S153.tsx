@@ -1,8 +1,8 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
-import { defineLabs, solutionStatus } from '../../components/LabKit';
-import { cuStatus } from './labStatus';
+import { defineLabs } from '../../components/LabKit';
+import { cuStatus, metalStatus } from './labStatus';
 import { Aside, Bench, Beyond, Simplification, Source, TierLegend, Today, type Tier } from '../../components/notes';
 import { useReports } from '../../lib/reports';
 import { href } from '../../lib/router';
@@ -79,8 +79,8 @@ function Listing() {
     <Code
       tabs={[
         { label: 'CUDA', code: cu, tiers: GEMM15_TIERS, status: cuStatus(reports, LAB1) },
-        { label: 'Metal kernel', code: metal, tiers: GEMM15_TIERS, status: solutionStatus(reports, 'metal', LAB1).text },
-        { label: 'Metal host', code: mm, tiers: {}, status: solutionStatus(reports, 'metal', LAB1).text },
+        { label: 'Metal kernel', code: metal, tiers: GEMM15_TIERS, status: metalStatus(reports, LAB1) },
+        { label: 'Metal host', code: mm, tiers: {}, status: metalStatus(reports, LAB1) },
       ]}
       caption={
         <>

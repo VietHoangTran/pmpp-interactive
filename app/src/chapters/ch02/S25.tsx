@@ -67,15 +67,13 @@ function KernelListing({ cu, metal }: { cu: string | null; metal: string | null 
   return (
     <Code
       tabs={[
-        { label: 'CUDA', code: k.text, tiers: KERNEL_TIERS, status: status.cu },
-        { label: 'Metal', code: m.text, tiers: KERNEL_TIERS, status: status.metal },
+        { label: 'CUDA', code: k.text, tiers: KERNEL_TIERS, status: status.cu, firstLine: k.firstLine, source: <code>labs/{LAB}/solution/kernel.cu</code> },
+        { label: 'Metal', code: m.text, tiers: KERNEL_TIERS, status: status.metal, firstLine: m.firstLine, source: <code>labs/{LAB}/solution/kernel.metal</code> },
       ]}
       caption={
         <>
-          The kernel function of lab 2.1's reference solution, from <code>kernel.cu</code> (lines {k.firstLine} to{' '}
-          {k.lastLine}) and <code>kernel.metal</code> (lines {m.firstLine} to {m.lastLine}) in{' '}
-          <code>labs/{LAB}/solution/</code>. The CUDA kernel is the book's Fig. 2.10 with <code>const</code> added to
-          the two inputs. Try the lab before you study this.
+          The kernel function of lab 2.1's reference solution, numbered as the lines are in each file. The CUDA kernel
+          is the book's Fig. 2.10 with <code>const</code> added to the two inputs. Try the lab before you study this.
         </>
       }
     />

@@ -26,12 +26,6 @@
 
 #include <cstdio>
 
-// The course's CUDA front-end check (labs/pmpp.py) declares no CUDA Math API functions,
-// so it is given sqrtf's device declaration here. nvcc, hipcc and the emulators never see it.
-#if defined(PMPP_CUDA_FRONTEND_CHECK)
-__device__ float sqrtf(float x);
-#endif
-
 #if COARSEN != 4
 #error "dcsCoarsenedKernel is written for four points per thread, as Fig. 21.10 is"
 #endif

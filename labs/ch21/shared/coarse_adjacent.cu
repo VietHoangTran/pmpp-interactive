@@ -19,10 +19,6 @@
 
 #include <cstdio>
 
-#if defined(PMPP_CUDA_FRONTEND_CHECK)
-__device__ float sqrtf(float x);
-#endif
-
 #if COARSEN != 4
 #error "dcsCoarseAdjacentKernel is written for four points per thread, as Fig. 21.8 is"
 #endif

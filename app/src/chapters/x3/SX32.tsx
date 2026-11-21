@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { Ask, type Question } from '../../components/Ask';
-import { Code, useLabFile } from '../../components/Code';
+import { Code, useLabExcerpt } from '../../components/Code';
 import { Aside, Bench, Beyond, Simplification, Today } from '../../components/notes';
 import { href } from '../../lib/router';
 import { MECHANISMS, PROJECT_NAME, BACKEND_NAME, VARIANT_MECHANISMS, gradeSort, type Mechanism } from '../../sim/backendmap';
@@ -285,16 +285,6 @@ export const questionsSX32: Record<string, Question> = {
 };
 
 // ---------------------------------------------------------------- course kernels, loaded from the labs
-/** The lines of a lab file from the first line that starts with `start` to the next line that is "}". */
-function cut(text: string | null, start: string): string {
-  if (!text) return '// loading…';
-  const lines = text.split('\n');
-  const a = lines.findIndex((l) => l.startsWith(start));
-  if (a < 0) return '// not found in the lab file: ' + start;
-  const b = lines.findIndex((l, i) => i > a && l === '}');
-  return lines.slice(a, b + 1).join('\n');
-}
-
 // ---------------------------------------------------------------- the launch-shapes explorer
 const FIELD: CSSProperties = { display: 'inline-flex', flexDirection: 'column', gap: '0.2rem', color: 'var(--ink-2)', fontFamily: 'var(--sans)', fontSize: '0.84rem' };
 const CW = 13;
@@ -545,8 +535,9 @@ function VariantSort() {
 export function SX32() {
   const q = questionsSX32;
   const x = EXCERPTS_SX32;
-  const lab23 = useLabFile('ch02/lab3_elementwise/solution/kernel.cu');
-  const lab62 = useLabFile('ch06/lab2_vector/solution/kernel.cu');
+  // Each kernel without its comment, numbered as in its file.
+  const lab23 = useLabExcerpt('ch02/lab3_elementwise/solution/kernel.cu', 'addResidualKernel', { comment: false });
+  const lab62 = useLabExcerpt('ch06/lab2_vector/solution/kernel.cu', 'vecAdd4Kernel', { comment: false });
   return (
     <>
       <p>
@@ -569,7 +560,7 @@ export function SX32() {
         before you read on.
       </p>
       <Excerpt x={x.unary} caption="llama.cpp’s unary kernel." />
-      <Code tabs={[{ label: 'lab 2.3, addResidualKernel', code: cut(lab23, '__global__ void addResidualKernel') }]}
+      <Code tabs={[{ label: 'lab 2.3, addResidualKernel', code: lab23?.text ?? '// loading…', firstLine: lab23?.firstLine }]}
         caption={<>The course’s kernel, loaded from <code>labs/ch02/lab3_elementwise/solution/kernel.cu</code>.</>} />
       <Ask q={q['x3/X3.2/q-read-unary']} label="Read the excerpt" />
       <p>
@@ -618,7 +609,7 @@ export function SX32() {
       <p>
         Lab 6.2 asked you for the same kernel. Compare its body:
       </p>
-      <Code tabs={[{ label: 'lab 6.2, vecAdd4Kernel', code: cut(lab62, '__global__ void vecAdd4Kernel') }]}
+      <Code tabs={[{ label: 'lab 6.2, vecAdd4Kernel', code: lab62?.text ?? '// loading…', firstLine: lab62?.firstLine }]}
         caption={<>Loaded from <code>labs/ch06/lab2_vector/solution/kernel.cu</code>.</>} />
       <p>
         The difference is inside <code>load_vector</code>. It does the book’s pointer cast, but only after testing that the

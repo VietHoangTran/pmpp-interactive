@@ -202,6 +202,6 @@ The numbers are measurements of your machine, at these sizes, not targets.
 - Metal: `launch.mm` reads the SIMD-group width from the pipeline (`threadExecutionWidth`)
   and refuses to dispatch unless 256 threads make whole SIMD-groups and no more
   SIMD-groups than a SIMD-group has lanes (stage 2 gives each group's result one lane).
-- `kernel.cu` declares `expf` and `logf` under `PMPP_CUDA_FRONTEND_CHECK`, a macro only the
-  course's CUDA front-end check defines: that check has no CUDA math declarations of its
-  own.
+- `expf` and `logf` need no declaration of their own: the course's CUDA front-end check
+  declares the single-precision math functions in its stub header (an earlier version of
+  this file declared them under `PMPP_CUDA_FRONTEND_CHECK`, from before the stub had them).

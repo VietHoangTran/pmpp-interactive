@@ -4,7 +4,7 @@ import { Code, useLabFile } from '../../components/Code';
 import { Bench, Beyond, Simplification, Source, Today, type Tier } from '../../components/notes';
 import { benchRows, fmt, num, realBackends, useReports, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
-import { STATUS } from './status';
+import { useLabStatus } from './status';
 import { BOOK_CAPACITY, deviceSlots, residentUpperBound } from '../../sim/coarsen';
 import {
   CH6_DEVICE_R,
@@ -55,6 +55,7 @@ export function coarseningLines(text: string): number[] {
 }
 
 function CoarsenListing() {
+  const status = useLabStatus(LAB);
   const cu = useLabFile(LAB + '/solution/kernel.cu');
   const k = cu ? functionSource(cu, 'CoarsenedSumReductionKernel') : null;
   if (!k)
@@ -66,7 +67,7 @@ function CoarsenListing() {
   const loop = coarseningLines(k.text);
   return (
     <Code
-      tabs={[{ label: 'CUDA', code: k.text, tiers: SUM_TIERS, status: STATUS.cu, highlight: loop }]}
+      tabs={[{ label: 'CUDA', code: k.text, tiers: SUM_TIERS, status: status.cu, highlight: loop }]}
       caption={
         <>
           <code>CoarsenedSumReductionKernel</code> from lab 10.1's reference solution (<code>labs/{LAB}/solution/kernel.cu</code>,

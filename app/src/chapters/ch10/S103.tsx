@@ -3,7 +3,7 @@ import { Ask, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
 import { Aside, Bench, Beyond, Simplification, Source, Today, type Tier } from '../../components/notes';
 import { href } from '../../lib/router';
-import { STATUS } from './status';
+import { STATUS, useLabStatus } from './status';
 import {
   EXERCISE_6,
   FIG_VALUES,
@@ -28,6 +28,9 @@ import { SCHEDULE_LABEL } from '../../sim/tiled';
 import { functionSource } from '../../sim/toolchain';
 
 import { NoteGroup } from './NoteGroup';
+
+// The lab whose runs give the status of the listings taken from its files (and from labs/ch10/shared/, which it runs).
+const LAB10_1 = 'ch10/lab1_sum';
 const SCHEDULES: Schedule[] = ['lockstep', 'in-order', 'reversed', 'shuffled'];
 /** Identifiers coloured by the memory they live in. */
 const TIERS: Record<string, Tier> = { input: 'global', output: 'global', row: 'global', i: 'reg', stride: 'reg', t: 'reg', b: 'reg', bdim: 'reg' };
@@ -419,7 +422,7 @@ export const questionsS103: Record<string, Question> = {
 export function S103() {
   const cu = useLabFile('ch10/shared/inplace_sum.cu');
   const metal = useLabFile('ch10/shared/inplace_sum.metal');
-  const status = STATUS;
+  const status = useLabStatus(LAB10_1);
   const k = !missing(cu) ? functionSource(cu!, INPLACE_KERNEL.simple) : null;
   const m = metalFn(metal, 'simple_sum');
   const barrierLine = m ? m.text.split('\n').findIndex((l) => l.includes('threadgroup_barrier')) + 1 : 0;

@@ -1,8 +1,9 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
+import { solutionTabStatus } from '../../components/LabKit';
 import { Bench, Beyond, Simplification, Source, Today, type Tier } from '../../components/notes';
-import { benchRows, fmt, labStatus, num, useReports, type Reports } from '../../lib/reports';
+import { benchRows, fmt, num, useReports, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import {
   basicAI,
@@ -312,20 +313,10 @@ function CubeCaption({ cu }: { cu: string }) {
   );
 }
 
-/** Status of the lab's reference solution, in the project's fixed vocabulary. */
+/** Status of the lab's reference solution, in the labs page's words (LabKit's solutionTabStatus). */
 function useLabStatus() {
   const { reports } = useReports();
-  const st = (b: string) => labStatus(reports[b], LAB, 'solution');
-  const got = [
-    st('emu') === 'pass' ? 'emulator-checked' : '',
-    st('cuda') === 'pass' ? 'verified on CUDA' : '',
-    st('hip') === 'pass' ? 'verified on HIP' : '',
-  ].filter(Boolean);
-  const lacking = (['cuda', 'hip'] as const).filter((b) => st(b) !== 'pass').map((b) => (b === 'cuda' ? 'CUDA' : 'HIP'));
-  return {
-    cu: (got.length ? got.join(', ') : 'no passing run on this machine') + (lacking.length ? `; unverified on ${lacking.join(' and ')}` : ''),
-    metal: st('metal') === 'pass' ? 'verified on Metal' : 'unverified: no passing Metal run on this machine',
-  };
+  return { cu: solutionTabStatus(reports, LAB, 'kernel.cu'), metal: solutionTabStatus(reports, LAB, 'kernel.metal') };
 }
 
 function LabListing({

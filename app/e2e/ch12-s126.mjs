@@ -5,6 +5,7 @@
 // segments, 18 staged stores and 77 segments; 30, 8 + 4f + 16/256 and 6 bytes per key).
 // Usage: APP_URL=http://localhost:5173 node e2e/ch12-s126.mjs [screenshot-prefix] [--dark]
 import { open, goto } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 
 const out = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : null;
 const dark = process.argv.includes('--dark');
@@ -137,6 +138,13 @@ check('q-direct: consecutive slots is right', (await qd.evaluate((e) => e.textCo
 const expected404 = (u) => /\/content\/ch12\/narration\/(manifest\.json|stage-write-\d\.mp3)$/.test(u);
 const real = errors.filter((e) => !/Failed to load resource: the server responded with a status of 404/.test(e));
 check('no console or page errors (a missing narration manifest is allowed)', real.length === 0 && missing.every(expected404), [...real, ...missing.filter((u) => !expected404(u))].join(' | '));
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch12/12.6', [
+  { label: 'CUDA', lab: 'ch12/lab3_stable', file: 'kernel.cu' },
+  { label: 'Metal kernel', lab: 'ch12/lab3_stable', file: 'kernel.metal' },
+  { label: 'Metal host', lab: 'ch12/lab3_stable', file: 'launch.mm' },
+]);
+
 await browser.close();
 console.log(fail.length ? `\n${fail.length} check(s) failed` : '\nall checks passed');
 process.exit(fail.length ? 1 : 0);

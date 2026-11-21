@@ -220,5 +220,6 @@ machine at these sizes, not targets.
   constant; threadgroup memory lengths are multiples of 16 bytes (ch05-facts C8). Whether a
   buffer bound at offset 0 starts on the 16-byte boundary a `float4` needs is not stated in
   the facts files we checked: unverified, though every test here passes through it.
-- `kernel.cu` declares `expf` and `sqrtf` under `PMPP_CUDA_FRONTEND_CHECK`, a macro only the
-  course's CUDA front-end check defines: that check has no CUDA math declarations of its own.
+- `expf` and `sqrtf` need no declaration of their own: the course's CUDA front-end check
+  declares the single-precision math functions in its stub header (an earlier version of
+  this file declared them under `PMPP_CUDA_FRONTEND_CHECK`, from before the stub had them).

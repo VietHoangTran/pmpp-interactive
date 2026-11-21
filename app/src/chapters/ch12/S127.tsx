@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Ask, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
+import { solutionTabStatus } from '../../components/LabKit';
+import { useReports } from '../../lib/reports';
 import { Aside, Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
 import { href } from '../../lib/router';
 import {
@@ -23,7 +25,6 @@ import { ScanChainScene } from './ScanChainScene';
 // ch11-facts.md C5. Every number the explorer and the puzzle show comes from sim/inplace.ts.
 
 const LAB5 = 'ch12/lab5_inplace/solution/kernel.cu';
-const LAB5_STATUS = 'emulator-checked and front-end-checked; unverified on CUDA and HIP hardware';
 // Lines the listing marks, found by their text so that edits to the lab file cannot shift them.
 const LAB5_MARKS = [
   'counter.fetch_add(1',
@@ -568,6 +569,9 @@ function OrderingPuzzle() {
 export function S127() {
   const q = questionsS127;
   const lab5 = useLabFile(LAB5);
+  // The labs page's words (LabKit's solutionTabStatus), from this machine's runs. Lab 12.5 has no Metal files.
+  const { reports } = useReports();
+  const lab5Status = solutionTabStatus(reports, 'ch12/lab5_inplace', 'kernel.cu');
   return (
     <>
       <p>
@@ -761,7 +765,7 @@ export function S127() {
         exercise 2 of the chapter plus the in-place twist.
       </p>
       <Code
-        tabs={[{ label: 'CUDA (and HIP)', code: lab5 ?? '// loading labs/' + LAB5, status: LAB5_STATUS, highlight: marked(lab5) }]}
+        tabs={[{ label: 'CUDA (and HIP)', code: lab5 ?? '// loading labs/' + LAB5, status: lab5Status, highlight: marked(lab5) }]}
         caption={
           <>
             <code>stableFilterSinglePassKernel</code>, loaded from <code>labs/{LAB5}</code>. Marked: the number from

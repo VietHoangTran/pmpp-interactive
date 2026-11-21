@@ -5,6 +5,7 @@
 // imported here.
 // Usage: APP_URL=http://localhost:5173 node e2e/ch12-s124.mjs [screenshot-prefix] [--dark]
 import { open, goto } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 
 const out = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : null;
 const dark = process.argv.includes('--dark');
@@ -178,6 +179,12 @@ check('q-barrier3: "Reversed only" is wrong, because the shuffled order exposes 
 // The table above shows the same: stopped under reversed and shuffled, correct in order.
 const right3 = await pick3('Reversed and shuffled; in order passes.');
 check('q-barrier3: "reversed and shuffled; in order passes" is right, and the explanation names the shuffled order', right3.includes('Correct.') && right3.includes('1, 3, 2, 0'));
+
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch12/12.4', [
+  { label: 'CUDA', lab: 'ch12/lab1_unstable', file: 'kernel.cu' },
+  { label: 'Metal kernel', lab: 'ch12/lab1_unstable', file: 'kernel.metal' },
+]);
 
 check('no console or page errors', errors.length === 0, errors.join(' | '));
 await browser.close();

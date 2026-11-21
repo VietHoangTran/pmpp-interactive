@@ -2,7 +2,8 @@
 // explorer, the prediction and its reveal (with this machine's reports, then with injected
 // ones), and the questions. Expected values come from src/sim/multiblock.ts, imported here.
 // Usage: APP_URL=http://localhost:5173 node e2e/ch10-s109.mjs [screenshot-prefix]
-import { open, goto } from './browser.mjs';
+import { open, goto, BASE } from './browser.mjs';
+import { checkLabStatuses, tabStatus } from './labstatus.mjs';
 import { blockSums, blockView, commit, f32hex, f32short, history, logits, runOf, segments, threadLoads } from '../src/sim/multiblock.ts';
 
 const out = process.argv[2];
@@ -78,7 +79,9 @@ const tabs = await page.$$eval('figure.code .tabs button', (b) => b.map((x) => x
 check('listing offers the CUDA kernel, its host function and the Metal kernel', ['CUDA kernel', 'CUDA host', 'Metal kernel'].every((t) => tabs.includes(t)), tabs.join('|'));
 const hl = await page.$$eval('figure.code .ln.hl', (l) => l.map((x) => x.textContent.trim()));
 check('the CUDA tab marks exactly the commit lines: the HIP call, then the book\'s two', hl.length === 3 && hl[0].startsWith('atomicAdd(output') && hl[1].startsWith('cuda::atomic_ref') && hl[2].startsWith('output_ref.fetch_add'), JSON.stringify(hl));
-check('the CUDA tab\'s status is the chapter\'s fixed wording', (await text('figure.code .status')) === 'front-end-checked; emulator-checked; unverified on CUDA and HIP hardware', await text('figure.code .status'));
+const labReports = await (await fetch(BASE + '/api/reports')).json();
+const frontend = await (await fetch(BASE + '/api/frontend-check')).json();
+check('the CUDA tab\'s status is the labs page\'s, from this machine\'s runs', (await text('figure.code .status')) === tabStatus(labReports, 'ch10/lab1_sum', 'kernel.cu', frontend), await text('figure.code .status'));
 await page.evaluate(() => [...document.querySelectorAll('figure.code .tabs button')].find((b) => b.textContent.trim() === 'CUDA host').click());
 await pause(80);
 const hlHost = await page.$$eval('figure.code .ln.hl', (l) => l.map((x) => x.textContent.trim()));
@@ -88,7 +91,7 @@ await pause(80);
 const hlMetal = await page.$$eval('figure.code .ln.hl', (l) => l.map((x) => x.textContent.trim()));
 const metalSrc = await text('figure.code pre');
 check('the Metal tab is the kernel with atomic_fetch_add_explicit, marked', metalSrc.includes('kernel void coarsened_sum(') && hlMetal.length === 1 && hlMetal[0].startsWith('atomic_fetch_add_explicit'), JSON.stringify(hlMetal));
-check('the Metal tab\'s status is "verified on Metal"', (await text('figure.code .status')) === 'verified on Metal', await text('figure.code .status'));
+check('the Metal tab\'s status is the labs page\'s, from this machine\'s runs', (await text('figure.code .status')) === tabStatus(labReports, 'ch10/lab1_sum', 'kernel.metal', frontend), await text('figure.code .status'));
 
 // ---------------------------------------------------------------- segment calculator
 const SC = bench('Segment calculator');
@@ -195,6 +198,13 @@ const reveal = await p.evaluate((e) => e.textContent);
 check('the reveal shows this machine\'s count, or says how to measure it', reveal.includes('You predicted 1') && (/distinct results? (in|on)/.test(reveal) || reveal.includes('No measurement on this machine yet')), reveal.slice(0, 200));
 
 check('no console or page errors (a missing narration manifest is allowed)', realErrors(errors, missing).length === 0, realErrors(errors, missing).join(' | '));
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch10/10.9', [
+  { label: 'CUDA kernel', lab: 'ch10/lab1_sum', file: 'kernel.cu' },
+  { label: 'CUDA host', lab: 'ch10/lab1_sum', file: 'kernel.cu' },
+  { label: 'Metal kernel', lab: 'ch10/lab1_sum', file: 'kernel.metal' },
+]);
+
 await browser.close();
 
 // ---------------------------------------------------------------- prediction, injected reports

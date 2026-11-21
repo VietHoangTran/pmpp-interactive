@@ -163,19 +163,19 @@ function Network() {
         )}
       </svg>
       </div>
-      <table className="threads" aria-label="Counters" style={{ marginTop: '0.8rem' }}>
+      <table className="threads wrap" aria-label="Counters" style={{ marginTop: '0.8rem' }}>
         <tbody>
           <tr>
-            <td style={{ whiteSpace: 'normal' }}>comparators applied</td>
-            <td style={{ whiteSpace: 'normal' }}><b data-counter="applied">{(at * n) / 2}</b> of {bitonicCount(n)} ({stages.length} stages of {n / 2})</td>
+            <td>comparators applied</td>
+            <td><b data-counter="applied">{(at * n) / 2}</b> of {bitonicCount(n)} ({stages.length} stages of {n / 2})</td>
           </tr>
           <tr>
-            <td style={{ whiteSpace: 'normal' }}>swaps in the last stage</td>
+            <td>swaps in the last stage</td>
             <td><b data-counter="swaps">{swappedNow.filter(Boolean).length}</b></td>
           </tr>
           <tr>
-            <td style={{ whiteSpace: 'normal' }}>odd-even transposition, same N</td>
-            <td style={{ whiteSpace: 'normal' }}><b data-counter="transposition">{transpositionCount(n)}</b> comparators ({n} steps)</td>
+            <td>odd-even transposition, same N</td>
+            <td><b data-counter="transposition">{transpositionCount(n)}</b> comparators ({n} steps)</td>
           </tr>
         </tbody>
       </table>

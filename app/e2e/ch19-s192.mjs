@@ -10,6 +10,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { open, goto, BASE } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 import { BOOK_F, BOOK_LAYER, BOOK_X, directTrace, readsOfThread } from '../src/sim/cnnlayer.ts';
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -409,6 +410,13 @@ if (out) await page.$eval(WR, (e) => e.scrollIntoView({ block: 'start' })), awai
 const expected404 = (u) => /\/content\/ch19\/narration\/(manifest\.json|direct-reads-\d\.mp3)$/.test(u);
 const real = errors.filter((x) => !/Failed to load resource: the server responded with a status of 404/.test(x));
 check('no console or page errors (a missing narration manifest is allowed)', real.length === 0 && missing.every(expected404), [...real, ...missing.filter((u) => !expected404(u))].join(' | '));
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch19/19.2', [
+  { label: 'CUDA', lab: 'ch19/lab1_convgemm', file: 'kernel.cu' },
+  { label: 'Metal kernel', lab: 'ch19/lab1_convgemm', file: 'kernel.metal' },
+  { label: 'Metal host', lab: 'ch19/lab1_convgemm', file: 'launch.mm' },
+]);
+
 await browser.close();
 console.log(fail.length ? `\n${fail.length} check(s) failed` : '\nall checks passed');
 process.exit(fail.length ? 1 : 0);

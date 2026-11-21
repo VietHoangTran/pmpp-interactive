@@ -4,6 +4,7 @@
 // src/sim/multiblock.ts and src/sim/coarsen.ts, imported here.
 // Usage: APP_URL=http://localhost:5173 node e2e/ch10-s1010.mjs [screenshot-prefix]
 import { open, goto } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 import { CH6_DEVICE_R, coarsenSteps, fewestStepsC, justEnoughC, softmaxPreset } from '../src/sim/multiblock.ts';
 import { deviceSlots, residentUpperBound } from '../src/sim/coarsen.ts';
 
@@ -171,6 +172,11 @@ await p.evaluate((e) => [...e.querySelectorAll('button')].find((b) => b.textCont
 await pause(300);
 const rv = await p.evaluate((e) => e.textContent);
 check('the reveal shows this machine\'s sweep, or says how to measure it', rv.includes('You predicted 16') && (rv.includes('the fastest factor') || rv.includes('No measurement on this machine yet')), rv.slice(0, 160));
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch10/10.10', [
+  { label: 'CUDA', lab: 'ch10/lab1_sum', file: 'kernel.cu' },
+]);
+
 check('no console or page errors', errors.length === 0, errors.join(' | '));
 await browser.close();
 

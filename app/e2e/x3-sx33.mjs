@@ -6,6 +6,7 @@
 // the app's module server.
 // Usage: APP_URL=http://localhost:5173 node e2e/x3-sx33.mjs [screenshot-prefix]
 import { open, goto, BASE } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 
 const out = process.argv[2];
 const { browser, page, errors } = await open({ width: 1440, height: 1000 });
@@ -238,6 +239,12 @@ await (await qf.$$('input[type=radio]'))[1].click();
 await (await qf.$('button.primary')).click();
 await pause(120);
 check('q-float4-576 rejects the 1024 distractor with its reason', (await qf.evaluate((e) => e.textContent)).includes('Not quite.') && (await qf.evaluate((e) => e.textContent)).includes("block size"));
+
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'x3/X3.3', [
+  { label: 'lab 10.3, blockReduceSum', lab: 'ch10/lab3_softmax_argmax', file: 'kernel.cu' },
+  { label: 'lab 10.3, softmaxRowsKernel', lab: 'ch10/lab3_softmax_argmax', file: 'kernel.cu' },
+]);
 
 check('no console or page errors', errors.length === 0, errors.join(' | '));
 await browser.close();

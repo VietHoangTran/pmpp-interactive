@@ -3,6 +3,7 @@
 // come from the model (src/sim/warpscan.ts, imported directly).
 // Usage: APP_URL=http://localhost:5173 node e2e/ch11-s114.mjs [screenshot-prefix]
 import { open, goto } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 import { FIG_11_6, HALF_CASES, halfCase, laneValues, portIssues, scanScanAdd, warpScanTrace } from '../src/sim/warpscan.ts';
 
 const out = process.argv[2];
@@ -162,6 +163,13 @@ await pause(120);
 check('q-below-stride: doubling five times is correct', (await below.evaluate((e) => e.textContent)).includes('Correct.'));
 
 const forgiven = errors.filter((e) => !(e.includes('404') && labMisses-- > 0));
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch11/11.4', [
+  { label: 'portable (lab 11.1)', lab: 'ch11/lab1_blockscan', file: 'kernel.cu' },
+  { label: 'Metal, shuffle loop (lab 11.1)', lab: 'ch11/lab1_blockscan', file: 'kernel.metal' },
+  { label: 'Metal, simd_prefix_inclusive_sum (lab 11.1)', lab: 'ch11/lab1_blockscan', file: 'kernel.metal' },
+]);
+
 check('no console or page errors', forgiven.length === 0, forgiven.join(' | '));
 await browser.close();
 console.log(fail.length ? `\n${fail.length} check(s) failed` : '\nall checks passed');

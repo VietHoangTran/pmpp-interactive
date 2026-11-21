@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { Ask, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
+import { solutionTabStatus } from '../../components/LabKit';
+import { useReports } from '../../lib/reports';
 import { Aside, Bench, Beyond, NoteGroup, Simplification, Source, Today, type Tier } from '../../components/notes';
 import { href } from '../../lib/router';
 import { functionSource } from '../../sim/toolchain';
@@ -23,11 +25,9 @@ import {
   type WarpScanTrace,
 } from '../../sim/warpscan';
 
-// What has been checked for each listing shown here, in the course's fixed vocabulary.
+// What has been checked for the snippet shown here, in the course's fixed vocabulary (the lab's files read theirs from the reports).
 const STATUS = {
   printed: 'front-end-checked; emulator-checked at warp width 32; unverified on CUDA hardware; as printed, CUDA only',
-  cu: 'front-end-checked; emulator-checked; unverified on CUDA and HIP hardware',
-  metal: 'verified on Metal',
 } as const;
 const LAB = 'ch11/lab1_blockscan/solution';
 const missing = (s: string | null) => !s || s.startsWith('// could not load');
@@ -564,6 +564,9 @@ function BlockScanListing() {
   const printed = useLabFile(PRINTED_FILE);
   const cu = useLabFile(LAB + '/kernel.cu');
   const metal = useLabFile(LAB + '/kernel.metal');
+  // The labs page's words (LabKit's solutionTabStatus), from this machine's runs.
+  const { reports } = useReports();
+  const labStatus = { cu: solutionTabStatus(reports, 'ch11/lab1_blockscan', 'kernel.cu'), metal: solutionTabStatus(reports, 'ch11/lab1_blockscan', 'kernel.metal') };
   if (missing(printed)) return null;
   const pick = (src: string | null, names: string[], extra?: RegExp) => {
     if (missing(src)) return null;
@@ -577,9 +580,9 @@ function BlockScanListing() {
   const prefix = pick(metal, ['block_scan_prefix', 'warp_scan_prefix']);
   const tabs = [
     { label: 'as printed (CUDA only)', code: printed!, tiers: TIERS, status: STATUS.printed },
-    ...(portable ? [{ label: 'portable (lab 11.1)', code: portable, tiers: TIERS, status: STATUS.cu }] : []),
-    ...(shuffle ? [{ label: 'Metal, shuffle loop (lab 11.1)', code: shuffle, tiers: TIERS, status: STATUS.metal }] : []),
-    ...(prefix ? [{ label: 'Metal, simd_prefix_inclusive_sum (lab 11.1)', code: prefix, tiers: TIERS, status: STATUS.metal }] : []),
+    ...(portable ? [{ label: 'portable (lab 11.1)', code: portable, tiers: TIERS, status: labStatus.cu }] : []),
+    ...(shuffle ? [{ label: 'Metal, shuffle loop (lab 11.1)', code: shuffle, tiers: TIERS, status: labStatus.metal }] : []),
+    ...(prefix ? [{ label: 'Metal, simd_prefix_inclusive_sum (lab 11.1)', code: prefix, tiers: TIERS, status: labStatus.metal }] : []),
   ];
   return (
     <Code

@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
+import { solutionTabStatus } from '../../components/LabKit';
 import { Bench, Beyond, Simplification, Source, Today, type Tier } from '../../components/notes';
 import { useProgress } from '../../lib/progress';
-import { fmt, labStatus, realBackends, useReports, type Reports } from '../../lib/reports';
+import { fmt, realBackends, useReports, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import {
   DEMO_SEED, amdScalarEligible, distinctCount, expectedDistinct, filterTrace, nvidiaCost, replaySchedule, warpAddresses,
@@ -47,19 +48,9 @@ const MSL_BYVALUE: Record<string, Tier> = { ...REG, f: 'const', N: 'global', P: 
 
 function useStatuses() {
   const { reports, loading } = useReports();
-  const st = (b: string) => labStatus(reports[b], LAB71, 'solution');
   if (loading) return { cuda: 'reading reports', metal: 'reading reports' };
-  // The same wording on every page of the chapter: "emulator-checked; unverified on CUDA and HIP", as on the labs page.
-  const done = (['cuda', 'hip'] as const).filter((b) => st(b) === 'pass').map((b) => (b === 'cuda' ? 'CUDA' : 'HIP'));
-  const lacking = (['cuda', 'hip'] as const).filter((b) => st(b) !== 'pass').map((b) => (b === 'cuda' ? 'CUDA' : 'HIP'));
-  const hw = [done.length ? `verified on ${done.join(' and ')}` : '', lacking.length ? `unverified on ${lacking.join(' and ')}` : ''].filter(Boolean);
-  return {
-    cuda:
-      (st('emu') === 'pass' ? 'emulator-checked' : 'unverified: no passing emulator run on this machine') +
-      '; ' +
-      hw.join('; '),
-    metal: st('metal') === 'pass' ? 'verified on Metal' : 'unverified: no passing Metal run on this machine',
-  };
+  // The labs page's words (LabKit's solutionTabStatus), so a failed run reads as failed here too.
+  return { cuda: solutionTabStatus(reports, LAB71, 'kernel.cu'), metal: solutionTabStatus(reports, LAB71, 'kernel.metal') };
 }
 
 function LabPart({ name, caption, cuTiers, mslTiers, cuMark, mslMark, mmMark }: {

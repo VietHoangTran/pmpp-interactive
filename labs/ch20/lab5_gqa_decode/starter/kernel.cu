@@ -14,11 +14,6 @@
 #include <cfloat>
 #include <cstdio>
 
-#if defined(PMPP_CUDA_FRONTEND_CHECK)
-__device__ float expf(float x);
-__device__ float fmaxf(float x, float y);
-#endif
-
 #define HEAD_DIM 128
 #define WARP_SIZE 32                           // the book's WARP_SIZE: a logical warp of 32 lanes
 #define BLOCK_SIZE 256

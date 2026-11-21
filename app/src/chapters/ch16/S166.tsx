@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
-import { defineLabs, solutionStatus } from '../../components/LabKit';
+import { defineLabs, solutionTabStatus } from '../../components/LabKit';
 import { Aside, Bench, Beyond, Simplification, Source, TierLegend, Today, type Tier } from '../../components/notes';
 import { useReports, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
@@ -66,16 +66,9 @@ const SW_TIERS: Record<string, Tier> = {
   n: 'reg', w: 'reg', nw: 'reg', s: 'reg', row: 'reg', firstRow: 'reg', stride: 'reg',
 };
 
-/** Status lines of the lab's files, from this machine's reports, in the project's vocabulary. */
+/** Status lines of the lab's files, in the labs page's words (LabKit's solutionTabStatus). */
 function labStatuses(reports: Reports): { cu: string; metal: string } {
-  const e = solutionStatus(reports, 'emu', LAB);
-  const c = solutionStatus(reports, 'cuda', LAB);
-  const h = solutionStatus(reports, 'hip', LAB);
-  const dev = [c, h].every((s) => s.tone !== 'ok')
-    ? 'unverified on CUDA and HIP hardware'
-    : [c.tone === 'ok' ? c.text : 'unverified on CUDA', h.tone === 'ok' ? h.text : 'unverified on HIP'].join('; ');
-  const m = solutionStatus(reports, 'metal', LAB);
-  return { cu: `${e.tone === 'ok' ? e.text : 'emulator: ' + e.text}; ${dev}`, metal: m.tone === 'ok' ? m.text : 'Metal: ' + m.text };
+  return { cu: solutionTabStatus(reports, LAB, 'kernel.cu'), metal: solutionTabStatus(reports, LAB, 'kernel.metal') };
 }
 
 // ---------------------------------------------------------------- the load functions the stepper highlights

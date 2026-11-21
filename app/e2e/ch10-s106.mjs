@@ -3,6 +3,7 @@
 // global-traffic explorer. Expected values come from src/sim/reduction.ts.
 // Usage: APP_URL=http://localhost:5173 node e2e/ch10-s106.mjs [screenshot-prefix]
 import { open, goto } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 import { FIG_VALUES, VARIANTS, firstIssueStep, requests, runShared } from '../src/sim/reduction.ts';
 
 const out = process.argv[2];
@@ -161,6 +162,12 @@ await q3.evaluate((e) => e.querySelectorAll('input[type=radio]')[2].click());
 await (await q3.$('button.primary')).click();
 await pause(100);
 check('q-barrier-top: "the bottom would work" is wrong', (await q3.evaluate((e) => e.textContent)).includes('Not quite.'));
+
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch10/10.6', [
+  { label: 'CUDA (lab 10.1)', lab: 'ch10/lab1_sum', file: 'kernel.cu' },
+  { label: 'Metal (lab 10.1)', lab: 'ch10/lab1_sum', file: 'kernel.metal' },
+]);
 
 check('no console or page errors', errors.length === 0, errors.join(' | '));
 await browser.close();

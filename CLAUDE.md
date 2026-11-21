@@ -38,6 +38,8 @@ shows it passing. Never write "verified" for anything else.
 - `./verify.sh` : build, test and benchmark every lab on every available backend and
   write `reports/verify-*.md`. `--quick` skips benchmarks.
 - `python3 labs/pmpp.py doctor | run 5.2 [--bench] [--solution] [--backend emu] | reset 5.2 --yes`
+- `python3 labs/pmpp.py frontend` : the CUDA front-end check of every `.cu`, recorded per file
+  (with its hash) for the app's "front-end-checked"; `./verify.sh` records it too.
 - `node tools/narration.mjs status` : which narration clips are missing or stale.
 - `cd app && npm test` : unit tests for the simulators.
 
@@ -46,6 +48,8 @@ shows it passing. Never write "verified" for anything else.
 - Layout: `labs/chNN/labM_name/{starter,work,solution}/{kernel.cu,kernel.metal,launch.mm}`,
   plus `main.cpp` (driver) and a one-line `CMakeLists.txt` calling `pmpp_add_lab`.
 - `work/` starts as a copy of `starter/` and belongs to the reader. Never overwrite it.
+  To correct a starter, edit it, then run `python3 labs/pmpp.py starters --record`: a `work/`
+  equal to any recorded earlier starter still reads untouched (`labs/starter-history.json`).
 - One `.cu` source serves CUDA, HIP (through `pmpp/vendors/hip.h`) and the emulator
   (through `tools/cu2emu.py` and `pmpp/emu/cuda_emu.h`). Student-facing code uses the real
   API of its backend: plain CUDA in `.cu`, MSL in `.metal`, Metal calls in `.mm`.

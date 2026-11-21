@@ -18,9 +18,7 @@
 #define BLOCK_DIM 256
 #define MAX_KEYS_PER_THREAD 8
 #define MAX_RADIX_BITS 8
-#define MAX_BUCKETS 256   // 2^MAX_RADIX_BITS. Size shared arrays with plain names like this:
-                          // the emulator's translator takes no parentheses in a __shared__
-                          // array bound.
+#define MAX_BUCKETS 256   // 2^MAX_RADIX_BITS: size the per-bucket shared arrays with it
 
 // Provided in ../../shared-g11/scan.cu (do not edit it):
 //   scanScratchCount(count): unsigned ints of scratch the scan needs for `count` elements.

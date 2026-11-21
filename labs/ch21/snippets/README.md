@@ -27,8 +27,8 @@ written (`notes/ch21.md`, "Unclear in the PDF"; `notes/today/ch21-facts.md` E2).
 Every corrected file computes the slice index as `k = z / gridspacing` (Fig. 21.6's form;
 Fig. 21.5 writes `(grid.x*grid.y*z) / gridspacing`). The division is exact for the
 book's 0.5 Å spacing, which is what the checks use; a production kernel would pass `k` as
-an integer. Each file also declares `sqrtf` for the front-end check only (the check's stub
-header has no CUDA Math API); nvcc, hipcc and the emulator never see that declaration.
+an integer. `sqrtf` needs no declaration for the front-end check: its stub header declares
+the single-precision math functions.
 
 ## Running them: `check.py`
 

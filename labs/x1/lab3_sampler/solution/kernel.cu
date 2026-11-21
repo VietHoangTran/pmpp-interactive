@@ -29,12 +29,6 @@
 // same fallback, A6).
 #include <cfloat>
 
-// The course's CUDA front-end check (labs/pmpp.py) declares no CUDA Math API functions, so it
-// is given expf's device declaration here. nvcc, hipcc and the emulator never see it.
-#if defined(PMPP_CUDA_FRONTEND_CHECK)
-__device__ float expf(float x);
-#endif
-
 #define BLOCK_SIZE 256                          // threads per block for the row kernels
 #define DRAW_VEC 4                              // consecutive weights per thread per chunk
 #define MIN_WARP_SIZE 32                        // the narrowest warp any backend here has

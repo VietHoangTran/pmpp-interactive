@@ -36,14 +36,6 @@
 //   - exp and log are written expf and logf: single precision, said explicitly (A5).
 #include <cfloat>
 
-// The course's CUDA front-end check (labs/pmpp.py) declares no CUDA Math API functions,
-// so it is given the two device declarations used here. nvcc, hipcc and the emulators
-// never see them.
-#if defined(PMPP_CUDA_FRONTEND_CHECK)
-__device__ float expf(float x);
-__device__ float logf(float x);
-#endif
-
 // ======================================================================================
 // From lab 10.3's reference solution (milestone M4), unchanged: the two-stage block
 // reduction of book section 10.8 (Fig. 10.16) on the warp reduction of Fig. 10.13, with a

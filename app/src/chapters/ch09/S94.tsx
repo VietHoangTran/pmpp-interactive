@@ -222,35 +222,35 @@ function Explorer() {
           <b>{SCHEME_LABEL[scheme]}.</b> {int(n)} {tokens ? 'tokens' : 'pixels'} in {int(p.blocks)} blocks of {tpb} threads,{' '}
           {int(bins)} bins.
         </p>
-        <table className="threads" aria-label="This scheme">
+        <table className="threads wrap" aria-label="This scheme">
           <tbody>
             <tr>
-              <td style={WRAP}>copies the updates go to</td>
-              <td style={WRAP}><b>{int(p.copies)}</b>{scheme === 'public' ? ' (the public histogram itself)' : `, ${bytesText(p.privateBytes)} of private counters in all`}</td>
+              <td>copies the updates go to</td>
+              <td><b>{int(p.copies)}</b>{scheme === 'public' ? ' (the public histogram itself)' : `, ${bytesText(p.privateBytes)} of private counters in all`}</td>
             </tr>
             <tr>
-              <td style={WRAP}>longest queue in the update phase</td>
-              <td style={WRAP}>
+              <td>longest queue in the update phase</td>
+              <td>
                 <b className={scheme === 'public' ? 't-global' : p.where === 'shared' ? 't-shared' : 't-global'}>{int(p.updateContention)}</b> updates
                 aimed at one counter (bin {int(p.hottest.bin)}{scheme === 'public' ? '' : ` of copy ${int(p.hottest.copy)}`})
                 {scheme !== 'public' && pub.updateContention > p.updateContention ? <>, {fmt(pub.updateContention / p.updateContention)}× shorter than with one public copy</> : null}
               </td>
             </tr>
             <tr>
-              <td style={WRAP}>global atomics in the commit</td>
-              <td style={WRAP}>
+              <td>global atomics in the commit</td>
+              <td>
                 {scheme === 'public' ? 'none: there is nothing to merge' : (
                   <><b>{int(p.commitAtomics)}</b> with the zero test (at most copies × bins = {int(p.commitBound)})</>
                 )}
               </td>
             </tr>
             <tr>
-              <td style={WRAP}>contenders per public bin in the commit</td>
-              <td style={WRAP}>{scheme === 'public' ? 'none' : <>at most <b>{int(p.commitContention)}</b>, one per copy that saw the bin</>}</td>
+              <td>contenders per public bin in the commit</td>
+              <td>{scheme === 'public' ? 'none' : <>at most <b>{int(p.commitContention)}</b>, one per copy that saw the bin</>}</td>
             </tr>
             <tr>
-              <td style={WRAP}>one copy on chip</td>
-              <td style={WRAP}>
+              <td>one copy on chip</td>
+              <td>
                 {int(bins)} × 4 bytes = {bytesText(p.copyBytes)} against {bytesText(budget)}:{' '}
                 {p.fits ? <span className="chip ok">fits</span> : <span className="chip fail">does not fit</span>}
                 {scheme === 'block' ? (p.fits ? <> so each block's copy can live in shared memory (Fig. 9.10)</> : <> so the copies stay in global memory (Fig. 9.9)</>) : null}

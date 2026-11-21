@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Ask, type Question } from '../../components/Ask';
 import { Code, MATMUL_TIERS, useLabFile } from '../../components/Code';
-import { defineLabs, solutionStatus, solutionTabStatus } from '../../components/LabKit';
+import { defineLabs, solutionTabStatus } from '../../components/LabKit';
 import { Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
 import { useReports } from '../../lib/reports';
 import { href } from '../../lib/router';
@@ -345,7 +345,7 @@ function TiledListing() {
       tabs={[
         { label: 'Chapter 5: two barriers', code: ch5, tiers: MATMUL_TIERS, status: solutionTabStatus(reports, LAB52, 'kernel.cu') },
         { label: 'Double-buffered (CUDA)', code: cu, tiers: MATMUL_TIERS, status: solutionTabStatus(reports, LAB65, 'kernel.cu') },
-        { label: 'Double-buffered (Metal)', code: metal, tiers: MATMUL_TIERS, status: solutionStatus(reports, 'metal', LAB65).text },
+        { label: 'Double-buffered (Metal)', code: metal, tiers: MATMUL_TIERS, status: solutionTabStatus(reports, LAB65, 'kernel.metal') },
       ]}
       caption={
         <>

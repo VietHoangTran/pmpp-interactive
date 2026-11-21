@@ -1,0 +1,947 @@
+{
+ "about": "Every version a lab's starter/ has had, as the sha256 of each student file (null: the file was absent). labs/pmpp.py calls work/ 'untouched' when it equals any of them, so a starter can be corrected without turning untouched copies into 'edited'. Append only: after editing a starter run `python3 labs/pmpp.py starters --record`; `starters --check` fails while a current starter is missing. 'recorded' is the commit the version first appeared in (from git history) or the date it was recorded.",
+ "labs": {
+  "appA/lab1_sumerror": [
+   {
+    "recorded": "git 6626e13",
+    "files": {
+     "kernel.cu": "589e9fb8be12b90574a3dbe6855164decc8366267d6c8a281eee0fbf1d85da76",
+     "kernel.metal": "05d5914e6e696f897ecd9db7f6ce2b07792eeb58425138b1141c76ab831bf5de",
+     "launch.mm": "18d8dc4a38e1c6db6ba6f28ff068ed52ef1b9d44fa37d7b0267cf62153665c8a"
+    }
+   }
+  ],
+  "appC/lab1_feeding": [
+   {
+    "recorded": "git 9db501d",
+    "files": {
+     "kernel.cu": "0d3fd921d6380aa178d3694a138e3b45134906de1c44cf31f7bc5c05084ba82c",
+     "kernel.metal": "a269de4f9119f3b4b8fdbbd49f756ab69e94f1e5beb6c0b9fea667b4d656e43a",
+     "launch.mm": "29fcefeb3e036a569169a2c2d06575a6ec6dc3489db0367b84775d4e194a447b"
+    }
+   }
+  ],
+  "ch02/lab1_vecadd": [
+   {
+    "recorded": "git 1054f45",
+    "files": {
+     "kernel.cu": "a02ea07600842864f1301c558bf7d6f9aea0995bd5ec9def89e9eb7a1240dd91",
+     "kernel.metal": "57f988c7a629293e58e691e5b4b6a7ba1bef411b4f30668ad84d2ce0189c6c19",
+     "launch.mm": "907cf3834d4bebabab6b5ee20890bc046f52c418ad528d9aadd67dd34a1c5a9b"
+    }
+   }
+  ],
+  "ch02/lab2_timing": [
+   {
+    "recorded": "git eb94bc2",
+    "files": {
+     "kernel.cu": "07288568a1323e430b77523bb8795885de62d725eac79df597041910d7855f3d",
+     "kernel.metal": "abc79a69cd0156403e7b194f9acc1a590519941d85ce0e85e583a297da67e6f8",
+     "launch.mm": "07a04e826e0a7fffeb15e4d58396d16e471167328b8022d3a1acb4b77fa0357f"
+    }
+   }
+  ],
+  "ch02/lab3_elementwise": [
+   {
+    "recorded": "git eb94bc2",
+    "files": {
+     "kernel.cu": "609c027e0e177c7fbfd12463a4ea841abb54c33a9220da46868ab517293e06de",
+     "kernel.metal": "2d0f13711418398bd32c0cdbe9c908412f3baa10c23a131b7a137f34aecca44a",
+     "launch.mm": "c03c3a2de0f1bf5e45282da68675c53b86473af8c15ebfec288c7231d4255c67"
+    }
+   }
+  ],
+  "ch02/lab4_bughunt": [
+   {
+    "recorded": "git eb94bc2",
+    "files": {
+     "kernel.cu": "fb9ef58da1061ca33eb27c6b9cee9cf184dc8e02e1deb54e33e5704ab61ef166",
+     "kernel.metal": "f41053557b370aae4f94efed8649fc1528e58364db3d8f488c829f5c0ab14307",
+     "launch.mm": "a432a2dc80aeaa97ae812508e5d9521018c9145cd1700d70b16876f38924aa5c"
+    }
+   }
+  ],
+  "ch03/lab1_grayscale": [
+   {
+    "recorded": "git 1054f45",
+    "files": {
+     "kernel.cu": "a79bcaa56f02c5a976387d8385e7909f32e2b143279433a7930302ed34c3c01c",
+     "kernel.metal": "6c12d1c0d271cb9b3c10157966acf01f6f6eb9df18b6fc9234050bbb815996d2",
+     "launch.mm": "029b8230127083132aee9773ce0167964737e59d089dd063a4cef4f34ae138e9"
+    }
+   }
+  ],
+  "ch03/lab2_blur": [
+   {
+    "recorded": "git 1054f45",
+    "files": {
+     "kernel.cu": "6724b0ac9c611ec8396629f4f567fad26e97a7c280e667e3647bf9e69c86fcd8",
+     "kernel.metal": "03c4d5659f6b0eddafdfdf26b9347e05e023bcef9c1d21bcf078d4fcb3f2de00",
+     "launch.mm": "6636d925bb1f88d144851f41572c119ece683df5dad74a609c304648c0e5fd7b"
+    }
+   }
+  ],
+  "ch03/lab3_naive_gemm": [
+   {
+    "recorded": "git 1054f45",
+    "files": {
+     "kernel.cu": "8bd18d77c961f2198383f4a36ce2b50527f2fdf3663b2eda2b31e247494327eb",
+     "kernel.metal": "83a77626a7980ba07ab270a0bcfd1aed7369d2f2d1737003a47b7609a70c53c5",
+     "launch.mm": "2c3361a3eadcf2e9b70bbb1b3b548414baa51bfadcb927b1e45fa4d45cafac54"
+    }
+   }
+  ],
+  "ch03/lab4_granularity": [
+   {
+    "recorded": "git 1054f45",
+    "files": {
+     "kernel.cu": "7c04065f19f9ee2d1b723146f9fdbdc346f91c684b77c48785f459c0bb272456",
+     "kernel.metal": "e982b2e73b635cc911490114453b0fa09c142903ad3b6dcb3fb8d2a9a2efe500",
+     "launch.mm": "57f4644959054a371cebdf9e0b2e6d25effcba535c8d0feb775c9a7c1239c038"
+    }
+   }
+  ],
+  "ch03/lab5_maphunt": [
+   {
+    "recorded": "git 1054f45",
+    "files": {
+     "kernel.cu": "71d63508bd8443ee48c0aaeb9262778c12fd5549ad5dc2806e3524ef601e0028",
+     "kernel.metal": "fbc99f112a33928bfb9c5f548f0cc5037f473f27e0591ae30db4330f94b1cc92",
+     "launch.mm": "5dc760129875139867bf5ac033c5b4f03739c549033b80a6473f12c6a621aeaa"
+    }
+   }
+  ],
+  "ch04/lab1_launchconfig": [
+   {
+    "recorded": "git 1054f45",
+    "files": {
+     "kernel.cu": "7a8524029a64186286342fc7af13decc0782954e6d3dbadd2e396e9480c36e27",
+     "kernel.metal": "54f91430e08529a057602cf0d58f3f42068ff798c07b3c05ecc15cd3b05d3190",
+     "launch.mm": "b8fed5487cbd27df7840c372035a164b8fec505b48ae0c354fff010f41f9ef73"
+    }
+   }
+  ],
+  "ch04/lab2_divergence": [
+   {
+    "recorded": "git 1054f45",
+    "files": {
+     "kernel.cu": "505dc98eb9f6d1b65500b3e99df4f5bd27577b616f0d12d5ddf63788c9bde25c",
+     "kernel.metal": "8253f5cbef3fc5121da016edb4210cafe6e4fee72b6d222af5d02d8850595dc3",
+     "launch.mm": "b2ac86fcca2021f9de00b2f388eec50f0909e005a8a821aa8e818280127cb6c0"
+    }
+   }
+  ],
+  "ch04/lab3_barrierhunt": [
+   {
+    "recorded": "git 1054f45",
+    "files": {
+     "kernel.cu": "ea1b80bf8d78e95a995892727ad978458fea4c9f0dc47533440d491864c13b09",
+     "kernel.metal": "95679f2bbd3c68c6aeb35b6971eba95812ad5794551cc427c3ab32660e50df18",
+     "launch.mm": "4be857cacfd013623d57bc588ec60326f5723fc8f427d2b471d8d54e3dd7d403"
+    }
+   }
+  ],
+  "ch04/lab4_blocksize": [
+   {
+    "recorded": "git 1054f45",
+    "files": {
+     "kernel.cu": "608065720a2390774dd064667e57127931e375d8aa2ec0955bb83715e02987d8",
+     "kernel.metal": null,
+     "launch.mm": null
+    }
+   },
+   {
+    "recorded": "git eb94bc2",
+    "files": {
+     "kernel.cu": "a054f636ba7ff91d442f149c33a839e1a9d5be614e2cc3f134433a7b07977ec5",
+     "kernel.metal": "9e68fbf227e009d86aeef5871a2afa7c1ab4b336fb20760ae4cd2594a88b112f",
+     "launch.mm": "7e153e92ee55d6b7bc7d650f2100b2e38918aa45b1b0ae7ffc7ab2690e67725c"
+    }
+   }
+  ],
+  "ch05/lab1_roofline": [
+   {
+    "recorded": "git cfe9304",
+    "files": {
+     "kernel.cu": "412858d36849d64d705b94da87d367760849378408aca476e3144b48d417e74f",
+     "kernel.metal": "47fdef39f67fb50a0b6d51057b9bf48f970a03851e9f606ea0fd568c85f04fe2",
+     "launch.mm": "2eb8122d1a59f4c4c23672713582c06b5a05c53519b3e0ba333d5a71c77df959"
+    }
+   }
+  ],
+  "ch05/lab2_tiled": [
+   {
+    "recorded": "git cfe9304",
+    "files": {
+     "kernel.cu": "298aba76a2561f811397149407df19da0a0a34689c671bb4751ea7b20434c8ff",
+     "kernel.metal": "669cc3babd6ea08061c88b1f08b101566ee405a4b325ed658d74691531292f7f",
+     "launch.mm": "69b2a3fad56d0ad21ecd0ce0174c9c62547fbbe8bbca7c3508085b29c96308b3"
+    }
+   }
+  ],
+  "ch05/lab3_gemm": [
+   {
+    "recorded": "git cfe9304",
+    "files": {
+     "kernel.cu": "07256f50c66ee784ee0c5c970ba174765a87d5582408dc3ed1ef89a0c42cea47",
+     "kernel.metal": "08ead5842b7dc136358ab33adad1453d4b3bf170e5bd647181b45da6bb732ddb",
+     "launch.mm": "7fcf8e88dabf6f16fcf209bf14307c279ca7db6b4f89e7a70e3744c1b369e8b2"
+    }
+   }
+  ],
+  "ch05/lab4_racehunt": [
+   {
+    "recorded": "git cfe9304",
+    "files": {
+     "kernel.cu": "24ce7bbb93876c660a86476bd8f3f402726d10b4770a614c17a03e4d2b6234a0",
+     "kernel.metal": "e557fbb0d99c546647821d08eab67b80d361d059c7e5973fd119e90898bf7bb2",
+     "launch.mm": "3b04917bd6a6f5e300d5480670855f9d6a71dfc8b45aa57f29c95b0e3ea47705"
+    }
+   }
+  ],
+  "ch05/lab5_dynamic": [
+   {
+    "recorded": "git fc1df8e",
+    "files": {
+     "kernel.cu": "ba175152aef0d3b4076a8fbd04790a7da9cfccc95e15dcb2c02b96b541980af0",
+     "kernel.metal": "0c8fbc6998b04b3c2f2c0550334fbcf8c4ce596f25d942b45b959908b0c14ffb",
+     "launch.mm": "fa91de4c3fd3f0ee39f56537e9a997535e376b02de3501aed9f003ca20b5724f"
+    }
+   }
+  ],
+  "ch06/lab1_coalescing": [
+   {
+    "recorded": "git 9db501d",
+    "files": {
+     "kernel.cu": "6b2425e0880529422f5b3de77e13afe5f9b3deb87f8e659035c05afdea257317",
+     "kernel.metal": "df3bb4ba3d199f57a2439c5e54e99521dd2157d5aafda8def4ae2f5197d73c53",
+     "launch.mm": "492d8fdc9e92e5b31351deca1df72e6082362da31aaa451eebec693b2c46a87c"
+    }
+   }
+  ],
+  "ch06/lab2_vector": [
+   {
+    "recorded": "git 9db501d",
+    "files": {
+     "kernel.cu": "f60acbcf797f88e24be1327c484124a660ec5fc14251096bbcbadc86eee7330d",
+     "kernel.metal": "45720427edeb071da36e7751427d09aa7c212b9b8f2e926b002084d82a2513cb",
+     "launch.mm": "28f0be1a7c6b582713b033a8565650fb15eb6fd8c4ec8f5612013d31c8d3ab30"
+    }
+   }
+  ],
+  "ch06/lab3_banks": [
+   {
+    "recorded": "git 9db501d",
+    "files": {
+     "kernel.cu": "12a69df5e34539c55b785bad314c73c14516400d00d63792a85da537e1c1a842",
+     "kernel.metal": "ffe70415fd7b097ca4c02cd5863c1313026d0d5d74e6cb3eef6afae7e3edd94b",
+     "launch.mm": "94dcbc89dc76754c109a14ad9156ca2f25112e41bd876d2239abd76a6647bee9"
+    }
+   },
+   {
+    "recorded": "2026-11-21",
+    "files": {
+     "kernel.cu": "7a547f5530fd1ae00b1c1b9520c1a355c18886d4db00b95afd4168dd45da9392",
+     "kernel.metal": "ffe70415fd7b097ca4c02cd5863c1313026d0d5d74e6cb3eef6afae7e3edd94b",
+     "launch.mm": "94dcbc89dc76754c109a14ad9156ca2f25112e41bd876d2239abd76a6647bee9"
+    }
+   }
+  ],
+  "ch06/lab4_linear": [
+   {
+    "recorded": "git 9db501d",
+    "files": {
+     "kernel.cu": "ff89ae2b7ec743f53574e84f99ec3ca38e26499fd6a5bd097df4b6123b67c7a7",
+     "kernel.metal": "9f3bed8cc33d0926ba8e068da7ed8c81cdd8a21c4b7f4721e977bde3e94b12d1",
+     "launch.mm": "02a2efda00e93261d62c2a556c2fd36676801f133da770cbb24813dc939d7e8e"
+    }
+   }
+  ],
+  "ch06/lab5_doublebuf": [
+   {
+    "recorded": "git 9db501d",
+    "files": {
+     "kernel.cu": "32529696d1a2f404ee518ce9cee50cf885682909e86560d1388e62ccba626db3",
+     "kernel.metal": "90c09a03daadd40481b06c82175a908cf26af7700cd0867f05d48c51e86e576f",
+     "launch.mm": "923a50597fbe9d170068241a449e7cbcdfd3abf95c9bd51e03218a5465418268"
+    }
+   }
+  ],
+  "ch07/lab1_constconv": [
+   {
+    "recorded": "git 9db501d",
+    "files": {
+     "kernel.cu": "d1f806ce859429ccf4b3cc1ff04b015ebda57eabd33569495d91683b2b4001be",
+     "kernel.metal": "881c045c4541fcaec07ac2ce095c069ee38cfeb93320781e9e28659894c25320",
+     "launch.mm": "50d1eea4ed14e683f796824f9b50db98902f6f88a0f2537e976207629e82fcb4"
+    }
+   }
+  ],
+  "ch07/lab2_tiledconv": [
+   {
+    "recorded": "git 9db501d",
+    "files": {
+     "kernel.cu": "8bc8a45b456771f3eda18c7ac6c215cbc0b3e679edcf6bfdb5d7057bd49da2dc",
+     "kernel.metal": "71b7ea65b80ee650fed94b695f8926b294347af37a67f70f2a4c4c1185d72ca3",
+     "launch.mm": "793d3006ce73ae95c34e09adc06752c3da5c99bbb84302cc7a82f7f538ab8434"
+    }
+   }
+  ],
+  "ch08/lab1_stencil3d": [
+   {
+    "recorded": "git 9db501d",
+    "files": {
+     "kernel.cu": "2d62b0a67f9d0fb3d0a3a8407f52fe1065ee38193d0ee8fc644e4585d2bb669b",
+     "kernel.metal": "142cf96663bf5d376c1da918dacbf409fd101151ebf960d2a0370f1b5a7be699",
+     "launch.mm": "25c0062bfef56b67ed2d86ba7c69ee22e62f57403ebee97f2d3f8e0c0b89872b"
+    }
+   }
+  ],
+  "ch09/lab1_racehunt": [
+   {
+    "recorded": "git 9db501d",
+    "files": {
+     "kernel.cu": "fff3d67cb278c8b6b6c6887555a03df954abb37f010c6034a99378dd658dc4ff",
+     "kernel.metal": "dad125f3afab8bbf060fde8bd80a0500503ec338c39bb654c2fed035c380969b",
+     "launch.mm": "8b639368ae09bd58a1c55c07805b85e9e273bf5056560de152239aaaa4937c5c"
+    }
+   }
+  ],
+  "ch09/lab2_privatised": [
+   {
+    "recorded": "git 9db501d",
+    "files": {
+     "kernel.cu": "83f0b56e090834c00d94ef7f3a8307ba0dc394fdeab24236c05196ca4bf2fea8",
+     "kernel.metal": "f8a0f020b0ee3fcad2a2758e6a19033916234fab3457dcdb050dbd5b04b43006",
+     "launch.mm": "4d38dd2cff93ccc49a9ca24603789190408d625ca2fbfd548cfafa5af85b079b"
+    }
+   }
+  ],
+  "ch09/lab3_tokencounts": [
+   {
+    "recorded": "git 9db501d",
+    "files": {
+     "kernel.cu": "262bc209011f06dc5998c9d64cacc9796f77acd1b733d5a2f260ed6622760d4b",
+     "kernel.metal": "9443cf6530981577b4cf8b422f0b6dd7fd22481639fbf54d75837e09765c5780",
+     "launch.mm": "f1a851b0ba930c51217f939979b03c2dc202e7fa82896c4a4128c7e8e6eae935"
+    }
+   }
+  ],
+  "ch10/lab1_sum": [
+   {
+    "recorded": "git 9db501d",
+    "files": {
+     "kernel.cu": "9db319e5295d9f6787860f683f959528ee15a6664c3ede811ffdb76dd09abf46",
+     "kernel.metal": "870e6046538803e4efa672a4aef55139cf7f851a86d5fa3213661bf8daac796a",
+     "launch.mm": "f84ba700c83aa0aaa7a5bfe315c393ddfe1283963fc99530042ea30757ad2e0c"
+    }
+   }
+  ],
+  "ch10/lab2_reducehunt": [
+   {
+    "recorded": "git 9db501d",
+    "files": {
+     "kernel.cu": "e7a87c6919e5454c6163af2569034ed4dc378c8e9d41f9ec71ca0768ed824622",
+     "kernel.metal": "b4b7c9fd2e299965777b0bf6e39722ab289346dbe850b08d3e0e63d636f035f3",
+     "launch.mm": "7893e685714de9b96929e787f1cae2313d8d347a52c52da8e41a6a028182ab9c"
+    }
+   }
+  ],
+  "ch10/lab3_softmax_argmax": [
+   {
+    "recorded": "git 9db501d",
+    "files": {
+     "kernel.cu": "cd3b3cd59ece4a351eb9d8f112e3a9da0ee02762146c129638e12092ed1b7588",
+     "kernel.metal": "909d4d1bc3e5ea94f46d6c8b706102368a34fe3c62948e4927d8d17feced3235",
+     "launch.mm": "9229ae6757355232aadd67a2ffa01904c9d78a726f0e7418c5ea1d65883986c4"
+    }
+   },
+   {
+    "recorded": "2026-11-21",
+    "files": {
+     "kernel.cu": "97e69343bcacb42ebf1cd84d4d4fe0eb16a7b2ddc1d43383830501b0b3792eda",
+     "kernel.metal": "909d4d1bc3e5ea94f46d6c8b706102368a34fe3c62948e4927d8d17feced3235",
+     "launch.mm": "9229ae6757355232aadd67a2ffa01904c9d78a726f0e7418c5ea1d65883986c4"
+    }
+   }
+  ],
+  "ch11/lab1_blockscan": [
+   {
+    "recorded": "git e24082e",
+    "files": {
+     "kernel.cu": "e5f1692256914d3fa5d65bb2246854295410801aa227860ebb59aaf289a8b7c4",
+     "kernel.metal": "bb4ea8cf2bed4da32e8f45eaa1cfb16696273d482d4669ef7b1359b15240f847",
+     "launch.mm": "26c01cac2d4ab55602a6f1d4c94904b1e5397beb4d6df9565c18593962beb335"
+    }
+   }
+  ],
+  "ch11/lab2_coarsened": [
+   {
+    "recorded": "git e24082e",
+    "files": {
+     "kernel.cu": "5b3614e4606649901763b023f6dda704c0676e9d1178604c8c7bf732acdaa787",
+     "kernel.metal": "611278874079d567d842766f45539dc4bf62169b7317f312fa983a49453b9276",
+     "launch.mm": "09b8951b0a0a9c0348bb3545dcf789e5c80a26f2f5fccceb27f7eeb36d899f6b"
+    }
+   }
+  ],
+  "ch11/lab3_scanhunt": [
+   {
+    "recorded": "git e24082e",
+    "files": {
+     "kernel.cu": "fa06ce0dc0b7bbce63848db2ce86c1f80c209b0c070b480f33d38946f05294f8",
+     "kernel.metal": "5ff9e1315a24e01aadff670bfd3b945a6d0ca22b8f2f63cdb618f98efa38b7b4",
+     "launch.mm": "c35a60ecff2408473fbbdd1aab5a53de64581c8e0a512880a60ccf6566992844"
+    }
+   }
+  ],
+  "ch11/lab4_global": [
+   {
+    "recorded": "git e24082e",
+    "files": {
+     "kernel.cu": "55afcb2afbaa6bd504b1285a8e0b894ceabd57b45f2bc4cfea3b46f70dbc05b4",
+     "kernel.metal": "5263c2da490ac259eb7a1eaa2e6f919270a9dbd11dc61619c5ac9035c0cb5247",
+     "launch.mm": "873c0f11af57a4ad5130657cb2f428cb238d93fb3940375fb1dbdac4c79be880"
+    }
+   }
+  ],
+  "ch11/lab5_singlepass": [
+   {
+    "recorded": "git e24082e",
+    "files": {
+     "kernel.cu": "ec8d01c20f2293431e6480f526a44dfb702e3e60e535f51e9d6d6a827c8f7fa5",
+     "kernel.metal": null,
+     "launch.mm": null
+    }
+   }
+  ],
+  "ch11/lab6_topp": [
+   {
+    "recorded": "git e24082e",
+    "files": {
+     "kernel.cu": "dc3df36d42db59de599200e64a5de90629804e5efca258c5057ea38ba6ec3915",
+     "kernel.metal": "30d807f549b16d17bd0920e195e33f28210ed8cfd9a7a5b401958a25caa05227",
+     "launch.mm": "bd84795d55acfe865b1b987e9b8ac45821576ac8048584f6a0d8f417db70ca34"
+    }
+   }
+  ],
+  "ch12/lab1_unstable": [
+   {
+    "recorded": "git e24082e",
+    "files": {
+     "kernel.cu": "a51febf3b08ba31e8b7de1c240fb85ebe378de84dd327c6eedde2095195afd28",
+     "kernel.metal": "8a46705454ed09226f647fd26ed7c6b6138b9b19eb77374529a0c72de6b6e52c",
+     "launch.mm": "93e7602d1bc6c2be5f005a052c3b644eceed98d25b727496ef400331ca09e7b7"
+    }
+   }
+  ],
+  "ch12/lab2_filterhunt": [
+   {
+    "recorded": "git e24082e",
+    "files": {
+     "kernel.cu": "4243e12df3cdeab7541d97ac5e5354dc8029decb8001fccef5dc3dfc9d87d321",
+     "kernel.metal": "a91b23b129508d5cab720e06adb0b53657824fc09a12e68d04c8ff41ca6177b5",
+     "launch.mm": "e602d09a02aa860e620cca74c2639d3860e5478c3c0756d590fad4b58b98fbf8"
+    }
+   }
+  ],
+  "ch12/lab3_stable": [
+   {
+    "recorded": "git e24082e",
+    "files": {
+     "kernel.cu": "86c664593b83cc3a24c84bcee6f96dc8ce23052c2cd174bdd9be7c6a82bc451e",
+     "kernel.metal": "41941229ad955352d81b5224c26389bddf43679ba4b06bec29c12dd5e66d4634",
+     "launch.mm": "debb28b0cbf095a36588c5580f08d5884a84dc45b0129eca5a30156083e66553"
+    }
+   }
+  ],
+  "ch12/lab4_candidates": [
+   {
+    "recorded": "git e24082e",
+    "files": {
+     "kernel.cu": "8e2338410931500224320e206d4aea698656f5db90894ef37a34d9388ce56aca",
+     "kernel.metal": "282190dc368b6ce0b34f75bed5721f44fd98a94b7267d485784a428fc31387c5",
+     "launch.mm": "c0f44a529d7aa946d7d2325ef693f913ecdc2b6d1ce35396be365a910ba39adc"
+    }
+   }
+  ],
+  "ch12/lab5_inplace": [
+   {
+    "recorded": "git e24082e",
+    "files": {
+     "kernel.cu": "95fbe0aa92a0a0a908843e6f4becccabf41066fcddbdf9268a6af6f82b11f622",
+     "kernel.metal": null,
+     "launch.mm": null
+    }
+   }
+  ],
+  "ch13/lab1_merge": [
+   {
+    "recorded": "git e24082e",
+    "files": {
+     "kernel.cu": "f59f38e1c27b65cb56c9a1f5b8a493452543dc0fb2310b89918a565400e8d25a",
+     "kernel.metal": "0502cb9e5df16a690e5451a34eab002d6ebb40c39c4f0f27355f7003fcbe261b",
+     "launch.mm": "539350a3c4f85806de537955232cb58d72df8a61eab553dec23b757f9b9493e2"
+    }
+   }
+  ],
+  "ch14/lab1_twosorts": [
+   {
+    "recorded": "git e24082e",
+    "files": {
+     "kernel.cu": "a69aefe787e9273341b184448422a46b61e682427cc99ca35fb3cd56fbf28a9b",
+     "kernel.metal": "f92c8ef256b29985361d4bbd0f45ef97e45b890593b2eed9878fb4ef9636597a",
+     "launch.mm": "e62eea99c6b82491deb37b4b98c0520be0da78cdf898defcb44c08b0bb566184"
+    }
+   }
+  ],
+  "ch14/lab2_multibit": [
+   {
+    "recorded": "git e24082e",
+    "files": {
+     "kernel.cu": "ff695a4bbf06eeffc03378d5304a946ae1d7e53b6be6e88d792d10116b6a171b",
+     "kernel.metal": "3067fc556467b02d69209e8b1a088f59300980129cbef37251a65a874dba6df4",
+     "launch.mm": "88636a735938861e9159d2c4406da5d873ff477e22d760d2c13f1a512632b509"
+    }
+   },
+   {
+    "recorded": "2026-11-21",
+    "files": {
+     "kernel.cu": "eeca5d1d3e6f6b20e90e98afb56edcdfd951a3f6773618bcd1d2f442a661593d",
+     "kernel.metal": "3067fc556467b02d69209e8b1a088f59300980129cbef37251a65a874dba6df4",
+     "launch.mm": "88636a735938861e9159d2c4406da5d873ff477e22d760d2c13f1a512632b509"
+    }
+   }
+  ],
+  "ch14/lab3_sortrows": [
+   {
+    "recorded": "git e24082e",
+    "files": {
+     "kernel.cu": "b57467bb16299ad148a41a0c55084deb39d8b06ad88ee0715b5ee2094fca5559",
+     "kernel.metal": "8e1b0db3f4c0b2567da337736954292a3820206fae9bab8554543c3ab37eaf9f",
+     "launch.mm": "7c74f9c91fb414cd18d7413dd445f29a6f76788719fc9af4719ec290fb83b5e4"
+    }
+   }
+  ],
+  "ch15/lab1_coarse": [
+   {
+    "recorded": "git e24082e",
+    "files": {
+     "kernel.cu": "fde2ee1d151c89a9d2c91bc9007cae4a9f5b780faba45e06f8eeede4c1171140",
+     "kernel.metal": "eb1741b603dbed627240902ac953409d95ebc10649c0361016dd6fe2268a40f3",
+     "launch.mm": "78f85d8c02657163d953b5648875d30b24ae241ad85705e5c11a3692fce7aded"
+    }
+   }
+  ],
+  "ch15/lab2_regtile": [
+   {
+    "recorded": "git e24082e",
+    "files": {
+     "kernel.cu": "163a850aaff06bf6c6a0060869da7971b76f076e84e3139a1102cca5c746f5b1",
+     "kernel.metal": "8ece1ec0758362bc46686ca8dfc0dd5f3e20191b11cf6b48b0cf49e64384e8b8",
+     "launch.mm": "d6ee73374dbbbe9b332c3940a5e5d10c2f457f6dd6958cf9dd51f38984e5f328"
+    }
+   }
+  ],
+  "ch15/lab3_remap": [
+   {
+    "recorded": "git e24082e",
+    "files": {
+     "kernel.cu": "4cda562499b71913c62bd6e5b73617839d15969132757c711f762509b2323d2d",
+     "kernel.metal": "d1131a7fafd616cd5e486e94b49924d58b86c741ad871db6c8e13d6656f01d01",
+     "launch.mm": "cb8c4a98e326af76fc64b61938a47cfca98df4de613c177f00857bb4c33b9963"
+    }
+   }
+  ],
+  "ch15/lab4_padded": [
+   {
+    "recorded": "git e24082e",
+    "files": {
+     "kernel.cu": "7f4b8a1f15497104d708bd46fa9c715431cdd541d9af45dfafa8c7356b28fd25",
+     "kernel.metal": "a9c567796d1e4f1a6c7182397b9bc3202eb8479a706f5c457e22273cc98dda78",
+     "launch.mm": "13cd9f1ec05956c943ee9f2168ecd11865f0a9a3e8a5672383c84495cafd9359"
+    }
+   },
+   {
+    "recorded": "2026-11-21",
+    "files": {
+     "kernel.cu": "e0f96101e3328a114b5d16b6d485662cc994456cf83e8f639cf9c5f5355c1d16",
+     "kernel.metal": "a9c567796d1e4f1a6c7182397b9bc3202eb8479a706f5c457e22273cc98dda78",
+     "launch.mm": "13cd9f1ec05956c943ee9f2168ecd11865f0a9a3e8a5672383c84495cafd9359"
+    }
+   }
+  ],
+  "ch15/lab5_pipelined": [
+   {
+    "recorded": "git e24082e",
+    "files": {
+     "kernel.cu": "b7a76b9ee2e890c3adf53017501db1da973a27f22c00592031e9bcc38f2305fa",
+     "kernel.metal": "2b1624faefddc709052dbe26b78946b9c11ee4ada59c0a59965d5abc63ab9639",
+     "launch.mm": "14f545770fe9112da70c2e20c903816c968cddc3b690457ffaa18c3686f12cec"
+    }
+   }
+  ],
+  "ch15/lab6_linear": [
+   {
+    "recorded": "git e24082e",
+    "files": {
+     "kernel.cu": "e69c0a5fb43510806db0236057afc8c147523f0d74c043578008d3eee6c4d71c",
+     "kernel.metal": "40451a53adff782fc669ebc4d9124130702889a7fa3aadb043adee95e9a1eb73",
+     "launch.mm": "0807c978c0ed29e1c032281870946f46087ea29756f6edbba2b5b8225e741b7f"
+    }
+   }
+  ],
+  "ch15/lab7_bughunt": [
+   {
+    "recorded": "git e24082e",
+    "files": {
+     "kernel.cu": "499a4ae4c681e847db1e897be78f742a518d6cf97729bab8276a421509635094",
+     "kernel.metal": "227dad77d7a836829a1bd1cf12fe316664e21f1df4b0972aeb157c8533c50d60",
+     "launch.mm": "68c932c546220226df6801c07f1c7c7ceef3f28ab843df54613c755c794648b3"
+    }
+   }
+  ],
+  "ch16/lab1_wavefront": [
+   {
+    "recorded": "git 56fea75",
+    "files": {
+     "kernel.cu": "ecb42cf42d24e2f0040188388d991764679bb2e290655fef3abbf35b422a869f",
+     "kernel.metal": "074d474c57a5a7c4014f5be7aa006c142c04ed6aaf644cc60457386a5008d0ff",
+     "launch.mm": "40bac0d17ca409b4cfc58472b7973421bd28d78d8bef62b79c91f8b3845c80b9"
+    }
+   }
+  ],
+  "ch17/lab1_spmv": [
+   {
+    "recorded": "git 56fea75",
+    "files": {
+     "kernel.cu": "31a2c210b51c34e446b38b37e3ef62183185145ea21794b26fbf05f0f2945ebb",
+     "kernel.metal": "b9b975e7864d1048912a7da7faba08fac767da514d5c5356c8bc10d2c5e07528",
+     "launch.mm": "2a8b82b31a8e0918eb7b5547896d864ff772a7f354a3b01f046265e5a7096776"
+    }
+   }
+  ],
+  "ch18/lab1_frontier": [
+   {
+    "recorded": "git 56fea75",
+    "files": {
+     "kernel.cu": null,
+     "kernel.metal": null,
+     "launch.mm": "207d39afb28b63b89522b335de2897c808c956ed1aca8bff3f38fd4ad0e4a6f2"
+    }
+   },
+   {
+    "recorded": "git dcbebe9",
+    "files": {
+     "kernel.cu": "f52fc07f5b7ea87e47e317e51869a09f381ada63da506809e92a587e2fb9e1e3",
+     "kernel.metal": "4a3ad841b409f065ce71dbac268e9f51016acaa88f579e36025af5d5d5b3dfe3",
+     "launch.mm": "207d39afb28b63b89522b335de2897c808c956ed1aca8bff3f38fd4ad0e4a6f2"
+    }
+   }
+  ],
+  "ch19/lab1_convgemm": [
+   {
+    "recorded": "git 56fea75",
+    "files": {
+     "kernel.cu": "67c7c200e031cb9d121111cc58b3565ec521c20611e51b2f4a1a03238bf4b41b",
+     "kernel.metal": "3d57ae13d16c05f0167c501ca2059dec06060304db74915d90e90d4f1337f390",
+     "launch.mm": "54725b8f922832939b53560090d0b87cdf6e896d45275ed4b36b59c21b78c0fb"
+    }
+   }
+  ],
+  "ch20/lab1_causal_softmax": [
+   {
+    "recorded": "git 56fea75",
+    "files": {
+     "kernel.cu": "94e03e597bbff95cd51f69579ab21c9ea060b4095157b24c3ab75fc4720d7dae",
+     "kernel.metal": "185785d51dabd552b62eac64e2e28920b9428c3a3a9f604819ecb3f0db674461",
+     "launch.mm": "69957056a78081942a72c936c9e53a78452d4b04d0cfff2b3ba5c54659ca54d3"
+    }
+   },
+   {
+    "recorded": "2026-11-21",
+    "files": {
+     "kernel.cu": "ef38e1c27c6aea7b12de1700029607b0868f190528bf07f870bb22b846e3893c",
+     "kernel.metal": "185785d51dabd552b62eac64e2e28920b9428c3a3a9f604819ecb3f0db674461",
+     "launch.mm": "69957056a78081942a72c936c9e53a78452d4b04d0cfff2b3ba5c54659ca54d3"
+    }
+   }
+  ],
+  "ch20/lab2_flash": [
+   {
+    "recorded": "git 6626e13",
+    "files": {
+     "kernel.cu": "fe495a019491825e10bd22bbc222fff036df4950b6ed26e60d21513a052dc2db",
+     "kernel.metal": "2790699ffe0937d590dc89f7a8c5ab5039647798aaf9729fe8b43783851e7f8c",
+     "launch.mm": "cb433d0ba4620a3750117d586a97eec11f7515f393293116d82ecf120ab53769"
+    }
+   },
+   {
+    "recorded": "2026-11-21",
+    "files": {
+     "kernel.cu": "96405fb1fec2d29e6a9f0b70e3cdefc231e7ad4156b8bca74c3fbec6d09ad9b1",
+     "kernel.metal": "2790699ffe0937d590dc89f7a8c5ab5039647798aaf9729fe8b43783851e7f8c",
+     "launch.mm": "cb433d0ba4620a3750117d586a97eec11f7515f393293116d82ecf120ab53769"
+    }
+   }
+  ],
+  "ch20/lab3_flash_hunt": [
+   {
+    "recorded": "git 6626e13",
+    "files": {
+     "kernel.cu": "814a5d0769da22ba0ce40284ff7b60a542841868c4e706e83ff401dc6f1063f9",
+     "kernel.metal": "8203c183bd3acd913806822e08fe3a1c49043e9f69b8b123265d6b0e66f337dd",
+     "launch.mm": "47bf73407528a67e060c62b0b9cc76b6abcba533c7ef2b03c96ed57af3a524c9"
+    }
+   },
+   {
+    "recorded": "2026-11-21",
+    "files": {
+     "kernel.cu": "a105042c30f0cc37078fec15147e13d2d2e0fe6b18eda81ca7dffca6665d1302",
+     "kernel.metal": "8203c183bd3acd913806822e08fe3a1c49043e9f69b8b123265d6b0e66f337dd",
+     "launch.mm": "47bf73407528a67e060c62b0b9cc76b6abcba533c7ef2b03c96ed57af3a524c9"
+    }
+   }
+  ],
+  "ch20/lab4_decode": [
+   {
+    "recorded": "git 56fea75",
+    "files": {
+     "kernel.cu": "4e971bd34251b5dd84dd9cbf57b0261aa14331e10e08dc0de70882c62df26447",
+     "kernel.metal": "ce3bcb1523b581af9d3e838932925237fd9ddc5d0d7f10bff0810472aa5ef774",
+     "launch.mm": "922e07ee15f321b933f5fc1460653149257afdd20f51c9901467b50c6c2adbdb"
+    }
+   },
+   {
+    "recorded": "2026-11-21",
+    "files": {
+     "kernel.cu": "fe353c08855084e6dbed6a681831507cbb4457999be8f161cbbaac2ea10ec98c",
+     "kernel.metal": "ce3bcb1523b581af9d3e838932925237fd9ddc5d0d7f10bff0810472aa5ef774",
+     "launch.mm": "922e07ee15f321b933f5fc1460653149257afdd20f51c9901467b50c6c2adbdb"
+    }
+   }
+  ],
+  "ch20/lab5_gqa_decode": [
+   {
+    "recorded": "git 56fea75",
+    "files": {
+     "kernel.cu": "2ed726b1cd3e897c79efa02073efda7bc1a4d2e82e6738e321a9f2875dc68690",
+     "kernel.metal": "f3c2a37c305583dc27a5488c98b9a244d65065d39821495bb9e086aa81035c4e",
+     "launch.mm": "3c9ae07b873b1708cc9f187ba7f00976ed146ab8e55e023913d8894612164998"
+    }
+   },
+   {
+    "recorded": "git 6626e13",
+    "files": {
+     "kernel.cu": "77c30523243714779fb71564dee0e90ad452743a2fe5f9f432de01eb204a2f15",
+     "kernel.metal": "24cc56e8201f01e09925a428012a6c7828d02834198fa8743db252f3293fba89",
+     "launch.mm": "b24a0078d6f64af855557cb21647f7322f6d9af604684a9b874fb7fdbf5ec78c"
+    }
+   },
+   {
+    "recorded": "2026-11-21",
+    "files": {
+     "kernel.cu": "935aead10e9cb4dd0491b05b7889a6ea0bd055911192f8d35cb10136fbf2da42",
+     "kernel.metal": "24cc56e8201f01e09925a428012a6c7828d02834198fa8743db252f3293fba89",
+     "launch.mm": "b24a0078d6f64af855557cb21647f7322f6d9af604684a9b874fb7fdbf5ec78c"
+    }
+   }
+  ],
+  "ch21/lab1_dcs": [
+   {
+    "recorded": "git 56fea75",
+    "files": {
+     "kernel.cu": "e71bb0dad43f755f367fc389d2dbf64ced449e52e13cc022fa77ebe721ba8e5b",
+     "kernel.metal": "18612bdfba3c30222c77ea8ff4121647c0cc1f87433faa7f60c6d985379ad55e",
+     "launch.mm": "f548318cee278c2ce7db6ae1a6d080853a5cc83a128bf89e583b089cbfab86a6"
+    }
+   },
+   {
+    "recorded": "2026-11-21",
+    "files": {
+     "kernel.cu": "d97b818067e59b36c1430daaf0db807e799bb3ce9dadd50bc7dea01e40e94f7e",
+     "kernel.metal": "18612bdfba3c30222c77ea8ff4121647c0cc1f87433faa7f60c6d985379ad55e",
+     "launch.mm": "f548318cee278c2ce7db6ae1a6d080853a5cc83a128bf89e583b089cbfab86a6"
+    }
+   }
+  ],
+  "ch22/lab1_gemv": [
+   {
+    "recorded": "git 56fea75",
+    "files": {
+     "kernel.cu": "e1071d0095e555c194bde790cf211be44696d9f4c0207befcc1afa3c9adcca72",
+     "kernel.metal": "c2381aec439b4f5cf40ff67aeacf16229d1914ed09d8e4c61616267e5deba905",
+     "launch.mm": "2cd9f6ba9f2495b4cec1d836698322fb5cf1def55a841a9145e38d04f43a8bf3"
+    }
+   },
+   {
+    "recorded": "git 6626e13",
+    "files": {
+     "kernel.cu": "08045b5403ed146d6279a1936d759a8dd8ff1b9ee3b290a4f13065f1dbad8d81",
+     "kernel.metal": "2522c512f6414582b8e65e2eec8ba676ba0b10cc0979ea26a6f4ffb6a5581841",
+     "launch.mm": "59dcb62c6dd1597c5cf1a32d81745d20d6d827ded3e4c64a9e291dda13dc4db6"
+    }
+   }
+  ],
+  "ch22/lab2_batching": [
+   {
+    "recorded": "git 56fea75",
+    "files": {
+     "kernel.cu": "468fc340e47b108460fc2dd80f35342d7a5aa9875812f49d43b701b566be9648",
+     "kernel.metal": "a3bfa9fc957ffb67afcb30fb221196c2e28ce28f2d0bb54c9d155e9f033f1977",
+     "launch.mm": "e9f0ef67c2309b9b4fd86bde18193c98850c9729a608bc10325dc1205c86e92a"
+    }
+   }
+  ],
+  "ch23/lab1_overlap": [
+   {
+    "recorded": "git 56fea75",
+    "files": {
+     "kernel.cu": "b2f8f5c804658a9d2aa63e3b825abd8e2acf5f4d1371a01ee85527e31cb1f76d",
+     "kernel.metal": "424556490bd507987895b29e2115ce6150d76845340fd034e774d229810d9982",
+     "launch.mm": "757bdf647da890da607086a1c7299d67eb2957b1355c8cfded58758465d0a9f2"
+    }
+   }
+  ],
+  "x1/lab1_topk": [
+   {
+    "recorded": "git 6626e13",
+    "files": {
+     "kernel.cu": "29360bcc77a82153e4563ffd95be402b94b3b7d6de39a888186eb46f5eef22d1",
+     "kernel.metal": "855d5fc68f9dc9c3ccebad7b67849831a9d7e4c93eb983800c649d59a65ba25e",
+     "launch.mm": "ee7f828ace7e4fdb37dd7a9b14ada2033a0ef37d2d7da8d4970dae96008817aa"
+    }
+   }
+  ],
+  "x1/lab2_filters": [
+   {
+    "recorded": "git 6626e13",
+    "files": {
+     "kernel.cu": "cd49174d25eebbf73f5beee7541d394e2793d25092786d1d6d14d7502d252e80",
+     "kernel.metal": "fd98a774658bf83baa8630411e70a9d8a0d5b307406d36357d84226602d6f217",
+     "launch.mm": "bbf23092a7e5982e9332de40769d6d241aafc76318af44bbbaed8ca565cf192e"
+    }
+   },
+   {
+    "recorded": "2026-11-21",
+    "files": {
+     "kernel.cu": "ee18d27b29097dc34570b2c996af0871f1fd241be0d925ea4b04deb23c57101a",
+     "kernel.metal": "fd98a774658bf83baa8630411e70a9d8a0d5b307406d36357d84226602d6f217",
+     "launch.mm": "bbf23092a7e5982e9332de40769d6d241aafc76318af44bbbaed8ca565cf192e"
+    }
+   }
+  ],
+  "x1/lab3_sampler": [
+   {
+    "recorded": "git 6626e13",
+    "files": {
+     "kernel.cu": "2e3fc40c0352247ab0aae0a3fb76a466db6bf7a0e279ceb19fb168ecbbe93fae",
+     "kernel.metal": "65fb7efc7bc313b7257ebb5b5bf00d265928f1aea529344bc5a95c6418735d9f",
+     "launch.mm": "f3e1fd806b8aef839a697fbb944fd33b9434797ac5e050ebe02b52f256c03676"
+    }
+   },
+   {
+    "recorded": "2026-11-21",
+    "files": {
+     "kernel.cu": "d404e8833be732f14677f99f86250a908d88eebf0ae88e58459d39af2addb6ee",
+     "kernel.metal": "65fb7efc7bc313b7257ebb5b5bf00d265928f1aea529344bc5a95c6418735d9f",
+     "launch.mm": "f3e1fd806b8aef839a697fbb944fd33b9434797ac5e050ebe02b52f256c03676"
+    }
+   }
+  ],
+  "x1/lab4_filterhunt": [
+   {
+    "recorded": "git 6626e13",
+    "files": {
+     "kernel.cu": "fbe4914f6cbc7532769c4adc9fd33016394ba0177ff176b3630d6a89d51a414a",
+     "kernel.metal": "30d6da39035e6c988fe00f4481b7c4091070adb16f7bc15888282afe9f2d59e2",
+     "launch.mm": "02f193c18f605c50348b8473505ae8497fadd6778ecb3bab1bdc01000b73104d"
+    }
+   },
+   {
+    "recorded": "2026-11-21",
+    "files": {
+     "kernel.cu": "281a4e9af7bfdbbe9833055d01e172a3b494ea4891aa6c804f3aaa6d23d42ddb",
+     "kernel.metal": "30d6da39035e6c988fe00f4481b7c4091070adb16f7bc15888282afe9f2d59e2",
+     "launch.mm": "02f193c18f605c50348b8473505ae8497fadd6778ecb3bab1bdc01000b73104d"
+    }
+   }
+  ],
+  "x2/lab1_q8gemv": [
+   {
+    "recorded": "git e4616e7",
+    "files": {
+     "kernel.cu": "661a282eced382fe9c5bd7e48596216ae24562349090b898070b93cf3e78d0c6",
+     "kernel.metal": "50f6668e8a227a3a02a6ba0a13910c13b1293bf92b79b1d01556572923620dc7",
+     "launch.mm": "74e60b30c2548d364357135d99df573502c719a80837ab6045da484e771c0a54"
+    }
+   }
+  ],
+  "x2/lab2_q4gemv": [
+   {
+    "recorded": "git e4616e7",
+    "files": {
+     "kernel.cu": "e00bd9dc7ead7158c1178834ebecc0dc1a8dc127f886b76f94291aee99c99074",
+     "kernel.metal": "e5129dbf64a3f976324eb8e8e36af121f26ea702db730009c78f43aa9fa9e6d6",
+     "launch.mm": "be817c25aa9f2cf159d623e7eb5d6cd09131aa80a5556276b30a7ca9e7979733"
+    }
+   }
+  ],
+  "x2/lab3_qhunt": [
+   {
+    "recorded": "git e4616e7",
+    "files": {
+     "kernel.cu": "bd18519369f486f0e6f54b9bf7bf40b7d02f0572608bd9e7f0d39603ae41ff1a",
+     "kernel.metal": "d9ab144de3a5a296f9e23ec3f55bed8c0fbab4ce95a3dda77bc011ae674a4705",
+     "launch.mm": "44ac5a04b0858704a56e56976dcd186ae7674c2827217e2bfaf6f78cc32c2fa4"
+    }
+   },
+   {
+    "recorded": "2026-11-21",
+    "files": {
+     "kernel.cu": "2b5955c9619f43aabbf475cc8e25a31834eaa24e7a1edcd87277e9ec19f97a94",
+     "kernel.metal": "d9ab144de3a5a296f9e23ec3f55bed8c0fbab4ce95a3dda77bc011ae674a4705",
+     "launch.mm": "44ac5a04b0858704a56e56976dcd186ae7674c2827217e2bfaf6f78cc32c2fa4"
+    }
+   }
+  ],
+  "x2/lab4_m9": [
+   {
+    "recorded": "git e4616e7",
+    "files": {
+     "kernel.cu": "f269c544347fa99168dcfe711f11f9f799ea683352f4c1c02b6d5f65e22c6dba",
+     "kernel.metal": "a1bcca9cd0f93692152f89d2b9fabe75c26df1b2d610277cbdb4c0f8478828bf",
+     "launch.mm": "6235d65416e48381a0179bcbd54acca02b8786c30b043216893bea15544102e4"
+    }
+   }
+  ],
+  "x3/lab1_llama_pieces": [
+   {
+    "recorded": "git e4616e7",
+    "files": {
+     "kernel.cu": "7b8972646acd15fbe37d065d1cc61d54a7162512560a38fa9ebc188cef1b48fa",
+     "kernel.metal": "33c262e4244027e2bbbde65b6b47e4fda6243fafa5f1169c963e8b9bb96177f7",
+     "launch.mm": "1ac4f7ec10b68548af6718fe0a4a561c7434ba01b0b47a4d88780459b7bbd9ce"
+    }
+   },
+   {
+    "recorded": "2026-11-21",
+    "files": {
+     "kernel.cu": "c57558d9b0a877c74d63b8400a67256538acb15406137b0745a355ef0ddcc1ff",
+     "kernel.metal": "33c262e4244027e2bbbde65b6b47e4fda6243fafa5f1169c963e8b9bb96177f7",
+     "launch.mm": "1ac4f7ec10b68548af6718fe0a4a561c7434ba01b0b47a4d88780459b7bbd9ce"
+    }
+   }
+  ],
+  "x3/lab2_tinyllama": [
+   {
+    "recorded": "git e4616e7",
+    "files": {
+     "kernel.cu": "691d563ded265602cafad3e850214e6e7ad7d02a9015f49752729de44b6ac2bf",
+     "kernel.metal": "27da3c7c45cdee8e156c62f7b13976cc999bb79cb3ffeafba01b29074ae2737c",
+     "launch.mm": "8eb0d96728f2c24810652734aa9ad393b71425d1e9235246b53cfbf9cf73ffc0"
+    }
+   }
+  ]
+ }
+}

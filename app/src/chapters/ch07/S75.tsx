@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
+import { solutionTabStatus } from '../../components/LabKit';
 import { Aside, Bench, Beyond, Simplification, Source, TierLegend, Today, type Tier } from '../../components/notes';
-import { benchRows, fmt, labStatus, num, realBackends, useReports, type Reports } from '../../lib/reports';
+import { benchRows, fmt, num, realBackends, useReports, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import { SEGMENT_MODELS, type SegmentModelId } from '../../sim/coalesce';
 import {
@@ -1012,21 +1013,13 @@ function HaloListing() {
   const metal = labPart(useLabFile('ch07/lab2_tiledconv/solution/kernel.metal'), 'halo');
   if (!cu || !metal) return null;
   const lab = 'ch07/lab2_tiledconv';
-  const onMetal = labStatus(reports.metal, lab, 'solution') === 'pass';
-  const onEmu = labStatus(reports.emu, lab, 'solution') === 'pass';
-  // The same wording on every page of the chapter: "emulator-checked; unverified on CUDA and HIP", as on the labs page.
-  const done = (['cuda', 'hip'] as const).filter((b) => labStatus(reports[b], lab, 'solution') === 'pass').map((b) => (b === 'cuda' ? 'CUDA' : 'HIP'));
-  const lacking = (['cuda', 'hip'] as const).filter((b) => labStatus(reports[b], lab, 'solution') !== 'pass').map((b) => (b === 'cuda' ? 'CUDA' : 'HIP'));
-  const cuStatus = [
-    onEmu ? 'emulator-checked' : 'unverified: no passing emulator run on this machine',
-    done.length ? `verified on ${done.join(' and ')}` : null,
-    lacking.length ? `unverified on ${lacking.join(' and ')}` : null,
-  ].filter(Boolean).join('; ');
+  // The labs page's words (LabKit's solutionTabStatus), so a failed run reads as failed here too.
+  const cuStatus = solutionTabStatus(reports, lab, 'kernel.cu');
   return (
     <Code
       tabs={[
         { label: 'CUDA', code: cu, tiers: CONV_TIERS, status: cuStatus },
-        { label: 'Metal kernel', code: metal, tiers: CONV_TIERS, status: onMetal ? 'verified on Metal' : 'unverified: no passing Metal run on this machine' },
+        { label: 'Metal kernel', code: metal, tiers: CONV_TIERS, status: solutionTabStatus(reports, lab, 'kernel.metal') },
       ]}
       caption={
         <>

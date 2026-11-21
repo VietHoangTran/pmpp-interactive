@@ -3,6 +3,7 @@
 // Every expected value comes from src/sim/argmaxties.ts, run here in Node.
 // Usage: APP_URL=http://localhost:5173 node e2e/x3-sx36.mjs [--dark] [screenshot-prefix]
 import { open, goto } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 
 const M = await import('../src/sim/argmaxties.ts');
 const dark = process.argv.includes('--dark');
@@ -156,6 +157,12 @@ await (await q3.$$('input[type=radio]'))[1].click();
 await (await q3.$('button.primary')).click();
 await pause(120);
 check('q-default-place rejects the GPU answer', (await q3.evaluate((e) => e.textContent)).includes('Not quite.'));
+
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'x3/X3.6', [
+  { label: 'CUDA', lab: 'ch10/lab3_softmax_argmax', file: 'kernel.cu' },
+  { label: 'Metal kernel', lab: 'ch10/lab3_softmax_argmax', file: 'kernel.metal' },
+]);
 
 check('no console or page errors', errors.length === 0, errors.join(' | '));
 await browser.close();

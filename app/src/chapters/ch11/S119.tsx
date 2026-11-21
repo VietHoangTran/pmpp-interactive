@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
+import { solutionTabStatus } from '../../components/LabKit';
 import { Bench, Beyond, NoteGroup as Notes, Simplification, Source, Today, type Tier } from '../../components/notes';
 import { fmt, realBackends, useReports, type BackendRun, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
@@ -697,6 +698,8 @@ const linesWith = (text: string, needles: string[]) =>
 
 function SinglePassListing() {
   const cu = useLabFile(LAB5_FILE);
+  // The labs page's words (LabKit's solutionTabStatus), from this machine's runs. Lab 11.5 has no Metal files.
+  const { reports } = useReports();
   if (cu == null) return <p className="muted">Loading lab 11.5's kernel…</p>;
   if (cu.startsWith('// could not load'))
     return (
@@ -711,7 +714,7 @@ function SinglePassListing() {
           label: 'CUDA (lab 11.5)',
           code: cu,
           tiers: SCAN_TIERS,
-          status: 'front-end-checked; emulator-checked; unverified on CUDA and HIP hardware',
+          status: solutionTabStatus(reports, 'ch11/lab5_singlepass', 'kernel.cu'),
           highlight: linesWith(cu, ['memory_order_acquire', 'memory_order_release', 'blockCounter']),
         },
       ]}

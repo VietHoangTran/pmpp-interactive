@@ -1,7 +1,7 @@
 import { Fragment, useMemo, useState, type ReactNode } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile, type CodeTab } from '../../components/Code';
-import { defineLabs, solutionStatus } from '../../components/LabKit';
+import { defineLabs, solutionTabStatus } from '../../components/LabKit';
 import { Beyond, Bench, Simplification, Source, TierLegend, Today, type Tier } from '../../components/notes';
 import { useReports, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
@@ -82,16 +82,9 @@ export function region(src: string | null, name: string): { code: string; firstL
   return { code: lines.slice(a + 1, b).join('\n'), firstLine: a + 2 };
 }
 
-/** Status of a lab's CUDA file (which also serves HIP and the emulators) from this machine's reports. */
-function cuStatus(reports: Reports): string {
-  const e = solutionStatus(reports, 'emu', LAB1);
-  const c = solutionStatus(reports, 'cuda', LAB1);
-  const h = solutionStatus(reports, 'hip', LAB1);
-  const dev = [c, h].every((s) => s.tone !== 'ok')
-    ? 'unverified on CUDA and HIP hardware'
-    : [c.tone === 'ok' ? c.text : 'unverified on CUDA', h.tone === 'ok' ? h.text : 'unverified on HIP'].join('; ');
-  return `${e.tone === 'ok' ? e.text : 'emulator: ' + e.text}; ${dev}`;
-}
+/** Status of lab 19.1's files, in the labs page's words (LabKit's solutionTabStatus). */
+const cuStatus = (reports: Reports): string => solutionTabStatus(reports, LAB1, 'kernel.cu');
+const metalStatus = (reports: Reports): string => solutionTabStatus(reports, LAB1, 'kernel.metal');
 
 // ---------------------------------------------------------------- small helpers
 
@@ -996,7 +989,7 @@ function ProvidedKernel() {
     <Code
       tabs={[
         { label: 'CUDA (also HIP, emulator)', code: cu, tiers: CONV_TIERS, status: 'tested with lab 19.1: ' + cuStatus(reports) },
-        { label: 'Metal', code: metal, tiers: CONV_TIERS, status: 'tested with lab 19.1: ' + solutionStatus(reports, 'metal', LAB1).text },
+        { label: 'Metal', code: metal, tiers: CONV_TIERS, status: 'tested with lab 19.1: ' + metalStatus(reports) },
       ]}
       caption={
         <>
@@ -1025,7 +1018,7 @@ function SolutionRegions() {
         label: `${name}, ${f}`,
         code: r.code,
         tiers: f === 'launch.mm' ? {} : CONV_TIERS,
-        status: f === 'kernel.cu' ? cuStatus(reports) : solutionStatus(reports, 'metal', LAB1).text,
+        status: f === 'kernel.cu' ? cuStatus(reports) : metalStatus(reports),
       });
     }
   const loading = Object.values(files).some((x) => x === null);

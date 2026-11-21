@@ -4,6 +4,7 @@
 // shows is compared with the model (src/sim/gemmmap.ts, imported directly).
 // Usage: APP_URL=http://localhost:5173 node e2e/ch15-s153.mjs [screenshot-prefix]
 import { open, goto } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 import { launch2D, owns, slotOf, loadPlan, tileLoadSummary, warpLoad } from '../src/sim/gemmmap.ts';
 
 const out = process.argv[2];
@@ -254,6 +255,16 @@ check('question: a 16 x 16 launch duplicates the top row of patches', await choi
 check('question: the batch-1 layer launches 32 blocks against 256', await choice('Lab 5.3\'s benchmark layer', '32 against 256'));
 check('question: sectors of an A and a B load', await choice('Counting NVIDIA\'s 32-byte sectors', 'Both touch four sectors'));
 check('a wrong answer is marked wrong', !(await choice('You delete the', 'The kernel no longer compiles')));
+
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch15/15.3', [
+  { label: 'CUDA', lab: 'ch15/lab1_coarse', file: 'kernel.cu' },
+  { label: 'Metal kernel', lab: 'ch15/lab1_coarse', file: 'kernel.metal' },
+  { label: 'Metal host', lab: 'ch15/lab1_coarse', file: 'launch.mm' },
+  { label: 'loadTile, lab 15.1', lab: 'ch15/lab1_coarse', file: 'kernel.cu' },
+  { label: 'mm, lab 15.1', lab: 'ch15/lab1_coarse', file: 'kernel.cu' },
+  { label: 'writeTile, lab 15.1', lab: 'ch15/lab1_coarse', file: 'kernel.cu' },
+]);
 
 check('no console or page errors', errors.length === 0, errors.join(' | '));
 await browser.close();

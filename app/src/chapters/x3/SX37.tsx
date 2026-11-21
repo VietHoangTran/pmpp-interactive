@@ -1,6 +1,8 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { Ask, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
+import { solutionTabStatus } from '../../components/LabKit';
+import { useReports } from '../../lib/reports';
 import { Aside, Bench, Beyond, Simplification, Source, Today, type Tier } from '../../components/notes';
 import { href } from '../../lib/router';
 import { HEAD, JOB_LABEL, SYNTHETIC, launchCount, stepLaunches, totals, validate, type Config, type Launch } from '../../sim/llamastep';
@@ -457,6 +459,8 @@ function TwoPairings() {
 // ---------------------------------------------------------------- the RoPE listing
 function RopeListing() {
   const cu = useLabFile(LAB1 + '/solution/kernel.cu');
+  // The labs page's words (LabKit's solutionTabStatus), from this machine's runs.
+  const { reports } = useReports();
   const metal = useLabFile(LAB1 + '/solution/kernel.metal');
   const k = cu ? functionSource(cu, 'ropeKernel') : null;
   const mk = metal ? functionSource(metal, 'rope_rows') : null;
@@ -465,8 +469,8 @@ function RopeListing() {
   return (
     <Code
       tabs={[
-        { label: 'CUDA', code: k.text, tiers: TIERS, status: 'emulator-checked; front-end-checked; unverified on CUDA and HIP hardware', highlight: lines(k.text) },
-        { label: 'Metal kernel', code: mk.text, tiers: TIERS, status: 'verified on Metal', highlight: lines(mk.text) },
+        { label: 'CUDA', code: k.text, tiers: TIERS, status: solutionTabStatus(reports, LAB1, 'kernel.cu'), highlight: lines(k.text) },
+        { label: 'Metal kernel', code: mk.text, tiers: TIERS, status: solutionTabStatus(reports, LAB1, 'kernel.metal'), highlight: lines(mk.text) },
       ]}
       caption={
         <>

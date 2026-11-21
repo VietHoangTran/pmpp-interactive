@@ -7,12 +7,6 @@
 // random number per row, the repetition penalty, the final draw, and the composition.
 #include <cfloat>
 
-// The course's CUDA front-end check (labs/pmpp.py) declares no CUDA Math API functions, so it
-// is given expf's device declaration here. nvcc, hipcc and the emulator never see it.
-#if defined(PMPP_CUDA_FRONTEND_CHECK)
-__device__ float expf(float x);
-#endif
-
 #define BLOCK_SIZE 256                          // threads per block for the row kernels
 #define DRAW_VEC 4                              // consecutive weights per thread per chunk
 #define MIN_WARP_SIZE 32                        // the narrowest warp any backend here has
@@ -59,7 +53,8 @@ __device__ unsigned int warpsInBlock() { return (blockDim.x + warpSize - 1) / wa
 //             (hi1 ^ word1 ^ key0, lo1, hi0 ^ word3 ^ key1, lo0).
 //         Between rounds (not before the first) key0 grows by 0x9E3779B9 and key1 by
 //         0xBB67AE85, wrapping. Form the product as an unsigned long long multiplication:
-//         __umulhi exists on CUDA and HIP but not in the course's emulator or front-end stub.
+//         __umulhi exists on CUDA and HIP (and the course's emulator and front-end stub have
+//         it too), but the product form needs no intrinsic and is the same source on Metal.
 __device__ uint4 philox4x32_10(uint4 ctr, uint2 key) {
     return ctr;
 }

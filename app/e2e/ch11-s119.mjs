@@ -5,6 +5,7 @@
 // phone width. The narrated scene has its own check, ch11-scene-lookback.mjs.
 // Usage: APP_URL=http://localhost:5173 node e2e/ch11-s119.mjs [screenshot-prefix]
 import { open, goto, BASE } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 import { BOOK_PRESET, designCeilings, designTraffic, labRows, rssOverSsa } from '../src/sim/scantraffic.ts';
 import { MP_TABLE, messagePassing, simulate } from '../src/sim/lookback.ts';
 
@@ -288,6 +289,11 @@ if (out) {
 const expected404 = (u) => /\/api\/lab-file\?path=ch11%2Flab5_/.test(u) || /\/content\/ch11\/narration\/(manifest\.json|lookback-\d\.mp3)$/.test(u);
 const real = errors.filter((e) => !/Failed to load resource: the server responded with a status of 404/.test(e));
 check('no console or page errors (a lab file not yet written and missing narration audio are allowed)', real.length === 0 && missing.every(expected404), [...real, ...missing.filter((u) => !expected404(u))].join(' | '));
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch11/11.9', [
+  { label: 'CUDA (lab 11.5)', lab: 'ch11/lab5_singlepass', file: 'kernel.cu' },
+]);
+
 await browser.close();
 console.log(fail.length ? `\n${fail.length} check(s) failed` : '\nall checks passed');
 process.exit(fail.length ? 1 : 0);

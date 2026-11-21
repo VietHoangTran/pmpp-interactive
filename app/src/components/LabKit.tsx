@@ -123,6 +123,7 @@ import { Aside, Bench, type Tier } from './notes';
 import {
   benchRows,
   fmt,
+  frontendStatus,
   labStatus,
   labSummary,
   num,
@@ -248,7 +249,10 @@ const and = (xs: string[]) => (xs.length < 3 ? xs.join(' and ') : xs.slice(0, -1
  * "unverified: no run on this machine". The kernel.cu tab speaks for the emulator, CUDA and
  * HIP at once: what passed, then what failed ("unverified on CUDA: failed on this machine"),
  * then the CUDA-family backends with no run ("unverified on CUDA and HIP"), e.g.
- * "emulator-checked; unverified on CUDA and HIP". It says a run failed whenever one did.
+ * "emulator-checked, front-end-checked; unverified on CUDA and HIP". "front-end-checked"
+ * comes from this machine's last CUDA front-end check of the solution's kernel.cu (only while
+ * the file is unchanged since, and only until CUDA itself has passed). It says a run failed
+ * whenever one did.
  */
 export function solutionTabStatus(reports: Reports, l: Lab | string, file: LabSource): string {
   const id = typeof l === 'string' ? l : l.id;
@@ -262,8 +266,16 @@ export function solutionTabStatus(reports: Reports, l: Lab | string, file: LabSo
   const passed = fam.filter((b) => st(b) === 'pass').map((b) => (b === 'emu' ? 'emulator-checked' : `verified on ${NAME[b]}`));
   const failed = fam.filter((b) => st(b) === 'fail').map((b) => WHERE[b]);
   const none = (['cuda', 'hip'] as Backend[]).filter((b) => st(b) === 'none').map((b) => NAME[b]);
-  if (!passed.length && !failed.length) return `unverified: ${NO_RUN}`;
-  return [passed.join(', '), failed.length ? `unverified on ${and(failed)}: ${FAILED}` : '', none.length ? `unverified on ${none.join(' and ')}` : '']
+  // The CUDA front-end check (clang parse against stubs) adds to the record until CUDA itself has passed.
+  const fe = st('cuda') === 'pass' ? 'none' : frontendStatus(reports, `labs/${id}/solution/kernel.cu`);
+  if (fe === 'ok') passed.push('front-end-checked');
+  if (!passed.length && !failed.length && fe === 'none') return `unverified: ${NO_RUN}`;
+  return [
+    passed.join(', '),
+    failed.length ? `unverified on ${and(failed)}: ${FAILED}` : '',
+    fe === 'fail' ? `failed the CUDA front-end check on this machine` : '',
+    none.length ? `unverified on ${none.join(' and ')}` : '',
+  ]
     .filter(Boolean)
     .join('; ');
 }

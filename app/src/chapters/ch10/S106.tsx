@@ -24,7 +24,7 @@ import { SCHEDULE_LABEL } from '../../sim/tiled';
 import { functionSource } from '../../sim/toolchain';
 
 import { NoteGroup } from './NoteGroup';
-import { STATUS } from './status';
+import { STATUS, useLabStatus } from './status';
 const LAB = 'ch10/lab1_sum';
 const SCHEDULES: Schedule[] = ['lockstep', 'in-order', 'reversed', 'shuffled'];
 const TIERS: Record<string, Tier> = {
@@ -468,6 +468,7 @@ export const questionsS106: Record<string, Question> = {
 
 // ---------------------------------------------------------------- the page
 export function S106() {
+  const status = useLabStatus(LAB);
   const cu = useLabFile(LAB + '/solution/kernel.cu');
   const metal = useLabFile(LAB + '/solution/kernel.metal');
   // The lab files separate their kernels with "// ---- (a)" rulers; leave those out of the listing.
@@ -507,8 +508,8 @@ export function S106() {
       {k ? (
         <Code
           tabs={[
-            { label: 'CUDA (lab 10.1)', code: k.text, tiers: TIERS, status: STATUS.cu },
-            ...(m ? [{ label: 'Metal (lab 10.1)', code: m.text, tiers: TIERS, status: STATUS.metal }] : []),
+            { label: 'CUDA (lab 10.1)', code: k.text, tiers: TIERS, status: status.cu },
+            ...(m ? [{ label: 'Metal (lab 10.1)', code: m.text, tiers: TIERS, status: status.metal }] : []),
           ]}
           caption={
             <>

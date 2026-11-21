@@ -45,13 +45,6 @@
 //     (infra-facts B3, ch20-facts B1).
 #include <cfloat>
 
-// The course's CUDA front-end check declares no CUDA Math API functions, so it is given
-// these two device declarations. nvcc, hipcc and the emulators never see them.
-#if defined(PMPP_CUDA_FRONTEND_CHECK)
-__device__ float expf(float x);
-__device__ float fmaxf(float x, float y);
-#endif
-
 #define HEAD_DIM 128                           // the book's d (Fig. 20.9); a multiple of WARP_SIZE
 #define WARP_SIZE 32                           // the book's WARP_SIZE: a logical warp of 32 lanes (see above)
 #define BLOCK_SIZE 256                         // threads per (sequence, head)

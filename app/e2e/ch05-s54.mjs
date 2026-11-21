@@ -1,6 +1,7 @@
 // Browser check for section 5.4: the kernel stepper and the barrier outcome table.
 // Usage: node e2e/s54.mjs [screenshot-prefix]
 import { open, goto } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 
 const out = process.argv[2];
 const { browser, page, errors } = await open({ width: 1440, height: 1000 });
@@ -103,6 +104,13 @@ await (await q.$('input[type=number]')).type('11');
 await (await q.$('button.primary')).click();
 await pause(120);
 check('numeric question accepts the right index', (await q.evaluate((e) => e.textContent)).includes('Correct.'));
+
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch05/5.4', [
+  { label: 'CUDA', lab: 'ch05/lab2_tiled', file: 'kernel.cu' },
+  { label: 'Metal kernel', lab: 'ch05/lab2_tiled', file: 'kernel.metal' },
+  { label: 'Metal host', lab: 'ch05/lab2_tiled', file: 'launch.mm' },
+]);
 
 check('no console or page errors', errors.length === 0, errors.join(' | '));
 await browser.close();

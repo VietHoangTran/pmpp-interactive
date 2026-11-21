@@ -10,6 +10,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { open, goto, BASE } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 import {
   HAZARD_LABEL, SCHEDULES, SCHEMES, VARIANTS, baselineBarriers, firstFailure, hazardsOf, roles, run, speedup, speedupLimit, timeline,
 } from '../src/sim/gemmpipe.ts';
@@ -344,7 +345,7 @@ if (haveLab) {
   await fig.evaluate((f) => [...f.querySelectorAll('.tabs button')].find((b) => b.textContent === 'Metal').click());
   await pause(80);
   const status = await fig.evaluate((f) => f.querySelector('.tabs .status')?.textContent ?? '');
-  check('the Metal tab is the Metal file, its status in the fixed vocabulary', (await figText()).startsWith(fs.readFileSync(labMetal, 'utf8').split('\n')[0]) && /^(verified on Metal|no run on this machine|unverified: failed on this machine)$/.test(status), status);
+  check('the Metal tab is the Metal file, its status in the fixed vocabulary', (await figText()).startsWith(fs.readFileSync(labMetal, 'utf8').split('\n')[0]) && /^(verified on Metal|unverified: no run on this machine|unverified: failed on this machine)$/.test(status), status);
 }
 
 // ---------------------------------------------------------------- questions
@@ -395,6 +396,12 @@ if (out) {
 const expected404 = (u) => /\/content\/ch15\/narration\/(manifest\.json|pipeline-\d\.mp3)$/.test(u);
 const real = errors.filter((e) => !/Failed to load resource: the server responded with a status of 404/.test(e));
 check('no console or page errors (a missing narration manifest is allowed)', real.length === 0 && missing.every(expected404), [...real, ...missing.filter((u) => !expected404(u))].join(' | '));
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch15/15.8', [
+  { label: 'CUDA', lab: 'ch15/lab5_pipelined', file: 'kernel.cu' },
+  { label: 'Metal', lab: 'ch15/lab5_pipelined', file: 'kernel.metal' },
+]);
+
 await browser.close();
 console.log(fail.length ? `\n${fail.length} check(s) failed` : '\nall checks passed');
 process.exit(fail.length ? 1 : 0);

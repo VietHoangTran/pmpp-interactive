@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Ask, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
+import { solutionTabStatus } from '../../components/LabKit';
+import { useReports } from '../../lib/reports';
 import { Bench, Beyond, NoteGroup, Simplification, Source, Today, type Tier } from '../../components/notes';
 import { href } from '../../lib/router';
 import {
@@ -16,8 +18,6 @@ import { functionSource } from '../../sim/toolchain';
 
 const STATUS = {
   printed: 'front-end-checked; emulator-checked (N a multiple of the block segment); unverified on CUDA hardware; as printed',
-  cu: 'front-end-checked; emulator-checked; unverified on CUDA and HIP hardware',
-  metal: 'verified on Metal',
 } as const;
 const FILES: Record<CoarseKernel, string> = {
   'fig11.12': 'ch11/snippets/s116_coarsened_as_printed.cu',
@@ -281,6 +281,9 @@ function RegTiledListing() {
   const printed = useLabFile(FILES['fig11.13']);
   const cu = useLabFile(LAB + '/solution/kernel.cu');
   const metal = useLabFile(LAB + '/solution/kernel.metal');
+  // The labs page's words (LabKit's solutionTabStatus), from this machine's runs.
+  const { reports } = useReports();
+  const labStatus = { cu: solutionTabStatus(reports, 'ch11/lab2_coarsened', 'kernel.cu'), metal: solutionTabStatus(reports, 'ch11/lab2_coarsened', 'kernel.metal') };
   if (missing(printed)) return null;
   const k = functionSource(printed!, 'scan_kernel');
   if (!k) return null;
@@ -288,8 +291,8 @@ function RegTiledListing() {
   const labMetal = !missing(metal) ? functionSource(metal!, 'register_tiled_scan') : null;
   const tabs = [
     { label: 'Fig. 11.13 as printed', code: k.text, tiers: TIERS, status: STATUS.printed, highlight: [12, 13, 14, 15, 16, 19, 26, 27, 28, 29] },
-    ...(labCu ? [{ label: 'lab 11.2 (CUDA and HIP)', code: labCu.text, tiers: TIERS, status: STATUS.cu }] : []),
-    ...(labMetal ? [{ label: 'lab 11.2 (Metal)', code: labMetal.text, tiers: TIERS, status: STATUS.metal }] : []),
+    ...(labCu ? [{ label: 'lab 11.2 (CUDA and HIP)', code: labCu.text, tiers: TIERS, status: labStatus.cu }] : []),
+    ...(labMetal ? [{ label: 'lab 11.2 (Metal)', code: labMetal.text, tiers: TIERS, status: labStatus.metal }] : []),
   ];
   return (
     <Code

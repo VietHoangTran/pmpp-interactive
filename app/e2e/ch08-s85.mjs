@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { open, goto, BASE } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 import { blocksSlab, cubeAI, planesLoaded, sharedBytes, slabAI, slabAILimit, threadsCube, threadsSlab } from '../src/sim/stencilslab.ts';
 import { CORRECT, interiorBlock, localZ, makeProblem, planeTimeline, runAll, runBlock } from '../src/sim/zmarch.ts';
 
@@ -365,6 +366,14 @@ const expected404 = (u) =>
   (/\/api\/lab-file\?path=/.test(u) && !fs.existsSync(path.join(REPO, 'labs', decodeURIComponent(u.split('path=')[1]))));
 const real = errors.filter((e) => !/Failed to load resource: the server responded with a status of 404/.test(e));
 check('no console or page errors (a missing narration manifest is allowed)', real.length === 0 && missing.every(expected404), [...real, ...missing.filter((u) => !expected404(u))].join(' | '));
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch08/8.5', [
+  { label: 'CUDA', lab: 'ch08/lab1_stencil3d', file: 'kernel.cu', where: 'Fig. 8.10', prefix: 'tested with lab 8.1: ' },
+  { label: 'Metal', lab: 'ch08/lab1_stencil3d', file: 'kernel.metal', where: 'Fig. 8.10', prefix: 'tested with lab 8.1: ' },
+  { label: 'CUDA', lab: 'ch08/lab1_stencil3d', file: 'kernel.cu', where: 'Fig. 8.12' },
+  { label: 'Metal', lab: 'ch08/lab1_stencil3d', file: 'kernel.metal', where: 'Fig. 8.12' },
+]);
+
 await browser.close();
 console.log(fail.length ? `\n${fail.length} check(s) failed` : '\nall checks passed');
 process.exit(fail.length ? 1 : 0);

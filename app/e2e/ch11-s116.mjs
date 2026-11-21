@@ -6,6 +6,7 @@
 // Node cannot resolve on its own).
 // Usage: APP_URL=http://localhost:5173 node e2e/ch11-s116.mjs [screenshot-prefix]
 import { open, goto, BASE } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 
 const out = process.argv[2];
 const { browser, page, errors } = await open({ width: 1440, height: 1000 });
@@ -188,6 +189,12 @@ await pause(120);
 check('q-sectors accepts 16', (await sectors.evaluate((e) => e.textContent)).includes('Correct.'));
 
 const forgiven = errors.filter((e) => !(e.includes('404') && labMisses-- > 0));
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch11/11.6', [
+  { label: 'lab 11.2 (CUDA and HIP)', lab: 'ch11/lab2_coarsened', file: 'kernel.cu' },
+  { label: 'lab 11.2 (Metal)', lab: 'ch11/lab2_coarsened', file: 'kernel.metal' },
+]);
+
 check('no console or page errors', forgiven.length === 0, forgiven.join(' | '));
 await browser.close();
 console.log(fail.length ? `\n${fail.length} check(s) failed` : '\nall checks passed');

@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { open, goto, BASE } from './browser.mjs';
+import { tabStatus as sharedTabStatus } from './labstatus.mjs';
 import { counts, coverage, loopView, makeData, mapping, snapBlock, span, stepKernel, working } from '../src/sim/grid1d.ts';
 import { CALLERS, EXECUTOR_TEXT, functionSource, legalCall } from '../src/sim/toolchain.ts';
 
@@ -193,28 +194,10 @@ const passed = (backend) => {
   const rs = (reports[backend]?.results ?? []).filter((x) => x.lab === 'ch02/lab1_vecadd' && x.variant === 'solution' && x.tests.length);
   return rs.length > 0 && rs.every((x) => x.built && x.test_rc === 0 && x.tests.every((t) => t.pass));
 };
-// The tab status of LabKit's solutionTabStatus, from this machine's runs: Metal tabs say
-// "verified on Metal" | "unverified: failed on this machine" | "unverified: no run on this machine";
-// a kernel.cu tab lists what passed (CUDA, HIP, then the emulator), then what failed, then the
-// CUDA-family backends with no run.
-const labState = (backend, labId) => {
-  const rs = (reports[backend]?.results ?? []).filter((x) => x.lab === labId && x.variant === 'solution' && x.tests.length);
-  if (!rs.length) return 'none';
-  return rs.every((x) => x.built && x.test_rc === 0 && x.tests.every((t) => t.pass)) ? 'pass' : 'fail';
-};
-const tabStatus = (labId, file) => {
-  const st = (b) => labState(b, labId);
-  if (file !== 'kernel.cu') return st('metal') === 'pass' ? 'verified on Metal' : `unverified: ${st('metal') === 'fail' ? 'failed on this machine' : 'no run on this machine'}`;
-  const NAMES = { cuda: 'CUDA', hip: 'HIP' };
-  const WHERE = { cuda: 'CUDA', hip: 'HIP', emu: 'the emulator' };
-  const and = (xs) => (xs.length < 3 ? xs.join(' and ') : xs.slice(0, -1).join(', ') + ' and ' + xs.at(-1));
-  const fam = ['cuda', 'hip', 'emu'];
-  const ok = fam.filter((b) => st(b) === 'pass').map((b) => (b === 'emu' ? 'emulator-checked' : `verified on ${NAMES[b]}`));
-  const bad = fam.filter((b) => st(b) === 'fail').map((b) => WHERE[b]);
-  const none = ['cuda', 'hip'].filter((b) => st(b) === 'none').map((b) => NAMES[b]);
-  if (!ok.length && !bad.length) return 'unverified: no run on this machine';
-  return [ok.join(', '), bad.length ? `unverified on ${and(bad)}: failed on this machine` : '', none.length ? `unverified on ${none.join(' and ')}` : ''].filter(Boolean).join('; ');
-};
+// LabKit's solutionTabStatus, from the shared helper, with this machine's runs and its CUDA
+// front-end check (GET /api/frontend-check).
+const frontend = await (await fetch(BASE + '/api/frontend-check')).json();
+const tabStatus = (labId, file) => sharedTabStatus(reports, labId, file, frontend);
 const LISTING = await page.evaluateHandle(() => [...document.querySelectorAll('figure.code')].find((f) => [...f.querySelectorAll('.tabs button')].map((b) => b.textContent).join('|') === 'CUDA|Metal'));
 const listingLines = () => LISTING.evaluate((f) => [...f.querySelectorAll('pre .ln')].map((l) => l.textContent.replace(/\n$/, '')));
 const listingStatus = () => LISTING.evaluate((f) => f.querySelector('.status')?.textContent ?? '');
@@ -226,8 +209,16 @@ await LISTING.evaluate((f) => [...f.querySelectorAll('.tabs button')].find((b) =
 await pause(100);
 check('the Metal tab is vec_add from kernel.metal, line for line', JSON.stringify(await listingLines()) === JSON.stringify(kMetal.text.split('\n')));
 check('the Metal status is "verified on Metal" only with a passing run here', (await listingStatus()) === tabStatus('ch02/lab1_vecadd', 'kernel.metal'), await listingStatus());
-const caption = await LISTING.evaluate((f) => f.querySelector('figcaption').textContent);
-check('the caption gives the lines of both files', caption.includes(`lines ${kCu.firstLine} to ${kCu.lastLine}`) && caption.includes(`lines ${kMetal.firstLine} to ${kMetal.lastLine}`), caption);
+const numbering = () => LISTING.evaluate((f) => {
+  const n = [...f.querySelectorAll('pre .ln')].map((l) => Number(l.dataset.n));
+  return { first: n[0], last: n.at(-1), src: f.querySelector('[data-code-source]')?.textContent ?? '' };
+});
+const metalNums = await numbering();
+check('the Metal tab is numbered as kernel.metal is, and names the file', metalNums.first === kMetal.firstLine && metalNums.last === kMetal.lastLine && metalNums.src === 'labs/ch02/lab1_vecadd/solution/kernel.metal', JSON.stringify(metalNums));
+await LISTING.evaluate((f) => [...f.querySelectorAll('.tabs button')].find((b) => b.textContent === 'CUDA').click());
+await pause(100);
+const cuNums = await numbering();
+check('the CUDA tab is numbered as kernel.cu is, and names the file', cuNums.first === kCu.firstLine && cuNums.last === kCu.lastLine && cuNums.src === 'labs/ch02/lab1_vecadd/solution/kernel.cu', JSON.stringify(cuNums));
 
 // ---------------------------------------------------------------- q-own
 let q = await question('Which element does thread 5 of block 3 own?');

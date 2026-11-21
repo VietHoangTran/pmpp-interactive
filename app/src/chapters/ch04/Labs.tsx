@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import type { Question } from '../../components/Ask';
+import { Predict, type Question } from '../../components/Ask';
 import { Beyond, Source, Today, type Tier } from '../../components/notes';
 import {
   BackendsAndEmulator,
@@ -21,7 +20,6 @@ import {
   useLabs,
   type BenchSet,
 } from '../../components/LabKit';
-import { useProgress } from '../../lib/progress';
 import { fmt, labStatus, num, type BenchRow, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
 
@@ -226,43 +224,22 @@ function BarrierReveal({ committed }: { committed: number }) {
   );
 }
 
-/** A prediction with four outcomes, stored as the outcome's index. Stored, not graded. */
+/** A prediction with four outcomes, stored as the outcome's written index. Stored, not graded. */
 function BarrierPrediction() {
-  const { progress, answer } = useProgress();
-  const prior = progress.answers[BARRIER_ID]?.value;
-  const committed = typeof prior === 'number' && prior >= 0 && prior < OUTCOMES.length ? prior : null;
-  const [pick, setPick] = useState<number | null>(null);
   return (
-    <div className="q" data-predict={BARRIER_ID}>
-      <div className="kind">Predict first</div>
-      <div className="prompt">
-        Before the experiment. With the other two defects fixed and the barrier removed, you run the tests on your GPU.
-        What happens at the block one warp wide (the case marked <code>1 x width</code>) and at the block four warps
-        wide (<code>4 x width</code>)?
-      </div>
-      {committed == null ? (
+    <Predict
+      id={BARRIER_ID}
+      options={[...OUTCOMES]}
+      prompt={
         <>
-          <div className="opts" role="radiogroup">
-            {OUTCOMES.map((o, i) => (
-              <label key={o}>
-                <input type="radio" name={BARRIER_ID} checked={pick === i} onChange={() => setPick(i)} />
-                <span>{o}</span>
-              </label>
-            ))}
-          </div>
-          <button className="primary" disabled={pick == null} onClick={() => pick != null && answer(BARRIER_ID, pick)}>
-            Commit prediction
-          </button>
+          Before the experiment. With the other two defects fixed and the barrier removed, you run the tests on your GPU.
+          What happens at the block one warp wide (the case marked <code>1 x width</code>) and at the block four warps
+          wide (<code>4 x width</code>)?
         </>
-      ) : (
-        <div className="verdict info">
-          <p>
-            <b>You predicted: {OUTCOMES[committed]}</b>
-          </p>
-          <BarrierReveal committed={committed} />
-        </div>
-      )}
-    </div>
+      }
+    >
+      {(committed) => <BarrierReveal committed={committed} />}
+    </Predict>
   );
 }
 

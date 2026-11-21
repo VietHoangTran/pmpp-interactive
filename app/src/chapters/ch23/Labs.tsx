@@ -10,6 +10,7 @@ import {
   ReferenceSolution,
   RunningLabs,
   VerificationStatus,
+  benchRow,
   defineLabs,
   measure,
   msCol,
@@ -40,8 +41,7 @@ const TIERS: Record<string, Tier> = { d_in: 'global', d_out: 'global', in: 'glob
 // ---------------------------------------------------------------- reading the benchmark rows
 const secs = (r: BenchRow | undefined) => num(r?.seconds);
 const ms = (v: number | undefined) => (v == null ? '?' : `${fmt(v * 1000)} ms`);
-const row = (s: BenchSet | undefined, name: string, where: Record<string, string | number>) =>
-  s?.rows.find((r) => r.name === name && Object.entries(where).every(([k, v]) => r[k] === v));
+const row = benchRow;
 /** The provided baseline, for one kind of host memory: pinned, pageable (CUDA, HIP) or shared (Metal). */
 export const serialRow = (s: BenchSet | undefined, host: string) => row(s, 'serial', { host });
 /** Your runStaged at one setting. */

@@ -6,6 +6,7 @@
 // content/ch15/narration/manifest.json.
 // Usage: APP_URL=http://localhost:5173 node e2e/ch15-s154.mjs [screenshot-prefix]
 import { open, goto, BASE } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 import { BOOK_SHAPE, fmas, readsPerFma, registersFor, run, sharedReadsV1, sharedReadsV2, smallInputs, stateAt } from '../src/sim/gemmreads.ts';
 
 const out = process.argv[2];
@@ -239,6 +240,12 @@ check('a wrong answer is marked wrong', !(await choice('which shape needs the fe
 
 const expected404 = (u) => /\/content\/ch15\/narration\/outer-product-\d\.mp3$/.test(u);
 const real = errors.filter((e) => !/Failed to load resource: the server responded with a status of 404/.test(e));
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch15/15.4', [
+  { label: 'mm, lab 15.1 (Fig. 15.6)', lab: 'ch15/lab1_coarse', file: 'kernel.cu' },
+  { label: 'mm, lab 15.2 (Fig. 15.9)', lab: 'ch15/lab2_regtile', file: 'kernel.cu' },
+]);
+
 check('no console or page errors', real.length === 0 && missing.every(expected404), [...real, ...missing.filter((u) => !expected404(u))].join(' | '));
 await browser.close();
 console.log(fail.length ? `\n${fail.length} check(s) failed` : '\nall checks passed');

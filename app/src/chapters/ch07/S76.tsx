@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
-import { defineLabs, solutionStatus } from '../../components/LabKit';
+import { defineLabs, solutionTabStatus } from '../../components/LabKit';
 import { Aside, Bench, Beyond, Simplification, Source, Today, type Tier } from '../../components/notes';
 import { benchRows, fmt, labStatus, num, realBackends, useReports, type BenchRow, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
@@ -760,14 +760,8 @@ export function S76() {
   const [showKernel, setShowKernel] = useState(false);
   // The reader's own lab 7.2 passing anywhere means part B is repaired: the listing is no longer a spoiler.
   const repaired = Object.keys(reports).some((b) => labStatus(reports[b], LAB72.id, 'work') === 'pass');
-  const st = (b: 'metal' | 'emu' | 'cuda' | 'hip') => solutionStatus(reports, b, LAB72).text;
-  const emu = st('emu') === 'emulator-checked' ? 'emulator-checked' : 'emulator: ' + st('emu');
-  // The same wording on every page of the chapter: "emulator-checked; unverified on CUDA and HIP", as on the labs page.
-  const done = (['cuda', 'hip'] as const).filter((b) => st(b).startsWith('verified')).map((b) => (b === 'cuda' ? 'CUDA' : 'HIP'));
-  const lacking = (['cuda', 'hip'] as const).filter((b) => !st(b).startsWith('verified')).map((b) => (b === 'cuda' ? 'CUDA' : 'HIP'));
-  const hw = [done.length ? `verified on ${done.join(' and ')}` : '', lacking.length ? `unverified on ${lacking.join(' and ')}` : '']
-    .filter(Boolean)
-    .join('; ');
+  // The labs page's words (LabKit's solutionTabStatus), so a failed run reads as failed here too.
+  const st = (f: 'kernel.cu' | 'kernel.metal') => solutionTabStatus(reports, LAB72, f);
   const warpChoices = useMemo(() => {
     const base = [
       { label: '32 (NVIDIA)', value: 32 },
@@ -834,8 +828,8 @@ export function S76() {
         ) : (
           <Code
             tabs={[
-              { label: 'CUDA', code: part(cu, 'cached')!, tiers: CONV_TIERS, status: `${emu}; ${hw}` },
-              ...(failed(metal) ? [] : [{ label: 'Metal kernel', code: part(metal, 'cached')!, tiers: CONV_TIERS, status: st('metal') }]),
+              { label: 'CUDA', code: part(cu, 'cached')!, tiers: CONV_TIERS, status: st('kernel.cu') },
+              ...(failed(metal) ? [] : [{ label: 'Metal kernel', code: part(metal, 'cached')!, tiers: CONV_TIERS, status: st('kernel.metal') }]),
             ]}
             caption={
               <>

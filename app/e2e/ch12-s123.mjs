@@ -3,6 +3,7 @@
 // and three questions. The scene has its own check, ch12-scene-one-vote.mjs.
 // Usage: node e2e/ch12-s123.mjs [screenshot-prefix]
 import { open, goto } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 import { LINE_PAIRS, halves, hex, passFrom, preset, vote } from '../src/sim/warpvote.ts';
 
 const out = process.argv[2];
@@ -252,6 +253,12 @@ await page.setViewport({ width: 390, height: 900, deviceScaleFactor: 1 });
 await pause(400);
 check('at a narrow width the page does not scroll sideways', await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1));
 if (out) await page.$eval(bench(V), (e) => e.scrollIntoView({ block: 'start' })), await page.screenshot({ path: out + '-narrow.png' });
+
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch12/12.3', [
+  { label: 'CUDA and HIP', lab: 'ch12/lab1_unstable', file: 'kernel.cu' },
+  { label: 'Metal', lab: 'ch12/lab1_unstable', file: 'kernel.metal' },
+]);
 
 check('no console or page errors', errors.length === 0, errors.join(' | '));
 await browser.close();

@@ -18,7 +18,7 @@ import {
 import { functionSource } from '../../sim/toolchain';
 import { widthChoices } from '../../sim/warps';
 import { MIN_W, VIEW_W } from './ShuffleScene';
-import { STATUS } from './status';
+import { useLabStatus } from './status';
 
 import { NoteGroup } from './NoteGroup';
 const LAB = 'ch10/lab1_sum';
@@ -39,6 +39,7 @@ function useWidths() {
 
 // ---------------------------------------------------------------- the listing
 function TwoStageListing() {
+  const status = useLabStatus(LAB);
   const cu = useLabFile(LAB + '/solution/kernel.cu');
   const metal = useLabFile(LAB + '/solution/kernel.metal');
   const k = !missing(cu) ? functionSource(cu!, 'TwoStageWarpLevelSumReductionKernel') : null;
@@ -52,8 +53,8 @@ function TwoStageListing() {
   return (
     <Code
       tabs={[
-        { label: 'CUDA', code: k.text, tiers: TIERS, status: STATUS.cu },
-        ...(m ? [{ label: 'Metal', code: m.text, tiers: TIERS, status: STATUS.metal }] : []),
+        { label: 'CUDA', code: k.text, tiers: TIERS, status: status.cu },
+        ...(m ? [{ label: 'Metal', code: m.text, tiers: TIERS, status: status.metal }] : []),
       ]}
       caption={
         <>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
+import { solutionTabStatus } from '../../components/LabKit';
 import { Bench, Beyond, NoteGroup, Simplification, Source, Today, type Tier } from '../../components/notes';
 import { benchRows, fmt, num, realBackends, useReports, type BenchRow } from '../../lib/reports';
 import { href } from '../../lib/router';
@@ -24,8 +25,6 @@ import { CoarsePhasesScene } from './CoarsePhasesScene';
 
 const STATUS = {
   printed: 'front-end-checked; emulator-checked (N a multiple of the block segment); unverified on CUDA hardware; as printed',
-  cu: 'front-end-checked; emulator-checked; unverified on CUDA and HIP hardware',
-  metal: 'verified on Metal',
 } as const;
 const PRINTED = 'ch11/snippets/s116_coarsened_as_printed.cu';
 const LAB = 'ch11/lab2_coarsened';
@@ -352,6 +351,9 @@ function CoarsenedListing() {
   const printed = useLabFile(PRINTED);
   const cu = useLabFile(LAB + '/solution/kernel.cu');
   const metal = useLabFile(LAB + '/solution/kernel.metal');
+  // The labs page's words (LabKit's solutionTabStatus), from this machine's runs.
+  const { reports } = useReports();
+  const labStatus = { cu: solutionTabStatus(reports, 'ch11/lab2_coarsened', 'kernel.cu'), metal: solutionTabStatus(reports, 'ch11/lab2_coarsened', 'kernel.metal') };
   if (missing(printed)) return null;
   const k = functionSource(printed!, 'scan_kernel');
   if (!k) return null;
@@ -359,8 +361,8 @@ function CoarsenedListing() {
   const labMetal = !missing(metal) ? functionSource(metal!, 'coarsened_scan') : null;
   const tabs = [
     { label: 'Fig. 11.12 as printed', code: k.text, tiers: TIERS, status: STATUS.printed },
-    ...(labCu ? [{ label: 'lab 11.2 (CUDA and HIP)', code: labCu.text, tiers: TIERS, status: STATUS.cu }] : []),
-    ...(labMetal ? [{ label: 'lab 11.2 (Metal)', code: labMetal.text, tiers: TIERS, status: STATUS.metal }] : []),
+    ...(labCu ? [{ label: 'lab 11.2 (CUDA and HIP)', code: labCu.text, tiers: TIERS, status: labStatus.cu }] : []),
+    ...(labMetal ? [{ label: 'lab 11.2 (Metal)', code: labMetal.text, tiers: TIERS, status: labStatus.metal }] : []),
   ];
   return (
     <Code

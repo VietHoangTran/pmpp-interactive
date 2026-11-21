@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { open, goto, BASE } from './browser.mjs';
+import { tabStatus as sharedTabStatus } from './labstatus.mjs';
 import {
   BACKENDS,
   BACKEND_NAME,
@@ -259,28 +260,10 @@ const passed = (backend, labId) => {
   const rs = (reports[backend]?.results ?? []).filter((x) => x.lab === labId && x.variant === 'solution' && x.tests.length);
   return rs.length > 0 && rs.every((x) => x.built && x.test_rc === 0 && x.tests.every((tt) => tt.pass));
 };
-// The tab status of LabKit's solutionTabStatus, from this machine's runs: Metal tabs say
-// "verified on Metal" | "unverified: failed on this machine" | "unverified: no run on this machine";
-// a kernel.cu tab lists what passed (CUDA, HIP, then the emulator), then what failed, then the
-// CUDA-family backends with no run.
-const labState = (backend, labId) => {
-  const rs = (reports[backend]?.results ?? []).filter((x) => x.lab === labId && x.variant === 'solution' && x.tests.length);
-  if (!rs.length) return 'none';
-  return rs.every((x) => x.built && x.test_rc === 0 && x.tests.every((t) => t.pass)) ? 'pass' : 'fail';
-};
-const tabStatus = (labId, file) => {
-  const st = (b) => labState(b, labId);
-  if (file !== 'kernel.cu') return st('metal') === 'pass' ? 'verified on Metal' : `unverified: ${st('metal') === 'fail' ? 'failed on this machine' : 'no run on this machine'}`;
-  const NAMES = { cuda: 'CUDA', hip: 'HIP' };
-  const WHERE = { cuda: 'CUDA', hip: 'HIP', emu: 'the emulator' };
-  const and = (xs) => (xs.length < 3 ? xs.join(' and ') : xs.slice(0, -1).join(', ') + ' and ' + xs.at(-1));
-  const fam = ['cuda', 'hip', 'emu'];
-  const ok = fam.filter((b) => st(b) === 'pass').map((b) => (b === 'emu' ? 'emulator-checked' : `verified on ${NAMES[b]}`));
-  const bad = fam.filter((b) => st(b) === 'fail').map((b) => WHERE[b]);
-  const none = ['cuda', 'hip'].filter((b) => st(b) === 'none').map((b) => NAMES[b]);
-  if (!ok.length && !bad.length) return 'unverified: no run on this machine';
-  return [ok.join(', '), bad.length ? `unverified on ${and(bad)}: failed on this machine` : '', none.length ? `unverified on ${none.join(' and ')}` : ''].filter(Boolean).join('; ');
-};
+// LabKit's solutionTabStatus, from the shared helper, with this machine's runs and its CUDA
+// front-end check (GET /api/frontend-check).
+const frontend = await (await fetch(BASE + '/api/frontend-check')).json();
+const tabStatus = (labId, file) => sharedTabStatus(reports, labId, file, frontend);
 const join = (src, names) => names.map((n) => functionSource(src, n)).sort((a, b) => a.firstLine - b.firstLine).map((f) => f.text).join('\n\n');
 const figure = (tabs) => page.evaluateHandle((tabs) => [...document.querySelectorAll('figure.code')].find((f) => [...f.querySelectorAll('.tabs button')].map((b) => b.textContent).join('|') === tabs), tabs);
 const lines = (fig) => fig.evaluate((f) => [...f.querySelectorAll('pre .ln')].map((l) => l.textContent.replace(/\n$/, '')));

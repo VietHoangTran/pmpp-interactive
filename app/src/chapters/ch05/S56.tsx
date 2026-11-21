@@ -2,6 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
 import { Code, MATMUL_TIERS, useLabFile } from '../../components/Code';
+import { solutionTabStatus } from '../../components/LabKit';
 import { fmt, realBackends, useReports, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
 
@@ -678,25 +679,28 @@ function DynamicKernel() {
   const cu = useLabFile('ch05/lab5_dynamic/solution/kernel.cu');
   const metal = useLabFile('ch05/lab5_dynamic/solution/kernel.metal');
   const host = useLabFile('ch05/lab5_dynamic/solution/launch.mm');
+  // The labs page's words (LabKit's solutionTabStatus), read from this machine's runs.
+  const { reports } = useReports();
+  const st = (f: 'kernel.cu' | 'kernel.metal' | 'launch.mm') => solutionTabStatus(reports, 'ch05/lab5_dynamic', f);
   return (
     <Code
       tabs={[
         {
           label: 'CUDA',
           code: cu ?? '// loading labs/ch05/lab5_dynamic/solution/kernel.cu',
-          status: 'emulator-checked and front-end-checked; unverified on CUDA and HIP hardware',
+          status: st('kernel.cu'),
           tiers: DYNAMIC_TIERS,
         },
         {
           label: 'Metal kernel',
           code: metal ?? '// loading labs/ch05/lab5_dynamic/solution/kernel.metal',
-          status: 'verified on Metal',
+          status: st('kernel.metal'),
           tiers: DYNAMIC_TIERS,
         },
         {
           label: 'Metal host',
           code: host ?? '// loading labs/ch05/lab5_dynamic/solution/launch.mm',
-          status: 'verified on Metal',
+          status: st('launch.mm'),
           tiers: DYNAMIC_TIERS,
         },
       ]}

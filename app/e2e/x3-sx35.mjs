@@ -5,6 +5,7 @@
 // come from src/sim/attnroute.ts, run inside the page through the app's module server.
 // Usage: APP_URL=http://localhost:5173 node e2e/x3-sx35.mjs [screenshot-prefix]
 import { open, goto } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 
 const out = process.argv[2];
 const { browser, page, errors } = await open({ width: 1440, height: 1000 });
@@ -179,6 +180,12 @@ check('q-decode-100 accepts its own sdpa_vector', (await answer('100 cached keys
 check('q-order accepts math first', (await answer('flash and memory-efficient attention both reject', 0)).includes('Correct.'));
 const t = await answer('what changes in the result', 1);
 check('q-exp2 rejects "divide by log2 e" with its reason', t.includes('Not quite.') && t.includes('Nothing needs undoing'));
+
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'x3/X3.5', [
+  { label: 'lab 20.4, decodeAttentionKernel', lab: 'ch20/lab4_decode', file: 'kernel.cu' },
+  { label: 'warpSumAll', lab: 'ch20/lab4_decode', file: 'kernel.cu' },
+]);
 
 check('no console or page errors', errors.length === 0, errors.join(' | '));
 await browser.close();

@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { open, goto, BASE } from './browser.mjs';
+import { tabStatus } from './labstatus.mjs';
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const out = process.argv[2];
@@ -339,25 +340,11 @@ if (labThere) {
   check('the Metal tab is the lab file', metal.includes('thread_position_in_grid') && metal.includes('curRow >= 0 && curRow < h && curCol >= 0 && curCol < w'));
   // The status beside the tabs is the fixed vocabulary, computed from this machine's lab runs.
   const reports = await page.evaluate(() => fetch('/api/reports').then((r) => r.json()));
-  const passed = (b) => {
-    const rs = (reports[b]?.results ?? []).filter((x) => x.lab === 'ch03/lab2_blur' && x.variant === 'solution' && x.tests.length);
-    return rs.length > 0 && rs.every((x) => x.built && x.test_rc === 0 && x.tests.every((t) => t.pass));
-  };
-  // The labs page's wording (LabKit's solutionTabStatus).
-  const st = (b) => {
-    const rs = (reports[b]?.results ?? []).filter((x) => x.lab === 'ch03/lab2_blur' && x.variant === 'solution' && x.tests.length);
-    return !rs.length ? 'none' : passed(b) ? 'pass' : 'fail';
-  };
-  const NAME = { cuda: 'CUDA', hip: 'HIP', emu: 'emulator' };
-  const WHERE = { cuda: 'CUDA', hip: 'HIP', emu: 'the emulator' };
-  const and = (xs) => (xs.length < 3 ? xs.join(' and ') : xs.slice(0, -1).join(', ') + ' and ' + xs.at(-1));
-  const fam = ['cuda', 'hip', 'emu'];
-  const ok = fam.filter((b) => st(b) === 'pass').map((b) => (b === 'emu' ? 'emulator-checked' : `verified on ${NAME[b]}`));
-  const bad = fam.filter((b) => st(b) === 'fail').map((b) => WHERE[b]);
-  const none = ['cuda', 'hip'].filter((b) => st(b) === 'none').map((b) => NAME[b]);
-  const wantMetal = st('metal') === 'pass' ? 'verified on Metal' : `unverified: ${st('metal') === 'fail' ? 'failed on this machine' : 'no run on this machine'}`;
-  const wantCuda = !ok.length && !bad.length ? 'unverified: no run on this machine'
-    : [ok.join(', '), bad.length ? `unverified on ${and(bad)}: failed on this machine` : '', none.length ? `unverified on ${none.join(' and ')}` : ''].filter(Boolean).join('; ');
+  // The labs page's wording (LabKit's solutionTabStatus), from the shared helper, with this
+  // machine's CUDA front-end check.
+  const frontend = await (await fetch(BASE + '/api/frontend-check')).json();
+  const wantMetal = tabStatus(reports, 'ch03/lab2_blur', 'kernel.metal', frontend);
+  const wantCuda = tabStatus(reports, 'ch03/lab2_blur', 'kernel.cu', frontend);
   const fig = '[...document.querySelectorAll("figure.code")].find((f) => f.textContent.includes("Metal host"))';
   const statusMetal = await page.evaluate(`${fig}.querySelector('.tabs .status').textContent`);
   await page.evaluate(`[...${fig}.querySelectorAll('.tabs button')].find((b) => b.textContent === 'CUDA (lab 3.2)').click()`);

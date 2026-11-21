@@ -9,8 +9,8 @@
 //
 // The book changes the declaration and the leading dimension passed to loadTile and mm,
 // and stops there. Find every place this file indexes A_s, not only those.
-// The CPU emulator's translator does not accept parentheses inside a __shared__
-// declaration: give the padded leading dimension a name (a #define) and use it.
+// Give the padded leading dimension a name (a #define) and use it in every A_s index, so
+// that no index can keep the unpadded width.
 
 #include <cstdio>
 

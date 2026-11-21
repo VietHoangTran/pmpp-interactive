@@ -11,6 +11,8 @@
   python3 labs/pmpp.py selftest               the emulator's own tests (labs/selftest), no report written
   python3 labs/pmpp.py verify                 everything, and write reports/verify-*.md
   python3 labs/pmpp.py reset 5.2 --yes        overwrite your work for a lab with the starter
+  python3 labs/pmpp.py starters [--record]    check (or append to) labs/starter-history.json
+  python3 labs/pmpp.py frontend               clang's CUDA front-end check of every .cu, recorded for the app
 
 Standard library only. Needs cmake >= 3.21 and a C++17 compiler.
 Environment: PMPP_BUILD_DIR (build directory), PMPP_ONLY (configure one chapter's labs),
@@ -20,7 +22,6 @@ e.g. PMPP_CMAKE_ARGS="-DPMPP_CH15_VENDOR=OFF -DPMPP_DISABLE_RACE=ON").
 import argparse
 import datetime
 import fcntl
-import filecmp
 import hashlib
 import json
 import os
@@ -431,16 +432,107 @@ def lab_dir(lab):
     return os.path.join(LABS, lab)
 
 
-def work_state(lab):
-    """'untouched' if work/ is byte-identical to starter/, else 'edited'."""
-    w, s = os.path.join(lab_dir(lab), "work"), os.path.join(lab_dir(lab), "starter")
+STARTER_HISTORY = os.path.join(LABS, "starter-history.json")
+
+
+def file_hashes(d):
+    """{student file: sha256 of its bytes, or None when absent} for directory d."""
+    out = {}
     for f in STUDENT_FILES:
-        a, b = os.path.join(w, f), os.path.join(s, f)
-        if os.path.exists(a) != os.path.exists(b):
-            return "edited"
-        if os.path.exists(a) and not filecmp.cmp(a, b, shallow=False):
-            return "edited"
-    return "untouched"
+        p = os.path.join(d, f)
+        out[f] = None
+        if os.path.isfile(p):
+            with open(p, "rb") as fh:
+                out[f] = hashlib.sha256(fh.read()).hexdigest()
+    return out
+
+
+def load_starter_history(path=None):
+    """{lab: [{"recorded": ..., "files": {file: sha256 or None}}, ...]} from starter-history.json."""
+    try:
+        with open(path or STARTER_HISTORY, encoding="utf-8") as fh:
+            return json.load(fh).get("labs", {})
+    except (OSError, ValueError):
+        return {}
+
+
+def work_detail(lab, labs_root=None, history=None):
+    """How work/ relates to the starters: 'current' (byte-identical to starter/), 'earlier'
+    (identical to a version of starter/ recorded in starter-history.json, so a corrected
+    starter has not reached it: `reset` brings it), or 'edited'."""
+    base = os.path.join(labs_root, lab) if labs_root else lab_dir(lab)
+    mine = file_hashes(os.path.join(base, "work"))
+    if mine == file_hashes(os.path.join(base, "starter")):
+        return "current"
+    versions = (load_starter_history() if history is None else history).get(lab, [])
+    if any({f: v["files"].get(f) for f in STUDENT_FILES} == mine for v in versions):
+        return "earlier"
+    return "edited"
+
+
+def work_state(lab, labs_root=None, history=None):
+    """'untouched' if work/ is byte-identical to starter/ or to an earlier recorded starter
+    (see work_detail), else 'edited'. These two values are what reports, runs/*.json and the
+    app read; work_detail() tells the two kinds of untouched apart."""
+    return "edited" if work_detail(lab, labs_root, history) == "edited" else "untouched"
+
+
+def earlier_starter_note(lab):
+    return ("labs/%s/work is an earlier version of the starter, unchanged by you; the starter has since been "
+            "corrected. `python3 labs/pmpp.py reset %s --yes` brings the corrected starter." % (lab, lab))
+
+
+def all_labs(labs_root=None):
+    """Every lab directory with a starter/, as 'chNN/labM_name'."""
+    root, out = labs_root or LABS, []
+    for ch in sorted(os.listdir(root)):
+        d = os.path.join(root, ch)
+        if not os.path.isdir(d) or ch.startswith(("build", ".", "_")):
+            continue
+        for name in sorted(os.listdir(d)):
+            if os.path.isdir(os.path.join(d, name, "starter")):
+                out.append(ch + "/" + name)
+    return out
+
+
+def starters_missing(history=None, labs_root=None):
+    """Labs whose current starter/ is not in the history (it must be recorded before the
+    next edit, or untouched copies of it would read as 'edited' afterwards)."""
+    history = load_starter_history() if history is None else history
+    root = labs_root or LABS
+    return [lab for lab in all_labs(root)
+            if not any(v["files"] == file_hashes(os.path.join(root, lab, "starter")) for v in history.get(lab, []))]
+
+
+def cmd_starters(a):
+    """Check, or append to, labs/starter-history.json."""
+    missing = starters_missing()
+    if a.record:
+        try:
+            with open(STARTER_HISTORY, encoding="utf-8") as fh:
+                doc = json.load(fh)
+        except OSError:
+            doc = {"labs": {}}
+        today = datetime.date.today().isoformat()
+        for lab in missing:
+            doc["labs"].setdefault(lab, []).append(
+                {"recorded": today, "files": file_hashes(os.path.join(lab_dir(lab), "starter"))})
+            print("recorded the current starter of %s" % lab)
+        doc["labs"] = {k: doc["labs"][k] for k in sorted(doc["labs"])}
+        with open(STARTER_HISTORY, "w", encoding="utf-8") as fh:
+            json.dump(doc, fh, indent=1)
+            fh.write("\n")
+        print("%d starter version%s recorded; %d labs in labs/starter-history.json" % (
+            len(missing), "" if len(missing) == 1 else "s", len(doc["labs"])))
+        return 0
+    for lab in missing:
+        print("not recorded: the current starter of %s (run `python3 labs/pmpp.py starters --record`)" % lab)
+    earlier = [lab for lab in all_labs() if work_detail(lab) == "earlier"]
+    for lab in earlier:
+        print(earlier_starter_note(lab))
+    print("starter history: %s" % ("every current starter is recorded" if not missing
+                                   else "%d current starter%s not recorded" % (len(missing), "" if len(missing) == 1 else "s")))
+    return 1 if missing else 0
 
 
 # What a lab's build reads. Files with these endings (and CMakeLists.txt) count as sources;
@@ -709,9 +801,43 @@ def cuda_frontend_check():
                 path = os.path.join(root, f)
                 rc, out = sh(base + [path], timeout=120)
                 res["files"].append({"file": os.path.relpath(path, REPO), "ok": rc == 0,
+                                     "sha256": hashlib.sha256(open(path, "rb").read()).hexdigest(),
                                      "log": "" if rc == 0 else scrub(tail(out, 25))})
     res["files"].sort(key=lambda x: x["file"])
     return res
+
+
+FRONTEND_RECORD = os.path.join(REPORTS, "runs", "checks", "cuda-frontend.json")
+
+
+def save_frontend_check(res):
+    """Record a front-end check for the app (GET /api/frontend-check): per file, the verdict
+    and the sha256 of the text that was checked, so a file edited since shows no status.
+    Per machine, like the rest of reports/runs."""
+    if not res.get("available"):
+        return
+    rec = {"generated": datetime.datetime.now().isoformat(timespec="seconds"), "compiler": res.get("compiler", ""),
+           "files": {f["file"]: {"ok": f["ok"], "sha256": f["sha256"]} for f in res["files"]}}
+    os.makedirs(os.path.dirname(FRONTEND_RECORD), exist_ok=True)
+    tmp = FRONTEND_RECORD + ".tmp"
+    with open(tmp, "w") as fh:
+        json.dump(rec, fh, indent=1, sort_keys=True)
+        fh.write("\n")
+    os.replace(tmp, FRONTEND_RECORD)
+
+
+def cmd_frontend(_):
+    res = cuda_frontend_check()
+    if not res["available"]:
+        print("CUDA front-end check not available: " + res["why"])
+        return 1
+    save_frontend_check(res)
+    bad = [f for f in res["files"] if not f["ok"]]
+    for f in bad:
+        print("FAIL %s\n%s" % (f["file"], f["log"]))
+    print("CUDA front-end check: %d of %d .cu files parse (%s); recorded in %s" % (
+        len(res["files"]) - len(bad), len(res["files"]), res.get("compiler", "clang"), os.path.relpath(FRONTEND_RECORD, REPO)))
+    return 1 if bad else 0
 
 
 # ---------------------------------------------------------------- running labs
@@ -882,6 +1008,11 @@ def cmd_doctor(_):
         print("  %-6s %-8s %s" % (b["name"], "enabled" if b["enabled"] else "skipped", b["why"]))
     if cfg["incomplete"]:
         print("labs skipped as incomplete: %s" % ", ".join(i["lab"] for i in cfg["incomplete"]))
+    earlier = [lab for lab in all_labs() if work_detail(lab) == "earlier"]
+    if earlier:
+        print("\nyour work/ is still an earlier, since corrected, starter in: %s\n"
+              "  `python3 labs/pmpp.py reset <lab> --yes` brings the corrected starter (you have not edited these)."
+              % ", ".join(earlier))
     for name, d in device_info(cfg).items():
         print("\n%s device: %s" % (name, d.get("name", d.get("why", "?"))))
         for k, v in d.items():
@@ -947,6 +1078,8 @@ def cmd_run(a):
         have = {b: os.path.exists(os.path.join(REPORTS, "runs", "%s.json" % b)) for b in {r["backend"] for r in ran}}
         devs = device_info(cfg) if not all(have.values()) else None
         save_runs(ran, {lab: work_state(lab)}, devs)
+        if variant == "work" and work_detail(lab) == "earlier":
+            print("\nnote: " + earlier_starter_note(lab))
     elif rc_all == 0:
         print("\nnothing was run: %s has no build for %s on this machine" % (
             lab, "any backend found" if a.backend == "all" else "backend " + a.backend))
@@ -1016,6 +1149,7 @@ def cmd_verify(a):
     results = []
     labs = sorted({t["lab"] for t in cfg["targets"] if t["lab"] != "devinfo"})
     states = {lab: work_state(lab) for lab in labs}
+    earlier = [lab for lab in labs if work_detail(lab) == "earlier"]
     for t in cfg["targets"]:
         if t["lab"] == "devinfo" or t["backend"] not in usable:
             continue
@@ -1033,6 +1167,7 @@ def cmd_verify(a):
         results.append(r)
     selftests = run_selftests(cfg, usable, full=a.full)
     check = cuda_frontend_check()
+    save_frontend_check(check)
 
     report = {
         "generated": started.isoformat(timespec="seconds"),
@@ -1042,7 +1177,7 @@ def cmd_verify(a):
         "configure_ok": cfg["rc"] == 0,
         "configure_log": scrub(tail(cfg["log"], 60)),
         "backends": cfg["backends"], "devices": devs, "usable_backends": usable,
-        "work_state": states, "results": results, "selftests": selftests, "cuda_frontend_check": check,
+        "work_state": states, "work_earlier_starter": earlier, "results": results, "selftests": selftests, "cuda_frontend_check": check,
         "skipped": [x for x in cfg.get("skipped", []) if x["backend"] in usable and not x["why"].startswith(
             "this lab is not built for the race")],
         "incomplete": cfg.get("incomplete", []), "cmake_args": cfg.get("cmake_args", []), "reps": a.reps,
@@ -1154,9 +1289,14 @@ def render(rep):
                 "**starter does not build**" if not r["built"] else "**starter passes: tests too weak**")
         else:
             reading = "your solution passes" if passed(r) else "your solution does not pass yet"
-        w("| %s | %s | %s | %s | %s | %s |" % (r["lab"], r["backend"], state, "ok" if r["built"] else "FAILED",
+        shown = "untouched (earlier starter)" if r["lab"] in rep.get("work_earlier_starter", []) else state
+        w("| %s | %s | %s | %s | %s | %s |" % (r["lab"], r["backend"], shown, "ok" if r["built"] else "FAILED",
                                               counts(r), reading))
     w("")
+    if rep.get("work_earlier_starter"):
+        w("*Untouched (earlier starter)*: work/ is a version of the starter that has since been corrected; "
+          "`python3 labs/pmpp.py reset <lab> --yes` brings the corrected one.")
+        w("")
     st = rep.get("selftests", [])
     w("## Emulator self-tests")
     w("")
@@ -1267,6 +1407,11 @@ def main():
     v.add_argument("--reps", type=int, default=1, metavar="N", help="run each benchmark N times, recording each")
     v.add_argument("--full", action="store_true", help="keep sanitizer reports in full instead of condensed")
     v.set_defaults(fn=cmd_verify)
+    f = sub.add_parser("frontend", help="parse every .cu file with clang's CUDA front end and record the result for the app")
+    f.set_defaults(fn=cmd_frontend)
+    h = sub.add_parser("starters", help="check that every current starter is in labs/starter-history.json")
+    h.add_argument("--record", action="store_true", help="append every current starter not yet recorded")
+    h.set_defaults(fn=cmd_starters)
     s = sub.add_parser("reset")
     s.add_argument("lab")
     s.add_argument("--yes", action="store_true")

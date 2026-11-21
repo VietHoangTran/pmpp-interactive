@@ -1,6 +1,8 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
+import { solutionTabStatus } from '../../components/LabKit';
+import { useReports } from '../../lib/reports';
 import { Aside, Bench, Beyond, Simplification, Source, Today, type Tier } from '../../components/notes';
 import { href } from '../../lib/router';
 import { functionSource } from '../../sim/toolchain';
@@ -38,9 +40,16 @@ const LAB = 'ch12/lab1_unstable/solution/';
 const STATUS = {
   fig3: 'front-end-checked; emulator-checked; unverified on CUDA hardware; CUDA only',
   fig4: 'front-end-checked; emulator-checked; unverified on CUDA hardware; not built for HIP',
-  cu: 'emulator-checked and front-end-checked; unverified on CUDA and HIP hardware',
-  metal: 'verified on Metal',
 };
+/** A lab's reference-solution status, in the labs page's words (LabKit's solutionTabStatus), from this machine's runs. */
+function useLabStatus(lab: string) {
+  const { reports } = useReports();
+  return {
+    cu: solutionTabStatus(reports, lab, 'kernel.cu'),
+    metal: solutionTabStatus(reports, lab, 'kernel.metal'),
+    mm: solutionTabStatus(reports, lab, 'launch.mm'),
+  };
+}
 const TIERS: Record<string, Tier> = {
   input: 'global', output: 'global', outputSize: 'global', outputSize_ref: 'global',
   val: 'reg', i: 'reg', j: 'reg', activeThreads: 'reg', leader: 'reg', numActive: 'reg', previousThreads: 'reg',
@@ -86,6 +95,7 @@ function Fig3({ code }: { code: string | null }) {
 }
 
 function BallotListing() {
+  const status = useLabStatus('ch12/lab1_unstable');
   const cu = useLabFile(LAB + 'kernel.cu');
   const metal = useLabFile(LAB + 'kernel.metal');
   const helpers = labPart(cu, 'helpers', 'maskPopc');
@@ -95,8 +105,8 @@ function BallotListing() {
   return (
     <Code
       tabs={[
-        { label: 'CUDA and HIP', code: (helpers ? helpers + '\n\n' : '') + k, tiers: TIERS, status: STATUS.cu },
-        ...(m ? [{ label: 'Metal', code: m, tiers: TIERS, status: STATUS.metal }] : []),
+        { label: 'CUDA and HIP', code: (helpers ? helpers + '\n\n' : '') + k, tiers: TIERS, status: status.cu },
+        ...(m ? [{ label: 'Metal', code: m, tiers: TIERS, status: status.metal }] : []),
       ]}
       caption={
         <>

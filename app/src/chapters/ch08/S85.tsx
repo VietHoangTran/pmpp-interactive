@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
+import { solutionTabStatus } from '../../components/LabKit';
 import { Bench, Beyond, Simplification, Source, TierLegend, Today, type Tier } from '../../components/notes';
-import { benchRows, fmt, labStatus, num, useReports, type Reports } from '../../lib/reports';
+import { benchRows, fmt, num, useReports, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import {
   BOOK_BLOCK_LIMIT,
@@ -1009,14 +1010,13 @@ function partOf(file: string | null, marker: RegExp): string | null {
   return at < 0 ? file : lines.slice(at).join('\n');
 }
 
-function labStatusText(reports: Reports, backend: 'cuda' | 'metal'): string {
-  const pass = (b: string) => labStatus(reports[b], 'ch08/lab1_stencil3d', 'solution') === 'pass';
-  if (backend === 'metal') return pass('metal') ? "verified on Metal (lab 8.1's tests)" : 'unverified: no passing Metal run of lab 8.1 recorded here';
-  const parts: string[] = [];
-  if (pass('emu')) parts.push("emulator-checked (lab 8.1's tests)");
-  for (const b of ['cuda', 'hip']) if (pass(b)) parts.push(`verified on ${b === 'cuda' ? 'CUDA' : 'HIP'}`);
-  if (!pass('cuda') || !pass('hip')) parts.push(`unverified on ${[!pass('cuda') ? 'CUDA' : '', !pass('hip') ? 'HIP' : ''].filter(Boolean).join(' and ')} hardware`);
-  return parts.join('; ');
+/**
+ * Status of a listing lab 8.1 runs, in the labs page's words (LabKit's solutionTabStatus):
+ * the shared planes kernel is run by the lab's tests, the second listing is the lab's solution.
+ */
+function labStatusText(reports: Reports, backend: 'cuda' | 'metal', shared = false): string {
+  const st = solutionTabStatus(reports, 'ch08/lab1_stencil3d', backend === 'cuda' ? 'kernel.cu' : 'kernel.metal');
+  return shared ? `tested with lab 8.1: ${st}` : st;
 }
 
 function PlanesListing() {
@@ -1026,8 +1026,8 @@ function PlanesListing() {
   return (
     <Code
       tabs={[
-        { label: 'CUDA', code: cu ?? '// loading labs/ch08/shared/planes.cu', tiers: LAB_TIERS, status: labStatusText(reports, 'cuda') },
-        { label: 'Metal', code: metal ?? '// loading labs/ch08/shared/planes.metal', tiers: LAB_TIERS, status: labStatusText(reports, 'metal') },
+        { label: 'CUDA', code: cu ?? '// loading labs/ch08/shared/planes.cu', tiers: LAB_TIERS, status: labStatusText(reports, 'cuda', true) },
+        { label: 'Metal', code: metal ?? '// loading labs/ch08/shared/planes.metal', tiers: LAB_TIERS, status: labStatusText(reports, 'metal', true) },
       ]}
       caption={
         <>

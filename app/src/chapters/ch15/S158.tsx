@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Ask, type Question } from '../../components/Ask';
 import { Code, MATMUL_TIERS, useLabFile } from '../../components/Code';
-import { defineLabs, solutionStatus } from '../../components/LabKit';
-import { cuStatus } from './labStatus';
+import { defineLabs } from '../../components/LabKit';
+import { cuStatus, metalStatus } from './labStatus';
 import { Aside, Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
 import { useReports } from '../../lib/reports';
 import { href } from '../../lib/router';
@@ -477,7 +477,7 @@ function PipelineListing() {
     <Code
       tabs={[
         { label: 'CUDA', code: cu, tiers: GEMM_TIERS, status: cuStatus(reports, LAB155) },
-        { label: 'Metal', code: metal, tiers: GEMM_TIERS, status: solutionStatus(reports, 'metal', LAB155).text },
+        { label: 'Metal', code: metal, tiers: GEMM_TIERS, status: metalStatus(reports, LAB155) },
       ]}
       caption={
         <>

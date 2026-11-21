@@ -112,33 +112,82 @@ pages, and commits. Per-chapter hints given to the designers are in the wave's `
       - [x] Narration: the 3 stale clips (ch02/round-trip-6, ch07/halo-from-cache-5,
         ch21/scatter-gather-6) regenerated with eleven_v4; ch07's script reworded after a
         mishearing.
+      - [x] Optional shared-piece requests from waves 1 to 5a, checked against the requesters'
+        workarounds on 2026-11-21 (all were already built in this pass; what was left was
+        adoption and tests):
+        - Choice-type Predict (wave 1): `<Predict options>` stores the written index like any
+          answer, with no `correct` and no review schedule, so predictions stay out of the
+          spaced-review pool (pages/Review.tsx queues only `progress.review`). The validity
+          rule is now `committedPrediction()` with unit tests in Ask.test.ts. Lab 4.3's
+          hand-made four-way prediction (ch04/Labs.tsx) uses it; same id, same stored index.
+        - Code source label and per-tab line numbers (wave 1): ch02 2.5's two-tab kernel
+          listing now numbers each tab as its file and names the file, instead of giving the
+          lines in the caption; e2e/ch02-s25.mjs checks both tabs.
+        - Function excerpts for useLabFile (wave 3): `useLabFile(path, { fn })` and
+          `useLabExcerpt` replace chapter-local cutters in ch02 start (kernelOnly) and x3 X3.2
+          (cut, which also gains file line numbers); ch15 15.4's exported functionOf now wraps
+          lib/excerpt (its test against 15.3's copy passes).
+        - Bench-row picker (waves 3 and 5a): `pickBenchRow` in lib/reports.ts and LabKit's
+          `benchRow` match number and string fields; the three local copies in ch06, ch23 and
+          x2 labs pages now use `benchRow`.
+        - `.threads.wrap` (wave 5a): adopted where every cell carried an inline
+          `whiteSpace: 'normal'` (ch09 9.4 "This scheme", ch14 14.9 counters, ch23 23.3
+          readouts).
+        - Code tabs' status at 390 px (wave 2): looked at on phone-width screenshots (ch06
+          labs, ch10 10.3, ch02 2.5, both themes): the status wraps beside short tab rows and
+          takes its own line under long ones; nothing is squeezed and the page does not
+          scroll sideways.
+        Left on purpose: ch12 12.3's kernelOf and ch15 15.3's functionOf (files another agent
+        was editing at the time), ch14 14.2's `bare` (its snippets test pins the call, and it
+        already builds on the shared functionSource), ch11's and ch12's labs-page pickers (they
+        key on `kernel` or a boolean field, which `benchRow` does not match), single-field
+        `.find(r => r.name === ...)` lookups (no shared logic to remove), ch15 15.5's per-cell
+        wrapping (its label column stays on one line on purpose), and x3's start-page
+        prediction (one choice per project, not a single choice). The app now has two function
+        cutters, sim/toolchain functionSource (about 60 users, reports qualifiers) and
+        lib/excerpt (behind useLabExcerpt); merging them was not attempted.
+      - [x] Every lesson tab showing a lab's files uses LabKit's solutionTabStatus, so a failed run
+        reads "failed on this machine" (ch04 to ch08, ch10 to ch12, ch15, ch16, ch19, x3; such
+        tabs drop "front-end-checked", as the labs page's do); e2e/labstatus.mjs checks each one on
+        this machine's reports and on a failed-run fixture. Snippet tabs keep fixed statuses.
+      - [x] Starter history: labs/starter-history.json (every starter version, from the git
+        history on; append with `pmpp.py starters --record`). work_state() is `untouched` when
+        work/ equals any recorded starter; run, doctor and the verify report say when `reset`
+        would bring a corrected one. Tested by labs/tests/test_starter_history.py
+        (infra-facts G1, labs/README.md "Correcting a starter").
+      - [x] Stale starter comments fixed (work/ untouched; it reads as an earlier starter):
+        parentheses in __shared__ bounds (ch06 lab 3, ch14 lab 2, ch15 lab 4) and __umulhi
+        (x1 lab 3) reworded; the "declares no CUDA Math API functions" comment and its redundant
+        prototypes removed from starters, solutions, shared copies and ch21 snippets alike (ch10
+        lab 3, ch20 labs 1 to 5, ch21 lab 1, x1 labs 2 to 4, x3 lab 1; x2 lab 3 keeps roundf,
+        which the stub lacks; infra-facts E5 update). Solutions pass on emu, race and Metal,
+        starters fail, every edited .cu passes the front-end check, copy and snippet tests pass.
+      - [x] source_hash already covers provided/ and shared sources (target_inputs walks the lab
+        directory, every SHARED_CU/MM source and the directory beside it, and cu2emu's `#line`
+        origin); nothing to change.
+      - [x] Lab 4.1's kernel keeps its names (linearKernel, Metal linear_layer): main.cpp looks
+        the Metal kernel up by name, so a rename would break every work/kernel.metal, and the
+        page already says it is lab 3.3's kernel with a linear layer's names.
+      - [x] Lab 14.2's planted missing-barrier defect re-run on `race` (4 runs, under load): it
+        fails every time at r = 2 and now names the tile write against the next split's read,
+        then stops with a SEGV; no hang. A SEGV planted before grid.sync() in lab 18.1's
+        cooperative kernel (4 race runs) also exits in seconds. emu still fails it with an ASan
+        report. README and the ch14 labs page updated.
+      - [x] Metal benchmarks for 16.1, 21.1 and 23.1: re-recorded on a quiet machine by the
+        2026-11-21 verify run (reports/runs/metal.json, 13:48).
+      - [x] Lab-file tabs say "front-end-checked" again, from data: `pmpp.py frontend` (and
+        verify.sh) records the clang check per .cu file with its sha256 in
+        reports/runs/checks/cuda-frontend.json; GET /api/frontend-check returns a verdict only for
+        files unchanged since; LabKit's solutionTabStatus adds it until CUDA itself passes.
       **Still open, with reasons**
-      - [ ] Stale comments in starter/ files are left, because editing a starter turns every
-        untouched work/ copy into "edited" (pmpp.py work_state) and work/ is never overwritten:
-        parentheses in __shared__ bounds (ch06 lab 3, ch14 lab 2, ch15 lab 4), __umulhi (x1 lab 3),
-        "declares no CUDA Math API functions" (ch10 lab 3, ch20 labs 1 and 4, ch21 lab 1, x1 labs
-        2 to 4, x3 lab 1; the solutions, shared copies and ch21 snippets carry it too, kept so
-        that copies stay byte-identical, and the ch10 README says the comment is out of date).
-      - [ ] Some lesson tabs still build their status by hand: ch07 S72, S74, S75, ch08 S84,
-        ch19 S192 and S193, ch04 S48, ch06 S67, ch15 S153 and S158, ch16 S166 read the reports
-        and match LabKit's words when a run passes, but say "no passing ... run" where LabKit
-        says "failed on this machine"; ch05 S54 and ch12 S122 to S127 are fixed strings that do
-        not read the reports at all (true on this machine).
-      - [ ] LabKit prints "verified on CUDA" or "verified on HIP" from a passing run in
-        reports/runs, while CLAUDE.md asks for a reports/verify-*.md from that machine (shared
-        decision; no CUDA or HIP runs exist, so nothing shows it today).
-      - [ ] Lab 14.2's planted missing-barrier defect has not been re-run on `race` since the
-        two-token barrier fix; the race backend once hung after a SEGV in a cooperative launch
-        under heavy load (not reproduced).
-      - [ ] Metal benchmarks for 16.1, 21.1 and 23.1 were recorded on a loaded machine: rerun on
-        a quiet one.
-      - [ ] Optional requests not checked in this pass: a choice-type Predict, a source label and
-        custom line numbers for Code, a function-excerpt option for useLabFile, a bench-row
-        picker in lib/reports.ts, a `.threads.wrap` modifier, lab 4.1's kernel named like lab
-        3.3's, source_hash covering provided/shared sources, Code tabs' status text squeezed at
-        390 px.
-- [ ] Final: spaced-review pool check, final verify report, hand-off (the whole-course
-      consistency pass is done; see above).
+      - [ ] Reader's decision: LabKit prints "verified on CUDA" or "verified on HIP" from a
+        passing run in reports/runs (this machine), while CLAUDE.md asks for a
+        reports/verify-*.md from that machine. No CUDA or HIP runs exist, so nothing shows it
+        today. Either keep it (app statuses describe this machine) and say so in CLAUDE.md, or
+        make LabKit read the committed verify reports for CUDA and HIP.
+      - [ ] CUDA and HIP: nothing has run on NVIDIA or AMD hardware. Needs ./verify.sh on such
+        machines and the reports it writes.
+- [x] Final: spaced-review pool check (question-pool.test.ts), final verify report, hand-off.
 
 ## State on 2026-11-20: pilot complete, waiting for review
 

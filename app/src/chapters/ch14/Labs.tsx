@@ -457,17 +457,17 @@ export function Labs() {
         A missing barrier at the end of a split lets a thread read a half-written tile. We planted exactly that in a copy of
         the reference (2026-11-20). The emulator fails it every time: at r = 2 the first thread order already gives a
         wrong order, and AddressSanitizer then names the tile write that went out of bounds. The race backend also fails,
-        but not by naming the barrier: the run stops with a crash at the tile write once a corrupted index is used, and the
-        one race it reports is a later, consequential one on the bucket starts. At r = 1 both pass, because the next
-        step's barrier covers the gap. So run the emulator first; a clean race run is not evidence that every barrier is
-        there.
+        and names the pair the barrier would have separated: a split's write of the tile against the next split's read of
+        it. Then the run stops with a crash at the tile write once a corrupted index is used. At r = 1 both pass, because
+        the next step's barrier covers the gap. Still run the emulator first; a clean race run is not evidence that every
+        barrier is there.
       </p>
       <Beyond>
         <p>
-          When we planted it, the race flavour shared one ThreadSanitizer token between all of a block's{' '}
-          <code>__syncthreads()</code>, which could hide a race between two barriers. It now alternates two tokens per
-          barrier, and on 2026-11-21 it reported the wrap page's missing barrier on its source lines
-          (<code>labs/ch14/snippets/README.md</code>); the planted defect of this lab has not been run again since.
+          When we first planted it, the race flavour shared one ThreadSanitizer token between all of a block's{' '}
+          <code>__syncthreads()</code>, which could hide a race between two barriers, and it reported only a later race on
+          the bucket starts. It now alternates two tokens per barrier; re-run on 2026-11-21 (four runs), it named the tile
+          write and read every time (<code>labs/ch14/lab2_multibit/README.md</code>).
         </p>
       </Beyond>
       <RaceStatus lab={l2} />

@@ -2,6 +2,8 @@ import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Aside, Bench, Beyond, Simplification, Source } from '../../components/notes';
 import { Code, MATMUL_TIERS, useLabFile } from '../../components/Code';
+import { solutionTabStatus } from '../../components/LabKit';
+import { useReports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import {
   CORRECT,
@@ -615,6 +617,7 @@ const USES: { code: string; what: string; answer: Dim; nudge: string }[] = [
 
 function ReferenceKernel() {
   const file = useLabFile('ch05/lab3_gemm/solution/kernel.cu');
+  const { reports } = useReports();
   // Mark every line of code (not comment) that uses one of the three dimensions.
   const highlight = (file ?? '')
     .split('\n')
@@ -626,7 +629,7 @@ function ReferenceKernel() {
           label: 'CUDA',
           code: file ?? '// loading labs/ch05/lab3_gemm/solution/kernel.cu',
           tiers: MATMUL_TIERS,
-          status: 'emulator-checked, front-end-checked; unverified on a CUDA or HIP device',
+          status: solutionTabStatus(reports, 'ch05/lab3_gemm', 'kernel.cu'),
         },
       ]}
       highlight={highlight}

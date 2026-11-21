@@ -4,6 +4,7 @@
 // The narrated scene has its own check (e2e/ch10-scene-shuffle.mjs).
 // Usage: node e2e/ch10-s107.mjs [screenshot-prefix]
 import { open, goto } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 import { callText, hybrid, ones, shuffle, smallValues, warpReduceTrace } from '../src/sim/shuffle.ts';
 
 const out = process.argv[2];
@@ -270,6 +271,12 @@ if (out) {
 const expected404 = (u) => /\/content\/ch10\/narration\/(manifest\.json|shuffle-\d\.mp3)$/.test(u);
 const real = errors.filter((e) => !/Failed to load resource: the server responded with a status of 404/.test(e));
 check('no console or page errors (a missing narration manifest is allowed)', real.length === 0 && missing.every(expected404), [...real, ...missing.filter((u) => !expected404(u))].join(' | '));
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch10/10.7', [
+  { label: 'portable (lab 10.1)', lab: 'ch10/lab1_sum', file: 'kernel.cu' },
+  { label: 'Metal (lab 10.1)', lab: 'ch10/lab1_sum', file: 'kernel.metal' },
+]);
+
 await browser.close();
 console.log(fail.length ? `\n${fail.length} check(s) failed` : '\nall checks passed');
 process.exit(fail.length ? 1 : 0);

@@ -1,6 +1,7 @@
 import { useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { Ask, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
+import { solutionTabStatus } from '../../components/LabKit';
 import { Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
 import { benchRows, labStatus, num, useReports, type BenchRow, type Reports } from '../../lib/reports';
 import { href } from '../../lib/router';
@@ -684,11 +685,10 @@ export function metalQueryExcerpt(file: string): string {
 function MetalQuery() {
   const file = useLabFile(LAB1 + '/solution/launch.mm');
   const { reports } = useReports();
-  const passed = labStatus(reports.metal, LAB1, 'solution') === 'pass';
   if (!file) return null;
   return (
     <Code
-      tabs={[{ label: 'Metal host', code: metalQueryExcerpt(file), status: passed ? 'verified on Metal' : 'unverified: no passing Metal run on this machine' }]}
+      tabs={[{ label: 'Metal host', code: metalQueryExcerpt(file), status: solutionTabStatus(reports, LAB1, 'launch.mm') }]}
       caption={
         <>
           From lab 4.1's reference solution, <code>labs/{LAB1}/solution/launch.mm</code>. The status beside the tab is

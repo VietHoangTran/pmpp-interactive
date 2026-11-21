@@ -4,7 +4,7 @@ import { Code, useLabFile } from '../../components/Code';
 import { Aside, Bench, Beyond, Simplification, Source, Today, type Tier } from '../../components/notes';
 import { useReports } from '../../lib/reports';
 import { href } from '../../lib/router';
-import { STATUS } from './status';
+import { STATUS, useLabStatus } from './status';
 import {
   BOOK_PRINTED,
   CONVERGENT_SPEC,
@@ -32,6 +32,9 @@ import { functionSource } from '../../sim/toolchain';
 import { widthChoices } from '../../sim/warps';
 
 import { NoteGroup } from './NoteGroup';
+
+// The lab whose runs give the status of the listings taken from its files (and from labs/ch10/shared/, which it runs).
+const LAB10_1 = 'ch10/lab1_sum';
 const TIERS: Record<string, Tier> = { input: 'global', output: 'global', row: 'global', i: 'reg', stride: 'reg', t: 'reg', b: 'reg', bdim: 'reg' };
 const FIELD: CSSProperties = { display: 'inline-flex', flexDirection: 'column', gap: '0.2rem', color: 'var(--ink-2)' };
 const missing = (s: string | null) => !s || s.startsWith('// could not load');
@@ -611,7 +614,7 @@ export const questionsS104: Record<string, Question> = {
 export function S104() {
   const cu = useLabFile('ch10/shared/inplace_sum.cu');
   const metal = useLabFile('ch10/shared/inplace_sum.metal');
-  const status = STATUS;
+  const status = useLabStatus(LAB10_1);
   const simpleCu = !missing(cu) ? functionSource(cu!, 'SimpleSumReductionKernel') : null;
   const convCu = !missing(cu) ? functionSource(cu!, 'ConvergentSumReductionKernel') : null;
   const simpleMt = !missing(metal) ? functionSource(metal!, 'simple_sum') : null;

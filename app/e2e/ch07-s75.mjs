@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { open, goto, BASE } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const labFile = (p) => fs.existsSync(path.join(repo, 'labs', p));
@@ -324,6 +325,12 @@ await page.setViewport({ width: 390, height: 900, deviceScaleFactor: 1 });
 await pause(400);
 check('no sideways page scroll at 390 px', await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
 if (out) await page.screenshot({ path: out + '-narrow.png' });
+
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch07/7.5', [
+  { label: 'CUDA', lab: 'ch07/lab2_tiledconv', file: 'kernel.cu', where: 'halo part' },
+  { label: 'Metal kernel', lab: 'ch07/lab2_tiledconv', file: 'kernel.metal', where: 'halo part' },
+]);
 
 await browser.close();
 console.log(fail.length ? `\n${fail.length} check(s) failed` : '\nall checks passed');

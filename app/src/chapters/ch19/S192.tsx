@@ -1,9 +1,10 @@
 import { useMemo, useState, type MouseEvent, type ReactNode } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
+import { solutionTabStatus } from '../../components/LabKit';
 import { Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
 import type { Tier } from '../../components/notes';
-import { labStatus, useReports } from '../../lib/reports';
+import { useReports } from '../../lib/reports';
 import { href } from '../../lib/router';
 import { FIG_19_4_LOOPS, directRatioMaps, gradeLoops, lenetLayer, lessonRegion, type LoopRole, type LoopVar } from '../../sim/cnnlayer';
 import { SEGMENT_MODELS, type SegmentModelId } from '../../sim/coalesce';
@@ -805,15 +806,9 @@ function WarpReadsBench() {
 
 function useLabStatusText() {
   const { reports, loading } = useReports();
-  const st = (b: string) => labStatus(reports[b], LAB, 'solution');
   if (loading) return { cuda: 'reading reports', metal: 'reading reports' };
-  const done = (['cuda', 'hip'] as const).filter((b) => st(b) === 'pass').map((b) => (b === 'cuda' ? 'CUDA' : 'HIP'));
-  const lacking = (['cuda', 'hip'] as const).filter((b) => st(b) !== 'pass').map((b) => (b === 'cuda' ? 'CUDA' : 'HIP'));
-  const hw = [done.length ? `verified on ${done.join(' and ')}` : '', lacking.length ? `unverified on ${lacking.join(' and ')}` : ''].filter(Boolean);
-  return {
-    cuda: `${st('emu') === 'pass' ? 'emulator-checked' : 'unverified: no passing emulator run on this machine'}; ${hw.join('; ')}`,
-    metal: st('metal') === 'pass' ? 'verified on Metal' : 'unverified: no passing Metal run on this machine',
-  };
+  // The labs page's words (LabKit's solutionTabStatus), so a failed run reads as failed here too.
+  return { cuda: solutionTabStatus(reports, LAB, 'kernel.cu'), metal: solutionTabStatus(reports, LAB, 'kernel.metal') };
 }
 
 function DirectKernel() {

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Ask, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
+import { solutionTabStatus } from '../../components/LabKit';
+import { useReports } from '../../lib/reports';
 import { Aside, Bench, Beyond, Simplification, Source, Today, type Tier } from '../../components/notes';
 import { href } from '../../lib/router';
 import { region } from '../../sim/histpriv';
@@ -472,7 +474,18 @@ export const questionsS124: Record<string, Question> = {
   },
 };
 
+/** A lab's reference-solution status, in the labs page's words (LabKit's solutionTabStatus), from this machine's runs. */
+function useLabStatus(lab: string) {
+  const { reports } = useReports();
+  return {
+    cu: solutionTabStatus(reports, lab, 'kernel.cu'),
+    metal: solutionTabStatus(reports, lab, 'kernel.metal'),
+    mm: solutionTabStatus(reports, lab, 'launch.mm'),
+  };
+}
+
 export function S124() {
+  const status = useLabStatus('ch12/lab1_unstable');
   const cu = useLabFile('ch12/lab1_unstable/solution/kernel.cu');
   const metal = useLabFile('ch12/lab1_unstable/solution/kernel.metal');
   const part = (src: string | null) => (src ? (region(src, 'private')?.text ?? src) : null);
@@ -503,8 +516,8 @@ export function S124() {
       {cuPart && metalPart ? (
         <Code
           tabs={[
-            { label: 'CUDA', code: cuPart, tiers: TIERS, status: 'emulator-checked and front-end-checked; unverified on CUDA and HIP hardware' },
-            { label: 'Metal kernel', code: metalPart, tiers: TIERS, status: 'verified on Metal' },
+            { label: 'CUDA', code: cuPart, tiers: TIERS, status: status.cu },
+            { label: 'Metal kernel', code: metalPart, tiers: TIERS, status: status.metal },
           ]}
           caption={
             <>

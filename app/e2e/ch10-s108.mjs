@@ -3,6 +3,7 @@
 // page runs on (src/sim/shuffle.ts) or, for the measurement, with /api/reports.
 // Usage: node e2e/ch10-s108.mjs [screenshot-prefix]
 import { open, goto, BASE } from './browser.mjs';
+import { checkLabStatuses, tabStatus } from './labstatus.mjs';
 import { KERNELS, blockCosts, ones, twoStage } from '../src/sim/shuffle.ts';
 
 const out = process.argv[2];
@@ -49,7 +50,9 @@ await page.waitForSelector(bench('Hybrid or two-stage: count the costs'));
 await page.waitForFunction(() => [...document.querySelectorAll('.code .tabs button')].some((b) => b.textContent === 'CUDA'), { timeout: 10000 }).catch(() => {});
 const tabs = await page.$$eval('.code .tabs button', (b) => b.map((x) => x.textContent));
 check('the two-stage kernel is shown for CUDA, and for Metal', tabs.includes('CUDA') && tabs.includes('Metal'), tabs.join('|'));
-check('the CUDA tab\'s status is the chapter\'s fixed wording, with HIP unverified', (await page.$eval('.code .tabs .status', (e) => e.textContent)) === 'front-end-checked; emulator-checked; unverified on CUDA and HIP hardware');
+const labReports = await (await fetch(BASE + '/api/reports')).json();
+const frontend = await (await fetch(BASE + '/api/frontend-check')).json();
+check('the CUDA tab\'s status is the labs page\'s, from this machine\'s runs', (await page.$eval('.code .tabs .status', (e) => e.textContent)) === tabStatus(labReports, 'ch10/lab1_sum', 'kernel.cu', frontend));
 const code = await text('.code pre');
 check('the CUDA tab is the lab kernel, with the guarded stage-2 read', code.includes('TwoStageWarpLevelSumReductionKernel') && code.includes('laneIdx() < warps ? partialSums_s[laneIdx()] : 0.0f') && code.includes('MAX_BLOCK_DIM / MIN_WARP_SIZE'));
 await page.evaluate(() => [...document.querySelectorAll('.code .tabs button')].find((b) => b.textContent === 'Metal').click());
@@ -161,6 +164,12 @@ if (out) {
   await page.$eval(bench(C), (e) => e.scrollIntoView());
   await page.screenshot({ path: out + '-narrow.png' });
 }
+
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch10/10.8', [
+  { label: 'CUDA', lab: 'ch10/lab1_sum', file: 'kernel.cu' },
+  { label: 'Metal', lab: 'ch10/lab1_sum', file: 'kernel.metal' },
+]);
 
 check('no console or page errors', errors.length === 0, errors.join(' | '));
 await browser.close();

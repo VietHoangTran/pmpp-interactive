@@ -6,6 +6,7 @@
 // what the page shows.
 // Usage: APP_URL=http://localhost:5173 node e2e/ch12-s125.mjs [screenshot-prefix] [--dark]
 import { open, goto } from './browser.mjs';
+import { checkLabStatuses } from './labstatus.mjs';
 
 const out = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : null;
 const dark = process.argv.includes('--dark');
@@ -144,6 +145,12 @@ await qt.evaluate((e) => [...e.querySelectorAll('label')].find((l) => l.textCont
 await (await qt.$('button.primary')).click();
 await pause(150);
 check('q-topp: a prefix is right', (await qt.evaluate((e) => e.textContent)).includes('Correct.'));
+
+// The listings' statuses: LabKit's words from this machine's reports, and "failed on this machine" when a run failed.
+await checkLabStatuses(check, 'ch12/12.5', [
+  { label: 'CUDA', lab: 'ch12/lab3_stable', file: 'kernel.cu' },
+  { label: 'Metal kernel', lab: 'ch12/lab3_stable', file: 'kernel.metal' },
+]);
 
 check('no console or page errors', errors.length === 0, errors.join(' | '));
 await browser.close();
