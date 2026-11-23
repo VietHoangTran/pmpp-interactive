@@ -1146,6 +1146,11 @@ def cmd_verify(a):
     cfg = configure()
     devs = device_info(cfg) if cfg["rc"] == 0 else {}
     usable = [b["name"] for b in cfg["backends"] if b["enabled"] and devs.get(b["name"], {}).get("available")]
+    if a.backend:
+        missing = [b for b in a.backend if b not in usable]
+        if missing:
+            sys.exit("backend not available on this machine: %s (found: %s)" % (", ".join(missing), ", ".join(usable) or "none"))
+        usable = [b for b in usable if b in a.backend]
     results = []
     labs = sorted({t["lab"] for t in cfg["targets"] if t["lab"] != "devinfo"})
     states = {lab: work_state(lab) for lab in labs}
@@ -1406,6 +1411,8 @@ def main():
     v.add_argument("--quick", action="store_true", help="skip benchmarks")
     v.add_argument("--reps", type=int, default=1, metavar="N", help="run each benchmark N times, recording each")
     v.add_argument("--full", action="store_true", help="keep sanitizer reports in full instead of condensed")
+    v.add_argument("--backend", action="append", choices=BACKENDS, metavar="NAME",
+                   help="verify only this backend (repeat for several: --backend hip --backend emu); default: every backend found")
     v.set_defaults(fn=cmd_verify)
     f = sub.add_parser("frontend", help="parse every .cu file with clang's CUDA front end and record the result for the app")
     f.set_defaults(fn=cmd_frontend)

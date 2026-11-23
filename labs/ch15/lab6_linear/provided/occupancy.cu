@@ -26,7 +26,7 @@
 #define cudaFuncGetAttributes hipFuncGetAttributes
 #endif
 
-template <unsigned int WARP>
+template <int WARP>
 __global__ void fastLinearKernel(const float* X, const float* W, float* Y, int batch, int in, int out);
 
 // Registers per thread of the kernel built for this warp width, or -1.

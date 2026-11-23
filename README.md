@@ -26,6 +26,7 @@ or sync it to carry it between machines.
 ./verify.sh                         # build + test + benchmark everything this machine supports,
                                     # writes reports/verify-<time>-<os>-<backends>.md
 ./verify.sh --quick                 # same without benchmarks
+./verify.sh --backend hip           # one backend only (repeatable), e.g. skip the slow emulators
 python3 labs/pmpp.py doctor         # which backends were found, and what the device reports
 python3 labs/pmpp.py run 5.2        # test your work for lab 5.2 on every backend
 python3 labs/pmpp.py run 5.2 --bench
