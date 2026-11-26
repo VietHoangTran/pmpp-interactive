@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { useProgress } from '../lib/progress';
+import { useLanguage } from '../lib/language';
 
 // Questions. Each has a stable id; the first answer is stored in the progress
 // file and enters the spaced-review pool, so it comes back later.
@@ -7,7 +8,13 @@ export interface ChoiceQ {
   kind: 'choice';
   id: string;
   prompt: ReactNode;
-  options: { label: ReactNode; correct?: boolean; why?: ReactNode }[];
+  options: {
+    label: ReactNode;
+    labelVi?: ReactNode;
+    correct?: boolean;
+    why?: ReactNode;
+    whyVi?: ReactNode;
+  }[];
   /** Keep the written order (a scale, or "none of these" last). Otherwise the order is shuffled. */
   fixedOrder?: boolean;
   explain?: ReactNode;
@@ -22,6 +29,7 @@ export interface NumericQ {
   /** Relative tolerance; 0 means exact. */
   tol?: number;
   unit?: string;
+  unitVi?: string;
   explain?: ReactNode;
   source?: string;
 }
@@ -59,7 +67,7 @@ export const numericOk = (q: NumericQ, v: number) =>
 
 export function Ask({
   q,
-  label = 'Check your reasoning',
+  label,
   review = false,
   onResult,
 }: {
@@ -69,6 +77,8 @@ export function Ask({
   review?: boolean;
   onResult?: (correct: boolean) => void;
 }) {
+  const { language, t } = useLanguage();
+  const unit = q.kind === 'numeric' ? (language === 'vi' ? q.unitVi ?? q.unit : q.unit) : undefined;
   const { progress, answer, recordReview } = useProgress();
   const prior = review ? undefined : progress.answers[q.id];
   const [pick, setPick] = useState<number | null>(
@@ -98,7 +108,7 @@ export function Ask({
 
   return (
     <div className="q" data-question={q.id} data-question-kind={q.kind}>
-      <div className="kind">{label}</div>
+      <div className="kind">{label ?? t('Check your reasoning', 'Kiểm tra lập luận của bạn')}</div>
       <div className="prompt">{q.prompt}</div>
       {q.kind === 'choice' ? (
         <div className="opts" role="radiogroup">
@@ -118,8 +128,8 @@ export function Ask({
                 }}
               />
               <span>
-                {o.label}
-                {checked && pick === i && o.why ? <span className="muted"> {o.why}</span> : null}
+                {language === 'vi' ? o.labelVi ?? o.label : o.label}
+                {checked && pick === i && o.why ? <span className="muted"> {language === 'vi' ? o.whyVi ?? o.why : o.why}</span> : null}
               </span>
             </label>
           ))}
@@ -130,26 +140,28 @@ export function Ask({
             type="number"
             step="any"
             value={text}
-            aria-label="your answer"
+            aria-label={t('your answer', 'Câu trả lời của bạn')}
             onChange={(e) => {
               setText(e.target.value);
               setChecked(false);
             }}
             onKeyDown={(e) => e.key === 'Enter' && check()}
           />
-          {q.unit ? <span className="ui muted">{q.unit}</span> : null}
+          {unit ? <span className="ui muted">{unit}</span> : null}
         </div>
       )}
       <button className="primary" onClick={check} disabled={value == null}>
-        Check
+        {t('Check', 'Kiểm tra')}
       </button>
       {checked ? (
         <div className={'verdict ' + (correct ? 'right' : 'wrong')}>
           <p>
-            <b>{correct ? 'Correct.' : q.kind === 'numeric' ? `Not quite. The answer is ${q.answer}${q.unit ? ' ' + q.unit : ''}.` : 'Not quite.'}</b>
+            <b>{correct ? t('Correct.', 'Đúng.') : q.kind === 'numeric'
+              ? t('Not quite. The answer is', 'Chưa đúng. Đáp án là') + ` ${q.answer}${unit ? ' ' + unit : ''}.`
+              : t('Not quite.', 'Chưa đúng.')}</b>
           </p>
           {q.explain ? <div>{q.explain}</div> : null}
-          {q.source ? <p className="muted">Source: {q.source}</p> : null}
+          {q.source ? <p className="muted">{t('Source:', 'Nguồn')} {q.source}</p> : null}
         </div>
       ) : null}
     </div>
@@ -194,6 +206,7 @@ export function Predict({
   options?: ReactNode[];
   children: (committed: number, option?: ReactNode) => ReactNode;
 }) {
+  const { t } = useLanguage();
   const { progress, answer } = useProgress();
   const [text, setText] = useState('');
   const [pick, setPick] = useState<number | null>(null);
@@ -208,7 +221,7 @@ export function Predict({
   };
   return (
     <div className="q" data-question={id} data-question-kind={options ? 'predict-choice' : 'predict'}>
-      <div className="kind">Predict first</div>
+      <div className="kind">{t('Predict first', 'Thử dự đoán trước')}</div>
       <div className="prompt">{prompt}</div>
       {committed == null ? (
         options ? (
@@ -222,7 +235,7 @@ export function Predict({
               ))}
             </div>
             <button className="primary" onClick={commit} disabled={pick == null}>
-              Commit prediction
+              {t('Commit prediction', 'Lưu dự đoán')}
             </button>
           </>
         ) : (
@@ -231,13 +244,13 @@ export function Predict({
               type="number"
               step="any"
               value={text}
-              aria-label="your prediction"
+              aria-label={t('your prediction', 'Dự đoán của bạn')}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && commit()}
             />
             {unit ? <span className="ui muted">{unit}</span> : null}
             <button className="primary" onClick={commit} disabled={text.trim() === ''}>
-              Commit prediction
+              {t('Commit prediction', 'Lưu dự đoán')}
             </button>
           </div>
         )
@@ -246,10 +259,10 @@ export function Predict({
           <p>
             <b>
               {options ? (
-                <>You predicted: {options[committed]}</>
+                <>{t('You predicted:', 'Bạn dự đoán ·')} {options[committed]}</>
               ) : (
                 <>
-                  You predicted {committed}
+                  {t('You predicted', 'Bạn dự đoán')} {committed}
                   {unit ? ' ' + unit : ''}.
                 </>
               )}

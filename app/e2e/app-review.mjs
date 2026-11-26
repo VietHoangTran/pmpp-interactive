@@ -109,6 +109,49 @@ await step('theme', async () => {
   check('theme button switches between light and dark', (await bg()) !== before);
 });
 
+// ---- language, persisted preference, and progress shared with the English lesson ----
+await step('language', async () => {
+  const languagePicker = '.rail select';
+  await goto(page, '');
+  check('English is the default on the home page', (await body()).includes('From tensors to kernels'));
+  await page.select(languagePicker, 'vi');
+  await waitText('Từ tensor đến kernel');
+  check('Vietnamese mode translates the course map', (await body()).includes('Lộ trình toàn khóa') && (await body()).includes('Kernel lượng tử hóa'));
+
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await waitText('Lộ trình toàn khóa');
+  check('Vietnamese mode survives reload', await page.$eval('html', (el) => el.lang) === 'vi');
+
+  await goto(page, 'ch01/start');
+  await waitText('Vì sao có hai hướng thiết kế bộ xử lý');
+  const quiz = '[data-question="ch01/start/q-batch"]';
+  await page.click(quiz + ' input[data-written-index="0"]');
+  await page.click(quiz + ' button.primary');
+  await waitText('Đúng.');
+  check('the first Vietnamese quiz uses the original answer key',
+    (await savedWhere((p) => p.answers?.['ch01/start/q-batch']?.correct === true))?.answers?.['ch01/start/q-batch']?.value === 0);
+
+  const captionToggle = await page.$$('.scene .check input[type=checkbox]');
+  await captionToggle[1].click();
+  await waitText('Bắt đầu với một ngân sách công suất cố định');
+  check('the first animation offers Vietnamese captions', await page.$eval('.scene .caption', (el) => el.lang) === 'vi');
+
+  await page.setViewport({ width: 390, height: 900, deviceScaleFactor: 1 });
+  check('the Vietnamese introductory lesson fits a phone viewport', await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
+  await page.setViewport({ width: 1440, height: 1000, deviceScaleFactor: 1 });
+  await page.select(languagePicker, 'en');
+  await waitText('Why there are two kinds of processor');
+  check('returning to English keeps the answer on the same page',
+    (await page.$eval(quiz + ' .verdict', (el) => el.textContent)).includes('Correct.'));
+
+  await page.select(languagePicker, 'vi');
+  await goto(page, 'ch05/5.1');
+  check('untranslated lessons still open with their progress and source text',
+    (await body()).includes('Nội dung bài này hiện có bằng tiếng Anh.') &&
+    (await page.$eval('.rail nav a[aria-current="page"]', (el) => el.textContent)).includes('✓'));
+  await page.select(languagePicker, 'en');
+});
+
 // ---- every route renders without errors, at desktop and phone widths ----
 // The routes come from the app's own chapter registry: every chapter that has sections.
 // CHAPTERS=ch02,ch05 limits the sweep (useful while other chapters are being built).

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useLanguage } from '../../lib/language';
 import { Scene, type Beat } from '../../components/Scene';
 import { design, finish, floorplan, race, regions, snapshot, sweep, timeline, type Design } from '../../sim/designs';
 
@@ -350,13 +351,14 @@ function Matmul(p: number) {
 }
 
 const beats: Beat[] = [
-  { clip: 'two-designs-1', label: 'One budget', draw: Budget },
-  { clip: 'two-designs-2', label: 'One chain', draw: OneChain },
-  { clip: 'two-designs-3', label: 'Sixty-four chains', draw: Crowd },
-  { clip: 'two-designs-4', label: 'Where they cross', draw: Crossing },
-  { clip: 'two-designs-5', label: 'What it asks of you', draw: Matmul },
+  { clip: 'two-designs-1', label: 'One budget', vietnamese: { label: 'Cùng ngân sách', caption: 'Bắt đầu với một ngân sách công suất cố định, biểu diễn bằng 64 ô bằng nhau. Theo quy tắc của sách, giảm một nửa độ trễ của một khối đòi hỏi công suất gấp 4 lần. Làm vậy hai lần, khối nhanh gấp 4 lần nhưng dùng đến 16 ô. Vậy cùng một ngân sách đủ cho 4 khối nhanh hoặc 64 khối thường.' }, draw: Budget },
+  { clip: 'two-designs-2', label: 'One chain', vietnamese: { label: 'Một chuỗi', caption: 'Giao cho cả hai thiết kế một chuỗi gồm 16 phép toán. Mỗi bước cần kết quả của bước trước, nên chỉ một khối có thể làm việc dù có bao nhiêu khối. Khối nhanh xong ở mốc 4. Khối thường xong ở mốc 16, trong khi 63 khối còn lại nhàn rỗi. Thiết kế nhanh thắng với hệ số 4.' }, draw: OneChain },
+  { clip: 'two-designs-3', label: 'Sixty-four chains', vietnamese: { label: '64 chuỗi', caption: 'Bây giờ, giao cho chúng 64 chuỗi độc lập. Thiết kế bên phải xử lý cả 64 chuỗi cùng lúc và xong ở mốc 16. Bên trái xử lý 16 đợt, mỗi đợt 4 chuỗi, và xong ở mốc 64. Dù vậy, kết quả đầu tiên bên trái đến sớm hơn, ở mốc 4. Thời gian tới kết quả đầu thể hiện độ trễ. Thời gian xử lý hết cả lô cho thấy thông lượng.' }, draw: Crowd },
+  { clip: 'two-designs-4', label: 'Where they cross', vietnamese: { label: 'Khi nào đổi bên dẫn đầu', caption: 'Tăng số chuỗi từ 1 đến 64. Dưới khoảng 16 chuỗi độc lập, các khối nhanh dẫn đầu. Vượt qua vùng đó, thiết kế có nhiều khối dẫn đầu. Bây giờ, tăng gấp đôi độ dài từng chuỗi. Hai đường cùng đi lên và vùng giao nhau giữ nguyên vị trí. Bên thắng phụ thuộc vào số chuỗi độc lập.' }, draw: Crossing },
+  { clip: 'two-designs-5', label: 'What it asks of you', vietnamese: { label: 'Công việc nào hợp với GPU', caption: 'GPU tương ứng với thiết kế bên phải. Ở đây, mỗi khối trong 64 khối tính một phần tử của tích hai ma trận cỡ 8 × 8, nên mọi ô đầu ra hoàn thành cùng lúc. GPU phát huy lợi thế khi công việc có nhiều phần độc lập. Phần còn lại của khóa học hướng dẫn bạn viết kernel tạo ra các phần việc đó và cấp đủ dữ liệu từ bộ nhớ để chúng tiếp tục chạy.' }, draw: Matmul },
 ];
 
 export function TwoDesignsScene() {
-  return <Scene chapter="ch01" title="One budget, two designs" beats={beats} />;
+  const { t } = useLanguage();
+  return <Scene chapter="ch01" title={t('One budget, two designs', 'Cùng ngân sách, hai thiết kế')} beats={beats} />;
 }

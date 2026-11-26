@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useLanguage } from '../lib/language';
 
 // A narrated animation: a sequence of beats, each a narration clip plus a drawing
 // that is a pure function of how far through the beat we are. Picture and sound
@@ -14,6 +15,7 @@ export interface Beat {
   clip: string;
   /** Short name shown on the beat's button. */
   label: string;
+  vietnamese?: { label: string; caption: string };
   /** Draws the beat; p runs from 0 to 1. */
   draw: (p: number) => ReactNode;
 }
@@ -43,6 +45,8 @@ export function Scene({
    */
   narrow?: boolean;
 }) {
+  const { language, t: tr } = useLanguage();
+  const vi = language === 'vi';
   const base = `/content/${chapter}/narration/`;
   const [manifest, setManifest] = useState<Manifest | null>(null);
   const [scripts, setScripts] = useState<Record<string, string>>({});
@@ -90,6 +94,7 @@ export function Scene({
   const beat = beats[i];
   const entry = manifest?.clips[beat.clip];
   const script = scripts[beat.clip] ?? '';
+  const translatedCaption = vi ? beat.vietnamese?.caption : undefined;
   const dur = entry?.duration ?? estimate(script);
   const hasAudio = !!entry && !broken[beat.clip];
   // With sound on and a clip available, the audio element is the clock.
@@ -155,12 +160,14 @@ export function Scene({
   const p = dur > 0 ? Math.min(1, t / dur) : 0;
   const finished = !playing && i === beats.length - 1 && t >= dur;
 
+  const totalSeconds = Math.round(beats.reduce((s, b) => s + (manifest?.clips[b.clip]?.duration ?? estimate(scripts[b.clip] ?? '')), 0));
+
   return (
     <section className="bench wide scene" aria-label={title}>
       <header>
         <h4>{title}</h4>
         <span className="task">
-          {beats.length} parts, about {Math.round(beats.reduce((s, b) => s + (manifest?.clips[b.clip]?.duration ?? estimate(scripts[b.clip] ?? '')), 0))} seconds
+          {tr(`${beats.length} parts, about ${totalSeconds} seconds`, `${beats.length} phần, khoảng ${totalSeconds} giây`)}
         </span>
       </header>
       <div className="body">
@@ -168,28 +175,33 @@ export function Scene({
           {beat.draw(p)}
         </div>
         {captions || !hasAudio ? (
-          <p className="caption" aria-live="polite">{stripTags(script) || '…'}</p>
+          <p className="caption" aria-live="polite" lang={translatedCaption ? 'vi' : 'en'}>
+            {translatedCaption ?? (stripTags(script) || '…')}
+          </p>
         ) : null}
         <div className="row">
           <button className="primary" onClick={() => { if (finished) go(0); setPlaying(!playing); }}>
-            {playing ? 'Pause' : finished ? 'Play again' : t > 0 || i > 0 ? 'Resume' : 'Play'}
+            {playing ? tr('Pause', 'Tạm dừng') : finished ? tr('Play again', 'Phát lại') : t > 0 || i > 0 ? tr('Resume', 'Tiếp tục') : tr('Play', 'Phát')}
           </button>
-          <span className="seg" role="group" aria-label="Parts">
-            {beats.map((b, k) => (
-              <button key={b.clip} aria-pressed={k === i} onClick={() => go(k)} title={b.label}>
-                {k + 1}. {b.label}
-              </button>
-            ))}
+          <span className="seg" role="group" aria-label={tr('Parts', 'Các phần')}>
+            {beats.map((b, k) => {
+              const label = vi ? b.vietnamese?.label ?? b.label : b.label;
+              return (
+                <button key={b.clip} aria-pressed={k === i} onClick={() => go(k)} title={label}>
+                  {k + 1}. {label}
+                </button>
+              );
+            })}
           </span>
           <label className="check">
-            <input type="checkbox" checked={sound} onChange={(e) => setSound(e.target.checked)} /> sound
+            <input type="checkbox" checked={sound} onChange={(e) => setSound(e.target.checked)} /> {tr('sound', 'âm thanh')}
           </label>
           <label className="check">
-            <input type="checkbox" checked={captions} onChange={(e) => toggleCaptions(e.target.checked)} /> captions
+            <input type="checkbox" checked={captions} onChange={(e) => toggleCaptions(e.target.checked)} /> {tr('captions', 'phụ đề')}
           </label>
         </div>
         <input
-          type="range" min="0" max="1000" value={Math.round(p * 1000)} aria-label="Position in this part"
+          type="range" min="0" max="1000" value={Math.round(p * 1000)} aria-label={tr('Position in this part', 'Vị trí trong phần này')}
           style={{ width: '100%', marginTop: '0.6rem' }}
           onChange={(e) => {
             const nt = (Number(e.target.value) / 1000) * dur;
@@ -213,10 +225,13 @@ export function Scene({
       </div>
       <footer>
         {manifest === null
-          ? 'No narration manifest found; running silently on estimated timings.'
+          ? tr('No narration manifest found; running silently on estimated timings.', 'Thiếu tệp thông tin lời thuyết minh. Hoạt ảnh chạy không tiếng theo thời lượng ước tính.')
           : hasAudio
-            ? `Narration generated with ${manifest.model}. Turn on captions to read the script as it is spoken.`
-            : 'This part has no audio yet, so its script is shown as a caption and it runs on an estimated timing.'}
+            ? tr(
+                `Narration generated with ${manifest.model}. Turn on captions to read the script as it is spoken.`,
+                `Lời thuyết minh tiếng Anh được tạo bằng ${manifest.model}. Bật phụ đề để đọc theo${translatedCaption ? ' bằng tiếng Việt' : ''}.`,
+              )
+            : tr('This part has no audio yet, so its script is shown as a caption and it runs on an estimated timing.', 'Phần này chưa có âm thanh. Hoạt ảnh hiển thị phụ đề và chạy theo thời lượng ước tính.')}
       </footer>
     </section>
   );

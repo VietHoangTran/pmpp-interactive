@@ -1,13 +1,15 @@
 import type { ReactNode } from 'react';
+import { useLanguage } from '../lib/language';
 
 // Margin notes. On wide screens they sit beside the paragraph that precedes them.
 
 /** Where in the book this comes from, so you can go back to the source. */
 export function Source({ section, pages, figs }: { section?: string; pages: string; figs?: string }) {
+  const { t } = useLanguage();
   return (
     <aside className="note">
-      <b>Book</b> {section ? `§${section}, ` : ''}
-      {pages.includes('–') || pages.includes(',') ? 'pp.' : 'p.'} {pages}
+      <b>{t('Book', 'Sách')}</b> {section ? `§${section}, ` : ''}
+      {pages.includes('–') || pages.includes(',') ? t('pp.', 'trang') : t('p.', 'trang')} {pages}
       {figs ? <>; {figs}</> : null}
     </aside>
   );
@@ -15,23 +17,25 @@ export function Source({ section, pages, figs }: { section?: string; pages: stri
 
 /** Where the book is dated or device-specific, checked against current docs. */
 export function Today({ children, checked }: { children: ReactNode; checked: string }) {
+  const { t } = useLanguage();
   return (
     <aside className="note today">
       <p>
-        <b>Today</b>
+        <b>{t('Today', 'Thông tin cập nhật')}</b>
       </p>
       {children}
-      <p className="muted">Checked {checked}.</p>
+      <p className="muted">{t('Checked', 'Đã đối chiếu ngày')} {checked}.</p>
     </aside>
   );
 }
 
 /** What a simulation leaves out compared with real hardware. */
 export function Simplification({ children }: { children: ReactNode }) {
+  const { t } = useLanguage();
   return (
     <aside className="note caveat">
       <p>
-        <b>What this model leaves out</b>
+        <b>{t('What this model leaves out', 'Các giả định và giới hạn của mô hình')}</b>
       </p>
       {children}
     </aside>
@@ -39,11 +43,12 @@ export function Simplification({ children }: { children: ReactNode }) {
 }
 
 /** Material that is ours, not the book's. */
-export function Beyond({ children, title = 'Not in the book' }: { children: ReactNode; title?: string }) {
+export function Beyond({ children, title }: { children: ReactNode; title?: string }) {
+  const { t } = useLanguage();
   return (
     <aside className="note beyond">
       <p>
-        <b>{title}</b>
+        <b>{title ?? t('Not in the book', 'Nội dung ngoài sách')}</b>
       </p>
       {children}
     </aside>
