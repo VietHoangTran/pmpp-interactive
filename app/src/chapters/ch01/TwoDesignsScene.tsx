@@ -21,7 +21,9 @@ const clamp = (v: number) => Math.max(0, Math.min(1, v));
 const ramp = (p: number, a: number, b: number) => clamp((p - a) / (b - a));
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`;
-const name = (d: Design) => `${plural(d.units, 'unit')}, speed ${d.speed}`;
+type Translate = ReturnType<typeof useLanguage>['t'];
+const name = (d: Design, tr: Translate) =>
+  tr(`${plural(d.units, 'unit')}, speed ${d.speed}`, `${d.units} khối, tốc độ ${d.speed}`);
 
 /**
  * A design as a floor plan: the budget as equal squares of power, grouped into
@@ -89,6 +91,7 @@ function Chains({ x, y, size, ops, length, cols }: { x: number; y: number; size:
 
 /** A time axis from 0 to tMax with the elapsed part filled and a mark where this design finished. */
 function Clock({ x, y, w, t, tMax, end }: { x: number; y: number; w: number; t: number; tMax: number; end: number }) {
+  const { t: tr } = useLanguage();
   const X = (v: number) => x + (v / tMax) * w;
   return (
     <g>
@@ -99,7 +102,7 @@ function Clock({ x, y, w, t, tMax, end }: { x: number; y: number; w: number; t: 
       <text x={x + w} y={y + 24} fontSize="10.5" textAnchor="end" style={{ fill: 'var(--ink-2)' }}>{tMax}</text>
       {t >= end ? (
         <text x={Math.min(X(end), x + w - 40)} y={y - 8} fontSize="11.5" fontWeight="600" textAnchor={end >= tMax ? 'end' : 'start'}
-          transform={end >= tMax ? `translate(40 0)` : undefined}>done at {end}</text>
+          transform={end >= tMax ? `translate(40 0)` : undefined}>{tr(`done at ${end}`, `xong ở ${end}`)}</text>
       ) : null}
     </g>
   );
@@ -119,12 +122,12 @@ const Title = ({ x, children }: { x: number; children: ReactNode }) => (
 const Headline = ({ show, children }: { show: number; children: ReactNode }) => (
   <text x={LX} y={336} fontSize="13.5" fontWeight="600" opacity={show}>{children}</text>
 );
-const Now = ({ t }: { t: number }) => (
-  <text x={W - LX} y={336} fontSize="13" textAnchor="end" style={{ fill: 'var(--ink-2)' }}>time {Math.floor(t)}</text>
+const Now = ({ t, tr }: { t: number; tr: Translate }) => (
+  <text x={W - LX} y={336} fontSize="13" textAnchor="end" style={{ fill: 'var(--ink-2)' }}>{tr(`time ${Math.floor(t)}`, `thời điểm ${Math.floor(t)}`)}</text>
 );
 
 // ---------------------------------------------------------------- beat 1
-function Budget(p: number) {
+function Budget(p: number, tr: Translate) {
   const rule = ramp(p, 0.16, 0.28); // the rule appears as it is spoken
   const split = ramp(p, 0.42, 0.56); // one grid becomes two
   const group = ramp(p, 0.56, 0.72); // squares are grouped into units
@@ -136,22 +139,22 @@ function Budget(p: number) {
   const gain = steps[1].speed / steps[0].speed;
   const cost = steps[1].unitPower / steps[0].unitPower;
   return (
-    <Stage label="One power budget grouped into units in two ways">
-      {split < 1 ? <text x={W / 2} y={18} fontSize="13" fontWeight="600" textAnchor="middle" opacity={1 - split}>a budget of {BUDGET} squares of power</text> : null}
+    <Stage label={tr(`One power budget grouped into units in two ways`, `Hai cách chia cùng một ngân sách công suất thành các khối`)}>
+      {split < 1 ? <text x={W / 2} y={18} fontSize="13" fontWeight="600" textAnchor="middle" opacity={1 - split}>{tr(`a budget of ${BUDGET} squares of power`, `ngân sách ${BUDGET} ô công suất`)}</text> : null}
       <Plan x={lx} y={30} size={size} d={A} grid={1} units={group} dash={group > 0.5} />
       <Plan x={rx} y={30} size={size} d={B} grid={1 - group} units={group} />
       <g opacity={group}>
-        <text x={LX + 174} y={62} fontSize="13" fontWeight="600">{plural(A.units, 'unit')}</text>
-        <text x={LX + 174} y={82} fontSize="12">{A.unitPower} squares each</text>
-        <text x={LX + 174} y={100} fontSize="12">speed {A.speed}</text>
-        <text x={RX + 174} y={62} fontSize="13" fontWeight="600">{plural(B.units, 'unit')}</text>
-        <text x={RX + 174} y={82} fontSize="12">{plural(B.unitPower, 'square')} each</text>
-        <text x={RX + 174} y={100} fontSize="12">speed {B.speed}</text>
+        <text x={LX + 174} y={62} fontSize="13" fontWeight="600">{tr(`${plural(A.units, 'unit')}`, `${A.units} khối`)}</text>
+        <text x={LX + 174} y={82} fontSize="12">{tr(`${A.unitPower} squares each`, `mỗi khối ${A.unitPower} ô`)}</text>
+        <text x={LX + 174} y={100} fontSize="12">{tr(`speed ${A.speed}`, `tốc độ ${A.speed}`)}</text>
+        <text x={RX + 174} y={62} fontSize="13" fontWeight="600">{tr(`${plural(B.units, 'unit')}`, `${B.units} khối`)}</text>
+        <text x={RX + 174} y={82} fontSize="12">{tr(`${plural(B.unitPower, 'square')} each`, `mỗi khối ${B.unitPower} ô`)}</text>
+        <text x={RX + 174} y={100} fontSize="12">{tr(`speed ${B.speed}`, `tốc độ ${B.speed}`)}</text>
       </g>
       <g opacity={rule}>
         <line x1={LX} x2={W - LX} y1={182} y2={182} stroke="var(--rule)" />
         <text x={LX} y={204} fontSize="12.5" fontWeight="600">
-          The book's rule: {gain} times the speed of a unit costs {cost} times the power
+          {tr(`The book's rule: ${gain} times the speed of a unit costs ${cost} times the power`, `Theo sách, khối nhanh gấp ${gain} lần cần công suất gấp ${cost} lần`)}
         </text>
         {steps.map((d, i) => {
           const s = d.speed * 8;
@@ -159,21 +162,21 @@ function Budget(p: number) {
           return (
             <g key={i}>
               <rect x={x} y={296 - s} width={s} height={s} rx="1.5" fill="var(--cell)" stroke="var(--ink)" strokeWidth="1.3" />
-              <text x={x + s + 8} y={280} fontSize="11.5">speed {d.speed}, power {d.unitPower}</text>
-              <text x={x + s + 8} y={295} fontSize="11.5" style={{ fill: 'var(--ink-2)' }}>the budget buys {d.units}</text>
+              <text x={x + s + 8} y={280} fontSize="11.5">{tr(`speed ${d.speed}, power ${d.unitPower}`, `tốc độ ${d.speed}, công suất ${d.unitPower}`)}</text>
+              <text x={x + s + 8} y={295} fontSize="11.5" style={{ fill: 'var(--ink-2)' }}>{tr(`the budget buys ${d.units}`, `đủ cho ${d.units} khối`)}</text>
             </g>
           );
         })}
       </g>
       <Headline show={ramp(p, 0.78, 0.88)}>
-        one budget: {plural(A.units, 'unit')} of speed {A.speed}, or {plural(B.units, 'unit')} of speed {B.speed}
+        {tr(`one budget: ${plural(A.units, 'unit')} of speed ${A.speed}, or ${plural(B.units, 'unit')} of speed ${B.speed}`, `cùng ngân sách: ${A.units} khối tốc độ ${A.speed}, hoặc ${B.units} khối tốc độ ${B.speed}`)}
       </Headline>
     </Stage>
   );
 }
 
 // ---------------------------------------------------------------- beat 2
-function OneChain(p: number) {
+function OneChain(p: number, tr: Translate) {
   const r = race(A, B, 1, CHAIN);
   const tMax = Math.max(r.a.last, r.b.last);
   const t = ramp(p, 0.14, 0.82) * tMax;
@@ -181,12 +184,12 @@ function OneChain(p: number) {
     const s = snapshot(d, 1, CHAIN, t);
     return (
       <g>
-        <Title x={x}>{name(d)}</Title>
+        <Title x={x}>{name(d, tr)}</Title>
         <Plan x={x} y={30} size={112} d={d} busy={busyAt(d, 1, CHAIN, t)} />
-        <text x={x + 130} y={62} fontSize="12">working: {plural(s.running, 'unit')}</text>
-        <text x={x + 130} y={80} fontSize="12">never used: {plural(f.idle, 'unit')}</text>
+        <text x={x + 130} y={62} fontSize="12">{tr(`working: ${plural(s.running, 'unit')}`, `đang chạy: ${s.running} khối`)}</text>
+        <text x={x + 130} y={80} fontSize="12">{tr(`never used: ${plural(f.idle, 'unit')}`, `nhàn rỗi: ${f.idle} khối`)}</text>
         <text x={x} y={176} fontSize="11.5" style={{ fill: 'var(--ink-2)' }}>
-          a chain of {CHAIN} dependent operations: {s.ops[0]} done
+          {tr(`a chain of ${CHAIN} dependent operations: ${s.ops[0]} done`, `chuỗi ${CHAIN} phép toán phụ thuộc: đã xong ${s.ops[0]}`)}
         </text>
         <Chain x={x} y={186} n={CHAIN} done={s.ops[0]} w={320} />
         <Clock x={x} y={248} w={320} t={t} tMax={tMax} end={f.last} />
@@ -194,20 +197,20 @@ function OneChain(p: number) {
     );
   };
   return (
-    <Stage label="One chain of dependent operations run on both designs">
+    <Stage label={tr(`One chain of dependent operations run on both designs`, `Hai thiết kế chạy cùng một chuỗi phép toán phụ thuộc`)}>
       {side(A, LX, r.a)}
       {side(B, RX, r.b)}
       <Divider />
       <Headline show={ramp(p, 0.84, 0.92)}>
-        one chain: the fast unit finishes {r.factor} times sooner
+        {tr(`one chain: the fast unit finishes ${r.factor} times sooner`, `một chuỗi: khối nhanh về trước với hệ số ${r.factor}`)}
       </Headline>
-      <Now t={t} />
+      <Now t={t} tr={tr} />
     </Stage>
   );
 }
 
 // ---------------------------------------------------------------- beat 3
-function Crowd(p: number) {
+function Crowd(p: number, tr: Translate) {
   const r = race(A, B, CROWD, CHAIN);
   const tMax = Math.max(r.a.last, r.b.last);
   const t = ramp(p, 0.1, 0.86) * tMax;
@@ -215,33 +218,33 @@ function Crowd(p: number) {
     const s = snapshot(d, CROWD, CHAIN, t);
     return (
       <g>
-        <Title x={x}>{name(d)}</Title>
-        <text x={x} y={36} fontSize="11" style={{ fill: 'var(--ink-2)' }}>units ({plural(s.running, 'unit')} working)</text>
+        <Title x={x}>{name(d, tr)}</Title>
+        <text x={x} y={36} fontSize="11" style={{ fill: 'var(--ink-2)' }}>{tr(`units (${plural(s.running, 'unit')} working)`, `khối tính toán (${s.running} đang chạy)`)}</text>
         <Plan x={x} y={42} size={112} d={d} busy={busyAt(d, CROWD, CHAIN, t)} />
-        <text x={x + 150} y={36} fontSize="11" style={{ fill: 'var(--ink-2)' }}>{CROWD} chains of {CHAIN}</text>
+        <text x={x + 150} y={36} fontSize="11" style={{ fill: 'var(--ink-2)' }}>{tr(`${CROWD} chains of ${CHAIN}`, `${CROWD} chuỗi, mỗi chuỗi ${CHAIN} phép`)}</text>
         <Chains x={x + 150} y={42} size={112} ops={s.ops} length={CHAIN} cols={8} />
-        <text x={x} y={180} fontSize="12">chains finished: {s.done} of {CROWD}, in {plural(f.waves, 'wave')}</text>
-        <text x={x} y={198} fontSize="12" opacity={t >= f.first ? 1 : 0.25}>first result at {f.first}</text>
-        <text x={x + 150} y={198} fontSize="12" opacity={t >= f.last ? 1 : 0.25}>last result at {f.last}</text>
+        <text x={x} y={180} fontSize="12">{tr(`chains finished: ${s.done} of ${CROWD}, in ${plural(f.waves, 'wave')}`, `đã xong ${s.done}/${CROWD} chuỗi, cần ${f.waves} đợt`)}</text>
+        <text x={x} y={198} fontSize="12" opacity={t >= f.first ? 1 : 0.25}>{tr(`first result at ${f.first}`, `kết quả đầu ở ${f.first}`)}</text>
+        <text x={x + 150} y={198} fontSize="12" opacity={t >= f.last ? 1 : 0.25}>{tr(`last result at ${f.last}`, `kết quả cuối ở ${f.last}`)}</text>
         <Clock x={x} y={248} w={320} t={t} tMax={tMax} end={f.last} />
       </g>
     );
   };
   return (
-    <Stage label="Sixty-four independent chains run on both designs">
+    <Stage label={tr(`Sixty-four independent chains run on both designs`, `Hai thiết kế chạy 64 chuỗi độc lập`)}>
       {side(A, LX, r.a)}
       {side(B, RX, r.b)}
       <Divider />
       <Headline show={ramp(p, 0.88, 0.95)}>
-        {CROWD} chains: the many units finish {r.factor} times sooner
+        {tr(`${CROWD} chains: the many units finish ${r.factor} times sooner`, `${CROWD} chuỗi: nhóm nhiều khối về trước với hệ số ${r.factor}`)}
       </Headline>
-      <Now t={t} />
+      <Now t={t} tr={tr} />
     </Stage>
   );
 }
 
 // ---------------------------------------------------------------- beat 4
-function Crossing(p: number) {
+function Crossing(p: number, tr: Translate) {
   const n = 1 + Math.round(ramp(p, 0.06, 0.52) * (CROWD - 1)); // chains swept so far
   const stretch = ramp(p, 0.62, 0.84);
   const length = CHAIN + Math.round(stretch * CHAIN); // then every chain grows to twice its length
@@ -257,12 +260,12 @@ function Crossing(p: number) {
   const cur = pts[n - 1];
   const tx = W - pad.r + 18;
   return (
-    <Stage label="Finishing time of both designs against the number of independent chains">
+    <Stage label={tr(`Finishing time of both designs against the number of independent chains`, `Thời gian hoàn thành theo số chuỗi độc lập`)}>
       <rect x={pad.l} y={pad.t} width={W - pad.l - pad.r} height={H - pad.t - pad.b} fill="var(--cell)" stroke="var(--rule)" />
       {tie && n >= tie.from ? (
         <g>
           <rect x={X(tie.from)} y={pad.t} width={X(Math.min(n, tie.to)) - X(tie.from)} height={H - pad.t - pad.b} fill="var(--rule-soft)" stroke="var(--rule)" />
-          {n >= tie.to ? <text x={X(tie.to) + 6} y={pad.t + 16} fontSize="11.5">tie from {tie.from} to {tie.to} chains</text> : null}
+          {n >= tie.to ? <text x={X(tie.to) + 6} y={pad.t + 16} fontSize="11.5">{tr(`tie from ${tie.from} to ${tie.to} chains`, `hòa từ ${tie.from} đến ${tie.to} chuỗi`)}</text> : null}
         </g>
       ) : null}
       {[0, yMax / 4, yMax / 2, (3 * yMax) / 4, yMax].map((v) => (
@@ -274,8 +277,8 @@ function Crossing(p: number) {
       {[1, 16, 32, 48, 64].map((v) => (
         <text key={v} x={X(v)} y={H - pad.b + 15} fontSize="11" textAnchor="middle">{v}</text>
       ))}
-      <text x={(pad.l + W - pad.r) / 2} y={H - 10} fontSize="11.5" textAnchor="middle">independent chains</text>
-      <text x={14} y={(H - pad.b + pad.t) / 2} fontSize="11.5" textAnchor="middle" transform={`rotate(-90 14 ${(H - pad.b + pad.t) / 2})`}>time to the last result</text>
+      <text x={(pad.l + W - pad.r) / 2} y={H - 10} fontSize="11.5" textAnchor="middle">{tr(`independent chains`, `chuỗi độc lập`)}</text>
+      <text x={14} y={(H - pad.b + pad.t) / 2} fontSize="11.5" textAnchor="middle" transform={`rotate(-90 14 ${(H - pad.b + pad.t) / 2})`}>{tr(`time to the last result`, `thời gian đến kết quả cuối`)}</text>
       {stretch > 0 ? (
         <g opacity="0.35">
           <polyline points={line(base, 'a', CROWD)} fill="none" stroke="var(--ink)" strokeWidth="1.4" />
@@ -287,25 +290,27 @@ function Crossing(p: number) {
       <circle cx={X(cur.chains)} cy={Y(cur.a)} r="4" fill="var(--ink)" />
       <circle cx={X(cur.chains)} cy={Y(cur.b)} r="4" fill="var(--cell)" stroke="var(--ink)" strokeWidth="1.8" />
 
-      <text x={tx} y={30} fontSize="12.5" fontWeight="600">chains of {length} operations</text>
+      <text x={tx} y={30} fontSize="12.5" fontWeight="600">{tr(`chains of ${length} operations`, `mỗi chuỗi ${length} phép toán`)}</text>
       <line x1={tx} x2={tx + 26} y1={52} y2={52} stroke="var(--ink)" strokeWidth="2.2" />
-      <text x={tx + 32} y={56} fontSize="12">{name(A)}</text>
+      <text x={tx + 32} y={56} fontSize="12">{name(A, tr)}</text>
       <line x1={tx} x2={tx + 26} y1={72} y2={72} stroke="var(--ink)" strokeWidth="2.2" strokeDasharray="6 4" />
-      <text x={tx + 32} y={76} fontSize="12">{name(B)}</text>
-      <text x={tx} y={112} fontSize="12">{plural(cur.chains, 'chain')}</text>
-      <text x={tx} y={130} fontSize="12">fast units done at {cur.a}</text>
-      <text x={tx} y={148} fontSize="12">many units done at {cur.b}</text>
+      <text x={tx + 32} y={76} fontSize="12">{name(B, tr)}</text>
+      <text x={tx} y={112} fontSize="12">{tr(`${plural(cur.chains, 'chain')}`, `${cur.chains} chuỗi`)}</text>
+      <text x={tx} y={130} fontSize="12">{tr(`fast units done at ${cur.a}`, `các khối nhanh xong ở ${cur.a}`)}</text>
+      <text x={tx} y={148} fontSize="12">{tr(`many units done at ${cur.b}`, `các khối thường xong ở ${cur.b}`)}</text>
       <text x={tx} y={170} fontSize="12" fontWeight="600">
-        {cur.winner === 'tie' ? 'a tie' : `${cur.winner === 'a' ? 'fast units' : 'many units'} lead, ${cur.factor}×`}
+        {cur.winner === 'tie'
+          ? tr('a tie', 'hòa')
+          : `${cur.winner === 'a' ? tr('fast units lead', 'khối nhanh dẫn đầu') : tr('many units lead', 'nhóm nhiều khối dẫn đầu')}, ${cur.factor}×`}
       </text>
       {stretch > 0 ? (
         <g>
           {lead.map((g, i) => (
             <text key={i} x={tx} y={206 + i * 18} fontSize="12">
-              {g.winner === 'tie' ? 'tie' : g.winner === 'a' ? 'fast units lead' : 'many units lead'}: {g.from} to {g.to}
+              {g.winner === 'tie' ? tr('tie', 'hòa') : g.winner === 'a' ? tr('fast units lead', 'khối nhanh dẫn đầu') : tr('many units lead', 'nhóm nhiều khối dẫn đầu')}: {g.from} {tr('to', 'đến')} {g.to}
             </text>
           ))}
-          <text x={tx} y={206 + lead.length * 18 + 6} fontSize="11.5" style={{ fill: 'var(--ink-2)' }}>the same at every length</text>
+          <text x={tx} y={206 + lead.length * 18 + 6} fontSize="11.5" style={{ fill: 'var(--ink-2)' }}>{tr(`the same at every length`, `giữ nguyên ở mọi độ dài`)}</text>
         </g>
       ) : null}
     </Stage>
@@ -313,7 +318,7 @@ function Crossing(p: number) {
 }
 
 // ---------------------------------------------------------------- beat 5
-function Matmul(p: number) {
+function Matmul(p: number, tr: Translate) {
   const n = MAT * MAT;
   const fb = finish(B, n, MAT);
   const fa = finish(A, n, MAT);
@@ -321,36 +326,36 @@ function Matmul(p: number) {
   const s = snapshot(B, n, MAT, t);
   const map = ramp(p, 0.06, 0.24);
   return (
-    <Stage label="The many units each compute one element of a matrix product">
-      <Title x={LX}>P = M × N, {MAT} by {MAT}: {n} elements</Title>
+    <Stage label={tr(`The many units each compute one element of a matrix product`, `Mỗi khối tính một phần tử của tích hai ma trận`)}>
+      <Title x={LX}>{tr(`P = M × N, ${MAT} by ${MAT}: ${n} elements`, `P = M × N, ${MAT} × ${MAT}: ${n} phần tử`)}</Title>
       <Chains x={LX} y={32} size={176} ops={s.ops} length={MAT} cols={MAT} />
       <g opacity={map}>
         <line x1={LX + 190} x2={RX - 86} y1={120} y2={120} stroke="var(--ink)" strokeWidth="1.4" />
         <path d={`M ${RX - 86} 120 l -8 -5 v 10 z`} fill="var(--ink)" />
-        <text x={(LX + 190 + RX - 86) / 2} y={110} fontSize="11.5" textAnchor="middle">one element</text>
-        <text x={(LX + 190 + RX - 86) / 2} y={138} fontSize="11.5" textAnchor="middle">per unit</text>
+        <text x={(LX + 190 + RX - 86) / 2} y={110} fontSize="11.5" textAnchor="middle">{tr(`one element`, `một phần tử`)}</text>
+        <text x={(LX + 190 + RX - 86) / 2} y={138} fontSize="11.5" textAnchor="middle">{tr(`per unit`, `mỗi khối`)}</text>
       </g>
-      <text x={RX - 74} y={18} fontSize="13" fontWeight="600">{name(B)}</text>
+      <text x={RX - 74} y={18} fontSize="13" fontWeight="600">{name(B, tr)}</text>
       <Plan x={RX - 74} y={32} size={176} d={B} busy={busyAt(B, n, MAT, t)} />
-      <text x={RX + 124} y={62} fontSize="12">{plural(s.running, 'unit')} working</text>
-      <text x={RX + 124} y={80} fontSize="12">{s.done} of {n} elements done</text>
-      <text x={RX + 124} y={112} fontSize="12" fontWeight="600" opacity={t >= fb.last ? 1 : 0.25}>all done at {fb.last}</text>
+      <text x={RX + 124} y={62} fontSize="12">{tr(`${plural(s.running, 'unit')} working`, `${s.running} khối đang chạy`)}</text>
+      <text x={RX + 124} y={80} fontSize="12">{tr(`${s.done} of ${n} elements done`, `đã xong ${s.done}/${n} phần tử`)}</text>
+      <text x={RX + 124} y={112} fontSize="12" fontWeight="600" opacity={t >= fb.last ? 1 : 0.25}>{tr(`all done at ${fb.last}`, `xong tất cả ở ${fb.last}`)}</text>
       <text x={RX + 124} y={130} fontSize="11.5" opacity={t >= fb.last ? 1 : 0.25} style={{ fill: 'var(--ink-2)' }}>
-        the {A.units} fast units: at {fa.last}
+        {tr(`the ${A.units} fast units: at ${fa.last}`, `${A.units} khối nhanh: xong ở ${fa.last}`)}
       </text>
       <text x={LX} y={238} fontSize="11.5" style={{ fill: 'var(--ink-2)' }}>
-        inside one element: a dot product of {MAT} terms, run here as one chain of {MAT} operations
+        {tr(`inside one element: a dot product of ${MAT} terms, run here as one chain of ${MAT} operations`, `mỗi phần tử là một tích vô hướng ${MAT} số hạng, tính bằng một chuỗi ${MAT} phép toán`)}
       </text>
       <Chain x={LX} y={248} n={MAT} done={s.ops[0]} w={208} />
       <Headline show={ramp(p, 0.76, 0.86)}>
-        {n} independent pieces for {plural(B.units, 'unit')}: no unit waits for work
+        {tr(`${n} independent pieces for ${plural(B.units, 'unit')}: no unit waits for work`, `${n} phần độc lập cho ${B.units} khối, tất cả đều có việc`)}
       </Headline>
-      <Now t={t} />
+      <Now t={t} tr={tr} />
     </Stage>
   );
 }
 
-const beats: Beat[] = [
+const beats: (Omit<Beat, 'draw'> & { draw: (p: number, tr: Translate) => ReactNode })[] = [
   { clip: 'two-designs-1', label: 'One budget', vietnamese: { label: 'Cùng ngân sách', caption: 'Bắt đầu với một ngân sách công suất cố định, biểu diễn bằng 64 ô bằng nhau. Theo quy tắc của sách, giảm một nửa độ trễ của một khối đòi hỏi công suất gấp 4 lần. Làm vậy hai lần, khối nhanh gấp 4 lần nhưng dùng đến 16 ô. Vậy cùng một ngân sách đủ cho 4 khối nhanh hoặc 64 khối thường.' }, draw: Budget },
   { clip: 'two-designs-2', label: 'One chain', vietnamese: { label: 'Một chuỗi', caption: 'Giao cho cả hai thiết kế một chuỗi gồm 16 phép toán. Mỗi bước cần kết quả của bước trước, nên chỉ một khối có thể làm việc dù có bao nhiêu khối. Khối nhanh xong ở mốc 4. Khối thường xong ở mốc 16, trong khi 63 khối còn lại nhàn rỗi. Thiết kế nhanh thắng với hệ số 4.' }, draw: OneChain },
   { clip: 'two-designs-3', label: 'Sixty-four chains', vietnamese: { label: '64 chuỗi', caption: 'Bây giờ, giao cho chúng 64 chuỗi độc lập. Thiết kế bên phải xử lý cả 64 chuỗi cùng lúc và xong ở mốc 16. Bên trái xử lý 16 đợt, mỗi đợt 4 chuỗi, và xong ở mốc 64. Dù vậy, kết quả đầu tiên bên trái đến sớm hơn, ở mốc 4. Thời gian tới kết quả đầu thể hiện độ trễ. Thời gian xử lý hết cả lô cho thấy thông lượng.' }, draw: Crowd },
@@ -360,5 +365,5 @@ const beats: Beat[] = [
 
 export function TwoDesignsScene() {
   const { t } = useLanguage();
-  return <Scene chapter="ch01" title={t('One budget, two designs', 'Cùng ngân sách, hai thiết kế')} beats={beats} />;
+  return <Scene chapter="ch01" title={t('One budget, two designs', 'Cùng ngân sách, hai thiết kế')} beats={beats.map((beat) => ({ ...beat, draw: (p) => beat.draw(p, t) }))} />;
 }

@@ -1,6 +1,8 @@
 import { useState, type KeyboardEvent } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Aside, Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
+import { useLanguage } from '../../lib/language';
+import { vietnamesePlan, vietnameseTier } from '../vietnamese';
 import { href } from '../../lib/router';
 import {
   CHAPTERS,
@@ -34,6 +36,27 @@ const list = (xs: (number | string)[]) =>
   xs.length <= 1 ? xs.join('') : xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1];
 const edgeKey = (x: { from: number; to: number }) => `${x.from}>${x.to}`;
 const isChapter = (i: Item): i is number => typeof i === 'number';
+
+const shortVi: Record<string, string> = {
+  ch01: 'Giới thiệu', ch02: 'Song song dữ liệu', ch03: 'Lưới và dữ liệu', ch04: 'Kiến trúc và lập lịch',
+  ch05: 'Bộ nhớ và dữ liệu', ch06: 'Tối ưu hiệu năng', ch07: 'Tích chập', ch08: 'Stencil',
+  ch09: 'Histogram', ch10: 'Rút gọn', ch11: 'Quét', ch12: 'Lọc', ch13: 'Trộn', ch14: 'Sắp xếp',
+  ch15: 'Nhân ma trận', ch16: 'Song song mặt sóng', ch17: 'Ma trận thưa', ch18: 'Duyệt đồ thị',
+  ch19: 'Mạng tích chập', ch20: 'Mô hình ngôn ngữ', ch21: 'Thế tĩnh điện', ch22: 'Chọn thuật toán',
+  ch23: 'Đa GPU', ch24: 'Kết luận', appA: 'Tính toán số', appC: 'Bộ nhớ CUDA',
+  x1: 'Lấy mẫu', x2: 'Lượng tử hóa', x3: 'Đọc mã GPU',
+};
+
+const goalVi: Record<GoalId, string> = {
+  matmul: 'Nhân ma trận nhanh',
+  attention: 'Attention',
+  sampling: 'Lấy mẫu',
+  quantised: 'Kernel lượng tử hóa',
+  backends: 'Đọc mã GPU thực tế',
+};
+
+const titleIn = (vi: boolean, item: { id: string; title: string }) =>
+  vi ? vietnamesePlan[item.id]?.title ?? item.title : item.title;
 
 /** Break a short label into at most two lines for a small box. */
 function twoLines(label: string): string[] {
@@ -284,6 +307,8 @@ function Chart({
   shade: boolean;
   onPick: (n: number) => void;
 }) {
+  const { language, t } = useLanguage();
+  const vi = language === 'vi';
   const departures = new Set(mode === 'course' ? courseDepartures().map(edgeKey) : []);
   const order = courseOrder();
   const ordinal = (i: Item) => (mode === 'course' ? order.indexOf(i) + 1 : undefined);
@@ -350,14 +375,14 @@ function Chart({
           x={AT[c.n][0]}
           y={AT[c.n][1]}
           num={String(c.n)}
-          label={c.short}
+          label={vi ? shortVi[c.id] ?? c.short : c.short}
           tier={c.tier}
           state={stateOf(c.n)}
           shade={shade}
           ordinal={ordinal(c.n)}
           attrs={{ 'data-ch': String(c.n) }}
           onPick={() => onPick(c.n)}
-          aria={`Chapter ${c.n}: ${c.title}`}
+          aria={`${t('Chapter', 'Chương')} ${c.n}: ${titleIn(vi, c)}`}
         />
       ))}
       {EXTRAS.map((x) => (
@@ -366,13 +391,13 @@ function Chart({
           x={EXTRA_AT[x.id][0]}
           y={EXTRA_AT[x.id][1]}
           num={x.num}
-          label={x.short}
+          label={vi ? shortVi[x.id] ?? x.short : x.short}
           tier={x.tier}
           state={extrasGoal.includes(x.id) ? 'target' : extrasOn.has(x.id) ? 'pre' : 'dim'}
           shade={shade}
           ordinal={ordinal(x.id)}
           attrs={{ 'data-extra': x.id }}
-          aria={`${x.pages ? 'Appendix' : 'Module'} ${x.num}: ${x.title}`}
+          aria={`${x.pages ? t('Appendix', 'Phụ lục') : t('Module', 'Mô-đun')} ${x.num}: ${titleIn(vi, x)}`}
         />
       ))}
     </svg>
@@ -409,6 +434,9 @@ function BoxSample({ kind }: { kind: 'Deep' | 'Standard' | 'Condensed' | 'target
 }
 
 function ReadingPath() {
+  const { language, t } = useLanguage();
+  const vi = language === 'vi';
+  const names = (items: number[]) => vi ? new Intl.ListFormat('vi').format(items.map(String)) : list(items);
   const [sel, setSel] = useState<Selection>({ kind: 'goal', id: 'matmul' });
   const [mode, setMode] = useState<Mode>('book');
   const [shade, setShade] = useState(false);
@@ -434,13 +462,13 @@ function ReadingPath() {
   const offChart = mode === 'book' && targets.length === 0;
 
   const label = g
-    ? `${g.label}: ${[
-        g.chapters.length ? (g.chapters.length === 1 ? 'chapter ' : 'chapters ') + list(g.chapters) : '',
-        ...g.extras.map((x) => (extra(x).pages ? 'Appendix ' : 'module ') + extra(x).num),
+    ? `${vi ? goalVi[g.id] : g.label}: ${[
+        g.chapters.length ? (g.chapters.length === 1 ? t('chapter ', 'chương ') : t('chapters ', 'các chương ')) + names(g.chapters) : '',
+        ...g.extras.map((x) => (extra(x).pages ? t('Appendix ', 'phụ lục ') : t('module ', 'mô-đun ')) + extra(x).num),
       ]
         .filter(Boolean)
         .join(', ')}`
-    : `Chapter ${single}: ${chapter(single!).title}`;
+    : `${t('Chapter', 'Chương')} ${single}: ${titleIn(vi, chapter(single!))}`;
 
   const row = (i: Item) => {
     if (isChapter(i)) {
@@ -449,10 +477,10 @@ function ReadingPath() {
       return (
         <li key={i} data-item={i} style={{ marginBottom: '0.3em' }}>
           <span style={{ fontWeight: isTarget ? 700 : 500 }}>
-            {c.n}. <a href={href(c.id)}>{c.title}</a>
+            {c.n}. <a href={href(c.id)}>{titleIn(vi, c)}</a>
           </span>{' '}
           <span className="muted">
-            pp. {c.pages}, {c.tier.toLowerCase()}
+            pp. {c.pages}, {vi ? vietnameseTier[c.tier].toLowerCase() : c.tier.toLowerCase()}
             {isTarget ? ', your selection' : ''}
             {added.includes(i) ? ', added by this course' : ''}
           </span>
@@ -463,7 +491,7 @@ function ReadingPath() {
     return (
       <li key={i} data-item={i} style={{ marginBottom: '0.3em' }}>
         <span style={{ fontWeight: extrasGoal.includes(i) ? 700 : 500 }}>
-          {x.num}. <a href={href(x.id)}>{x.title}</a>
+          {x.num}. <a href={href(x.id)}>{titleIn(vi, x)}</a>
         </span>{' '}
         <span className="muted">{x.pages ? `appendix, pp. ${x.pages}` : "this course's module, not in the book"}</span>
       </li>
@@ -495,7 +523,7 @@ function ReadingPath() {
                 if (!x.chapters.length) setMode('course');
               }}
             >
-              {x.label}
+              {vi ? goalVi[x.id] : x.label}
             </button>
           ))}
         </span>
@@ -559,7 +587,7 @@ function ReadingPath() {
                   <ul data-role="later" style={{ margin: 0, paddingLeft: '1.2em' }}>
                     {later.map((n) => (
                       <li key={n} data-item={n} style={{ marginBottom: '0.3em' }}>
-                        {n}. <a href={href(chapter(n).id)}>{chapter(n).title}</a>{' '}
+                        {n}. <a href={href(chapter(n).id)}>{titleIn(vi, chapter(n))}</a>{' '}
                         <span className="muted">({whyLater(n)})</span>
                       </li>
                     ))}
@@ -568,17 +596,17 @@ function ReadingPath() {
               ) : null}
               {optional.length ? (
                 <p data-role="optional" className="muted" style={{ margin: '0.7rem 0 0' }}>
-                  Optional by the chart's dashed arrow: chapter {list(optional)} before chapter 10.
+                  Optional by the chart's dashed arrow: chapter {names(optional)} before chapter 10.
                 </p>
               ) : null}
               {single != null ? (
                 <p data-role="leads" className="muted" style={{ margin: '0.7rem 0 0' }}>
                   {builtOn.length
-                    ? `Chapters that build on chapter ${single}: ${list(builtOn)}.`
+                    ? `Chapters that build on chapter ${single}: ${names(builtOn)}.`
                     : single === 24
                       ? 'Chapter 24 has no arrows in the chart.'
                       : `Nothing in the chart builds on chapter ${single}. It leads nowhere further${
-                          single === 14 ? ', reading the junction under it as starting at chapter 9' : ''
+                          single === 14 ? t(', reading the junction under it as starting at chapter 9', ' nếu đọc giao điểm bên dưới là bắt đầu từ chương 9') : ''
                         }.`}
                 </p>
               ) : null}
@@ -644,10 +672,12 @@ function ReadingPath() {
 // ---------------------------------------------------------------- edition map
 /** Where each 4th-edition chapter is now. A static table: every row is visible at once. */
 function EditionMap() {
+  const { language, t } = useLanguage();
+  const vi = language === 'vi';
   const from = firstRenumbered();
   const kept = FOURTH_TO_FIFTH.filter((c) => c.fate.kind === 'same');
   const changed = FOURTH_TO_FIFTH.filter((c) => c.fate.kind !== 'same');
-  const link = (n: number) => <a href={href(chapter(n).id)}>{n}. {chapter(n).title}</a>;
+  const link = (n: number) => <a href={href(chapter(n).id)}>{n}. {titleIn(vi, chapter(n))}</a>;
   return (
     <table className="data wide" data-role="edition-map" style={{ maxWidth: '46rem' }}>
       <thead>
@@ -659,14 +689,14 @@ function EditionMap() {
       <tbody>
         <tr data-n={`1-${from - 1}`} data-fate="same">
           <td>
-            1 to {from - 1}: {kept[0].title} to {kept[kept.length - 1].title}
+            {t('1 to', '1 đến')} {from - 1}: {kept[0].title} to {kept[kept.length - 1].title}
           </td>
           <td>the same numbers</td>
         </tr>
         {changed.map((c) => (
           <tr key={c.n} data-n={c.n} data-fate={c.fate.kind}>
             <td>
-              {c.n}. {c.title}
+              {c.n}. <span lang="en">{c.title}</span>
             </td>
             <td>
               {c.fate.kind === 'moved' ? (

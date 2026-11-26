@@ -8,20 +8,25 @@ import { useLanguage } from '../lib/language';
 // Questions you have met come back here on a widening schedule.
 export function Review() {
   const { progress, loaded } = useProgress();
-  const { t } = useLanguage();
-  const [questions, setQuestions] = useState<Record<string, Question>>();
+  const { language, t } = useLanguage();
+  const [pool, setPool] = useState<{ language: typeof language; questions: Record<string, Question> }>();
   useEffect(() => {
-    loadAllQuestions().then(setQuestions);
-  }, []);
+    let live = true;
+    loadAllQuestions(language).then((questions) => {
+      if (live) setPool({ language, questions });
+    });
+    return () => { live = false; };
+  }, [language]);
+  const questions = pool?.language === language ? pool.questions : undefined;
   // Freeze the queue once everything is loaded, so answering does not reshuffle it.
   const ready = loaded && !!questions;
   const queue = useMemo(() => {
-    if (!ready) return [];
+    if (!pool || !loaded) return [];
     return Object.keys(progress.review)
-      .filter((id) => questions![id] && isDue(progress.review[id]))
+      .filter((id) => pool.questions[id] && isDue(progress.review[id]))
       .sort((a, b) => (progress.review[a].due < progress.review[b].due ? -1 : 1));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready]);
+  }, [!!pool, loaded]);
   const [pos, setPos] = useState(0);
   const [answered, setAnswered] = useState(false);
   const scheduled = Object.keys(progress.review).length;

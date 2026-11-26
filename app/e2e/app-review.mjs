@@ -144,7 +144,34 @@ await step('language', async () => {
   check('returning to English keeps the answer on the same page',
     (await page.$eval(quiz + ' .verdict', (el) => el.textContent)).includes('Correct.'));
 
+  await goto(page, 'ch01/1.3');
+  const amdahl = '[data-question="ch01/1.3/q-kernelneeded"]';
+  const originalResult = await page.$eval('.bench [data-out="overall"]', (el) => el.textContent);
   await page.select(languagePicker, 'vi');
+  await waitText('Tìm tỷ phần song song nhỏ nhất');
+  check('Amdahl uses the same model in both languages',
+    await page.$eval('.bench [data-out="overall"]', (el) => el.textContent) === originalResult);
+  await page.type(amdahl + ' input[type=number]', '96');
+  await page.click(amdahl + ' button.primary');
+  await waitText('Đúng.');
+  check('the localized Amdahl lesson keeps the numeric answer key',
+    (await savedWhere((p) => p.answers?.['ch01/1.3/q-kernelneeded']?.correct === true))?.answers?.['ch01/1.3/q-kernelneeded']?.value === 96);
+  await page.select(languagePicker, 'en');
+  await waitText('Find the smallest parallel fraction');
+  check('the translated answer carries over to the English module',
+    (await page.$eval(amdahl + ' .verdict', (el) => el.textContent)).includes('Correct.'));
+
+  await page.select(languagePicker, 'vi');
+  await goto(page, 'ch01/1.7');
+  await waitText('Những chương cần đọc cho từng mục tiêu');
+  const attention = await page.$('[data-role="goals"] button:nth-child(2)');
+  await attention.click();
+  await page.waitForSelector('[data-role="order"] [data-item="20"]');
+  check('the Vietnamese reading map guides the learner to the same chapter',
+    (await page.$eval('[data-role="order"] [data-item="20"]', (el) => el.textContent)).includes('Mô hình ngôn ngữ lớn'));
+  await goto(page, 'ch01/wrap');
+  check('the Vietnamese summary is available', (await body()).includes('Ôn tập tổng hợp'));
+
   await goto(page, 'ch05/5.1');
   check('untranslated lessons still open with their progress and source text',
     (await body()).includes('Nội dung bài này hiện có bằng tiếng Anh.') &&

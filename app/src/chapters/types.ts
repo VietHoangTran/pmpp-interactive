@@ -23,6 +23,8 @@ export interface Section {
    * page only pulls in (and only reloads for) the section being read.
    */
   load: () => Promise<SectionModule>;
+  /** true when the main module already handles translation at runtime. */
+  vietnamese?: true | (() => Promise<SectionModule>);
 }
 
 export interface Chapter {

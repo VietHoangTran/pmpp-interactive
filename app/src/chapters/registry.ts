@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
 import type { Question } from '../components/Ask';
-import type { Chapter, PlanRow } from './types';
+import type { Chapter, PlanRow, Section } from './types';
+import type { Language } from '../lib/language';
+
+export function sectionLoader(section: Section, language: Language) {
+  return language === 'vi' && typeof section.vietnamese === 'function' ? section.vietnamese : section.load;
+}
 
 // Every chapter is its own module, loaded on demand, and inside a chapter every
 // section is too. A page therefore only depends on the code it shows. Do not
@@ -73,13 +78,13 @@ export function useAllChapters(): Chapter[] | undefined {
 }
 
 /** Every question of every built section, for review. Loads all section code. */
-export async function loadAllQuestions(): Promise<Record<string, Question>> {
+export async function loadAllQuestions(language: Language = 'en'): Promise<Record<string, Question>> {
   // One section that fails to load (a chapter mid-build, a broken import) must not empty
   // the whole review queue: load each independently and keep what arrives.
   const settled = <T,>(ps: Promise<T>[]) =>
     Promise.allSettled(ps).then((rs) => rs.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : [])));
   const chapters = await settled(CHAPTER_IDS.map((id) => loadChapter(id)!));
-  const mods = await settled(chapters.flatMap((c) => c.sections.map((s) => s.load())));
+  const mods = await settled(chapters.flatMap((c) => c.sections.map((s) => sectionLoader(s, language)())));
   return Object.assign({}, ...mods.map((m) => m.questions));
 }
 

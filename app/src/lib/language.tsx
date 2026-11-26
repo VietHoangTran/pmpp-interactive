@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
-type Language = 'en' | 'vi';
+export type Language = 'en' | 'vi';
 type LanguageChoice = {
   language: Language;
   setLanguage: (language: Language) => void;

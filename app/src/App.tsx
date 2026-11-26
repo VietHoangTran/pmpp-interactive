@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { href, useRoute } from './lib/router';
 import { useProgress } from './lib/progress';
 import { dueCount } from './lib/review';
-import { useChapter } from './chapters/registry';
+import { sectionLoader, useChapter } from './chapters/registry';
 import type { Chapter, Section, SectionModule } from './chapters/types';
 import { Home } from './pages/Home';
 import { Review } from './pages/Review';
@@ -104,19 +104,21 @@ function SectionPage({ chapter, section }: { chapter: Chapter; section: Section 
   const { language, t } = useLanguage();
   const vi = language === 'vi';
   const translated = vi ? vietnameseSections[key] : undefined;
-  const englishLesson = vi && key !== 'ch01/start';
-  const [mod, setMod] = useState<SectionModule | null>(null);
-  const [failed, setFailed] = useState<string | null>(null);
+  const englishLesson = vi && !section.vietnamese;
+  const load = sectionLoader(section, language);
+  const [result, setResult] = useState<{ load: typeof load; mod?: SectionModule; error?: string }>();
+  const mod = result?.load === load ? result.mod : undefined;
+  const failed = result?.load === load ? result.error : undefined;
   useEffect(() => {
     let live = true;
-    section.load().then(
-      (m) => live && setMod(m),
-      (e) => live && setFailed(String(e?.message ?? e)),
+    load().then(
+      (mod) => live && setResult({ load, mod }),
+      (e) => live && setResult({ load, error: String(e?.message ?? e) }),
     );
     return () => {
       live = false;
     };
-  }, [section]);
+  }, [load]);
   useEffect(() => {
     if (loaded) visit(key);
   }, [key, loaded, visit]);

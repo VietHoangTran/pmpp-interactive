@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
 import { fmt } from '../../lib/reports';
+import { useLanguage } from '../../lib/language';
 import { href } from '../../lib/router';
 import {
   BOOK_CASES,
@@ -68,6 +69,7 @@ function FractionSlider({ p, setP }: { p: number; setP: (p: number) => void }) {
 
 // ---------------------------------------------------------------- explorer 1: Amdahl's law
 function TimeBars({ p, s }: { p: number; s: number }) {
+  const { t } = useLanguage();
   const r = remaining(p, s);
   const us = untouchedShare(p, s);
   const seg = (part: 'untouched' | 'accelerated', width: number) => (
@@ -95,16 +97,16 @@ function TimeBars({ p, s }: { p: number; s: number }) {
   );
   return (
     <div className="panel" style={{ marginBottom: '1rem' }} data-timebars>
-      {row('before', 'Before', 'the whole run: 100%', <>{seg('untouched', r.untouched)}{seg('accelerated', p)}</>)}
+      {row('before', t('Before', 'Trước tối ưu'), t('the whole run: 100%', 'toàn bộ thời gian chạy: 100%'), <>{seg('untouched', r.untouched)}{seg('accelerated', p)}</>)}
       {row(
         'after',
-        'After, same scale',
+        t('After, same scale', 'Sau tối ưu, cùng thang đo'),
         <><span data-out="left">{share(r.total)}</span> of the original time</>,
         <>{seg('untouched', r.untouched)}{seg('accelerated', r.accelerated)}</>,
       )}
       {row(
         'zoom',
-        'After, magnified',
+        t('After, magnified', 'Sau tối ưu, phóng to'),
         <>the untouched part is <span data-out="share">{share(us)}</span> of it</>,
         <>{seg('untouched', us)}{seg('accelerated', 1 - us)}</>,
       )}
@@ -176,6 +178,7 @@ function AmdahlBench({ p, setP }: { p: number; setP: (p: number) => void }) {
   const [unbounded, setUnbounded] = useState(false);
   const s = unbounded ? Infinity : finite;
   const now = speedup(p, s);
+  const { t } = useLanguage();
   const top = ceiling(p);
   const r = remaining(p, s);
   const need = kernelNeeded(100, p);
@@ -196,7 +199,7 @@ function AmdahlBench({ p, setP }: { p: number; setP: (p: number) => void }) {
           <span className="seg" data-presets>
             {BOOK_CASES.map((c) => (
               <button key={c.label} aria-pressed={p === c.p && s === c.s} onClick={() => preset(c)}>
-                {c.label}
+                {isFinite(c.s) ? c.label : t(c.label, `${frac(c.p)}, không giới hạn`)}
               </button>
             ))}
           </span>
@@ -348,6 +351,7 @@ function CapsBench({ p, setP }: { p: number; setP: (p: number) => void }) {
   const [cap, setCap] = useState(DEFAULTS.cap);
   const now = limits(p, threads, rate, cap);
   const c = corners(rate, cap);
+  const { t } = useLanguage();
   const lv = levers(p, threads, rate, cap);
   const top = ceiling(p);
   const reset = () => {
@@ -458,9 +462,9 @@ function CapsBench({ p, setP }: { p: number; setP: (p: number) => void }) {
               </tr>
             </thead>
             <tbody>
-              {lever('threads', '10× the threads', lv.threads)}
-              {lever('memory', '10× the memory cap', lv.memory)}
-              {lever('untouched', '1/10 of the untouched part', lv.untouched)}
+              {lever('threads', t('10× the threads', 'Tăng số luồng lên 10 lần'), lv.threads)}
+              {lever('memory', t('10× the memory cap', 'Tăng giới hạn bộ nhớ lên 10 lần'), lv.memory)}
+              {lever('untouched', t('1/10 of the untouched part', 'Giảm phần giữ nguyên còn 1/10'), lv.untouched)}
             </tbody>
           </table>
           <p style={{ margin: '0.7rem 0 0' }} className="row" data-goals>

@@ -3,6 +3,7 @@ import path from 'node:path';
 import type { Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import { vietnameseLessons } from './localization/overlay.mjs';
 
 const MISSING = '\0pmpp-missing:';
 const EXTS = ['', '.tsx', '.ts', '.jsx', '.js', '/index.tsx', '/index.ts'];
@@ -25,7 +26,7 @@ function missingSections(): Plugin {
       if (!importer || !source.startsWith('.')) return null;
       const from = importer.split('?')[0];
       if (!from.startsWith(chapters)) return null;
-      const target = path.resolve(path.dirname(from), source);
+      const target = path.resolve(path.dirname(from), source.split('?')[0]);
       if (EXTS.some((e) => fs.existsSync(target + e) && fs.statSync(target + e).isFile())) return null;
       return MISSING + target;
     },
@@ -52,7 +53,7 @@ function missingSections(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [missingSections(), react()],
+  plugins: [missingSections(), vietnameseLessons(), react()],
   // Several sim tests run the course emulators (ASan builds, three thread orders). Alone
   // they take seconds; with every test file running at once they can pass vitest's 5 s default.
   test: { environment: 'node', include: ['src/**/*.test.ts'], testTimeout: 60_000 },
