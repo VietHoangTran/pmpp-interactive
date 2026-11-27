@@ -136,6 +136,16 @@ await step('language', async () => {
   await waitText('Bắt đầu với một ngân sách công suất cố định');
   check('the first animation offers Vietnamese captions', await page.$eval('.scene .caption', (el) => el.lang) === 'vi');
 
+  const sceneAudio = '.scene audio';
+  await page.waitForFunction(() => document.querySelector('.scene footer')?.textContent.includes('Thuyết minh tiếng Việt'));
+  await page.click('.scene .primary');
+  await page.waitForFunction((selector) => {
+    const audio = document.querySelector(selector);
+    return audio?.currentSrc.endsWith('two-designs-1.vi.m4a') && audio.currentTime > 0;
+  }, { timeout: 10000 }, sceneAudio);
+  check('Vietnamese narration plays its own audio file',
+    await page.$eval(sceneAudio, (el) => el.duration > 0 && !el.paused));
+
   await page.setViewport({ width: 390, height: 900, deviceScaleFactor: 1 });
   check('the Vietnamese introductory lesson fits a phone viewport', await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
   await page.setViewport({ width: 1440, height: 1000, deviceScaleFactor: 1 });
@@ -143,6 +153,13 @@ await step('language', async () => {
   await waitText('Why there are two kinds of processor');
   check('returning to English keeps the answer on the same page',
     (await page.$eval(quiz + ' .verdict', (el) => el.textContent)).includes('Correct.'));
+  await page.click('.scene .primary');
+  await page.waitForFunction((selector) => {
+    const audio = document.querySelector(selector);
+    return audio?.currentSrc.endsWith('two-designs-1.mp3') && audio.currentTime > 0;
+  }, { timeout: 10000 }, sceneAudio);
+  check('English narration still plays the original file',
+    await page.$eval(sceneAudio, (el) => el.duration > 0 && !el.paused));
 
   await goto(page, 'ch01/1.3');
   const amdahl = '[data-question="ch01/1.3/q-kernelneeded"]';
@@ -209,6 +226,14 @@ await step('Vietnamese chapter 2', async () => {
   check('the Vietnamese traffic model keeps the same transfer counts',
     await page.$eval('[data-cell="in-transparent"]', (el) => el.textContent) === '6' &&
     await page.$eval('[data-cell="in-resident"]', (el) => el.textContent) === '4');
+  await goto(page, 'ch02/2.4');
+  await waitText('Quy trình chép sang và chép về');
+  await clickButton('Từng bước');
+  check('the translated memory stepper describes the allocated byte count',
+    (await page.$eval('[data-out="says"]', (el) => el.textContent)).includes('32 byte'));
+  check('the Vietnamese defect exercise presents all seven choices',
+    await page.$$eval('[data-defect]', (choices) => choices.length === 7 &&
+      choices.some((choice) => choice.textContent.includes('Hai đối số đầu'))));
   await page.select(picker, 'en');
 });
 

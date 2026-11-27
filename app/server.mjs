@@ -19,7 +19,7 @@ const REPO = path.dirname(APP);
 const PROGRESS = path.join(REPO, 'progress', 'progress.json');
 const PORT = Number(process.env.PORT || 5173);
 
-const MIME = { '.mp3': 'audio/mpeg', '.json': 'application/json', '.txt': 'text/plain; charset=utf-8' };
+const MIME = { '.mp3': 'audio/mpeg', '.m4a': 'audio/mp4', '.json': 'application/json', '.txt': 'text/plain; charset=utf-8' };
 
 function send(res, code, body, type = 'application/json') {
   res.writeHead(code, { 'Content-Type': type, 'Cache-Control': 'no-store' });
@@ -144,7 +144,7 @@ async function content(req, res, url) {
     // A chapter whose narration is not generated yet has no manifest. That is a normal
     // state, not an error: answer null so the browser logs nothing and the player runs
     // silently on estimated timings.
-    if (/\/narration\/manifest\.json$/.test(p)) return send(res, 200, null);
+    if (/\/narration\/manifest(?:\.vi)?\.json$/.test(p)) return send(res, 200, null);
     send(res, 404, { error: 'not found' });
   }
 }

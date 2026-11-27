@@ -1,0 +1,68 @@
+{
+  "model": "Piper",
+  "voice": "vi_VN-vais1000-medium",
+  "modelSha256": "ec7c89e2c85f4d1edc24b6120c18aaf1bda614f06b511567eb9c7c0de15e2dab",
+  "configSha256": "fafb9da1354ed4b77c31af228ed41fb41cd825c14cffa105454b25e6ae751ee0",
+  "clips": {
+    "order-1": {
+      "file": "order-1.vi.m4a",
+      "sha256": "f33d970e1a6a4f4bc837415ed5e212cf3c9a900d60bb9d57463462c9e446c46d",
+      "duration": 11.923447
+    },
+    "order-2": {
+      "file": "order-2.vi.m4a",
+      "sha256": "b6ac67d659c6005982b32d12bb1d4a6b7b5bc8014d1ed122928f566b288a0def",
+      "duration": 9.833651
+    },
+    "order-3": {
+      "file": "order-3.vi.m4a",
+      "sha256": "d0a5796a6c4020c2753af976530fa19ac5a264ed423bd45b3ea800c6525ef64d",
+      "duration": 10.924989
+    },
+    "order-4": {
+      "file": "order-4.vi.m4a",
+      "sha256": "aa0c6719871d3a61388d63c1d126f8cd42645a48e2eb55bea2a1f98e2f05ab02",
+      "duration": 11.853787
+    },
+    "order-5": {
+      "file": "order-5.vi.m4a",
+      "sha256": "1189966933f8d1d5cc07fd0f0c39580ef3b54ac22123a6df8c08b35e6c211c85",
+      "duration": 13.792653
+    },
+    "order-6": {
+      "file": "order-6.vi.m4a",
+      "sha256": "7c39a4189d6b02f582f3fa62cf67e4a3dbd01c7fe19f0081867ab60af653bee8",
+      "duration": 11.331338
+    },
+    "round-trip-1": {
+      "file": "round-trip-1.vi.m4a",
+      "sha256": "8ef179b02bb7540a5e57cadb371e4b6f59a702e73987229ec95e5bcc07cc12d2",
+      "duration": 9.183492
+    },
+    "round-trip-2": {
+      "file": "round-trip-2.vi.m4a",
+      "sha256": "4105d578b7a137aaf634cd935deeb963a886cc38794ee2dc42b7ae8ca8746980",
+      "duration": 12.979955
+    },
+    "round-trip-3": {
+      "file": "round-trip-3.vi.m4a",
+      "sha256": "91e327bfb9a054c54e96bc6728b3345627decd5f779d2d31804638aeadb9bad0",
+      "duration": 13.026395
+    },
+    "round-trip-4": {
+      "file": "round-trip-4.vi.m4a",
+      "sha256": "16e84aac2672d198050261e127cc1b77a10403b54947d30ebe26c55afa11c8c9",
+      "duration": 9.98458
+    },
+    "round-trip-5": {
+      "file": "round-trip-5.vi.m4a",
+      "sha256": "a3951e37026c34c76da9d349e6167dac6d69d255c9423fb7b347ec76a5e69b06",
+      "duration": 10.565079
+    },
+    "round-trip-6": {
+      "file": "round-trip-6.vi.m4a",
+      "sha256": "70d84840a42fdefefca36d8c82ec35f23ea9aed86b63df85cad7162709c29c37",
+      "duration": 14.675011
+    }
+  }
+}

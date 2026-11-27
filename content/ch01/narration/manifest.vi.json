@@ -1,0 +1,33 @@
+{
+  "model": "Piper",
+  "voice": "vi_VN-vais1000-medium",
+  "modelSha256": "ec7c89e2c85f4d1edc24b6120c18aaf1bda614f06b511567eb9c7c0de15e2dab",
+  "configSha256": "fafb9da1354ed4b77c31af228ed41fb41cd825c14cffa105454b25e6ae751ee0",
+  "clips": {
+    "two-designs-1": {
+      "file": "two-designs-1.vi.m4a",
+      "sha256": "b4b616e1c297b40f2686dd59c976086a8692f5bd1f928ac0f5daa564ebde5c35",
+      "duration": 15.51093
+    },
+    "two-designs-2": {
+      "file": "two-designs-2.vi.m4a",
+      "sha256": "98f1707db700303aead81af804b7cc50f1292a6714692631df71d54b08e724fe",
+      "duration": 14.396372
+    },
+    "two-designs-3": {
+      "file": "two-designs-3.vi.m4a",
+      "sha256": "e471374ac9e3dad154eb6017015b5eb9622d4fca1ee4867dc7dc2b7438c556b9",
+      "duration": 18.413424
+    },
+    "two-designs-4": {
+      "file": "two-designs-4.vi.m4a",
+      "sha256": "50ee0d7bb84c69d1370e8b4930fd04473abe11c138aa4a58ae3329325afdcacd",
+      "duration": 13.815873
+    },
+    "two-designs-5": {
+      "file": "two-designs-5.vi.m4a",
+      "sha256": "def3740e78c0a986549be16db220e9be86dcbbe9e3987083bf16f9a45c6cd803",
+      "duration": 18.564354
+    }
+  }
+}

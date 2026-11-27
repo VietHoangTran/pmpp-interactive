@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { useLanguage } from '../lib/language';
+import { useLanguage, type Language } from '../lib/language';
 
 // A narrated animation: a sequence of beats, each a narration clip plus a drawing
 // that is a pure function of how far through the beat we are. Picture and sound
@@ -29,12 +29,7 @@ interface Manifest {
 const stripTags = (s: string) => s.replace(/\[[^\]]*\]\s*/g, '').trim();
 const estimate = (script: string) => Math.max(4, stripTags(script).split(/\s+/).length / 2.6 + 1);
 
-export function Scene({
-  chapter,
-  title,
-  beats,
-  narrow = false,
-}: {
+interface SceneProps {
   chapter: string;
   title: string;
   beats: Beat[];
@@ -44,11 +39,23 @@ export function Scene({
    * beat's svg; use this when the drawing is not an svg or when it switches layout with useNarrow().
    */
   narrow?: boolean;
-}) {
-  const { language, t: tr } = useLanguage();
+}
+
+export function Scene(props: SceneProps) {
+  const { language } = useLanguage();
+  // A new narration track can have a different duration. Restart the scene
+  // when changing language so the old track cannot advance the new one.
+  return <ScenePlayer key={language} {...props} language={language} />;
+}
+
+function ScenePlayer({ chapter, title, beats, narrow = false, language }: SceneProps & { language: Language }) {
+  const { t: tr } = useLanguage();
   const vi = language === 'vi';
   const base = `/content/${chapter}/narration/`;
   const [manifest, setManifest] = useState<Manifest | null>(null);
+  const [translatedManifest, setTranslatedManifest] = useState<Manifest | null>();
+  const needsTranslatedManifest = vi && beats.some((beat) => beat.vietnamese);
+  const audioPending = needsTranslatedManifest && translatedManifest === undefined;
   const [scripts, setScripts] = useState<Record<string, string>>({});
   const [i, setI] = useState(0);
   const [t, setT] = useState(0);
@@ -76,27 +83,43 @@ export function Scene({
   const [ended, setEnded] = useState(0);
   const endedBeat = useRef(-1); // index of the beat whose clip has finished
   const live = useRef(false); // the audio element is playing the current beat's clip
-  const [broken, setBroken] = useState<Record<string, boolean>>({}); // clips that failed to load
+  const [broken, setBroken] = useState<Record<string, boolean>>({}); // audio files that failed to load
 
   useEffect(() => {
     fetch(base + 'manifest.json')
       .then((r) => (r.ok ? r.json() : null))
       .then(setManifest)
       .catch(() => setManifest(null));
+    if (needsTranslatedManifest) {
+      fetch(base + 'manifest.vi.json')
+        .then((r) => (r.ok ? r.json() : null))
+        .then(setTranslatedManifest)
+        .catch(() => setTranslatedManifest(null));
+    }
     for (const b of beats)
       fetch(base + b.clip + '.txt')
         .then((r) => (r.ok ? r.text() : ''))
         .then((text) => setScripts((s) => ({ ...s, [b.clip]: text })))
         .catch(() => undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chapter]);
+  }, [chapter, needsTranslatedManifest]);
 
+  const trackFor = (beat: Beat) => {
+    const localized = beat.vietnamese ? translatedManifest?.clips[beat.clip] : undefined;
+    if (localized && !broken[localized.file]) return { entry: localized, manifest: translatedManifest, language: 'vi' };
+    const original = manifest?.clips[beat.clip];
+    if (original && !broken[original.file]) return { entry: original, manifest, language: 'en' };
+    return undefined;
+  };
   const beat = beats[i];
-  const entry = manifest?.clips[beat.clip];
+  const track = trackFor(beat);
+  const audioSrc = track ? base + track.entry.file : undefined;
   const script = scripts[beat.clip] ?? '';
   const translatedCaption = vi ? beat.vietnamese?.caption : undefined;
-  const dur = entry?.duration ?? estimate(script);
-  const hasAudio = !!entry && !broken[beat.clip];
+  const durationFor = (beat: Beat) =>
+    trackFor(beat)?.entry.duration ?? estimate((vi && beat.vietnamese?.caption) || scripts[beat.clip] || '');
+  const dur = durationFor(beat);
+  const hasAudio = !!audioSrc;
   // With sound on and a clip available, the audio element is the clock.
   const audioLed = hasAudio && sound;
 
@@ -104,10 +127,10 @@ export function Scene({
   useEffect(() => {
     const a = audio.current;
     if (!a) return;
-    if (playing && audioLed) {
-      if (!a.src.endsWith(base + entry!.file)) {
+    if (playing && audioLed && audioSrc) {
+      if (a.getAttribute('src') !== audioSrc) {
         live.current = false; // until the new clip reports that it is playing
-        a.src = base + entry!.file;
+        a.src = audioSrc;
       }
       a.currentTime = Math.min(t, dur);
       a.play().catch(() => undefined);
@@ -116,7 +139,7 @@ export function Scene({
       a.pause();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing, i, audioLed]);
+  }, [playing, i, audioLed, audioSrc, dur]);
 
   // The clock. An audio element that has just been given a new clip can still
   // report the old clip's position for a moment, so its time is trusted only
@@ -160,7 +183,7 @@ export function Scene({
   const p = dur > 0 ? Math.min(1, t / dur) : 0;
   const finished = !playing && i === beats.length - 1 && t >= dur;
 
-  const totalSeconds = Math.round(beats.reduce((s, b) => s + (manifest?.clips[b.clip]?.duration ?? estimate(scripts[b.clip] ?? '')), 0));
+  const totalSeconds = Math.round(beats.reduce((s, b) => s + durationFor(b), 0));
 
   return (
     <section className="bench wide scene" aria-label={title}>
@@ -180,7 +203,7 @@ export function Scene({
           </p>
         ) : null}
         <div className="row">
-          <button className="primary" onClick={() => { if (finished) go(0); setPlaying(!playing); }}>
+          <button className="primary" disabled={audioPending} onClick={() => { if (finished) go(0); setPlaying(!playing); }}>
             {playing ? tr('Pause', 'Tạm dừng') : finished ? tr('Play again', 'Phát lại') : t > 0 || i > 0 ? tr('Resume', 'Tiếp tục') : tr('Play', 'Phát')}
           </button>
           <span className="seg" role="group" aria-label={tr('Parts', 'Các phần')}>
@@ -206,7 +229,9 @@ export function Scene({
           onChange={(e) => {
             const nt = (Number(e.target.value) / 1000) * dur;
             setT(nt);
-            if (audio.current && hasAudio) audio.current.currentTime = nt;
+            if (audio.current?.getAttribute('src') === audioSrc && audio.current) {
+              audio.current.currentTime = nt;
+            }
           }}
         />
         <audio
@@ -215,23 +240,31 @@ export function Scene({
           onPlaying={() => { live.current = true; }}
           onEnded={(e) => {
             // Ignore an "ended" that belongs to a previous part.
-            if (!entry || !e.currentTarget.src.endsWith(base + entry.file)) return;
+            if (!audioSrc || e.currentTarget.getAttribute('src') !== audioSrc) return;
             live.current = false;
             endedBeat.current = i;
             setEnded((n) => n + 1);
           }}
-          onError={() => setBroken((m) => ({ ...m, [beat.clip]: true }))}
+          onError={(e) => {
+            if (track && e.currentTarget.getAttribute('src') === audioSrc) {
+              setBroken((m) => ({ ...m, [track.entry.file]: true }));
+            }
+          }}
         />
       </div>
       <footer>
-        {manifest === null
-          ? tr('No narration manifest found; running silently on estimated timings.', 'Thiếu tệp thông tin lời thuyết minh. Hoạt ảnh chạy không tiếng theo thời lượng ước tính.')
-          : hasAudio
+        {audioPending
+          ? 'Đang tải thông tin lời thuyết minh…'
+          : track?.language === 'vi'
+          ? `Thuyết minh tiếng Việt được tạo bằng ${track.manifest?.model}. Bật phụ đề để đọc theo.`
+          : track
             ? tr(
-                `Narration generated with ${manifest.model}. Turn on captions to read the script as it is spoken.`,
-                `Lời thuyết minh tiếng Anh được tạo bằng ${manifest.model}. Bật phụ đề để đọc theo${translatedCaption ? ' bằng tiếng Việt' : ''}.`,
+                `Narration generated with ${track.manifest?.model}. Turn on captions to read the script as it is spoken.`,
+                `Lời thuyết minh tiếng Anh được tạo bằng ${track.manifest?.model}. Bật phụ đề để đọc theo${translatedCaption ? ' bằng tiếng Việt' : ''}.`,
               )
-            : tr('This part has no audio yet, so its script is shown as a caption and it runs on an estimated timing.', 'Phần này chưa có âm thanh. Hoạt ảnh hiển thị phụ đề và chạy theo thời lượng ước tính.')}
+            : manifest === null && !translatedManifest
+              ? tr('No narration manifest found; running silently on estimated timings.', 'Thiếu tệp thông tin lời thuyết minh. Hoạt ảnh chạy không tiếng theo thời lượng ước tính.')
+              : tr('This part has no audio yet, so its script is shown as a caption and it runs on an estimated timing.', 'Phần này chưa có âm thanh. Hoạt ảnh hiển thị phụ đề và chạy theo thời lượng ước tính.')}
       </footer>
     </section>
   );
