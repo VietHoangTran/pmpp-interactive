@@ -15,7 +15,7 @@ function isProse(text) {
   const words = text.match(/[a-zA-Z][a-zA-Z'-]*/g);
   if (!words || text.length > 4000 || !/^[\x20-\x7e\s\p{P}\p{S}\u00a0-\u024f]+$/u.test(text)) return false;
   if (/^(?:https?:|\.\.?\/|[\/#]|[a-z0-9_-]+\/)/i.test(text) || /^[-\w]+\.(?:cu|mm|h|cpp|md|txt|json|metal)$/i.test(text)) return false;
-  if (words.length === 1) return /^(?:[A-Za-z][a-zA-Z-]+[.!?]?|[Cc]hapter \d+)$/.test(text);
+  if (words.length === 1) return /^(?:[A-Za-z][a-zA-Z-]+[.!?]?|[Cc]hapter \d+|[Ss]ection \d+\.\d+)$/.test(text);
   return words.some((word) => /[a-z]{2}/.test(word));
 }
 

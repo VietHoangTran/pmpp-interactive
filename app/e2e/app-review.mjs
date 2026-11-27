@@ -179,6 +179,39 @@ await step('language', async () => {
   await page.select(languagePicker, 'en');
 });
 
+// ---- localized chapter 2 views use the same simulation and answer data ----
+await step('Vietnamese chapter 2', async () => {
+  const picker = '.rail select';
+  await goto(page, 'ch02/start');
+  await page.select(picker, 'vi');
+  await waitText('Kernel bạn sẽ tự viết');
+  check('the Vietnamese chapter 2 introduction keeps the CUDA example',
+    (await body()).includes('vecAddKernel') && !(await body()).includes('Nội dung bài này hiện có bằng tiếng Anh.'));
+
+  await goto(page, 'ch02/2.1');
+  await page.click('[data-op-choice="inplace"]');
+  await page.waitForSelector('[data-explorer][data-op="inplace"]');
+  check('the Vietnamese data-parallelism explorer marks the in-place sum as a dependency chain',
+    (await page.$eval('[data-out="bin"]', (el) => el.textContent)) === 'Chuỗi phụ thuộc');
+  const [, caption] = await page.$$('.scene .check input[type=checkbox]');
+  if (!(await caption.evaluate((el) => el.checked))) await caption.click();
+  await waitText('Đây là 8 số và hai vòng lặp');
+  check('the data-parallelism animation displays a Vietnamese caption',
+    await page.$eval('.scene .caption', (el) => el.lang) === 'vi');
+
+  await goto(page, 'ch02/2.2');
+  await clickButton('Từng bước');
+  await clickButton('Từng bước');
+  check('the Vietnamese timeline keeps a grid queued after its asynchronous launch',
+    await page.$eval('[data-out="grid-A"]', (el) => el.dataset.state === 'queued' && el.textContent === 'đang chờ'));
+
+  await goto(page, 'ch02/2.3');
+  check('the Vietnamese traffic model keeps the same transfer counts',
+    await page.$eval('[data-cell="in-transparent"]', (el) => el.textContent) === '6' &&
+    await page.$eval('[data-cell="in-resident"]', (el) => el.textContent) === '4');
+  await page.select(picker, 'en');
+});
+
 // ---- every route renders without errors, at desktop and phone widths ----
 // The routes come from the app's own chapter registry: every chapter that has sections.
 // CHAPTERS=ch02,ch05 limits the sweep (useful while other chapters are being built).

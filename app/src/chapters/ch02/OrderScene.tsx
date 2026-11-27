@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useLanguage } from '../../lib/language';
 import { Scene, type Beat } from '../../components/Scene';
 import {
   OP_BODY,
@@ -139,6 +140,7 @@ const muted = (v: number): CellLook => ({ text: String(v), ink: 'var(--ink-3)' }
 
 /** One loop under one thread order, `p` of the way through. */
 function Running({ op, order, p }: { op: Loop; order: OrderName; p: number }) {
+  const { t } = useLanguage();
   const g = useNarrow() ? NARROW : WIDE;
   const { C, H, X0 } = g;
   const ord = threadOrder(order, N);
@@ -170,26 +172,26 @@ function Running({ op, order, p }: { op: Loop; order: OrderName; p: number }) {
     };
   };
 
-  const head = `${op === 'neighbour' ? 'Loop 1' : 'Loop 2'}: ${OP_BODY[op]}`;
+  const head = `${op === 'neighbour' ? t('Loop 1', 'Vòng lặp 1') : t('Loop 2', 'Vòng lặp 2')}: ${OP_BODY[op]}`;
   const foot =
     done === 0
-      ? `threads will run in this order: ${ord.join(' ')}`
+      ? t(`threads will run in this order: ${ord.join(' ')}`, `thứ tự chạy: ${ord.join(' ')}`)
       : done < N
-        ? `threads run so far: ${orderText}`
+        ? t(`threads run so far: ${orderText}`, `các luồng đã chạy: ${orderText}`)
         : wrong === 0
-          ? 'all 8 threads done: the same answer as the loop'
-          : `all 8 threads done: ${wrong} of 8 results differ from the loop`;
+          ? t('all 8 threads done: the same answer as the loop', 'cả 8 luồng đã xong, kết quả giống vòng lặp')
+          : t(`all 8 threads done: ${wrong} of 8 results differ from the loop`, `cả 8 luồng đã xong, ${wrong}/8 kết quả khác vòng lặp`);
   const [y1, y2, y3] = g.rows;
 
   if (op === 'neighbour')
     return (
       <Frame g={g} head={head} foot={foot}>
-        <Row g={g} y={y1} label="x" sub="never written"
+        <Row g={g} y={y1} label="x" sub={t('never written', 'chỉ đọc')}
           cells={SCENE_X.map((v, i) =>
             readIdx.has(i) ? { text: String(v), fill: 'var(--global)', stroke: 'var(--global)', ink: 'var(--page)', bold: true } : plain(v),
           )} />
-        <Row g={g} y={y2} label="y" sub="one element per thread" cells={SCENE_X.map((_, k) => result(k))} />
-        <Row g={g} y={y3} label="what the loop gives" cells={want.map(muted)} />
+        <Row g={g} y={y2} label="y" sub={t('one element per thread', 'mỗi luồng một phần tử')} cells={SCENE_X.map((_, k) => result(k))} />
+        <Row g={g} y={y3} label={t('what the loop gives', 'kết quả tuần tự')} cells={want.map(muted)} />
       </Frame>
     );
 
@@ -200,8 +202,8 @@ function Running({ op, order, p }: { op: Loop; order: OrderName; p: number }) {
   const noteX = left == null ? 0 : g.narrow ? Math.max(126, Math.min(g.W - 126, X0 + left * C + C)) : X0 + left * C + C;
   return (
     <Frame g={g} head={head} foot={foot}>
-      <Row g={g} y={y1} label="x at the start" cells={SCENE_X.map(muted)} />
-      <Row g={g} y={y2} label="x in memory now" sub="read and written"
+      <Row g={g} y={y1} label={t('x at the start', 'x ban đầu')} cells={SCENE_X.map(muted)} />
+      <Row g={g} y={y2} label={t('x in memory now', 'x hiện tại')} sub={t('read and written', 'đọc và ghi')}
         cells={SCENE_X.map((_, k) => {
           const c = result(k);
           return k === left ? { ...c, stroke: 'var(--ink)', width: 2.2 } : c;
@@ -210,16 +212,17 @@ function Running({ op, order, p }: { op: Loop; order: OrderName; p: number }) {
         <g>
           <path d={`M ${X0 + left * C + C / 2} ${y2 + H + 3} q ${C / 2} 16 ${C - 4} 0`} fill="none" stroke="var(--ink)" strokeWidth="1.6" />
           <text x={noteX} y={y2 + H + 30} fontSize="11.5" textAnchor="middle">
-            {leftWasWritten ? `thread ${last} read what thread ${left} wrote` : `thread ${last} read x[${left}] before thread ${left} ran`}
+            {leftWasWritten ? t(`thread ${last} read what thread ${left} wrote`, `luồng ${last} đọc dữ liệu luồng ${left} đã ghi`) : t(`thread ${last} read x[${left}] before thread ${left} ran`, `luồng ${last} đọc x[${left}] trước khi luồng ${left} chạy`)}
           </text>
         </g>
       ) : null}
-      <Row g={g} y={y3} label="what the loop gives" cells={want.map(muted)} />
+      <Row g={g} y={y3} label={t('what the loop gives', 'kết quả tuần tự')} cells={want.map(muted)} />
     </Frame>
   );
 }
 
 function Intro({ p }: { p: number }) {
+  const { t } = useLanguage();
   const g = useNarrow() ? NARROW : WIDE;
   // Wide: name, then the loop on the same line. Narrow: the loop on its own line below the name.
   const at = g.narrow
@@ -227,21 +230,22 @@ function Intro({ p }: { p: number }) {
     : { name: [140, 204], code: { x: 76, dy: 0 }, note: 20 };
   const loop = (n: 0 | 1, op: Loop, note: string, opacity: number) => (
     <g opacity={opacity}>
-      <text x={16} y={at.name[n]} fontSize="13" fontWeight="600">Loop {n + 1}</text>
-      <text x={at.code.x} y={at.name[n] + at.code.dy} fontSize="13" style={MONO}>for each k: {OP_BODY[op]}</text>
-      <text x={at.code.x} y={at.name[n] + at.note} fontSize="11.5" style={{ fill: 'var(--ink-2)' }}>{note} ({OP_NOTE[op]})</text>
+      <text x={16} y={at.name[n]} fontSize="13" fontWeight="600">{t('Loop', 'Vòng')} {n + 1}</text>
+      <text x={at.code.x} y={at.name[n] + at.code.dy} fontSize="13" style={MONO}>{t('for each k:', 'với mỗi k:')} {OP_BODY[op]}</text>
+      <text x={at.code.x} y={at.name[n] + at.note} fontSize="11.5" style={{ fill: 'var(--ink-2)' }}>{note} ({t(OP_NOTE[op] ?? '', 'x[-1] được tính là 0')})</text>
     </g>
   );
   return (
-    <Frame g={g} head="8 numbers and two loops" foot={p > 0.7 ? 'one thread per value of k: does the order of the threads matter?' : undefined}>
+    <Frame g={g} head={t('8 numbers and two loops', '8 số và hai vòng lặp')} foot={p > 0.7 ? t('one thread per value of k: does the order of the threads matter?', 'mỗi k một luồng: thứ tự chạy có làm đổi kết quả?') : undefined}>
       <Row g={g} y={g.rows[0]} label="x" cells={SCENE_X.map(plain)} />
-      {loop(0, 'neighbour', 'writes a second array, y', ramp(p, 0.12, 0.3))}
-      {loop(1, 'inplace', 'writes back into x', ramp(p, 0.32, 0.5))}
+      {loop(0, 'neighbour', t('writes a second array, y', 'ghi vào mảng y riêng'), ramp(p, 0.12, 0.3))}
+      {loop(1, 'inplace', t('writes back into x', 'ghi trở lại x'), ramp(p, 0.32, 0.5))}
     </Frame>
   );
 }
 
 function Summary({ p }: { p: number }) {
+  const { t } = useLanguage();
   const g = useNarrow() ? NARROW : WIDE;
   const rev = (op: Loop) => runThreads(op, DATA, threadOrder('reversed', N), params(op));
   const cells = (op: Loop, got: number[]): CellLook[] =>
@@ -253,26 +257,27 @@ function Summary({ p }: { p: number }) {
   const bad = rev('inplace').filter((v, k) => v !== SCENE_WANT.inplace[k]).length;
   const [y1, y2, y3] = g.sumRows;
   return (
-    <Frame g={g} head="Run backwards, compared with what each loop gives"
-      foot={p > 0.5 ? 'the test: does any thread read what another thread writes?' : undefined}>
-      <Row g={g} y={y1} label="loop 1, backwards" sub="reads overlap, nobody writes x" cells={cells('neighbour', rev('neighbour'))} />
+    <Frame g={g} head={t('Run backwards, compared with what each loop gives', 'So sánh thứ tự ngược với kết quả tuần tự')}
+      foot={p > 0.5 ? t('the test: does any thread read what another thread writes?', 'hãy kiểm tra: một luồng có đọc dữ liệu do luồng khác ghi?') : undefined}>
+      <Row g={g} y={y1} label={t('loop 1, backwards', 'vòng 1, chạy ngược')} sub={t('reads overlap, nobody writes x', 'đọc chồng lấp, x giữ nguyên')} cells={cells('neighbour', rev('neighbour'))} />
       <g opacity={ramp(p, 0.15, 0.3)}>
-        <Row g={g} y={y2} label="loop 2, backwards" sub={`${bad} of 8 differ`} cells={cells('inplace', rev('inplace'))} />
-        <Row g={g} y={y3} label="loop 2, in loop order" cells={SCENE_WANT.inplace.map(muted)} />
+        <Row g={g} y={y2} label={t('loop 2, backwards', 'vòng 2, chạy ngược')} sub={t(`${bad} of 8 differ`, `${bad}/8 kết quả khác`)} cells={cells('inplace', rev('inplace'))} />
+        <Row g={g} y={y3} label={t('loop 2, in loop order', 'vòng 2, chạy tuần tự')} cells={SCENE_WANT.inplace.map(muted)} />
       </g>
     </Frame>
   );
 }
 
 const beats: Beat[] = [
-  { clip: 'order-1', label: 'Two loops', draw: (p) => <Intro p={p} /> },
-  { clip: 'order-2', label: 'Loop 1 in order', draw: (p) => <Running op="neighbour" order="forward" p={p} /> },
-  { clip: 'order-3', label: 'Loop 1 backwards', draw: (p) => <Running op="neighbour" order="reversed" p={p} /> },
-  { clip: 'order-4', label: 'Loop 2 in order', draw: (p) => <Running op="inplace" order="forward" p={p} /> },
-  { clip: 'order-5', label: 'Loop 2 backwards', draw: (p) => <Running op="inplace" order="reversed" p={p} /> },
-  { clip: 'order-6', label: 'The test', draw: (p) => <Summary p={p} /> },
+  { clip: 'order-1', label: 'Two loops', vietnamese: { label: 'Hai vòng lặp', caption: 'Đây là 8 số và hai vòng lặp trông gần giống nhau. Vòng thứ nhất ghi từng tổng vào mảng thứ hai tên y. Vòng thứ hai ghi trở lại chính mảng x. Hãy giao mỗi lượt lặp cho một luồng rồi hỏi: đổi thứ tự chạy của các luồng có làm đổi kết quả không?' }, draw: (p) => <Intro p={p} /> },
+  { clip: 'order-2', label: 'Loop 1 in order', vietnamese: { label: 'Vòng 1 chạy tuần tự', caption: 'Bắt đầu vòng 1 từ luồng 0. Mỗi luồng đọc hai phần tử kề nhau trong x, cộng chúng rồi ghi một phần tử của y. Không luồng nào ghi vào x. Vì vậy mọi luồng đều thấy các số ban đầu, bất kể chạy lúc nào.' }, draw: (p) => <Running op="neighbour" order="forward" p={p} /> },
+  { clip: 'order-3', label: 'Loop 1 backwards', vietnamese: { label: 'Vòng 1 chạy ngược', caption: 'Giờ chạy các luồng theo thứ tự ngược, luồng cuối trước. Các lượt đọc vẫn giống lúc đầu vì x chưa đổi. Do đó từng phần tử y đều giữ nguyên. Bất kỳ thứ tự nào, kể cả chạy đồng thời, cũng cho cùng kết quả. Đó là song song dữ liệu.' }, draw: (p) => <Running op="neighbour" order="reversed" p={p} /> },
+  { clip: 'order-4', label: 'Loop 2 in order', vietnamese: { label: 'Vòng 2 chạy tuần tự', caption: 'Vòng 2 ghi vào chính x. Nếu bắt đầu từ luồng 0, mỗi luồng đọc phần tử mà luồng bên trái vừa ghi. Các tổng tích lũy dọc theo mảng, từ 3, 4, 11 đến 25. Đây là tổng tích lũy, với mỗi bước cần kết quả của bước trước.' }, draw: (p) => <Running op="inplace" order="forward" p={p} /> },
+  { clip: 'order-5', label: 'Loop 2 backwards', vietnamese: { label: 'Vòng 2 chạy ngược', caption: 'Chạy vòng 2 theo thứ tự ngược. Mỗi luồng sẽ đọc phần tử bên trái trước khi phần tử đó được cập nhật. Chỉ hai kết quả đầu khớp với vòng lặp, sáu kết quả còn lại khác đi. Cùng mã và dữ liệu vẫn có thể cho kết quả khác, vì trên GPU bạn không chọn được thứ tự chạy của các luồng.' }, draw: (p) => <Running op="inplace" order="reversed" p={p} /> },
+  { clip: 'order-6', label: 'The test', vietnamese: { label: 'Điều kiện cần kiểm tra', caption: 'Vòng 1 có các luồng đọc chung phần tử và vẫn chạy đúng. Điều cần kiểm tra là có luồng nào đọc giá trị mà luồng khác ghi không. Vòng 2 không đạt điều kiện này. Chương 11 dùng thuật toán khác để tính cùng tổng tích lũy và đáp ứng điều kiện.' }, draw: (p) => <Summary p={p} /> },
 ];
 
 export function OrderScene() {
-  return <Scene chapter="ch02" title="Same loop, another order" beats={beats} />;
+  const { t } = useLanguage();
+  return <Scene chapter="ch02" title={t('Same loop, another order', 'Cùng vòng lặp, đổi thứ tự chạy')} beats={beats} />;
 }

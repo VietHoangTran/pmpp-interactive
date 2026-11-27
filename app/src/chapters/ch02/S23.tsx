@@ -3,6 +3,7 @@ import { Ask, Predict, type Question } from '../../components/Ask';
 import { Code, useLabFile } from '../../components/Code';
 import { Bench, Beyond, Simplification, Source, Today } from '../../components/notes';
 import { benchRows, fmt, num, useReports } from '../../lib/reports';
+import { useLanguage } from '../../lib/language';
 import { href } from '../../lib/router';
 import {
   FLOAT_BYTES,
@@ -40,6 +41,18 @@ const MEMORY_LABEL: Record<Memory, string> = {
   shared: 'one shared memory (Metal on Apple silicon, data created in shared buffers)',
 };
 
+type Translate = ReturnType<typeof useLanguage>['t'];
+const strategyVi: Record<Strategy, string> = {
+  transparent: 'mỗi phép toán tự chép sang và chép về',
+  resident: 'giữ dữ liệu trên thiết bị giữa các phép toán',
+};
+const memoryVi: Record<Memory, string> = {
+  separate: 'bộ nhớ thiết bị riêng (CUDA, HIP)',
+  shared: 'một bộ nhớ dùng chung (Metal trên Apple silicon, dữ liệu được tạo trong buffer dùng chung)',
+};
+const operationLabel = (name: string, t: Translate) => t(name, name
+  .replace(/^add bias/, 'cộng bias').replace(/^scale/, 'nhân hệ số').replace(/^add residual/, 'cộng residual'));
+
 export function bytesText(b: number): string {
   if (b === 0) return '0 bytes';
   const units = ['bytes', 'KiB', 'MiB', 'GiB', 'TiB'];
@@ -64,6 +77,7 @@ const SLOT = 15;
 
 /** A host box, a device box, and one arrow per tensor-sized transfer. */
 function TrafficPicture({ t, memory }: { t: Traffic; memory: Memory }) {
+  const { t: tr } = useLanguage();
   const k = t.ops.length;
   const h = TOP + k * ROW + 12;
   const hostX = 1;
@@ -74,7 +88,7 @@ function TrafficPicture({ t, memory }: { t: Traffic; memory: Memory }) {
   const ops = t.ops.map((name, i) => (
     <g key={i} data-op={name}>
       <rect x={devX + 8} y={TOP + i * ROW + 6} width={DEV_W - 16} height={ROW - 12} rx="3" fill="var(--global-wash)" stroke="var(--global)" />
-      <text x={devX + DEV_W / 2} y={TOP + i * ROW + ROW / 2 + 4} fontSize="12" textAnchor="middle">{name}</text>
+      <text x={devX + DEV_W / 2} y={TOP + i * ROW + ROW / 2 + 4} fontSize="12" textAnchor="middle">{operationLabel(name, tr)}</text>
     </g>
   ));
   if (memory === 'shared')
@@ -89,6 +103,7 @@ function TrafficPicture({ t, memory }: { t: Traffic; memory: Memory }) {
         {ops}
       </svg>
     );
+  const trLabel = (name: string) => tr(`${name} back`, `chép ${name} về`);
   const slot = new Map<number, number>(); // how many arrows this operation's row already holds
   return (
     <svg viewBox={`0 0 ${PW} ${h}`} role="img" aria-label="Transfers between host memory and device memory" data-picture="separate" style={style}>
@@ -110,7 +125,7 @@ function TrafficPicture({ t, memory }: { t: Traffic; memory: Memory }) {
             <line x1={x0} y1={y} x2={x1} y2={y} stroke="var(--ink-2)" strokeWidth="1.4" />
             <polygon points={`${tip},${y} ${tip + d},${y - 3.5} ${tip + d},${y + 3.5}`} fill="var(--ink-2)" />
             <text x={hostX + HOST_W - 8} y={y + 4} fontSize="12" textAnchor="end" style={into ? undefined : { fontWeight: 650 }}>
-              {into ? tr.what : `${tr.what} back`}
+              {into ? tr.what : trLabel(tr.what)}
             </text>
           </g>
         );
@@ -163,6 +178,7 @@ function ChainMeasured() {
 }
 
 function BoundaryTraffic() {
+  const { t: tr } = useLanguage();
   const [k, setK] = useState(3);
   const [exp, setExp] = useState(20);
   const [strategy, setStrategy] = useState<Strategy>('transparent');
@@ -212,14 +228,14 @@ function BoundaryTraffic() {
       <div className="row" style={{ marginBottom: '0.5rem' }}>
         <span className="seg" role="group" aria-label="Strategy" style={{ flexWrap: 'wrap' }}>
           {cols.map((s) => (
-            <button key={s} aria-pressed={strategy === s} onClick={() => setStrategy(s)}>{STRATEGY_LABEL[s]}</button>
+            <button key={s} aria-pressed={strategy === s} onClick={() => setStrategy(s)}>{tr(STRATEGY_LABEL[s], strategyVi[s])}</button>
           ))}
         </span>
       </div>
       <div className="row" style={{ marginBottom: '0.9rem' }}>
         <span className="seg" role="group" aria-label="Memory" style={{ flexWrap: 'wrap' }}>
           {(['separate', 'shared'] as Memory[]).map((m) => (
-            <button key={m} aria-pressed={memory === m} onClick={() => setMemory(m)}>{MEMORY_LABEL[m]}</button>
+            <button key={m} aria-pressed={memory === m} onClick={() => setMemory(m)}>{tr(MEMORY_LABEL[m], memoryVi[m])}</button>
           ))}
         </span>
       </div>
@@ -229,9 +245,12 @@ function BoundaryTraffic() {
         </div>
         <div>
           <p className="ui" data-out="traffic-summary" style={{ margin: '0 0 0.6rem' }}>
-            {ops.map((o) => o.name).join(', ')}:{' '}
+            {ops.map((o) => operationLabel(o.name, tr)).join(', ')}:{' '}
             <b>
-              {t.transfers.length} tensor-sized {t.transfers.length === 1 ? 'transfer' : 'transfers'}, {bytesText(t.bytesAcross)}
+              {tr(
+                `${t.transfers.length} tensor-sized ${t.transfers.length === 1 ? 'transfer' : 'transfers'}`,
+                `${t.transfers.length} lượt truyền, mỗi lượt bằng kích thước một tensor`,
+              )}, {bytesText(t.bytesAcross)}
             </b>{' '}
             across the boundary.
           </p>
@@ -244,11 +263,11 @@ function BoundaryTraffic() {
               </tr>
             </thead>
             <tbody>
-              {row('tensor-sized transfers in', 'in', (x) => String(x.transfersIn))}
-              {row('tensor-sized transfers out', 'out', (x) => String(x.transfersOut))}
-              {row('bytes across the boundary', 'across', (x) => bytesText(x.bytesAcross))}
-              {row('bytes the kernels read and write', 'kernel', (x) => bytesText(x.kernelBytes))}
-              {row('bytes across per byte the kernels touch', 'ratio', (x) => fmt(x.ratio))}
+              {row(tr('tensor-sized transfers in', 'lượt truyền tensor sang thiết bị'), 'in', (x) => String(x.transfersIn))}
+              {row(tr('tensor-sized transfers out', 'lượt truyền tensor về host'), 'out', (x) => String(x.transfersOut))}
+              {row(tr('bytes across the boundary', 'byte chuyển qua ranh giới bộ nhớ'), 'across', (x) => bytesText(x.bytesAcross))}
+              {row(tr('bytes the kernels read and write', 'byte kernel đọc và ghi'), 'kernel', (x) => bytesText(x.kernelBytes))}
+              {row(tr('bytes across per byte the kernels touch', 'byte truyền qua ranh giới trên mỗi byte kernel truy cập'), 'ratio', (x) => fmt(x.ratio))}
             </tbody>
           </table>
           <ChainMeasured />

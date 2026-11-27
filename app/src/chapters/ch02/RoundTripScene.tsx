@@ -1,4 +1,5 @@
 import { type ReactNode, type SVGProps } from 'react';
+import { useLanguage } from '../../lib/language';
 import { Scene, type Beat } from '../../components/Scene';
 import { useNarrow } from './narrow';
 import {
@@ -169,6 +170,7 @@ const rowY = (box: { y: number }, r: number) => box.y + ROWS_DY[r];
 
 /** The two lanes, drawn up to `cursor` (in calls; 2.5 is half way through the third call). */
 function Lanes({ g, steps, cursor, labels }: { g: Geo; steps: LaneStep[]; cursor: number; labels: string[] }) {
+  const { t } = useLanguage();
   const L = g.lane;
   const n = steps.length;
   const sw = L.w / n;
@@ -190,8 +192,8 @@ function Lanes({ g, steps, cursor, labels }: { g: Geo; steps: LaneStep[]; cursor
     );
   return (
     <g>
-      {name('host thread', L.host)}
-      {name('device', L.device)}
+      {name(t('host thread', 'luồng host'), L.host)}
+      {name(t('device', 'thiết bị'), L.device)}
       <rect x={L.x} y={L.host} width={L.w} height={L.h} fill="none" stroke="var(--rule-soft)" />
       <rect x={L.x} y={L.device} width={L.w} height={L.h} fill="none" stroke="var(--rule-soft)" />
       {steps.map((s, k) => {
@@ -203,7 +205,7 @@ function Lanes({ g, steps, cursor, labels }: { g: Geo; steps: LaneStep[]; cursor
             <rect x={x(k) + 1} y={L.host} width={Math.max(0, sw * f - 2)} height={L.h} rx="2"
               fill={blocked ? 'none' : 'var(--ink-2)'} stroke="var(--ink-2)" strokeDasharray={blocked ? '3 2' : undefined} />
             {blocked && f > 0.7 ? (
-              <text x={x(k) + sw / 2} y={L.host + 14} fontSize={g.narrow ? 9 : 10.5} textAnchor="middle">waits</text>
+              <text x={x(k) + sw / 2} y={L.host + 14} fontSize={g.narrow ? 9 : 10.5} textAnchor="middle">{t('waits', 'chờ')}</text>
             ) : null}
           </g>
         );
@@ -237,8 +239,20 @@ function Status({ g, parts }: { g: Geo; parts: string[] }) {
   return <Lines x={g.lane.x} y={g.statusY} lines={lines} fontSize={g.narrow ? 11.5 : 12} style={{ whiteSpace: 'pre' }} />;
 }
 
-const slotLabel = (p: Program, id: string) =>
-  id === 'launch' ? (p.backend === 'metal' ? 'commit' : 'launch') : id.replace(/-/g, ' ').replace('copy in', 'copy').replace('copy back', 'copy C');
+function slotLabel(p: Program, id: string, t: Translate) {
+  const english = id === 'launch' ? (p.backend === 'metal' ? 'commit' : 'launch')
+    : id.replace(/-/g, ' ').replace('copy in', 'copy').replace('copy back', 'copy C');
+  const vietnamese = english
+    .replace(/^alloc /, 'cấp ')
+    .replace(/^copy C$/, 'chép C')
+    .replace(/^copy /, 'chép ')
+    .replace(/^free /, 'giải phóng ')
+    .replace(/^fill$/, 'điền')
+    .replace(/^launch$/, 'chạy')
+    .replace(/^wait$/, 'chờ')
+    .replace(/^read$/, 'đọc');
+  return t(english, vietnamese);
+}
 
 /** How many of `count` elements a step that works element by element has done at fraction f. */
 const done = (f: number, count = N) => Math.min(count, Math.floor(clamp(f) * (count + 0.999)));
@@ -347,6 +361,7 @@ function Frame({ g, label, head, foot, children }: { g: Geo; label: string; head
 
 /** Two memories and two lanes for the CUDA stub at `cursor`. */
 function Separate({ cursor, head, foot }: { cursor: number; head: string; foot?: string }) {
+  const { t } = useLanguage();
   const g = useNarrow() ? NARROW : WIDE;
   const p = SCENE_CUDA;
   const pic = pictureAt(p, cursor);
@@ -354,14 +369,14 @@ function Separate({ cursor, head, foot }: { cursor: number; head: string; foot?:
   const n = p.calls.length;
   const call = p.calls[Math.min(n - 1, Math.floor(cursor))];
   const ptr = run(p, Math.min(n, Math.round(cursor + 0.35))).pointers.filter((x) => x.name.endsWith('_d'));
-  const short = (r: string) => (r === 'nothing yet' ? 'not set' : r === 'device memory' ? 'device' : 'freed');
+  const short = (r: string) => (r === 'nothing yet' ? t('not set', 'chưa gán') : r === 'device memory' ? t('device', 'thiết bị') : t('freed', 'đã giải phóng'));
   const anyDevice = ptr.some((x) => x.refersTo === 'device memory');
-  const hostText = cursor <= 0 || cursor >= n ? 'running' : pic.hostState === 'blocked' ? `blocked inside ${call.api[0] ?? 'the call'}` : 'running';
-  const devText = pic.deviceState === 'kernel issued' ? `vecAddKernel: ${pic.kernelCells} of ${N} results` : 'nothing to do';
+  const hostText = cursor <= 0 || cursor >= n ? t('running', 'đang chạy') : pic.hostState === 'blocked' ? t(`blocked inside ${call.api[0] ?? 'the call'}`, `đang chờ trong ${call.api[0] ?? 'lời gọi'}`) : t('running', 'đang chạy');
+  const devText = pic.deviceState === 'kernel issued' ? t(`vecAddKernel: ${pic.kernelCells} of ${N} results`, `vecAddKernel: ${pic.kernelCells}/${N} kết quả`) : t('nothing to do', 'đang rảnh');
   const [bx1, by1, bx2, by2] = g.boundary;
   return (
-    <Frame g={g} label="Animation of the host stub over host memory and device memory" head={head} foot={foot}>
-      <Box at={g.host} w={g.host.w} title="Host memory">
+    <Frame g={g} label={t('Animation of the host stub over host memory and device memory', 'Hoạt ảnh hàm bao qua bộ nhớ host và thiết bị')} head={head} foot={foot}>
+      <Box at={g.host} w={g.host.w} title={t('Host memory', 'Bộ nhớ host')}>
         {IDS.map((a, r) => (
           <CellRow key={a} x={g.host.x} y={rowY(g.host, r)} label={`${a}_h`}
             cells={pic.host![a].map((v, i) => (a === 'C' ? (v === WANT[i] ? hostLook(v, true) : { text: '', look: 'plain' as Look }) : hostLook(v)))} />
@@ -370,7 +385,7 @@ function Separate({ cursor, head, foot }: { cursor: number; head: string; foot?:
           {ptr.map((x) => `${x.name}: ${short(x.refersTo)}`).join('   ')}
         </text>
       </Box>
-      <Box at={g.dev} w={g.dev.w} title="Device memory">
+      <Box at={g.dev} w={g.dev.w} title={t('Device memory', 'Bộ nhớ thiết bị')}>
         {IDS.map((a, r) => {
           const d = pic.device[a];
           if (!d) return null;
@@ -378,11 +393,11 @@ function Separate({ cursor, head, foot }: { cursor: number; head: string; foot?:
           return <CellRow key={a} x={g.dev.x} y={rowY(g.dev, r)} label={`${a}_d`} opacity={d.appear} cells={devLook(d.cells, d.freed, hot)} />;
         })}
         {anyDevice ? (
-          <text x={g.dev.x + 10} y={g.dev.y + BOX_H - 10} fontSize="11" style={{ fill: 'var(--ink-2)' }}>the host cannot read or write here</text>
+          <text x={g.dev.x + 10} y={g.dev.y + BOX_H - 10} fontSize="11" style={{ fill: 'var(--ink-2)' }}>{t('the host cannot read or write here', 'host không thể đọc hay ghi ở đây')}</text>
         ) : null}
       </Box>
       <line x1={bx1} y1={by1} x2={bx2} y2={by2} stroke="var(--ink-3)" strokeDasharray="4 4" />
-      <text x={g.bytes.x} y={g.bytes.y} fontSize="12" textAnchor="middle" fontWeight="600">bytes across: {pic.bytes}</text>
+      <text x={g.bytes.x} y={g.bytes.y} fontSize="12" textAnchor="middle" fontWeight="600">{t('bytes across:', 'byte đã chuyển:')} {pic.bytes}</text>
       {pic.moving ? (
         (() => {
           const r = IDS.indexOf(pic.moving.array);
@@ -401,14 +416,15 @@ function Separate({ cursor, head, foot }: { cursor: number; head: string; foot?:
           );
         })()
       ) : null}
-      <Lanes g={g} steps={steps} cursor={cursor} labels={p.calls.map((c) => slotLabel(p, c.id))} />
-      <Status g={g} parts={[`host thread: ${hostText}`, `device: ${devText}`, `free calls: ${pic.frees}`]} />
+      <Lanes g={g} steps={steps} cursor={cursor} labels={p.calls.map((c) => slotLabel(p, c.id, t))} />
+      <Status g={g} parts={[t(`host thread: ${hostText}`, `luồng host: ${hostText}`), t(`device: ${devText}`, `thiết bị: ${devText}`), t(`free calls: ${pic.frees}`, `lượt giải phóng: ${pic.frees}`)]} />
     </Frame>
   );
 }
 
 /** One memory and two lanes for the Metal stub with its data created in shared buffers. */
 function Shared({ cursor, head, foot }: { cursor: number; head: string; foot?: string }) {
+  const { t } = useLanguage();
   const g = useNarrow() ? NARROW_ONE : WIDE;
   const p = SCENE_METAL;
   const pic = pictureAt(p, cursor);
@@ -416,14 +432,14 @@ function Shared({ cursor, head, foot }: { cursor: number; head: string; foot?: s
   const n = p.calls.length;
   const x = g.narrow ? 20 : 150;
   const reading = p.calls[Math.min(n - 1, Math.floor(cursor))].id === 'read' ? done(cursor - Math.floor(cursor)) : cursor >= n ? N : 0;
-  const hostText = cursor > 0 && cursor < n && pic.hostState === 'blocked' ? 'blocked inside waitUntilCompleted' : 'running';
-  const devText = pic.deviceState === 'kernel issued' ? `add_arrays: ${pic.kernelCells} of ${N} results` : 'nothing to do';
-  const cNote = reading > 0 ? 'read after the wait' : pic.kernelCells > 0 && pic.kernelCells < N ? 'not yet the result' : '';
+  const hostText = cursor > 0 && cursor < n && pic.hostState === 'blocked' ? t('blocked inside waitUntilCompleted', 'đang chờ trong waitUntilCompleted') : t('running', 'đang chạy');
+  const devText = pic.deviceState === 'kernel issued' ? t(`add_arrays: ${pic.kernelCells} of ${N} results`, `add_arrays: ${pic.kernelCells}/${N} kết quả`) : t('nothing to do', 'đang rảnh');
+  const cNote = reading > 0 ? t('read after the wait', 'đọc sau khi chờ') : pic.kernelCells > 0 && pic.kernelCells < N ? t('not yet the result', 'kết quả chưa đầy đủ') : '';
   const box = { x: g.host.x, y: g.host.y };
   const side = x + CELLS_DX + N * CW + 18;
   return (
-    <Frame g={g} label="Animation of the same steps with one shared memory" head={head} foot={foot}>
-      <Box at={box} w={g.narrow ? g.host.w : g.W - 32} h={g.narrow ? BOX_H + 22 : BOX_H} title="One memory, shared by the CPU and the GPU">
+    <Frame g={g} label={t('Animation of the same steps with one shared memory', 'Hoạt ảnh chạy lại với một bộ nhớ dùng chung')} head={head} foot={foot}>
+      <Box at={box} w={g.narrow ? g.host.w : g.W - 32} h={g.narrow ? BOX_H + 22 : BOX_H} title={t('One memory, shared by the CPU and the GPU', 'Một bộ nhớ dùng chung cho CPU và GPU')}>
         {IDS.map((a, r) => {
           const d = pic.device[a];
           if (!d) return null;
@@ -434,28 +450,29 @@ function Shared({ cursor, head, foot }: { cursor: number; head: string; foot?: s
         })}
         {g.narrow ? (
           <>
-            <text x={box.x + 10} y={box.y + BOX_H + 2} fontSize="11" style={{ fill: 'var(--ink-2)' }}>the host reads and writes these through .contents</text>
+            <text x={box.x + 10} y={box.y + BOX_H + 2} fontSize="11" style={{ fill: 'var(--ink-2)' }}>{t('the host reads and writes these through .contents', 'host đọc và ghi qua .contents')}</text>
             <text x={box.x + 10} y={box.y + BOX_H + 16} fontSize="11" style={{ fill: 'var(--ink-2)' }}>{cNote ? `C: ${cNote}` : ''}</text>
           </>
         ) : (
           <>
-            <text x={side} y={rowY(box, 0) + 16} fontSize="11.5" style={{ fill: 'var(--ink-2)' }}>the host reads and writes</text>
-            <text x={side} y={rowY(box, 0) + 31} fontSize="11.5" style={{ fill: 'var(--ink-2)' }}>these through .contents</text>
+            <text x={side} y={rowY(box, 0) + 16} fontSize="11.5" style={{ fill: 'var(--ink-2)' }}>{t('the host reads and writes', 'host đọc và ghi')}</text>
+            <text x={side} y={rowY(box, 0) + 31} fontSize="11.5" style={{ fill: 'var(--ink-2)' }}>{t('these through .contents', 'các buffer qua .contents')}</text>
             <text x={side} y={rowY(box, 2) + 16} fontSize="11.5" style={{ fill: 'var(--ink-2)' }}>{cNote}</text>
           </>
         )}
       </Box>
       <text x={g.narrow ? g.bytes.x : g.W / 2} y={g.narrow ? g.bytes.y + 14 : g.bytes.y} fontSize="12" textAnchor="middle" fontWeight="600" style={{ whiteSpace: 'pre' }}>
-        bytes across: {pic.bytes}{'   ·   '}copies: {run(p, Math.floor(cursor)).copies}
+        {t('bytes across:', 'byte đã chuyển:')} {pic.bytes}{'   ·   '}{t('copies:', 'lượt sao chép:')} {run(p, Math.floor(cursor)).copies}
       </text>
-      <Lanes g={g} steps={steps} cursor={cursor} labels={p.calls.map((c) => slotLabel(p, c.id))} />
-      <Status g={g} parts={[`host thread: ${hostText}`, `device: ${devText}`, `free calls: ${pic.frees}`]} />
+      <Lanes g={g} steps={steps} cursor={cursor} labels={p.calls.map((c) => slotLabel(p, c.id, t))} />
+      <Status g={g} parts={[t(`host thread: ${hostText}`, `luồng host: ${hostText}`), t(`device: ${devText}`, `thiết bị: ${devText}`), t(`free calls: ${pic.frees}`, `lượt giải phóng: ${pic.frees}`)]} />
     </Frame>
   );
 }
 
 /** Beat 1: the loop of Fig. 2.4, with no device involved. */
 function HostOnly({ p }: { p: number }) {
+  const { t } = useLanguage();
   const g = useNarrow() ? NARROW : WIDE;
   const i = done(ramp(p, 0.08, 0.9));
   const cur = i < N ? i : null;
@@ -464,19 +481,19 @@ function HostOnly({ p }: { p: number }) {
   }));
   const row = (a: 'A' | 'B'): Shown[] => IN[a].map((v, k) => ({ text: String(v), look: k === cur ? 'read' : 'plain' }));
   return (
-    <Frame g={g} label="Animation of vector addition on the host alone"
-      head="C_h[i] = A_h[i] + B_h[i]: one host thread, one memory"
-      foot={i >= N ? `${N} additions, and no byte left host memory` : undefined}>
-      <Box at={g.host} w={g.host.w} title="Host memory">
+    <Frame g={g} label={t('Animation of vector addition on the host alone', 'Hoạt ảnh cộng vector chỉ trên host')}
+      head={t('C_h[i] = A_h[i] + B_h[i]: one host thread, one memory', 'C_h[i] = A_h[i] + B_h[i]: một luồng host, một bộ nhớ')}
+      foot={i >= N ? t(`${N} additions, and no byte left host memory`, `${N} phép cộng, mọi byte vẫn ở bộ nhớ host`) : undefined}>
+      <Box at={g.host} w={g.host.w} title={t('Host memory', 'Bộ nhớ host')}>
         <CellRow x={g.host.x} y={rowY(g.host, 0)} label="A_h" cells={row('A')} />
         <CellRow x={g.host.x} y={rowY(g.host, 1)} label="B_h" cells={row('B')} />
         <CellRow x={g.host.x} y={rowY(g.host, 2)} label="C_h" cells={WANT.map((v, k) => (k < i ? { text: String(v), look: 'ok' } : { text: '', look: 'plain' }))} />
       </Box>
-      <Box at={g.dev} w={g.dev.w} title="Device memory" dashed>
-        <text x={g.dev.x + g.dev.w / 2} y={g.dev.y + BOX_H / 2 + 8} fontSize="12" textAnchor="middle" style={{ fill: 'var(--ink-2)' }}>nothing of ours yet</text>
+      <Box at={g.dev} w={g.dev.w} title={t('Device memory', 'Bộ nhớ thiết bị')} dashed>
+        <text x={g.dev.x + g.dev.w / 2} y={g.dev.y + BOX_H / 2 + 8} fontSize="12" textAnchor="middle" style={{ fill: 'var(--ink-2)' }}>{t('nothing of ours yet', 'chưa chứa dữ liệu của ta')}</text>
       </Box>
       <Lanes g={g} steps={steps} cursor={ramp(p, 0.08, 0.9) * N} labels={steps.map((s) => s.id.replace(' = ', '='))} />
-      <Status g={g} parts={[`host thread: ${i < N ? `adding element ${i}` : 'done'}`, 'device: nothing to do']} />
+      <Status g={g} parts={[t(`host thread: ${i < N ? `adding element ${i}` : 'done'}`, `luồng host: ${i < N ? `đang cộng phần tử ${i}` : 'đã xong'}`), t('device: nothing to do', 'thiết bị: đang rảnh')]} />
     </Frame>
   );
 }
@@ -485,61 +502,65 @@ const CALLS = SCENE_CUDA.calls.length;
 const BILL = run(SCENE_CUDA);
 const SHARED_END = run(SCENE_METAL);
 
-const beats: Beat[] = [
-  { clip: 'round-trip-1', label: 'Host only', draw: (p) => <HostOnly p={p} /> },
+type Translate = ReturnType<typeof useLanguage>['t'];
+
+const beats: (Omit<Beat, 'draw'> & { draw: (p: number, t: Translate) => ReactNode })[] = [
+  { clip: 'round-trip-1', label: 'Host only', vietnamese: { label: 'Chỉ dùng host', caption: 'Bắt đầu khi chưa dùng GPU. Một luồng host duyệt A và B, cộng từng cặp rồi ghi tổng vào C. Cả ba mảng nằm trong bộ nhớ host. Thiết bị bên phải có bộ nhớ riêng và chưa chứa dữ liệu của ta.' }, draw: (p) => <HostOnly p={p} /> },
   {
     clip: 'round-trip-2',
-    label: 'Second memory',
-    draw: (p) => (
-      <Separate cursor={ramp(p, 0.12, 0.75) * 3} head="Three allocations in device memory: not cleared"
-        foot={p > 0.8 ? 'A_d, B_d and C_d hold addresses the host can pass on and cannot read through' : undefined} />
+    label: 'Second memory', vietnamese: { label: 'Bộ nhớ thứ hai', caption: 'Muốn dùng thiết bị, dữ liệu cần nằm trong bộ nhớ của nó. Ba vùng nhớ được cấp phát. Chưa có thao tác khởi tạo nên chưa biết nội dung. Host đang giữ ba địa chỉ, mỗi mảng một địa chỉ. Host có thể truyền chúng cho runtime và kernel nhưng không thể tự đọc dữ liệu qua các địa chỉ đó.' },
+    draw: (p, t) => (
+      <Separate cursor={ramp(p, 0.12, 0.75) * 3} head={t('Three allocations in device memory: not cleared', 'Cấp phát ba vùng bộ nhớ thiết bị, chưa khởi tạo')}
+        foot={p > 0.8 ? t('A_d, B_d and C_d hold addresses the host can pass on and cannot read through', 'Host có thể truyền địa chỉ A_d, B_d và C_d nhưng không thể đọc qua chúng') : undefined} />
     ),
   },
   {
     clip: 'round-trip-3',
-    label: 'Copy in',
-    draw: (p) => {
+    label: 'Copy in', vietnamese: { label: 'Chép sang', caption: 'Phần 1. Chép từng phần tử của A và B sang thiết bị. Khi mỗi lượt chép chạy, luồng host phải chờ trong lời gọi. Hãy nhìn bộ đếm. Mỗi mảng có 8 số float, mỗi số 4 byte, nên một lượt chuyển 32 byte. Đã chuyển 64 byte trước khi bắt đầu tính toán.' },
+    draw: (p, t) => {
       const cursor = 3 + ramp(p, 0.1, 0.9) * 2;
       return (
-        <Separate cursor={cursor} head="Part 1: A and B cross the boundary while the host thread waits"
-          foot={p > 0.9 ? `${pictureAt(SCENE_CUDA, cursor).bytes} bytes across, and no addition has happened yet` : undefined} />
+        <Separate cursor={cursor} head={t('Part 1: A and B cross the boundary while the host thread waits', 'Phần 1: chép A và B sang trong khi luồng host chờ')}
+          foot={p > 0.9 ? t(`${pictureAt(SCENE_CUDA, cursor).bytes} bytes across, and no addition has happened yet`, `đã chuyển ${pictureAt(SCENE_CUDA, cursor).bytes} byte trước phép cộng đầu tiên`) : undefined} />
       );
     },
   },
   {
     clip: 'round-trip-4',
-    label: 'Launch',
-    draw: (p) => (
+    label: 'Launch', vietnamese: { label: 'Khởi chạy', caption: 'Phần 2. Một câu lệnh khởi chạy kernel rồi trả về ngay. Host không đợi thiết bị kết thúc, thậm chí không đợi nó bắt đầu. Tạm coi thiết bị là nơi tính các giá trị cho C. Mục 2.5 giải thích cách nó thực hiện.' },
+    draw: (p, t) => (
       <Separate cursor={5 + (p < 0.25 ? ramp(p, 0.05, 0.25) * 0.3 : 0.3 + ramp(p, 0.25, 1) * 0.7)}
-        head="Part 2: the launch returns at once"
-        foot={p > 0.3 ? 'the host has moved on; the device fills C_d in its own memory' : undefined} />
+        head={t('Part 2: the launch returns at once', 'Phần 2: lệnh khởi chạy trả về ngay')}
+        foot={p > 0.3 ? t('the host has moved on; the device fills C_d in its own memory', 'host tiếp tục, thiết bị ghi C_d trong bộ nhớ của nó') : undefined} />
     ),
   },
   {
     clip: 'round-trip-5',
-    label: 'Copy back',
-    draw: (p) => (
+    label: 'Copy back', vietnamese: { label: 'Chép về', caption: 'Phần 3. Host yêu cầu chép C về. Lượt chép được xếp sau kernel, nên host phải đợi kernel rồi đợi 32 byte nữa chuyển về. Cuối cùng, ba mảng thiết bị được giải phóng. Bên gọi chỉ thấy mảng C của mình đã chứa kết quả.' },
+    draw: (p, t) => (
       <Separate cursor={p < 0.6 ? 6 + ramp(p, 0.04, 0.6) : 7 + ramp(p, 0.6, 0.92) * 3}
-        head="Part 3: the copy back waits for the kernel, then C crosses"
-        foot={p > 0.92 ? 'three frees, and the caller holds C_h' : undefined} />
+        head={t('Part 3: the copy back waits for the kernel, then C crosses', 'Phần 3: chờ kernel hoàn thành rồi chép C về')}
+        foot={p > 0.92 ? t('three frees, and the caller holds C_h', 'ba lượt giải phóng, kết quả nằm trong C_h của bên gọi') : undefined} />
     ),
   },
   {
     clip: 'round-trip-6',
-    label: 'The bill',
-    draw: (p) =>
+    label: 'The bill', vietnamese: { label: 'Tổng chi phí', caption: 'Để thực hiện 8 phép cộng, chương trình chuyển 96 byte qua ranh giới bộ nhớ, tức 12 byte mỗi phần tử. Giờ chạy lại với một bộ nhớ dùng chung như trên Apple silicon. Dữ liệu không phải chuyển giữa hai bộ nhớ và mô hình không cần lời gọi giải phóng riêng. Host vẫn phải chờ trước khi đọc kết quả.' },
+    draw: (p, t) =>
       p < 0.4 ? (
-        <Separate cursor={CALLS} head={`The bill: ${N} additions, ${BILL.bytesMoved} bytes across the boundary`}
-          foot={p > 0.12 ? `${BILL.bytesMoved / N} bytes moved for every element added, ${BILL.copies} copies, ${BILL.frees} free calls` : undefined} />
+        <Separate cursor={CALLS} head={t(`The bill: ${N} additions, ${BILL.bytesMoved} bytes across the boundary`, `Tổng chi phí: ${N} phép cộng, chuyển ${BILL.bytesMoved} byte`)}
+          foot={p > 0.12 ? t(`${BILL.bytesMoved / N} bytes moved for every element added, ${BILL.copies} copies, ${BILL.frees} free calls`, `mỗi phần tử chuyển ${BILL.bytesMoved / N} byte, ${BILL.copies} lượt sao chép, ${BILL.frees} lượt giải phóng`) : undefined} />
       ) : (
-        <Shared cursor={ramp(p, 0.44, 0.9) * SCENE_METAL.calls.length} head="The same steps with one shared memory"
+        <Shared cursor={ramp(p, 0.44, 0.9) * SCENE_METAL.calls.length} head={t('The same steps with one shared memory', 'Chạy lại với một bộ nhớ dùng chung')}
           foot={p > 0.9
-            ? `${SHARED_END.bytesMoved} bytes across, ${SHARED_END.copies} copies, ${SHARED_END.frees} free calls, and still one wait before the read`
+            ? t(`${SHARED_END.bytesMoved} bytes across, ${SHARED_END.copies} copies, ${SHARED_END.frees} free calls, and still one wait before the read`, `chuyển ${SHARED_END.bytesMoved} byte, ${SHARED_END.copies} lượt sao chép, ${SHARED_END.frees} lượt giải phóng, vẫn chờ một lần trước khi đọc`)
             : undefined} />
       ),
   },
 ];
 
 export function RoundTripScene() {
-  return <Scene chapter="ch02" title="Three parts, two memories" beats={beats} />;
+  const { t } = useLanguage();
+  return <Scene chapter="ch02" title={t('Three parts, two memories', 'Ba phần, hai bộ nhớ')}
+    beats={beats.map((beat) => ({ ...beat, draw: (p) => beat.draw(p, t) }))} />;
 }

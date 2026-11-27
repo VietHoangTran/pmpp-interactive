@@ -59,4 +59,44 @@ export const vietnameseSections: Record<string, Pick<Section, 'title' | 'lede'>>
     title: 'Tóm tắt và tự kiểm tra',
     lede: 'Những điều cần nhớ trước khi sang chương 2, câu hỏi ôn tập cả chương, và những chỗ nội dung đã cũ hoặc bản PDF có lỗi.',
   },
+  'ch02/start': {
+    title: 'Trước khi bắt đầu',
+    lede: 'Xem chương này sẽ xây dựng chương trình gì, làm quen với kernel bạn sẽ tự viết và kiểm tra lại kiến thức cần dùng từ Chương 1.',
+  },
+  'ch02/2.1': {
+    title: 'Song song dữ liệu',
+    lede: 'Nhìn vào một phép toán và xác định các đầu ra có thể tính độc lập hay không. Mọi kernel trong chương này đều dựa vào tính chất đó.',
+  },
+  'ch02/2.2': {
+    title: 'Host và thiết bị trong chương trình CUDA',
+    lede: 'Đọc chương trình CUDA theo luồng host và các lưới luồng do nó khởi chạy. Xác định công việc đã đi đến đâu khi lệnh khởi chạy trả về.',
+  },
+  'ch02/2.3': {
+    title: 'Cộng vector và hàm bao phía host',
+    lede: 'Xác định ba phần của hàm host chuyển một vòng lặp sang thiết bị và tính chi phí của mỗi lượt chuyển dữ liệu qua lại.',
+  },
+  'ch02/2.4': {
+    title: 'Bộ nhớ thiết bị và truyền dữ liệu',
+    lede: 'Viết và kiểm tra các lời gọi cấp phát, sao chép và giải phóng. Xác định lời gọi nào có thể bỏ trên Apple silicon và công việc nào vẫn cần thực hiện.',
+  },
+  'ch02/2.5': {
+    title: 'Hàm kernel và các luồng',
+    lede: 'Viết kernel một chiều. Tính phần tử từ chỉ số block và luồng, chặn các luồng dư và xác định các biến riêng của mỗi luồng.',
+  },
+  'ch02/2.6': {
+    title: 'Khởi chạy kernel',
+    lede: 'Tính đúng số block cho mọi n, kiểm tra lỗi khởi chạy và giải thích vì sao kết quả phải độc lập với thứ tự thực thi của các block.',
+  },
+  'ch02/2.7': {
+    title: 'Biên dịch',
+    lede: 'Theo dõi một tệp mã nguồn qua trình biên dịch trên từng backend. Xác định phần nào biên dịch, gọi và thực thi từng hàm.',
+  },
+  'ch02/labs': {
+    title: 'Bài thực hành',
+    lede: 'Bốn lab trên GPU của bạn. Viết phép cộng vector, đo thời gian từng bước, xây dựng các phép toán theo phần tử và sửa một hàm bao có lỗi cài sẵn.',
+  },
+  'ch02/wrap': {
+    title: 'Tóm tắt và bài tập',
+    lede: 'Ôn tập cả chương, tìm phần giải thích tương ứng với từng bài tập của sách và đối chiếu những chỗ khác tài liệu hiện hành.',
+  },
 };

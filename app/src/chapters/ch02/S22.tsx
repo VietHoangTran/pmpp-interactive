@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Ask, Predict, type Question } from '../../components/Ask';
 import { Aside, Bench, Beyond, Simplification, Source, Today, type Tier } from '../../components/notes';
 import { Code, useLabFile } from '../../components/Code';
+import { useLanguage } from '../../lib/language';
 import { href } from '../../lib/router';
 import { elements } from '../../sim/depend';
 import {
@@ -18,6 +19,7 @@ import {
   stmtText,
   waitCovers,
   type Backend,
+  type GridState,
   type Options,
   type ReadOutcome,
   type Stmt,
@@ -25,11 +27,15 @@ import {
 } from '../../sim/timeline';
 
 const num = (v: number) => v.toLocaleString('en-US');
-const ticks = (n: number) => `${n} tick${n === 1 ? '' : 's'}`;
+type Translate = ReturnType<typeof useLanguage>['t'];
+const ticks = (n: number, t: Translate) => t(`${n} tick${n === 1 ? '' : 's'}`, `${n} nhịp`);
+const GRID_STATE_VI: Record<GridState, string> = {
+  'not launched': 'chưa khởi chạy', queued: 'đang chờ', running: 'đang chạy', finished: 'đã hoàn thành',
+};
 
 // ---------------------------------------------------------------- interactive: the two-lane timeline
 /** One sentence, built from the model, about the statement that has just returned. */
-function say(tl: Timeline, done: number, backend: Backend): { text: string; bad: boolean } {
+function say(tl: Timeline, done: number, backend: Backend, t: Translate): { text: string; bad: boolean } {
   if (done === 0)
     return { text: 'Nothing has run yet. Execution starts as one host thread, at statement 1. Press Step.', bad: false };
   const h = tl.host[done - 1];
@@ -43,16 +49,19 @@ function say(tl: Timeline, done: number, backend: Backend): { text: string; bad:
     const meanwhile = !launched.length
       ? 'Nothing has been launched yet, so the device was idle.'
       : during.length
-        ? `In that time the device ran ${during.map((x) => `grid ${x.grid} for ${ticks(x.ran)}`).join(' and ')}. Neither side waited for the other.`
+        ? t(
+          `In that time the device ran ${during.map((x) => `grid ${x.grid} for ${ticks(x.ran, t)}`).join(' and ')}. Neither side waited for the other.`,
+          `Trong lúc đó, thiết bị chạy ${during.map((x) => `lưới ${x.grid} trong ${ticks(x.ran, t)}`).join(' và ')}. Hai bên chạy độc lập.`,
+        )
         : 'The device was idle: every grid launched so far had already finished.';
-    return { text: `The host thread did its own work for ${ticks(len)}. ${meanwhile}`, bad: false };
+    return { text: `The host thread did its own work for ${ticks(len, t)}. ${meanwhile}`, bad: false };
   }
   if (s.kind === 'launch') {
     const ahead = tl.grids.find((g) => g.stmt < h.stmt && g.end > h.to);
-    const what = backend === 'metal' ? 'The commit' : 'The launch statement';
+    const what = backend === 'metal' ? t('The commit', 'Lệnh commit') : t('The launch statement', 'Lệnh khởi chạy');
     return {
       text:
-        `${what} returned at once (drawn as ${ticks(len)}). Grid ${s.grid} is queued: ` +
+        `${what} returned at once (drawn as ${ticks(len, t)}). Grid ${s.grid} is queued: ` +
         (ahead
           ? `it will start when grid ${ahead.grid} has finished. The host waited for neither of them.`
           : 'none of its threads has run yet, and the host is already at its next statement.'),
@@ -60,10 +69,10 @@ function say(tl: Timeline, done: number, backend: Backend): { text: string; bad:
     };
   }
   if (s.kind === 'wait') {
-    const waited = tl.grids.filter((g) => g.stmt < h.stmt && g.end > h.from).map((g) => 'grid ' + g.grid);
+    const waited = tl.grids.filter((g) => g.stmt < h.stmt && g.end > h.from).map((g) => t('grid ', 'lưới ') + g.grid);
     return {
       text: waited.length
-        ? `The host thread was blocked in ${WAIT_CALL[backend]} for ${ticks(len)}, until ${waited.join(' and ')} had finished. This is the only kind of statement in which the host waits.`
+        ? `The host thread was blocked in ${WAIT_CALL[backend]} for ${ticks(len, t)}, until ${waited.join(t(' and ', ' và '))} had finished. This is the only kind of statement in which the host waits.`
         : `${WAIT_CALL[backend]} had nothing left to wait for and returned at once.`,
       bad: false,
     };
@@ -76,10 +85,10 @@ function say(tl: Timeline, done: number, backend: Backend): { text: string; bad:
     };
   const parts = outs.map((o) =>
     o.outcome === 'not finished'
-      ? `Grid ${o.grid} was still ${gridStateAt(tl, o.grid, h.from)}: the host read whatever was in memory at that moment.`
+      ? t(`Grid ${o.grid} was still ${gridStateAt(tl, o.grid, h.from)}: the host read whatever was in memory at that moment.`, `Lưới ${o.grid} vẫn ${GRID_STATE_VI[gridStateAt(tl, o.grid, h.from)]}. Host đọc giá trị đang có trong bộ nhớ lúc đó.`)
       : o.outcome === 'finished by timing only'
-        ? `Grid ${o.grid} had finished, but only because the host work happened to take longer than the grid. Nothing in the program makes that so.`
-        : `Grid ${o.grid} was safe to read.`,
+        ? t(`Grid ${o.grid} had finished, but only because the host work happened to take longer than the grid. Nothing in the program makes that so.`, `Lưới ${o.grid} đã hoàn thành vì công việc host tình cờ mất lâu hơn. Chương trình chưa có lệnh nào bảo đảm thứ tự này.`)
+        : t(`Grid ${o.grid} was safe to read.`, `Có thể đọc an toàn kết quả từ lưới ${o.grid}.`),
   );
   return { text: 'The host read the results with no blocking call before it. ' + parts.join(' '), bad: true };
 }
@@ -88,6 +97,12 @@ const OUTCOME_TEXT: Record<ReadOutcome, string> = {
   guaranteed: 'finished on every run',
   'finished by timing only': 'finished, by timing only',
   'not finished': 'not finished',
+};
+
+const OUTCOME_TEXT_VI: Record<ReadOutcome, string> = {
+  guaranteed: 'hoàn thành ở mọi lần chạy',
+  'finished by timing only': 'tình cờ đã hoàn thành',
+  'not finished': 'chưa hoàn thành',
 };
 
 const WRAP = { whiteSpace: 'normal' } as const;
@@ -137,6 +152,7 @@ function ThreadBlock({ x, y, h, faint }: { x: number; y: number; h: number; fain
 }
 
 function TimelineBench() {
+  const { t } = useLanguage();
   const [opts, setOpts] = useState<Options>(BOOK_PICTURE);
   const [backend, setBackend] = useState<Backend>('cuda');
   const [step, setStep] = useState(0);
@@ -146,7 +162,7 @@ function TimelineBench() {
   const done = Math.min(step, n);
   const rep = report(tl, done);
   const now = rep.time;
-  const said = say(tl, done, backend);
+  const said = say(tl, done, backend, t);
   const reads = readOutcomes(tl, done);
   const finished = done === n;
 
@@ -342,7 +358,7 @@ function TimelineBench() {
                       <td style={{ whiteSpace: 'normal' }}>
                         <code data-out="stmt-text">{text(s, i)}</code>
                       </td>
-                      <td>{ran ? h.state : i === done ? <span className="muted">next</span> : ''}</td>
+                      <td>{ran ? t(h.state, h.state === 'blocked' ? 'bị chặn' : 'đang chạy') : i === done ? <span className="muted">next</span> : ''}</td>
                       <td>{ran ? `t = ${h.to}` : ''}</td>
                     </tr>
                   );
@@ -367,7 +383,7 @@ function TimelineBench() {
                     <tr key={g.grid}>
                       <td style={WRAP}>Grid {g.grid}</td>
                       <td>
-                        <output data-out={'grid-' + g.grid} data-state={g.state}>{g.state}</output>
+                        <output data-out={'grid-' + g.grid} data-state={g.state}>{t(g.state, GRID_STATE_VI[g.state])}</output>
                       </td>
                     </tr>
                   ))}
@@ -379,7 +395,7 @@ function TimelineBench() {
                         <td>
                           <output data-out={'read-' + g.grid} data-outcome={r ? r.outcome : 'not launched'}>
                             {r ? (
-                              <span className={'chip ' + (r.outcome === 'guaranteed' ? 'ok' : 'fail')}>{OUTCOME_TEXT[r.outcome]}</span>
+                              <span className={'chip ' + (r.outcome === 'guaranteed' ? 'ok' : 'fail')}>{t(OUTCOME_TEXT[r.outcome], OUTCOME_TEXT_VI[r.outcome])}</span>
                             ) : (
                               <span className="muted">not launched</span>
                             )}
@@ -399,7 +415,7 @@ function TimelineBench() {
                       <tr>
                         <td style={WRAP}>Host work done while a grid ran</td>
                         <td>
-                          <output data-out="overlap">{ticks(overlap(tl))}</output>
+                          <output data-out="overlap">{ticks(overlap(tl), t)}</output>
                         </td>
                       </tr>
                     </>

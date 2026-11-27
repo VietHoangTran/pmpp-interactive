@@ -12,21 +12,25 @@ export const chapter: Chapter = {
       id: 'start', num: '', title: 'Before you start', pages: '21',
       lede: 'Know what this chapter builds, see the one-line kernel you will be able to write by the end, and check what it assumes from chapter 1.',
       load: () => import('./S20').then((m) => ({ Component: m.S20, questions: m.questionsS20 })),
+      vietnamese: () => import('./S20?pmpp-language=vi').then((m) => ({ Component: m.S20, questions: m.questionsS20 })),
     },
     {
       id: '2.1', num: '2.1', title: 'Data parallelism', pages: '21–23',
       lede: 'Look at an operation and say whether its outputs can be computed independently, which is the property every kernel in this chapter relies on.',
       load: () => import('./S21').then((m) => ({ Component: m.S21, questions: m.questionsS21 })),
+      vietnamese: () => import('./S21?pmpp-language=vi').then((m) => ({ Component: m.S21, questions: m.questionsS21 })),
     },
     {
       id: '2.2', num: '2.2', title: 'Host and device: the shape of a CUDA program', pages: '24–25',
       lede: 'Read a CUDA program as one host thread that launches grids of device threads, and say what has and has not happened when a launch statement returns.',
       load: () => import('./S22').then((m) => ({ Component: m.S22, questions: m.questionsS22 })),
+      vietnamese: () => import('./S22?pmpp-language=vi').then((m) => ({ Component: m.S22, questions: m.questionsS22 })),
     },
     {
       id: '2.3', num: '2.3', title: 'Vector addition and the host stub', pages: '26–28',
       lede: 'Lay out the three parts of a host function that moves a loop to the device, and count what each round trip across the host/device boundary costs.',
       load: () => import('./S23').then((m) => ({ Component: m.S23, questions: m.questionsS23 })),
+      vietnamese: () => import('./S23?pmpp-language=vi').then((m) => ({ Component: m.S23, questions: m.questionsS23 })),
     },
     {
       id: '2.4', num: '2.4', title: 'Device memory and data transfer', pages: '28–32',

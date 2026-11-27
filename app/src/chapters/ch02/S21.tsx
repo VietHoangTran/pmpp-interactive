@@ -27,41 +27,81 @@ import {
   type Op,
   type Params,
 } from '../../sim/depend';
+import { useLanguage } from '../../lib/language';
 import { OrderScene } from './OrderScene';
 
 const num = (v: number) => v.toLocaleString('en-US');
 const plural = (n: number, one: string, many = one + 's') => `${num(n)} ${n === 1 ? one : many}`;
 
+type Translate = ReturnType<typeof useLanguage>['t'];
+
+const OP_LABEL_VI: Record<Op, string> = {
+  grayscale: 'Chuyển sang ảnh xám', vecadd: 'Cộng vector', biasadd: 'Cộng bias', blur: 'Làm mờ một chiều',
+  mean: 'Trung bình tất cả phần tử', neighbour: 'Cộng hai phần tử kề, ghi sang mảng khác',
+  inplace: 'Tổng tích lũy tại chỗ', softmax: 'Softmax trên một hàng',
+};
+
+const OP_NOTE_VI: Partial<Record<Op, string>> = {
+  neighbour: 'x[-1] được tính là 0',
+  inplace: 'x[-1] được tính là 0',
+  blur: 'r là bán kính',
+  biasadd: 'd là số phần tử mỗi hàng',
+  softmax: 'Công thức trực tiếp. Kernel thực tế trừ giá trị lớn nhất trong hàng trước để ổn định số học. Đó là giá trị thứ hai phải tổng hợp từ cả hàng, như chương 10 và cột mốc M4 trình bày.',
+};
+
+const BIN_LABEL_VI: Record<Bin, string> = {
+  elementwise: 'Độc lập theo phần tử', manyreads: 'Đầu ra độc lập, đọc nhiều giá trị',
+  combine: 'Cần tổng hợp trước', chain: 'Chuỗi phụ thuộc',
+};
+
+const BIN_LONG_VI: Record<Bin, string> = {
+  elementwise: 'Các phần tử độc lập, mỗi luồng tính một đầu ra bằng một dòng công việc.',
+  manyreads: 'Các đầu ra độc lập nhưng mỗi đầu ra đọc nhiều đầu vào. Mỗi luồng có một vòng lặp.',
+  combine: 'Trước khi tính đầu ra, cần tổng hợp một giá trị từ cả hàng hoặc cả mảng.',
+  chain: 'Mỗi đầu ra cần kết quả ngay trước nó.',
+};
+
+const DECODE_LABEL_VI: Record<string, string> = {
+  residual: 'Cộng residual', bias: 'Cộng bias', scale: 'Nhân với hằng số', gelu: 'GELU',
+  linear: 'Nhân ma trận ở lớp tuyến tính', layernorm: 'Chuẩn hóa lớp', kvappend: 'Ghi thêm vào KV cache',
+  softmax: 'Softmax trên toàn bộ từ vựng', argmax: 'Argmax',
+  cumprob: 'Xác suất tích lũy cho top-p', genloop: 'Vòng lặp sinh văn bản bao quanh bước giải mã',
+};
+
 // ---------------------------------------------------------------- interactive A: what does one output read?
 type Pick = { row: 'out' | 'combine'; i: number };
 
 /** "x[4] and x[5]", "in[6] to in[10]", "I[9], I[10] and I[11]". */
-function listCells(array: string, idx: number[]): string {
+function listCells(array: string, idx: number[], t: Translate): string {
   const name = (i: number) => `${array}[${i}]`;
-  if (idx.length === 0) return 'nothing';
+  if (idx.length === 0) return t('nothing', 'không có');
   if (idx.length === 1) return name(idx[0]);
   const contiguous = idx.every((v, i) => i === 0 || v === idx[i - 1] + 1);
-  if (contiguous && idx.length > 3) return `${name(idx[0])} to ${name(idx[idx.length - 1])}`;
-  return idx.slice(0, -1).map(name).join(', ') + ' and ' + name(idx[idx.length - 1]);
+  if (contiguous && idx.length > 3) return `${name(idx[0])} ${t('to', 'đến')} ${name(idx[idx.length - 1])}`;
+  return idx.slice(0, -1).map(name).join(', ') + t(' and ', ' và ') + name(idx[idx.length - 1]);
 }
 
-const outName = (op: Op, k: number) => (op === 'mean' ? 'The mean' : `${shape(op).output.name}[${k}]`);
-const combineName = (op: Op, c: number) => (op === 'mean' ? `partial sum ${c}` : `the sum of row ${c}`);
+const outName = (op: Op, k: number, t: Translate) => (op === 'mean' ? t('The mean', 'Giá trị trung bình') : `${shape(op).output.name}[${k}]`);
+const combineName = (op: Op, c: number, t: Translate) => op === 'mean'
+  ? t(`partial sum ${c}`, `tổng từng phần ${c}`)
+  : t(`the sum of row ${c}`, `tổng của hàng ${c}`);
 
 /** One sentence, built from the model, saying what the picked cell reads. */
-function describe(op: Op, pick: Pick, p: Params): { text: string; bad: boolean } {
+function describe(op: Op, pick: Pick, p: Params, t: Translate): { text: string; bad: boolean } {
   if (pick.row === 'combine') {
     const r = combineReads(op, pick.i, p);
-    const what = op === 'mean' ? `Partial sum ${pick.i}` : `The sum of row ${pick.i}`;
+    const what = op === 'mean'
+      ? t(`Partial sum ${pick.i}`, `Tổng từng phần ${pick.i}`)
+      : t(`The sum of row ${pick.i}`, `Tổng của hàng ${pick.i}`);
     return {
-      text: `${what} is built from ${listCells(r.array, r.indices)}: ${plural(r.indices.length, 'input')}, and no other ${op === 'mean' ? 'partial sum' : 'row sum'}. Each of these can be computed without the others.`,
+      text: `${what} is built from ${listCells(r.array, r.indices, t)}: ${t(plural(r.indices.length, 'input'), `${r.indices.length} đầu vào`)}, and no other ${op === 'mean' ? t('partial sum', 'tổng từng phần') : t('row sum', 'tổng hàng')}. Each of these can be computed without the others.`,
       bad: false,
     };
   }
   const r = reads(op, pick.i, p);
   const c = counts(op, pick.i, p);
-  const own = r.inputs.map((a) => listCells(a.array, a.indices)).join(', and ');
-  const name = outName(op, pick.i);
+  const own = r.inputs.map((a) => listCells(a.array, a.indices, t)).join(t(', and ', ', và '));
+  const name = outName(op, pick.i, t);
   if (r.chain.length) {
     const first = r.outputs[0];
     const o = shape(op, p).output.name;
@@ -69,23 +109,23 @@ function describe(op: Op, pick: Pick, p: Params): { text: string; bad: boolean }
       text:
         `${name} reads ${own} as it was before the loop, and it needs the new value of ${o}[${first}], which is another output. ` +
         (r.chain.length > 1
-          ? `That one needs ${o}[${first - 1}], and so on back to ${o}[0]: ${plural(r.chain.length, 'output')} must exist first, in order.`
+          ? `That one needs ${o}[${first - 1}], and so on back to ${o}[0]: ${t(plural(r.chain.length, 'output'), `${r.chain.length} đầu ra`)} must exist first, in order.`
           : `1 output must exist first.`),
       bad: true,
     };
   }
   if (c.combines) {
-    const parts = r.combines.map((x) => combineName(op, x));
-    const which = parts.length === 1 ? parts[0] : `${plural(parts.length, 'partial sum')}`;
+    const parts = r.combines.map((x) => combineName(op, x, t));
+    const which = parts.length === 1 ? parts[0] : t(plural(parts.length, 'partial sum'), `${parts.length} tổng từng phần`);
     return {
       text:
         (c.inputs ? `${name} reads ${own} itself and needs ` : `${name} reads no input itself. It needs `) +
-        `${which} first, built from ${plural(c.viaCombines, 'input')} in all. It needs no other output.`,
+        `${which} first, built from ${t(plural(c.viaCombines, 'input'), `${c.viaCombines} đầu vào`)} in all. It needs no other output.`,
       bad: false,
     };
   }
   return {
-    text: `${name} reads ${own}: ${plural(c.inputs, 'input')}. It needs no other output, so its thread can run at any time.`,
+    text: `${name} reads ${own}: ${t(plural(c.inputs, 'input'), `${c.inputs} đầu vào`)}. It needs no other output, so its thread can run at any time.`,
     bad: false,
   };
 }
@@ -112,6 +152,8 @@ const LEFT = 104;
 const CH = 30;
 
 function ReadExplorer() {
+  const { t } = useLanguage();
+  const label = (op: Op) => t(OP_LABEL[op], OP_LABEL_VI[op]);
   const [op, setOp] = useState<Op>('grayscale');
   const [radius, setRadius] = useState(1);
   const [chunk, setChunk] = useState(16);
@@ -139,7 +181,7 @@ function ReadExplorer() {
     const cr = combineReads(op, pick.i, p);
     direct.set(cr.array, new Set(cr.indices));
   }
-  const said = describe(op, pick, p);
+  const said = describe(op, pick, p, t);
   const orders = useMemo(() => underOrders(op, undefined, p), [op, p]);
   const allMatch = orders.every((o) => o.matches);
   const bin = classify(op);
@@ -284,7 +326,7 @@ function ReadExplorer() {
         <div className="row" role="group" aria-label="Operation" style={{ gap: '0.4rem', marginBottom: '0.8rem' }}>
           {OPS.map((o) => (
             <button key={o} className="quiet" data-op-choice={o} aria-pressed={o === op} onClick={() => choose(o)}>
-              {OP_LABEL[o]}
+              {label(o)}
             </button>
           ))}
         </div>
@@ -292,7 +334,7 @@ function ReadExplorer() {
           <span>
             {s.output.length > 1 ? <span className="muted">for each k: </span> : null}
             <code data-out="body">{OP_BODY[op]}</code>
-            {OP_NOTE[op] ? <span className="muted"> ({OP_NOTE[op]})</span> : null}
+            {OP_NOTE[op] ? <span className="muted"> ({t(OP_NOTE[op] ?? '', OP_NOTE_VI[op] ?? '')})</span> : null}
           </span>
           {op === 'blur' ? (
             <label className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
@@ -318,7 +360,7 @@ function ReadExplorer() {
         </div>
 
         <div className="panel" style={{ overflowX: 'auto' }} ref={scroller}>
-          <svg viewBox={`0 0 ${VBW} ${height}`} role="group" aria-label={`Cells of ${OP_LABEL[op]}: inputs above, outputs below`}
+          <svg viewBox={`0 0 ${VBW} ${height}`} role="group" aria-label={`Cells of ${label(op)}: inputs above, outputs below`}
             style={{ width: '100%', minWidth: 620, maxWidth: VBW, display: 'block' }}>
             <defs>
               <marker id="dep-arrow" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -330,8 +372,8 @@ function ReadExplorer() {
               <g key={a.name}>
                 {rowLabel(
                   inY(ai),
-                  s.inPlace ? `${a.name} before` : a.name,
-                  op === 'grayscale' ? 'input, r g b' : s.inPlace ? 'the values read' : 'input',
+                  s.inPlace ? t(`${a.name} before`, `${a.name} ban đầu`) : a.name,
+                  op === 'grayscale' ? t('input, r g b', 'đầu vào, r g b') : s.inPlace ? t('the values read', 'giá trị được đọc') : t('input', 'đầu vào'),
                 )}
                 {Array.from({ length: a.length }, (_, i) => {
                   const isRead = direct.get(a.name)?.has(i);
@@ -352,7 +394,7 @@ function ReadExplorer() {
             ))}
             {s.combine ? (
               <g>
-                {rowLabel(combineY, s.combine.name, 'combined first')}
+                {rowLabel(combineY, s.combine.name, t('combined first', 'tổng hợp trước'))}
                 {Array.from({ length: s.combine.length }, (_, x) =>
                   cell(
                     `combine:${x}`,
@@ -362,13 +404,13 @@ function ReadExplorer() {
                     op === 'mean' ? `sum ${x}` : `sum of row ${x}`,
                     pick.row === 'combine' && pick.i === x ? 'picked' : needCombine.has(x) ? 'needed' : 'idle',
                     () => setPicked({ row: 'combine', i: x }),
-                    `${combineName(op, x)}: show what it reads`,
+                    `${combineName(op, x, t)}: show what it reads`,
                   ),
                 )}
               </g>
             ) : null}
             <g>
-              {rowLabel(outY, s.inPlace ? `${s.output.name} after` : s.output.name, s.inPlace ? 'same memory' : 'output')}
+              {rowLabel(outY, s.inPlace ? t(`${s.output.name} after`, `${s.output.name} sau khi ghi`) : s.output.name, s.inPlace ? t('same memory', 'cùng bộ nhớ') : t('output', 'đầu ra'))}
               {Array.from({ length: outLen }, (_, k) =>
                 cell(
                   `out:${k}`,
@@ -417,7 +459,7 @@ function ReadExplorer() {
                 <tr>
                   <td style={WRAP}>Shape of the operation</td>
                   <td style={WRAP}>
-                    <output data-out="bin" data-bin={bin}>{BIN_LABEL[bin]}</output>
+                    <output data-out="bin" data-bin={bin}>{t(BIN_LABEL[bin], BIN_LABEL_VI[bin])}</output>
                   </td>
                 </tr>
                 <tr>
@@ -451,7 +493,15 @@ const SHORT: Record<Bin, string> = {
   chain: 'Chain',
 };
 
-const course = (id: string, text: string) => <a href={href(id)}>{text}</a>;
+function CourseLink({ id, text }: { id: string; text: string }) {
+  const { t } = useLanguage();
+  const vietnamese = text
+    .replace(/^Chapter/, 'Chương')
+    .replace(/^chapter/, 'chương')
+    .replace(/^module/, 'mô-đun');
+  return <a href={href(id)}>{t(text, vietnamese)}</a>;
+}
+const course = (id: string, text: string) => <CourseLink id={id} text={text} />;
 
 /** What the reader sees once an item is in the right bin: its read set from the model, and where its kernel is written. */
 const PLACED: Record<string, (it: DecodeItem) => ReactNode> = {
@@ -534,7 +584,7 @@ const PLACED: Record<string, (it: DecodeItem) => ReactNode> = {
 };
 
 /** Why a wrong bin is wrong, said from the item's dependency facts. */
-function whyNot(it: DecodeItem, pick: Bin): ReactNode {
+function whyNot(it: DecodeItem, pick: Bin, t: Translate): ReactNode {
   const d = it.deps;
   const actual = classifyDeps(d);
   if (pick === 'chain')
@@ -546,26 +596,28 @@ function whyNot(it: DecodeItem, pick: Bin): ReactNode {
   if (actual === 'combine')
     return (
       <>
-        An output cannot be computed from its own inputs alone. It needs {plural(d.combines, 'value')} built from the
+        An output cannot be computed from its own inputs alone. It needs {t(plural(d.combines, 'value'), `${d.combines} giá trị`)} built from the
         whole row first.
       </>
     );
   if (pick === 'manyreads')
     return (
       <>
-        One output reads {plural(d.reads(4096), 'input')} however large the tensor is. The number does not grow with
-        the {it.sizeName}.
+        One output reads {t(plural(d.reads(4096), 'input'), `${num(d.reads(4096))} đầu vào`)} however large the tensor is. The number does not grow with
+        the {t(it.sizeName, it.sizeName === 'hidden size' ? 'kích thước ẩn' : 'độ rộng đầu vào d')}.
       </>
     );
   return (
     <>
-      Count what one output reads: {num(d.reads(4096))} values when the {it.sizeName} is 4,096, and twice as many when
+      Count what one output reads: {num(d.reads(4096))} values when the {t(it.sizeName, it.sizeName === 'hidden size' ? 'kích thước ẩn' : 'độ rộng đầu vào d')} is 4,096, and twice as many when
       it doubles. That is a loop inside each thread, not one line.
     </>
   );
 }
 
 function SortDecodeStep() {
+  const { t } = useLanguage();
+  const itemLabel = (item: DecodeItem) => t(item.label, DECODE_LABEL_VI[item.id] ?? item.label);
   const [picks, setPicks] = useState<Record<string, Bin | undefined>>({});
   const placed = DECODE_ITEMS.filter((it) => picks[it.id] === classifyDeps(it.deps)).length;
   const tally = binCounts();
@@ -584,8 +636,8 @@ function SortDecodeStep() {
             <tbody>
               {BINS.map((b) => (
                 <tr key={b}>
-                  <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>{SHORT[b]}</td>
-                  <td style={{ whiteSpace: 'normal' }}>{BIN_LONG[b]}</td>
+                  <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>{t(SHORT[b], BIN_LABEL_VI[b])}</td>
+                  <td style={{ whiteSpace: 'normal' }}>{t(BIN_LONG[b], BIN_LONG_VI[b])}</td>
                 </tr>
               ))}
             </tbody>
@@ -606,13 +658,13 @@ function SortDecodeStep() {
               <div key={it.id} data-card={it.id} data-solved={done ? 'true' : 'false'}
                 style={{ padding: '0.75rem 0', borderTop: n ? '1px solid var(--rule-soft)' : undefined }}>
                 <p style={{ margin: '0 0 0.5rem', maxWidth: '46rem', fontSize: '0.92rem' }}>
-                  <span className="muted">{n + 1}.</span> <b>{it.label}</b> <code>{it.body}</code>
+                  <span className="muted">{n + 1}.</span> <b>{itemLabel(it)}</b> <code>{it.body}</code>
                 </p>
-                <div className="row" style={{ gap: '0.4rem' }} role="group" aria-label={`Bin for ${it.label}`}>
+                <div className="row" style={{ gap: '0.4rem' }} role="group" aria-label={`Bin for ${itemLabel(it)}`}>
                   {BINS.map((b) => (
                     <button key={b} className="quiet" data-choice={b} aria-pressed={pick === b} disabled={done && b !== answer}
                       onClick={() => (done ? undefined : setPicks((s) => ({ ...s, [it.id]: b })))}>
-                      {SHORT[b]}
+                      {t(SHORT[b], BIN_LABEL_VI[b])}
                     </button>
                   ))}
                 </div>
@@ -624,7 +676,7 @@ function SortDecodeStep() {
                       </>
                     ) : (
                       <>
-                        <span className="chip fail">not this one</span> {whyNot(it, pick)}
+                        <span className="chip fail">not this one</span> {whyNot(it, pick, t)}
                       </>
                     )}
                   </p>
