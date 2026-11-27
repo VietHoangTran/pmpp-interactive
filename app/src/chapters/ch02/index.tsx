@@ -36,6 +36,7 @@ export const chapter: Chapter = {
       id: '2.4', num: '2.4', title: 'Device memory and data transfer', pages: '28–32',
       lede: 'Write and check the allocation, copy and free calls of a host stub, and say exactly which of them disappear on Apple silicon and what you still owe in their place.',
       load: () => import('./S24').then((m) => ({ Component: m.S24, questions: m.questionsS24 })),
+      vietnamese: () => import('./S24?pmpp-language=vi').then((m) => ({ Component: m.S24, questions: m.questionsS24 })),
     },
     {
       id: '2.5', num: '2.5', title: 'Kernel functions and threading', pages: '32–37',

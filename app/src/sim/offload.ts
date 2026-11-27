@@ -373,14 +373,16 @@ function note(w: Work, step: number, kind: FindingKind, detail: string, env: Env
   }
 }
 
-function runKernel(w: Work, p: Program, step: number, env: Env) {
+type OffloadText = (english: string, vietnamese: string) => string;
+
+function runKernel(w: Work, p: Program, step: number, env: Env, tr: OffloadText) {
   const { A, B, C } = w.device;
   w.kernel = 'done';
   if (!A || !B || !C) return;
   for (const [name, arr] of [['A', A], ['B', B], ['C', C]] as const) {
-    if (arr.freed) note(w, step, 'use-after-free', `the kernel touches ${name}_d after it was freed`, env);
+    if (arr.freed) note(w, step, 'use-after-free', tr(`the kernel touches ${name}_d after it was freed`, `kernel dùng ${name}_d sau khi vùng nhớ đã được giải phóng`), env);
     else if (arr.cells.length < p.n)
-      note(w, step, 'out-of-bounds', `the kernel indexes ${p.n} elements of ${name}_d, which holds ${arr.cells.length}`, env);
+      note(w, step, 'out-of-bounds', tr(`the kernel indexes ${p.n} elements of ${name}_d, which holds ${arr.cells.length}`, `kernel lập chỉ số ${p.n} phần tử của ${name}_d, nhưng vùng nhớ chỉ chứa ${arr.cells.length} phần tử`), env);
   }
   if (w.stoppedAt != null) return;
   for (let i = 0; i < Math.min(p.n, C.cells.length); i++)
@@ -389,14 +391,14 @@ function runKernel(w: Work, p: Program, step: number, env: Env) {
 }
 
 /** Everything issued so far finishes: what a blocking call or a wait brings about. */
-function drain(w: Work, p: Program, step: number, env: Env) {
+function drain(w: Work, p: Program, step: number, env: Env, tr: OffloadText) {
   if (!w.queue.length) return;
   w.ran = [...w.queue];
   w.queue = [];
-  runKernel(w, p, step, env);
+  runKernel(w, p, step, env, tr);
 }
 
-function exec(w: Work, p: Program, call: Call, step: number, env: Env) {
+function exec(w: Work, p: Program, call: Call, step: number, env: Env, tr: OffloadText) {
   const o = call.op;
   const hostName = (a: ArrayId) => `${a}_h`;
   const devName = (a: ArrayId) => (p.backend === 'metal' ? `buffer ${a}` : `${a}_d`);
@@ -408,8 +410,8 @@ function exec(w: Work, p: Program, call: Call, step: number, env: Env) {
       const cells = Math.floor(o.bytes / FLOAT_BYTES);
       w.device[o.array] = { cells: Array<Cell>(cells).fill(fresh(p, env)), bytes: o.bytes, freed: false, inFlight: false };
       w.says = p.backend === 'metal'
-        ? `Buffer ${o.array}: ${o.bytes} bytes, filled with zeros. Both the CPU and the GPU can use it.`
-        : `${devName(o.array)} now holds the address of ${o.bytes} bytes of device memory. The memory is not cleared, and the host cannot read it.`;
+        ? tr(`Buffer ${o.array}: ${o.bytes} bytes, filled with zeros. Both the CPU and the GPU can use it.`, `Buffer ${o.array} gồm ${o.bytes} byte đã điền số 0. CPU và GPU đều dùng được.`)
+        : tr(`${devName(o.array)} now holds the address of ${o.bytes} bytes of device memory. The memory is not cleared, and the host cannot read it.`, `${devName(o.array)} giữ địa chỉ vùng nhớ thiết bị dài ${o.bytes} byte. Vùng nhớ chưa được xóa và host không thể đọc trực tiếp.`);
       return;
     }
     case 'alloc-copy': {
@@ -418,14 +420,14 @@ function exec(w: Work, p: Program, call: Call, step: number, env: Env) {
       w.device[o.array] = { cells: src.slice(0, cells), bytes: o.bytes, freed: false, inFlight: false };
       w.bytesMoved += o.bytes;
       w.copies += 1;
-      w.says = `A new buffer, and ${o.bytes} bytes copied into it from ${hostName(o.array)}: the caller's array was not in a buffer, so it has to be put in one.`;
+      w.says = tr(`A new buffer, and ${o.bytes} bytes copied into it from ${hostName(o.array)}: the caller's array was not in a buffer, so it has to be put in one.`, `Tạo buffer mới rồi chép ${o.bytes} byte từ ${hostName(o.array)}. Mảng của bên gọi chưa nằm trong buffer nên phải chép vào.`);
       return;
     }
     case 'fill': {
       const arr = w.device[o.array]!;
       const data = inputs(p.n)[o.array as 'A' | 'B'];
       for (let i = 0; i < arr.cells.length; i++) arr.cells[i] = data[i];
-      w.says = `The caller produces ${o.array} straight into the buffer through its contents pointer. Nothing is copied, because the data never existed anywhere else.`;
+      w.says = tr(`The caller produces ${o.array} straight into the buffer through its contents pointer. Nothing is copied, because the data never existed anywhere else.`, `Bên gọi tạo ${o.array} trực tiếp trong buffer qua con trỏ contents. Dữ liệu chỉ tồn tại ở đó nên không cần sao chép.`);
       return;
     }
     case 'copy': {
@@ -433,7 +435,7 @@ function exec(w: Work, p: Program, call: Call, step: number, env: Env) {
       if (p.memory === 'separate') {
         // A blocking copy in the same in-order stream as the launch (facts A4, A5).
         w.hostThread = 'blocked';
-        drain(w, p, step, env);
+        drain(w, p, step, env, tr);
         if (w.stoppedAt != null) return;
       }
       const matches = o.kind === 'h2d' ? o.dst.side === 'device' && o.src.side === 'host' : o.dst.side === 'host' && o.src.side === 'device';
@@ -445,36 +447,38 @@ function exec(w: Work, p: Program, call: Call, step: number, env: Env) {
       const toHostC = o.dst.side === 'host' && o.dst.array === 'C';
       if (!matches && env !== 'emu') {
         // "dst and src pointers that do not match the direction of the copy results in an undefined behavior"
-        note(w, step, 'undefined-per-docs', 'the pointers do not match the copy kind', env);
+        note(w, step, 'undefined-per-docs', tr('the pointers do not match the copy kind', 'các con trỏ không khớp kiểu sao chép'), env);
         // After undefined behaviour neither array the call was handed has known contents.
         dst?.fill('undetermined');
         src?.fill('undetermined');
-        w.says = 'The destination is a device pointer and the source a host pointer, but the kind says device to host. The documentation calls that undefined behaviour and promises no error code.';
+        w.says = tr('The destination is a device pointer and the source a host pointer, but the kind says device to host. The documentation calls that undefined behaviour and promises no error code.', 'Đích là con trỏ thiết bị và nguồn là con trỏ host, nhưng kiểu lại ghi thiết bị về host. Tài liệu quy định hành vi không xác định và không bảo đảm mã lỗi.');
         return;
       }
       if (!dst || !src) return;
       for (const r of [o.src, o.dst])
         if (r.side === 'device' && w.device[r.array]?.freed)
-          note(w, step, 'use-after-free', `the copy ${r === o.src ? 'reads' : 'writes'} ${devName(r.array)} after it was freed`, env);
+          note(w, step, 'use-after-free', tr(`the copy ${r === o.src ? 'reads' : 'writes'} ${devName(r.array)} after it was freed`, `lượt sao chép ${r === o.src ? 'đọc' : 'ghi'} ${devName(r.array)} sau khi vùng nhớ đã được giải phóng`), env);
       if (src.length < count)
-        note(w, step, 'out-of-bounds', `the copy reads ${o.bytes} bytes from an allocation of ${src.length * FLOAT_BYTES}`, env);
+        note(w, step, 'out-of-bounds', tr(`the copy reads ${o.bytes} bytes from an allocation of ${src.length * FLOAT_BYTES}`, `lượt sao chép đọc ${o.bytes} byte từ vùng cấp phát ${src.length * FLOAT_BYTES} byte`), env);
       if (dst.length < count)
-        note(w, step, 'out-of-bounds', `the copy writes ${o.bytes} bytes into an allocation of ${dst.length * FLOAT_BYTES}`, env);
+        note(w, step, 'out-of-bounds', tr(`the copy writes ${o.bytes} bytes into an allocation of ${dst.length * FLOAT_BYTES}`, `lượt sao chép ghi ${o.bytes} byte vào vùng cấp phát ${dst.length * FLOAT_BYTES} byte`), env);
       if (w.stoppedAt != null) return;
       const inFlight = o.src.side === 'device' && !!w.device[o.src.array]?.inFlight;
       for (let i = 0; i < Math.min(count, dst.length); i++)
         dst[i] = w.tainted || inFlight ? 'undetermined' : src[i] ?? 'undetermined';
       if (toHostC)
         w.copiedBack = w.kernel !== 'done' ? 'before the kernel finished' : count < p.n ? 'in part' : 'yes';
-      const what = `${o.bytes} bytes from ${o.src.side === 'host' ? hostName(o.src.array) : devName(o.src.array)} to ${o.dst.side === 'host' ? hostName(o.dst.array) : devName(o.dst.array)}`;
-      if (p.memory === 'shared') w.says = `An ordinary memcpy of ${what}: the caller wants its result in its own array.`;
-      else if (w.ran.length) w.says = `The host waits in this call: first the kernel issued before it finishes, then ${what} cross the boundary.`;
-      else w.says = `The host waits in this call while ${what} cross the boundary.`;
-      if (count < p.n) w.says += ` That is ${count} of the ${p.n} elements.`;
+      const source = o.src.side === 'host' ? hostName(o.src.array) : devName(o.src.array);
+      const destination = o.dst.side === 'host' ? hostName(o.dst.array) : devName(o.dst.array);
+      const what = tr(`${o.bytes} bytes from ${source} to ${destination}`, `${o.bytes} byte từ ${source} đến ${destination}`);
+      if (p.memory === 'shared') w.says = tr(`An ordinary memcpy of ${what}: the caller wants its result in its own array.`, `memcpy thông thường, chép ${what}. Bên gọi cần kết quả trong mảng riêng.`);
+      else if (w.ran.length) w.says = tr(`The host waits in this call: first the kernel issued before it finishes, then ${what} cross the boundary.`, `Host chờ kernel trước đó xong, rồi chờ chép ${what} qua ranh giới.`);
+      else w.says = tr(`The host waits in this call while ${what} cross the boundary.`, `Host chờ trong lúc chép ${what} qua ranh giới.`);
+      if (count < p.n) w.says += tr(` That is ${count} of the ${p.n} elements.`, ` Đó là ${count}/${p.n} phần tử.`);
       return;
     }
     case 'encode':
-      w.says = 'Eight calls describe the work: which kernel, which buffers, how many threads. Nothing has been sent to the GPU yet.';
+      w.says = tr('Eight calls describe the work: which kernel, which buffers, how many threads. Nothing has been sent to the GPU yet.', 'Tám lời gọi mô tả kernel, các buffer và số luồng. Công việc chưa được gửi đến GPU.');
       return;
     case 'launch': {
       w.queue.push(KERNEL[p.backend]);
@@ -482,51 +486,51 @@ function exec(w: Work, p: Program, call: Call, step: number, env: Env) {
       const C = w.device.C;
       if (C && !C.freed) C.inFlight = true;
       w.says = p.backend === 'metal'
-        ? 'The command buffer is committed and the call returns. The GPU will run the kernel when it gets to it; the host carries on.'
-        : 'The launch returns at once. The kernel is set up to run on the device; the host does not wait for it to finish, or even to start.';
+        ? tr('The command buffer is committed and the call returns. The GPU will run the kernel when it gets to it; the host carries on.', 'Command buffer được gửi đi rồi lời gọi trả về. Host tiếp tục và GPU chạy kernel khi đến lượt.')
+        : tr('The launch returns at once. The kernel is set up to run on the device; the host does not wait for it to finish, or even to start.', 'Lệnh khởi chạy trả về ngay. Kernel đã được chuẩn bị để chạy trên thiết bị. Host tiếp tục mà không đợi kernel bắt đầu hay hoàn thành.');
       if (env === 'emu') {
-        drain(w, p, step, env); // the emulator runs the grid to completion inside the launch
-        w.says = 'The emulator runs the whole grid inside the launch statement.';
+        drain(w, p, step, env, tr); // the emulator runs the grid to completion inside the launch
+        w.says = tr('The emulator runs the whole grid inside the launch statement.', 'Trình giả lập chạy hết lưới ngay trong câu lệnh khởi chạy.');
       }
       return;
     }
     case 'wait':
       w.hostThread = 'blocked';
-      drain(w, p, step, env);
-      w.says = 'The host blocks here until the GPU has finished the command buffer. Only now are the contents of C the result.';
+      drain(w, p, step, env, tr);
+      w.says = tr('The host blocks here until the GPU has finished the command buffer. Only now are the contents of C the result.', 'Host chờ đến khi GPU hoàn thành command buffer. Lúc này nội dung của C mới là kết quả.');
       return;
     case 'read': {
       const C = w.device.C;
       // Before the wait the read succeeds, and what it sees is not defined once the GPU may be writing.
       w.consumed = !C ? [] : w.kernel === 'issued' ? C.cells.map(() => 'undetermined' as Cell) : C.cells.slice();
       w.says = w.kernel === 'done'
-        ? 'The caller reads the sums through the contents pointer of C. No copy: it is the same memory the kernel wrote.'
-        : 'The caller reads C through its contents pointer before the GPU work on it has completed. The read succeeds and the values are not the result.';
+        ? tr('The caller reads the sums through the contents pointer of C. No copy: it is the same memory the kernel wrote.', 'Bên gọi đọc tổng qua con trỏ contents của C. Không cần chép vì đây là cùng vùng nhớ kernel đã ghi.')
+        : tr('The caller reads C through its contents pointer before the GPU work on it has completed. The read succeeds and the values are not the result.', 'Bên gọi đọc C qua contents trước khi GPU làm xong. Lượt đọc thực hiện được nhưng giá trị đọc chưa phải kết quả.');
       return;
     }
     case 'free': {
       // hipFree always synchronises first (B1); cudaFree may (A3).
       if (w.queue.length) {
         w.hostThread = 'blocked';
-        drain(w, p, step, env);
+        drain(w, p, step, env, tr);
         if (w.stoppedAt != null) return;
       }
       const arr = w.device[o.array];
       if (arr) arr.freed = true;
       w.frees += 1;
-      w.says = `${devName(o.array)} is returned to the device's pool. The variable still holds the old address, which now means nothing.`;
+      w.says = tr(`${devName(o.array)} is returned to the device's pool. The variable still holds the old address, which now means nothing.`, `Vùng nhớ ${devName(o.array)} được trả về kho cấp phát của thiết bị. Biến vẫn giữ địa chỉ cũ và không còn dùng được.`);
       return;
     }
     case 'host-deref': {
       if (env === 'cuda')
-        note(w, step, 'not-allowed', `host code reads ${devName(o.array)}[0]: device memory is only accessible to kernels`, env);
+        note(w, step, 'not-allowed', tr(`host code reads ${devName(o.array)}[0]: device memory is only accessible to kernels`, `Mã host đọc ${devName(o.array)}[0]. Chỉ kernel được truy cập bộ nhớ thiết bị`), env);
       else if (env === 'hip')
-        note(w, step, 'slow-zero-copy', `host code reads ${devName(o.array)}[0]: AMD documents this as slow "zero copy" access`, env);
+        note(w, step, 'slow-zero-copy', tr(`host code reads ${devName(o.array)}[0]: AMD documents this as slow "zero copy" access`, `Mã host đọc ${devName(o.array)}[0]. AMD mô tả đây là truy cập zero copy có tốc độ thấp`), env);
       w.says = env === 'emu'
-        ? 'Host code reads through a device pointer. In the emulator host and device share one address space, so the read works and nothing reports it.'
+        ? tr('Host code reads through a device pointer. In the emulator host and device share one address space, so the read works and nothing reports it.', 'Mã host đọc qua con trỏ thiết bị. Hai phía dùng chung không gian địa chỉ trong trình giả lập nên đọc được và không có báo lỗi.')
         : env === 'hip'
-          ? 'Host code reads through a device pointer. AMD documents host access to hipMalloc memory as slow "zero copy" access, dependent on configuration.'
-          : 'Host code reads through a device pointer. CUDA does not allow it and does not document what happens.';
+          ? tr('Host code reads through a device pointer. AMD documents host access to hipMalloc memory as slow "zero copy" access, dependent on configuration.', 'Mã host đọc qua con trỏ thiết bị. AMD mô tả truy cập host tới bộ nhớ hipMalloc là zero copy tốc độ thấp, tùy cấu hình.')
+          : tr('Host code reads through a device pointer. CUDA does not allow it and does not document what happens.', 'Mã host đọc qua con trỏ thiết bị. CUDA không cho phép và tài liệu không nêu điều xảy ra sau đó.');
       return;
     }
   }
@@ -549,34 +553,34 @@ function pointersOf(w: Work, p: Program): PointerVar[] {
   return out;
 }
 
-function hostReadOf(w: Work, p: Program): HostRead {
+function hostReadOf(w: Work, p: Program, tr: OffloadText): HostRead {
   if (p.memory === 'separate') {
     const values = w.host!.C.slice();
     if (w.finding?.kind === 'undefined-per-docs')
-      return { status: 'stale', values, why: 'A call with undefined behaviour was handed C_h. Nothing about its contents is known after that.' };
+      return { status: 'stale', values, why: tr('A call with undefined behaviour was handed C_h. Nothing about its contents is known after that.', 'C_h đã được truyền vào một lời gọi có hành vi không xác định. Không thể suy ra nội dung của nó sau đó.') };
     if (w.copiedBack === 'no')
       return {
         status: 'impossible', values,
         why: w.device.C
-          ? 'The sums are, or will be, in device memory, and host code cannot read device memory. C_h still holds what the caller left there.'
-          : 'There is no result anywhere yet. C_h holds what the caller left there.',
+          ? tr('The sums are, or will be, in device memory, and host code cannot read device memory. C_h still holds what the caller left there.', 'Tổng nằm hoặc sẽ nằm trong bộ nhớ thiết bị, nơi host không thể đọc. C_h vẫn giữ giá trị bên gọi đặt vào.')
+          : tr('There is no result anywhere yet. C_h holds what the caller left there.', 'Chưa có kết quả. C_h vẫn giữ giá trị bên gọi đặt vào.'),
       };
     if (w.copiedBack === 'yes' && !values.includes('undetermined'))
-      return { status: 'valid', values, why: 'The copy back waited for the kernel and then brought every element across.' };
+      return { status: 'valid', values, why: tr('The copy back waited for the kernel and then brought every element across.', 'Lời gọi chép về đã đợi kernel rồi sao chép mọi phần tử.') };
     return {
       status: 'stale', values,
-      why: w.copiedBack === 'in part' ? 'Only part of the result was copied back.' : 'C_h was filled, but not with the finished result.',
+      why: w.copiedBack === 'in part' ? tr('Only part of the result was copied back.', 'Chỉ một phần kết quả được chép về.') : tr('C_h was filled, but not with the finished result.', 'C_h đã được ghi nhưng chưa chứa kết quả hoàn chỉnh.'),
     };
   }
   const C = w.device.C;
-  if (!C) return { status: 'impossible', values: null, why: 'The result buffer does not exist yet.' };
+  if (!C) return { status: 'impossible', values: null, why: tr('The result buffer does not exist yet.', 'Buffer kết quả chưa tồn tại.') };
   const values = C.cells.slice();
-  if (w.kernel === 'done') return { status: 'valid', values, why: 'The host waited for the command buffer, so the contents are the result.' };
+  if (w.kernel === 'done') return { status: 'valid', values, why: tr('The host waited for the command buffer, so the contents are the result.', 'Host đã chờ command buffer, nên nội dung hiện tại là kết quả.') };
   return {
     status: 'stale', values,
     why: w.kernel === 'issued'
-      ? 'The read works, because the memory is shared. But the GPU may not have started, or may be half way through: these may be zeros, sums, or a mix.'
-      : 'The read works, because the memory is shared. Nothing has been sent to the GPU, so these are the zeros the buffer was created with.',
+      ? tr('The read works, because the memory is shared. But the GPU may not have started, or may be half way through: these may be zeros, sums, or a mix.', 'Có thể đọc vì bộ nhớ dùng chung. GPU có thể chưa chạy hoặc đang ghi dở, nên vùng nhớ có thể chứa số 0, tổng, hoặc cả hai.')
+      : tr('The read works, because the memory is shared. Nothing has been sent to the GPU, so these are the zeros the buffer was created with.', 'Có thể đọc vì bộ nhớ dùng chung. Chưa có công việc gửi tới GPU nên vẫn thấy các số 0 lúc tạo buffer.'),
   };
 }
 
@@ -585,7 +589,7 @@ function hostReadOf(w: Work, p: Program): HostRead {
  * the program's own backend as documented (the default), or the course emulator
  * ('emu', CUDA-family programs only).
  */
-export function run(p: Program, upTo: number = p.calls.length, env: Env = p.backend): State {
+export function run(p: Program, upTo: number = p.calls.length, env: Env = p.backend, tr: OffloadText = (english) => english): State {
   const { A, B } = inputs(p.n);
   const callerOwnsArrays = !(p.backend === 'metal' && p.iface === 'buffers');
   const w: Work = {
@@ -611,13 +615,13 @@ export function run(p: Program, upTo: number = p.calls.length, env: Env = p.back
   };
   const last = Math.max(0, Math.min(upTo, p.calls.length));
   for (let i = 0; i < last && w.stoppedAt == null; i++) {
-    exec(w, p, p.calls[i], i + 1, env);
+    exec(w, p, p.calls[i], i + 1, env, tr);
     w.step = i + 1;
   }
   if (w.stoppedAt != null)
-    w.says = `AddressSanitizer stops the run here: ${w.finding!.detail}.`;
+    w.says = tr(`AddressSanitizer stops the run here: ${w.finding!.detail}.`, `AddressSanitizer dừng tại đây vì ${w.finding!.detail}.`);
   w.pointers = pointersOf(w, p);
-  w.hostRead = hostReadOf(w, p);
+  w.hostRead = hostReadOf(w, p, tr);
   const state: State & Partial<Work> = { ...w };
   delete state.tainted;
   delete state.copiedBack;

@@ -5,6 +5,8 @@ import { solutionTabStatus } from '../../components/LabKit';
 import { Bench, Beyond, Simplification, Source, Today, type Tier } from '../../components/notes';
 import { useProgress } from '../../lib/progress';
 import { benchRows, fmt, num, useReports, type Reports } from '../../lib/reports';
+import { useLanguage } from '../../lib/language';
+import { defectVi, groupVi, outcomeClassVi, outcomeSummaryVi } from './offloadVi';
 import { href } from '../../lib/router';
 import {
   CLASS_LABEL,
@@ -76,9 +78,15 @@ const MEMORY_FIELDS: [string, string][] = [
   ['hasUnifiedMemory', 'the GPU shares all of its memory with the CPU'],
   ['recommendedMaxWorkingSetSize', 'as reported by the Metal device, in bytes'],
 ];
+const memoryFieldVi: Record<string, string> = {
+  totalGlobalMem: 'dung lượng bộ nhớ toàn cục của thiết bị, tính bằng byte',
+  hasUnifiedMemory: 'GPU dùng chung toàn bộ bộ nhớ với CPU',
+  recommendedMaxWorkingSetSize: 'dung lượng làm việc khuyến nghị, tính bằng byte, do thiết bị Metal báo cáo',
+};
 const realBackends = (r: Reports) => Object.keys(r).filter((b) => b !== 'emu' && b !== 'race');
 
 function YourDeviceMemory() {
+  const { t } = useLanguage();
   const { reports, loading } = useReports();
   const rows = realBackends(reports).flatMap((b) =>
     MEMORY_FIELDS.filter(([k]) => reports[b].device[k] !== undefined).map(([k, meaning]) => {
@@ -109,8 +117,8 @@ function YourDeviceMemory() {
                 <td>{r.b}</td>
                 <td>{r.name}</td>
                 <td><code>{r.k}</code></td>
-                <td>{r.meaning}</td>
-                <td className="num">{r.value}</td>
+                <td>{t(r.meaning, memoryFieldVi[r.k] ?? r.meaning)}</td>
+                <td className="num">{t(r.value, r.value === 'yes' ? 'có' : r.value === 'no' ? 'không' : r.value)}</td>
               </tr>
             ))}
           </tbody>
@@ -245,11 +253,20 @@ function StubView({ prog, env, step, setStep, measured, status, label }: {
   status?: string;
   label: string;
 }) {
+  const { language, t: tr } = useLanguage();
+  const vi = language === 'vi';
+  const pointerVi: Record<string, string> = {
+    'host memory': 'bộ nhớ host',
+    'device memory': 'bộ nhớ thiết bị',
+    'freed device memory': 'vùng nhớ thiết bị đã giải phóng',
+    'the one shared memory': 'bộ nhớ dùng chung',
+    'nothing yet': 'chưa có địa chỉ',
+  };
   const { lines, range } = useMemo(() => listing(prog), [prog]);
   const end = useMemo(() => run(prog, prog.calls.length, env), [prog, env]);
   const total = end.stoppedAt ?? prog.calls.length;
   const at = Math.min(step, total);
-  const s = useMemo(() => run(prog, at, env), [prog, at, env]);
+  const s = useMemo(() => run(prog, at, env, tr), [prog, at, env, tr]);
   const before = useMemo(() => (at > 0 ? run(prog, at - 1, env) : null), [prog, at, env]);
   const call = at > 0 ? prog.calls[at - 1] : null;
   const shared = prog.memory === 'shared';
@@ -277,10 +294,10 @@ function StubView({ prog, env, step, setStep, measured, status, label }: {
           <span className="muted">freed: returned to the device's pool</span>
         </div>
       );
-    const short = d.cells.length < prog.n ? `${d.bytes} bytes: room for ${d.cells.length} of the ${prog.n} floats` : undefined;
+    const short = d.cells.length < prog.n ? tr(`${d.bytes} bytes: room for ${d.cells.length} of the ${prog.n} floats`, `${d.bytes} byte chỉ chứa được ${d.cells.length}/${prog.n} số float`) : undefined;
     return (
       <MemRow key={a} name={devName(a)} cells={d.cells} prev={before?.device[a]?.cells ?? null} device
-        note={short ?? (d.inFlight ? 'a kernel that writes this has been issued' : undefined)} />
+        note={short ?? (d.inFlight ? tr('a kernel that writes this has been issued', 'kernel ghi vào đây đã được đưa vào hàng đợi') : undefined)} />
     );
   };
   const hostRows = s.host
@@ -308,7 +325,7 @@ function StubView({ prog, env, step, setStep, measured, status, label }: {
               disabled={g.first > total} style={{ textAlign: 'left', lineHeight: 1.3 }}>
               <span style={{ fontSize: '0.7rem', opacity: 0.72 }}>Part {g.part}</span>
               <br />
-              {prog.backend === 'metal' && g.group === 'launch' ? 'encode and commit' : GROUP_LABEL[g.group]}
+              {prog.backend === 'metal' && g.group === 'launch' ? 'encode and commit' : tr(GROUP_LABEL[g.group], groupVi[g.group])}
               {t != null ? (
                 <>
                   <br />
@@ -331,7 +348,11 @@ function StubView({ prog, env, step, setStep, measured, status, label }: {
           <>
             {call.changed ? <b>This is a changed line. </b> : null}
             {s.says}
-            {call.note && !stopped ? <> <span className="muted">{call.note}</span></> : null}
+            {call.note && !stopped ? <> <span className="muted">{vi
+              ? prog.backend === 'hip'
+                ? 'hipFree gọi ngầm hipDeviceSynchronize() trước (facts B1).'
+                : 'cudaFree có thể đồng bộ ngầm (facts A3).'
+              : call.note}</span></> : null}
             {findingHere ? (
               <>
                 <br />
@@ -391,7 +412,7 @@ function StubView({ prog, env, step, setStep, measured, status, label }: {
               {s.pointers.map((ptr) => (
                 <tr key={ptr.name} data-pointer={ptr.name}>
                   <td><code>{ptr.name}</code></td>
-                  <td>{ptr.refersTo}</td>
+                  <td>{tr(ptr.refersTo, pointerVi[ptr.refersTo] ?? ptr.refersTo)}</td>
                   <td>{ptr.hostMayUse ? 'yes' : 'no'}</td>
                 </tr>
               ))}
@@ -448,6 +469,9 @@ const STATUS: Record<Backend, string> = {
 };
 
 function RoundTripStepper() {
+  const { t } = useLanguage();
+  const backendLabel = (b: Backend) => b === 'metal' ? t(BACKEND_LABEL[b], 'Metal, buffer dùng chung') : BACKEND_LABEL[b];
+  const interfaceLabel = (f: Iface) => t(IFACE_LABEL[f], f === 'buffers' ? 'tạo dữ liệu ngay trong buffer' : 'bên gọi truyền mảng host');
   const { progress } = useProgress();
   const { reports } = useReports();
   const predicted = progress.answers[P_COPIES] != null;
@@ -473,21 +497,21 @@ function RoundTripStepper() {
         <span className="seg" role="group" aria-label="Backend">
           {(['cuda', 'hip', 'metal'] as Backend[]).map((b) => (
             <button key={b} aria-pressed={backend === b} disabled={b === 'metal' && !predicted} onClick={() => setBackend(b)}>
-              {BACKEND_LABEL[b]}
+              {backendLabel(b)}
             </button>
           ))}
         </span>
         {backend === 'metal' ? (
           <span className="seg" role="group" aria-label="Interface">
             {(['buffers', 'host-arrays'] as Iface[]).map((f) => (
-              <button key={f} aria-pressed={iface === f} onClick={() => setIface(f)}>{IFACE_LABEL[f]}</button>
+              <button key={f} aria-pressed={iface === f} onClick={() => setIface(f)}>{interfaceLabel(f)}</button>
             ))}
           </span>
         ) : null}
         {!predicted ? <span className="muted" data-out="locked">Metal unlocks when you have committed the prediction above.</span> : null}
       </div>
       <StubView prog={prog} env={backend} step={step} setStep={setStep} measured={measured} status={STATUS[backend]}
-        label={backend === 'metal' ? `Metal stub, ${IFACE_LABEL[iface]}` : `${BACKEND_LABEL[backend]} stub`} />
+        label={backend === 'metal' ? `Metal stub, ${interfaceLabel(iface)}` : t(`${BACKEND_LABEL[backend]} stub`, `Hàm bao ${BACKEND_LABEL[backend]}`)} />
     </Bench>
   );
 }
@@ -529,6 +553,13 @@ function emuSeen(o: Outcome): string {
 }
 
 function BreakTheStub() {
+  const { t } = useLanguage();
+  const envVi: Record<Env, string> = {
+    cuda: 'Thiết bị CUDA theo tài liệu NVIDIA',
+    hip: 'Thiết bị HIP theo tài liệu AMD',
+    emu: 'Trình giả lập của khóa học',
+    metal: 'Metal, dữ liệu trong buffer dùng chung',
+  };
   const [order, setOrder] = useState<Defect[]>(() => shuffled(DEFECTS).slice(0, HUNT_ROUNDS));
   const [round, setRound] = useState(0);
   const [pick, setPick] = useState<Defect | null>(null);
@@ -597,14 +628,14 @@ function BreakTheStub() {
             <span style={{ width: '13.5rem' }}>C_h in the course emulator</span>
             <span className="chip fail">
               AddressSanitizer stops the run: {emu.finding!.kind === 'use-after-free' ? 'use after free' : 'out of bounds'} in{' '}
-              {stopCall!.group === 'launch' ? 'the kernel' : `a ${stopCall!.group}`}
+              {stopCall!.group === 'launch' ? 'the kernel' : t(`a ${stopCall!.group}`, `lời gọi ${groupVi[stopCall!.group]}`)}
             </span>
           </div>
         ) : (
           <ResultRow label="C_h in the course emulator" cells={emu.result} />
         )}
         <p style={{ margin: '0.5rem 0 0' }}>
-          Error codes returned by the calls: <b>{dev.errorCode ?? 'none'}</b>.
+          Error codes returned by the calls: <b>{dev.errorCode ?? t('none', 'không có')}</b>.
         </p>
       </div>
       <div className="q" style={{ margin: 0, border: 0, padding: 0 }}>
@@ -612,7 +643,7 @@ function BreakTheStub() {
           {DEFECTS.map((d) => (
             <label key={d} data-defect={d} className={checked ? (d === defect ? 'right' : d === pick ? 'wrong' : '') : ''}>
               <input type="radio" name={`hunt-${round}`} checked={pick === d} disabled={checked} onChange={() => setPick(d)} />
-              <span>{DEFECT_LABEL[d]}</span>
+              <span>{t(DEFECT_LABEL[d], defectVi[d])}</span>
             </label>
           ))}
         </div>
@@ -632,7 +663,7 @@ function BreakTheStub() {
         {checked ? (
           <div className={'verdict ' + (right ? 'right' : 'wrong')} data-out="hunt-verdict" data-right={right ? 'yes' : 'no'}>
             <p>
-              <b>{right ? 'Correct.' : 'Not this one.'}</b> {DEFECT_LABEL[defect]}
+              <b>{right ? 'Correct.' : 'Not this one.'}</b> {t(DEFECT_LABEL[defect], defectVi[defect])}
             </p>
             <table className="data" style={{ margin: '0.4rem 0 0.6rem', background: 'transparent' }}>
               <thead>
@@ -641,13 +672,13 @@ function BreakTheStub() {
               <tbody>
                 {all.map((o) => (
                   <tr key={o.env} data-env={o.env} data-class={o.klass}>
-                    <td>{ENV_LABEL[o.env]}</td>
+                    <td>{t(ENV_LABEL[o.env], envVi[o.env])}</td>
                     <td>
-                      {CLASS_LABEL[o.klass]}
-                      {o.klass === 'wrong-values' ? ` (${o.wrong.length === N ? 'every element' : 'elements ' + o.wrong.join(', ')})` : ''}
+                      {t(CLASS_LABEL[o.klass], outcomeClassVi[o.klass])}
+                      {o.klass === 'wrong-values' ? ` (${o.wrong.length === N ? t('every element', 'mọi phần tử') : t('elements ', 'các phần tử ') + o.wrong.join(', ')})` : ''}
                     </td>
                     <td>
-                      {o.summary} <span className="muted">(facts {o.facts})</span>
+                      {t(o.summary, outcomeSummaryVi(o))} <span className="muted">(facts {o.facts})</span>
                     </td>
                   </tr>
                 ))}
